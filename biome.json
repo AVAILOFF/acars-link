@@ -1,0 +1,99 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": ["**", "!**/dist", "!**/coverage", "!tools/extract-asar-sources.js"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "linter": {
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["packages/core/src/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["node:*"],
+                    "message": "packages/core is pure TS: no Node API (CLAUDE.md, invariant 3)."
+                  },
+                  {
+                    "group": [
+                      "electron",
+                      "electron/*",
+                      "react",
+                      "react/*",
+                      "react-dom",
+                      "react-dom/*"
+                    ],
+                    "message": "packages/core is pure TS: no Electron/React/DOM (CLAUDE.md, invariant 3)."
+                  }
+                ],
+                "paths": {
+                  "fs": "No Node API in core (invariant 3).",
+                  "path": "No Node API in core (invariant 3).",
+                  "os": "No Node API in core (invariant 3).",
+                  "crypto": "No Node API in core (invariant 3). Use the injected Rng.",
+                  "http": "No network in core (invariant 3).",
+                  "https": "No network in core (invariant 3).",
+                  "net": "No network in core (invariant 3).",
+                  "child_process": "No Node API in core (invariant 3).",
+                  "timers": "No timers in core: use Clock + scheduler (invariants 4, 5)."
+                }
+              }
+            },
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "setTimeout": "No timers in core: use Clock + scheduler (invariants 4, 5).",
+                  "setInterval": "No timers in core: use Clock + scheduler (invariants 4, 5).",
+                  "setImmediate": "No timers in core: use Clock + scheduler (invariants 4, 5).",
+                  "queueMicrotask": "No timers in core: use Clock + scheduler (invariants 4, 5).",
+                  "fetch": "No network in core (invariant 3).",
+                  "XMLHttpRequest": "No network in core (invariant 3).",
+                  "WebSocket": "No network in core (invariant 3).",
+                  "process": "No Node API in core (invariant 3).",
+                  "require": "No Node API in core (invariant 3).",
+                  "window": "No DOM in core (invariant 3).",
+                  "document": "No DOM in core (invariant 3).",
+                  "localStorage": "No DOM in core (invariant 3).",
+                  "performance": "Time comes from the injected Clock (invariant 4).",
+                  "crypto": "Randomness comes from the injected Rng (invariant 4)."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

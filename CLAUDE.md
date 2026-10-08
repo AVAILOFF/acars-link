@@ -30,7 +30,25 @@
 
 - Одна сессия = одна карточка `Txx`. Найденное за рамками — в раздел «Замечания» отчёта.
 - Ветка на задачу: `task/Txx-short-name`. Коммит в конце после зелёных проверок. Push/merge/релиз — только по просьбе пользователя.
-- Перед «готово»: typecheck + lint + test (команды впиши сюда, когда появится репозиторий).
+- Перед «готово»: `pnpm check` (= `pnpm typecheck && pnpm lint && pnpm test`).
+
+## Команды
+
+Node ≥ 24, pnpm 12. Стек: TypeScript 7 (strict), Biome 2, Vitest 5.
+
+```
+pnpm install
+pnpm check            # typecheck + lint + test — перед «готово» и перед коммитом
+pnpm typecheck        # tsc по всем пакетам: src (без Node/DOM типов) и тесты отдельно
+pnpm lint             # biome check .
+pnpm lint:fix         # biome check --write .
+pnpm test             # vitest run (проекты packages/*)
+pnpm build            # tsc → packages/*/dist
+pnpm -F @acars/core test   # тесты одного пакета
+```
+
+Чистота `packages/core` (инварианты 3–4) проверяется трижды: tsconfig без Node/DOM типов, правила Biome в `biome.json` (overrides), тест `packages/core/test/purity.test.ts`.
+(Обновляй этот раздел, если меняешь скрипты.)
 - SimConnect, Hoppie, SimBrief, MSFS SDK меняются. Если не уверен в имени SimVar, единицах, параметре API — открой официальную документацию. Не угадывай. Места, помеченные в документах `[ПРОВЕРИТЬ]`, проверь перед использованием.
 - Ты не видишь симулятор и самолёты. Всё, что требует MSFS/конкретного аддона, оформляй как шаг «Проверка человеком» с точной инструкцией (самолёт, фаза, что должно появиться на экране).
 
