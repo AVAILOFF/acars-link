@@ -3,6 +3,7 @@ import { FlightView } from './FlightView.js';
 import { errorKey } from './i18n.js';
 import { ScenariosView } from './ScenariosView.js';
 import { SettingsView } from './SettingsView.js';
+import { useMessageSound } from './sound.js';
 import { type Tab, useStore } from './store.js';
 import { useT } from './ui.js';
 
@@ -14,6 +15,7 @@ export function App() {
   const setTab = useStore((s) => s.setTab);
   const ready = useStore((s) => s.app !== null && s.settings !== null);
   const language = useStore((s) => s.settings?.language);
+  useMessageSound();
 
   useEffect(() => {
     let off: (() => void) | undefined;

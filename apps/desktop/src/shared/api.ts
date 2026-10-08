@@ -26,6 +26,8 @@ export interface Settings {
    * messages use the OFP only and nothing but SimBrief and Hoppie is contacted.
    */
   readonly liveData: boolean;
+  /** Play a sound when a new airline message appears in the feed. Off by default. */
+  readonly soundOnMessage: boolean;
   /** Scenario id → enabled; absent ids use `enabled_by_default`. */
   readonly scenarios: Readonly<Record<string, boolean>>;
   /** Irregular scenario id → chance in percent (0–100); absent ids use the YAML `probability`. */

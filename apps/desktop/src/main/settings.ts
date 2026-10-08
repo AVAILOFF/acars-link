@@ -24,6 +24,7 @@ export function defaultSettings(locale: string): Settings {
     bridgePort: DEFAULT_BRIDGE_PORT,
     recordFlights: true,
     liveData: true,
+    soundOnMessage: false,
     scenarios: {},
     chances: {},
   };
@@ -62,6 +63,7 @@ export function validatePatch(patch: unknown): SettingsPatch {
         break;
       case 'recordFlights':
       case 'liveData':
+      case 'soundOnMessage':
         if (typeof value !== 'boolean') throw bad(key, 'true or false');
         out[key] = value;
         break;
@@ -84,6 +86,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'bridgePort',
     'recordFlights',
     'liveData',
+    'soundOnMessage',
   ] as const;
   for (const key of keys) {
     if (!(key in r)) continue;

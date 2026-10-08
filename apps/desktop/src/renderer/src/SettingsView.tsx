@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react';
 import type { Language, TransportChoice } from '../../shared/api.js';
+import { playMessageSound } from './sound.js';
 import { useStore } from './store.js';
 import { useT } from './ui.js';
 
@@ -200,6 +201,23 @@ function NetworkForm() {
           {t('set.liveData')}
         </label>
         <p className="hint">{t('set.liveDataHint')}</p>
+      </div>
+      <div className="field">
+        <div className="row">
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={settings.soundOnMessage}
+              disabled={busy !== null}
+              onChange={(e) => void update({ soundOnMessage: e.currentTarget.checked })}
+            />
+            {t('set.sound')}
+          </label>
+          <button type="button" className="btn ghost" onClick={() => playMessageSound()}>
+            {t('set.soundTest')}
+          </button>
+        </div>
+        <p className="hint">{t('set.soundHint')}</p>
       </div>
       <div className="field">
         <div className="row">

@@ -141,6 +141,9 @@ const en = {
   'set.memoryHint':
     'What irregular events leave for the next flights: an open MEL item, a banned passenger, crew rest after discretion.',
   'set.clearMemory': 'Clear',
+  'set.sound': 'Sound on new message',
+  'set.soundTest': 'Play',
+  'set.soundHint': 'A short sound when a message from the airline appears in the feed.',
   'set.liveData': 'Live data',
   'set.liveDataHint':
     'Free sources, no keys: METAR/TAF (aviationweather.gov), VATSIM ATC, NASA EONET events, gates from OpenStreetMap. Off: messages use the OFP only.',
@@ -316,6 +319,9 @@ const ru: Record<MessageKey, string> = {
   'set.memoryHint':
     'Что нестандартные события оставляют следующим рейсам: открытый пункт MEL, пассажир в чёрном списке, отдых экипажа после продления.',
   'set.clearMemory': 'Очистить',
+  'set.sound': 'Звук при новом сообщении',
+  'set.soundTest': 'Прослушать',
+  'set.soundHint': 'Короткий звук, когда в ленте появляется сообщение от авиакомпании.',
   'set.liveData': 'Живые данные',
   'set.liveDataHint':
     'Бесплатные источники без ключей: METAR/TAF (aviationweather.gov), диспетчеры VATSIM, события NASA EONET, гейты из OpenStreetMap. Выключено — сообщения только по OFP.',

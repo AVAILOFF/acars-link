@@ -58,6 +58,7 @@ describe('settings', () => {
       bridgePort: 47830,
       recordFlights: true,
       liveData: true,
+      soundOnMessage: false,
       scenarios: {},
       chances: {},
     });
