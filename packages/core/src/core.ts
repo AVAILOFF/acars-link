@@ -14,12 +14,13 @@ import {
   type ScenarioEngineState,
   type ScenarioEvent,
 } from './scenario/engine.js';
+import type { PilotMessage } from './scenario/pilot.js';
 import type { TelemetrySnapshot } from './telemetry/types.js';
 
 /**
  * The core contract of docs/03 "Ядро: контракт": `tick(input) → output`, state inside,
- * serializable. Wires the phase machine to the scenario engine. Inbound pilot messages
- * (`inbound`) arrive with T12.
+ * serializable. Wires the phase machine to the scenario engine. Pilot telexes (`inbound`) go
+ * to the engine (T12).
  */
 
 export interface CoreInput {
@@ -27,6 +28,8 @@ export interface CoreInput {
   readonly now: number;
   /** Latest snapshot, or null when none arrived since the last tick. */
   readonly telemetry: TelemetrySnapshot | null;
+  /** Messages from the aircraft since the last tick, oldest first (T12). */
+  readonly inbound?: readonly PilotMessage[];
 }
 
 export interface CoreOutput {
@@ -105,13 +108,21 @@ export class AcarsCore {
   }
 
   tick(input: CoreInput): CoreOutput {
-    return this.run(input.now, [
-      ...(input.telemetry === null ? [] : this.fsm.push(input.telemetry, input.now)),
-      ...this.fsm.tick(input.now),
-    ]);
+    return this.run(
+      input.now,
+      [
+        ...(input.telemetry === null ? [] : this.fsm.push(input.telemetry, input.now)),
+        ...this.fsm.tick(input.now),
+      ],
+      input.inbound ?? [],
+    );
   }
 
-  private run(now: number, phaseEvents: readonly PhaseEvent[]): CoreOutput {
+  private run(
+    now: number,
+    phaseEvents: readonly PhaseEvent[],
+    inbound: readonly PilotMessage[] = [],
+  ): CoreOutput {
     const out = this.engine.tick({
       now,
       phase: this.fsm.phase,
@@ -120,6 +131,7 @@ export class AcarsCore {
       oooi: this.fsm.oooi,
       flightTimeMs: this.fsm.flightTimeMs,
       telemetryLost: this.fsm.telemetryLost,
+      inbound,
     });
     return {
       outbound: out.outbound,

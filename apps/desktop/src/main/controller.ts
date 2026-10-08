@@ -57,6 +57,8 @@ export interface AppControllerOptions {
 
 /** Hoppie logon codes: printable ASCII without spaces (they go into a URL/form field). */
 const LOGON_RE = /^[\x21-\x7e]{4,64}$/;
+/** Longer than any MCDU free text; the core reads words of A–Z0–9 only. */
+const MAX_PILOT_TEXT = 200;
 
 export class AppController {
   private readonly feed = new Feed();
@@ -260,6 +262,19 @@ export class AppController {
     if (to !== 'TURNAROUND' && to !== 'DONE') throw new AppFailure('invalid_input', 'end flight');
     if (s.phase !== 'ON_BLOCK') throw new AppFailure('bad_state', `phase ${s.phase}`);
     s.endFlight(to, this.o.now());
+    this.o.onChange();
+    return null;
+  }
+
+  /** A pilot telex typed in the app (T12); the core reads it on the next tick. */
+  async sendPilotMessage(input: unknown): Promise<null> {
+    const s = this.session;
+    if (s === null) throw new AppFailure('bad_state', 'no flight running');
+    const text = typeof input === 'string' ? input.trim() : '';
+    if (text === '' || text.length > MAX_PILOT_TEXT) {
+      throw new AppFailure('invalid_input', `pilot message: 1..${MAX_PILOT_TEXT} characters`);
+    }
+    s.pilotMessage(text, this.o.now());
     this.o.onChange();
     return null;
   }

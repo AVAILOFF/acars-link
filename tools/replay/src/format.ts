@@ -2,6 +2,7 @@ import {
   type DisplayProfile,
   isTelemetrySnapshot,
   type Ofp,
+  type PilotMessage,
   type TelemetrySnapshot,
 } from '@acars/core';
 
@@ -11,7 +12,7 @@ import {
  * ```
  * {"type":"header","format":"acars-sim-recording","v":1,…,"ofp":{…}}   first line
  * {"type":"start","now":…}                                             user started the flight
- * {"type":"tick","now":…,"telemetry":{…}|null}                         one core tick
+ * {"type":"tick","now":…,"telemetry":{…}|null[,"inbound":[…]]}         one core tick (+ pilot telexes, T12)
  * {"type":"end","now":…,"to":"DONE"}                                   user closed the flight
  * {"type":"out","t":…,"scenarioId":…,"from":…,"to":…,"text":…}        telex the core produced live
  * {"type":"stop","now":…}                                              flight stopped
@@ -56,6 +57,8 @@ export type RecordingEvent =
       readonly type: 'tick';
       readonly now: number;
       readonly telemetry: TelemetrySnapshot | null;
+      /** Messages from the aircraft passed with this tick (T12); absent = none. */
+      readonly inbound?: readonly PilotMessage[];
     }
   | { readonly type: 'end'; readonly now: number; readonly to: 'TURNAROUND' | 'DONE' }
   | {
@@ -205,6 +208,14 @@ function checkEvent(x: unknown, no: number): RecordingEvent {
       if (!isNum(x['now'])) throw bad('now');
       if (!(x['telemetry'] === null || isTelemetrySnapshot(x['telemetry']))) {
         throw bad('telemetry is not a TelemetrySnapshot v1');
+      }
+      if (x['inbound'] !== undefined) {
+        const ok =
+          Array.isArray(x['inbound']) &&
+          x['inbound'].every(
+            (m: unknown) => isObj(m) && isStr(m['from']) && isStr(m['type']) && isStr(m['text']),
+          );
+        if (!ok) throw bad('inbound must be [{from, type, text}]');
       }
       return x as unknown as RecordingEvent;
     case 'end':

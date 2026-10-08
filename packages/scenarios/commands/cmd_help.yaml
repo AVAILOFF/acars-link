@@ -1,0 +1,20 @@
+# HELP: the list of pilot commands (docs/05 "Входящие команды пилота").
+id: cmd_help
+version: 1
+category: ops
+title: "Pilot command: HELP"
+enabled_by_default: true
+trigger:
+  on: command
+  command: HELP
+steps:
+  - send:
+      header: OPS COMMANDS
+      body: |
+        REQ WX ICAO
+        REQ GATE
+        REQ LOADSHEET
+        DELAY MIN REASON
+        DIVERT ICAO
+        ETA
+      footer: SEND AS FREE TEXT TELEX

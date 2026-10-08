@@ -1,13 +1,21 @@
-import { DISTANCE_TARGETS, FLIGHT_PHASES, TIME_REFS, TRIGGER_EVENTS } from '@acars/core';
+import {
+  DISTANCE_TARGETS,
+  FLIGHT_PHASES,
+  PILOT_COMMANDS,
+  TIME_REFS,
+  TRIGGER_EVENTS,
+} from '@acars/core';
 
 /**
- * JSON Schema (2020-12) of a scenario file, v0 (docs/05-scenario-engine.md, T06).
- * Structure only; semantics (expressions, templates, variables) are checked by
- * `compileScenario` in `@acars/core`. `reply`, `branch`, `set` are not in v0.
+ * JSON Schema (2020-12) of a scenario file (docs/05-scenario-engine.md; T06, T12: `wait: reply`,
+ * `branch`, `resend`, `on: command`). Structure only; semantics (expressions, templates,
+ * variables, branch keys) are checked by `compileScenario` in `@acars/core`. `set` is T14.
  */
 
 const phase = { enum: [...FLIGHT_PHASES] } as const;
 const text = { type: 'string', minLength: 1 } as const;
+const id = { type: 'string', pattern: '^[a-z][a-z0-9_]*$' } as const;
+const option = { type: 'string', pattern: '^[A-Z][A-Z0-9]*$' } as const;
 
 export const SCENARIO_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -35,6 +43,11 @@ export const SCENARIO_SCHEMA = {
           additionalProperties: false,
           required: ['on', 'event'],
           properties: { on: { const: 'event' }, event: { enum: [...TRIGGER_EVENTS] } },
+        },
+        {
+          additionalProperties: false,
+          required: ['on', 'command'],
+          properties: { on: { const: 'command' }, command: { enum: [...PILOT_COMMANDS] } },
         },
         {
           additionalProperties: false,
@@ -73,7 +86,7 @@ export const SCENARIO_SCHEMA = {
     probability: { type: 'number', minimum: 0, maximum: 1 },
     cooldown: {
       oneOf: [
-        { enum: ['per_flight', 'per_session'] },
+        { enum: ['per_flight', 'per_session', 'none'] },
         {
           type: 'object',
           additionalProperties: false,
@@ -82,8 +95,11 @@ export const SCENARIO_SCHEMA = {
         },
       ],
     },
-    excludes: { type: 'array', items: { type: 'string', pattern: '^[a-z][a-z0-9_]*$' } },
+    excludes: { type: 'array', items: id },
     priority: { type: 'integer' },
+    steps: { $ref: '#/$defs/steps' },
+  },
+  $defs: {
     steps: {
       type: 'array',
       minItems: 1,
@@ -121,7 +137,50 @@ export const SCENARIO_SCHEMA = {
                     required: ['phase'],
                     properties: { phase },
                   },
+                  {
+                    type: 'object',
+                    additionalProperties: false,
+                    required: ['reply'],
+                    properties: {
+                      reply: {
+                        type: 'object',
+                        additionalProperties: false,
+                        required: ['options', 'timeout_min', 'default'],
+                        properties: {
+                          options: { type: 'array', minItems: 1, uniqueItems: true, items: option },
+                          timeout_min: { type: 'number', exclusiveMinimum: 0 },
+                          default: option,
+                        },
+                      },
+                    },
+                  },
                 ],
+              },
+            },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            required: ['branch'],
+            properties: {
+              branch: {
+                type: 'object',
+                minProperties: 1,
+                propertyNames: option,
+                additionalProperties: { $ref: '#/$defs/steps' },
+              },
+            },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            required: ['resend'],
+            properties: {
+              resend: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['of'],
+                properties: { of: { type: 'array', minItems: 1, items: id } },
               },
             },
           },

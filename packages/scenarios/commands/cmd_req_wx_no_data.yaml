@@ -1,0 +1,17 @@
+# REQ WX for an airport that is not in the OFP (no live weather before T13).
+id: cmd_req_wx_no_data
+version: 1
+category: ops
+title: "Pilot command: REQ WX, no data"
+enabled_by_default: true
+trigger:
+  on: command
+  command: REQ_WX
+conditions:
+  - "cmd.metar == null"
+steps:
+  - send:
+      header: WX {cmd.icao}
+      body: |
+        NO WX AVBL FOR {cmd.icao}
+        WX ONLY FOR ORIG DEST ALTN

@@ -48,7 +48,7 @@ pnpm -F @acars/core test   # тесты одного пакета
 pnpm desktop:dev      # Electron-приложение (apps/desktop) с HMR renderer
 pnpm desktop          # сборка apps/desktop/out и запуск
 pnpm hoppie:telex --to <АВИА> [--from OPS…] [--text …] [--listen 180]   # ручной telex в Hoppie; код — только из env HOPPIE_LOGON
-pnpm replay run <запись.jsonl> [--scenarios <yaml|папка>] [--only id,…] [--check]   # прогон записи полёта через ядро (tools/replay)
+pnpm replay run <запись.jsonl> [--scenarios <yaml|папка>] [--only id,…] [--check] [--pilot "<мин>=<текст>"]   # прогон записи через ядро (tools/replay); --pilot — сообщения пилота
 pnpm replay synth --ofp <simbrief.json> --out <файл.jsonl>   # синтетический полёт как запись; pnpm replay --help
 pnpm bridge:build     # dotnet build bridge/msfs (C# мост, .NET 8; с SimConnect: -p:MsfsSdk="C:\MSFS 2024 SDK")
 pnpm bridge:test      # dotnet test bridge/msfs — при изменениях в bridge/ тоже перед «готово»

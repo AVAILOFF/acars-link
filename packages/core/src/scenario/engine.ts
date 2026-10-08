@@ -5,11 +5,17 @@ import { FLIGHT_PHASES, type FlightPhase, type OooiKind, type PhaseEvent } from 
 import { createRng, type Rng, type RngState, rngFromState } from '../random/rng.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import type { CompiledScenario } from './compile.js';
-import { buildContext, RouteGeometry, type ScenarioContext } from './context.js';
-import type { Lookup } from './expr.js';
+import { buildContext, RouteGeometry, type RunVariable, type ScenarioContext } from './context.js';
+import type { Lookup, Value } from './expr.js';
 import { buildFlightData, type FlightData } from './ops-data.js';
+import {
+  normalizePilotText,
+  type ParsedCommand,
+  type PilotMessage,
+  parseCommand,
+} from './pilot.js';
 import { TemplateError } from './template.js';
-import type { TimeRef } from './types.js';
+import type { PilotCommand, TimeRef } from './types.js';
 
 /**
  * Scenario runtime v0 (docs/05 "Исполнение").
@@ -28,6 +34,15 @@ import type { TimeRef } from './types.js';
  * the difference (rounded up to 5 min): `sched_*`/`est_*` time triggers, `ofp.est_*`, the
  * CTOT and the next leg move by the delay, so the pre-departure documents come in their
  * order and spacing instead of all at once. `ofp.sched_*` (STD/STA) stay as published.
+ *
+ * Two-way (T12, docs/05 "Исполнение" 5): pilot telexes (`inbound`) are handled first on a
+ * tick. A message whose first word is an option of a waiting `wait: reply` answers it (the
+ * oldest run first); anything else is parsed as a pilot command, which the engine applies
+ * (`DELAY` adds to the delay, `DIVERT` records the airport) and which starts the scenarios
+ * with `on: command` for it. Every command gets an answer: unknown or impossible ones get the
+ * engine's `UNABLE …`, known ones without an enabled scenario a `RCVD …`. A reply times out
+ * after its minutes of flight time (as `wait.minutes`) with the default answer. While
+ * telemetry is lost, pilot messages wait in the state.
  */
 
 export interface OutboundMessage {
@@ -41,7 +56,39 @@ export interface OutboundMessage {
   readonly t: number;
 }
 
+/**
+ * How a pilot telex was handled: the answer to a waiting `wait: reply` (`scenarioId`), a
+ * command (`command`), a known command that cannot be done (`invalid`, `detail` = why),
+ * not understood (`unknown`), or not from the pilot / not a telex / empty (`ignored`).
+ */
+export type PilotMessageResult = 'reply' | 'command' | 'invalid' | 'unknown' | 'ignored';
+
 export type ScenarioEvent =
+  | {
+      readonly type: 'PILOT_MESSAGE';
+      readonly t: number;
+      /** Normalized text (`normalizePilotText`). */
+      readonly text: string;
+      readonly result: PilotMessageResult;
+      readonly scenarioId: string | null;
+      readonly command: PilotCommand | null;
+      readonly detail: string | null;
+    }
+  | {
+      readonly type: 'REPLY_EXPECTED';
+      readonly id: string;
+      readonly t: number;
+      readonly options: readonly string[];
+      /** Flight time until the default answer applies. */
+      readonly timeoutMs: number;
+    }
+  | {
+      readonly type: 'REPLY_TIMEOUT';
+      readonly id: string;
+      readonly t: number;
+      /** The default answer taken. */
+      readonly option: string;
+    }
   | { readonly type: 'SCENARIO_STARTED'; readonly id: string; readonly t: number }
   | {
       readonly type: 'SCENARIO_SKIPPED';
@@ -66,6 +113,8 @@ export interface EngineTickInput {
   readonly oooi: Readonly<Record<OooiKind, number | null>>;
   readonly flightTimeMs: number;
   readonly telemetryLost: boolean;
+  /** Messages from the aircraft since the last tick, oldest first. */
+  readonly inbound?: readonly PilotMessage[];
 }
 
 export interface EngineTickOutput {
@@ -96,10 +145,20 @@ interface ScenarioState {
 
 interface Run {
   readonly id: string;
+  /** Index into the compiled steps (a flat program, see `CompiledStep`). */
   step: number;
   /** Flight time to resume at (`wait.minutes`). */
   untilFlightMs: number | null;
   untilPhase: FlightPhase | null;
+  /** Waiting for a pilot answer (`wait: reply`). */
+  reply: { options: string[]; default: string; untilFlightMs: number } | null;
+  /** `reply.*` and `cmd.*` of this run. */
+  vars: Partial<Record<RunVariable, Value>>;
+}
+
+interface Sent {
+  readonly t: number;
+  readonly message: FormattedMessage;
 }
 
 export interface ScenarioEngineState {
@@ -107,9 +166,18 @@ export interface ScenarioEngineState {
   readonly scenarios: Readonly<Record<string, Readonly<ScenarioState>>>;
   readonly runs: readonly Readonly<Run>[];
   readonly sessionFired: readonly string[];
-  /** Late-start delay, ms; null until the first tick. */
+  /** Late-start delay plus pilot `DELAY`s, ms; null until the first tick. */
   readonly delayMs: number | null;
+  /** Last message of each scenario in this flight (`resend`, `flight.sent`). */
+  readonly sent: Readonly<Record<string, Sent>>;
+  /** Diversion airport from the pilot's `DIVERT`. */
+  readonly divert: string | null;
+  /** Pilot messages that arrived while telemetry was lost; handled when it is back. */
+  readonly inbox: readonly PilotMessage[];
 }
+
+/** Scenario id of the engine's own answers (unknown command, nobody to handle it). */
+export const OPS_REPLY_ID = '#ops';
 
 export const DEFAULT_STATION = 'OPS{flight}';
 export const DEFAULT_LATE_START_LEAD_MIN = 35;
@@ -163,7 +231,13 @@ export class ScenarioEngine {
     runs: Run[];
     sessionFired: string[];
     delayMs: number | null;
+    sent: Record<string, Sent>;
+    divert: string | null;
+    inbox: PilotMessage[];
   };
+  /** Context of the current tick; rebuilt when a command or a send changes it. */
+  private ctx: ScenarioContext | null = null;
+  private tickInput: EngineTickInput | null = null;
 
   constructor(options: ScenarioEngineOptions) {
     this.ofp = options.ofp;
@@ -195,6 +269,9 @@ export class ScenarioEngine {
       runs: [],
       sessionFired: [...(options.sessionFired ?? [])],
       delayMs: null,
+      sent: {},
+      divert: null,
+      inbox: [],
     };
   }
 
@@ -209,8 +286,14 @@ export class ScenarioEngine {
       (e.st.scenarios as Record<string, ScenarioState>)[id] = { ...s };
       e.rngs.set(id, rngFromState(s.rng));
     }
-    e.st.runs = copy.runs.filter((r) => e.byId.has(r.id)).map((r) => ({ ...r }));
+    // Fields added with T12 are absent in older states: defaults.
+    e.st.runs = copy.runs
+      .filter((r) => e.byId.has(r.id))
+      .map((r) => ({ ...r, reply: r.reply ?? null, vars: r.vars ?? {} }));
     e.st.sessionFired = [...copy.sessionFired];
+    e.st.sent = { ...(copy.sent ?? {}) };
+    e.st.divert = copy.divert ?? null;
+    e.st.inbox = [...(copy.inbox ?? [])];
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
     e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
@@ -250,9 +333,55 @@ export class ScenarioEngine {
       const late = input.now + this.leadMs - this.ofp.times.schedOutMs;
       this.setDelay(late > 0 ? Math.ceil(late / DELAY_STEP_MS) * DELAY_STEP_MS : 0);
     }
-    if (input.telemetryLost) return { outbound, events };
+    const inbox = [...this.st.inbox, ...(input.inbound ?? [])];
+    if (input.telemetryLost) {
+      this.st.inbox = inbox;
+      return { outbound, events };
+    }
+    this.st.inbox = [];
+    this.tickInput = input;
+    this.refresh();
+    try {
+      // 0. Pilot messages: answers to waiting scenarios, then commands.
+      for (const m of inbox) this.receive(m, input, outbound, events);
 
-    const ctx = buildContext({
+      // 1. Running scenarios.
+      for (const run of [...this.st.runs]) this.advance(run, input, outbound, events);
+
+      // 2. New candidates (`on: command` scenarios start in step 0 only).
+      for (const sc of this.ordered) {
+        const s = this.st.scenarios[sc.id] as ScenarioState;
+        const active =
+          this.triggered(sc, input, this.context) && sc.conditions.every((c) => c.test(this.look));
+        const fresh = active && !s.candidate;
+        s.candidate = active;
+        if (fresh) this.start(sc, {}, input, outbound, events);
+      }
+    } finally {
+      this.ctx = null;
+      this.tickInput = null;
+    }
+    return { outbound, events };
+  }
+
+  private get context(): ScenarioContext {
+    return this.ctx as ScenarioContext;
+  }
+
+  private readonly look: Lookup = (path) => {
+    const ctx = this.context;
+    return path in ctx ? ctx[path as keyof ScenarioContext] : undefined;
+  };
+
+  /** The shared lookup with a run's `reply.*` / `cmd.*` on top. */
+  private lookFor(vars: Run['vars']): Lookup {
+    return (path) => (path in vars ? vars[path as RunVariable] : this.look(path));
+  }
+
+  /** Rebuilds the tick's context (after a delay, a diversion, a first message of a scenario). */
+  private refresh(): void {
+    const input = this.tickInput as EngineTickInput;
+    this.ctx = buildContext({
       ofp: this.ctxOfp,
       delayMs: this.st.delayMs ?? 0,
       route: this.route,
@@ -261,37 +390,200 @@ export class ScenarioEngine {
       telemetry: input.telemetry,
       oooi: input.oooi,
       data: this.data,
+      divert: this.st.divert,
+      sent: Object.keys(this.st.sent),
     });
-    const look: Lookup = (path) => (path in ctx ? ctx[path as keyof ScenarioContext] : undefined);
+  }
 
-    // 1. Running scenarios.
-    for (const run of [...this.st.runs]) this.advance(run, input, look, outbound, events);
-
-    // 2. New candidates.
-    for (const sc of this.ordered) {
-      const s = this.st.scenarios[sc.id] as ScenarioState;
-      const active = this.triggered(sc, input, ctx) && sc.conditions.every((c) => c.test(look));
-      const fresh = active && !s.candidate;
-      s.candidate = active;
-      if (!fresh) continue;
-      const skip = this.blocker(sc, s, input.now);
-      if (skip !== null) {
-        events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason: skip });
-        continue;
-      }
-      if (!(this.rngs.get(sc.id) as Rng).chance(sc.probability)) {
-        events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason: 'probability' });
-        continue;
-      }
-      s.starts++;
-      s.lastStartMs = input.now;
-      if (!this.st.sessionFired.includes(sc.id)) this.st.sessionFired.push(sc.id);
-      events.push({ type: 'SCENARIO_STARTED', id: sc.id, t: input.now });
-      const run: Run = { id: sc.id, step: 0, untilFlightMs: null, untilPhase: null };
-      this.st.runs.push(run);
-      this.advance(run, input, look, outbound, events);
+  /** Cooldown, excludes, probability; then starts the run. True when it started. */
+  private start(
+    sc: CompiledScenario,
+    vars: Run['vars'],
+    input: EngineTickInput,
+    outbound: OutboundMessage[],
+    events: ScenarioEvent[],
+  ): boolean {
+    const s = this.st.scenarios[sc.id] as ScenarioState;
+    const skip = this.blocker(sc, s, input.now);
+    if (skip !== null) {
+      events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason: skip });
+      return false;
     }
-    return { outbound, events };
+    if (!(this.rngs.get(sc.id) as Rng).chance(sc.probability)) {
+      events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason: 'probability' });
+      return false;
+    }
+    s.starts++;
+    s.lastStartMs = input.now;
+    if (!this.st.sessionFired.includes(sc.id)) this.st.sessionFired.push(sc.id);
+    events.push({ type: 'SCENARIO_STARTED', id: sc.id, t: input.now });
+    const run: Run = {
+      id: sc.id,
+      step: 0,
+      untilFlightMs: null,
+      untilPhase: null,
+      reply: null,
+      vars: { ...vars },
+    };
+    this.st.runs.push(run);
+    this.advance(run, input, outbound, events);
+    return true;
+  }
+
+  /** docs/05 "Исполнение" 5: a waiting `wait: reply` first, then the pilot commands. */
+  private receive(
+    m: PilotMessage,
+    input: EngineTickInput,
+    outbound: OutboundMessage[],
+    events: ScenarioEvent[],
+  ): void {
+    const text = normalizePilotText(m.text);
+    const note = (
+      result: PilotMessageResult,
+      extra: { scenarioId?: string; command?: PilotCommand; detail?: string } = {},
+    ) =>
+      events.push({
+        type: 'PILOT_MESSAGE',
+        t: input.now,
+        text,
+        result,
+        scenarioId: extra.scenarioId ?? null,
+        command: extra.command ?? null,
+        detail: extra.detail ?? null,
+      });
+    if (m.type.toLowerCase() !== 'telex') {
+      note('ignored', { detail: `type ${m.type}` });
+      return;
+    }
+    if (normalizePilotText(m.from).replaceAll(' ', '') !== this.ofp.callsign.toUpperCase()) {
+      note('ignored', { detail: `from ${m.from}` });
+      return;
+    }
+    if (text === '') {
+      note('ignored', { detail: 'empty' });
+      return;
+    }
+
+    const [word, ...rest] = text.split(' ');
+    const run = this.st.runs.find((r) => r.reply?.options.includes(word as string) === true);
+    if (run !== undefined) {
+      run.reply = null;
+      run.vars = {
+        ...run.vars,
+        'reply.option': word as string,
+        'reply.text': text,
+        'reply.arg': rest.length === 0 ? null : rest.join(' '),
+        'reply.timeout': false,
+      };
+      note('reply', { scenarioId: run.id });
+      this.advance(run, input, outbound, events);
+      return;
+    }
+
+    const cmd = parseCommand(text);
+    if (cmd === null) {
+      note('unknown');
+      this.opsReply(`UNABLE ${clip(text)}\nSEND HELP FOR LIST`, input.now, outbound, events);
+      return;
+    }
+    const words = cmd.command.replace('_', ' ');
+    const done = cmd.ok ? this.applyCommand(cmd, text, input) : { hint: `FORMAT ${cmd.hint}` };
+    if ('hint' in done) {
+      note('invalid', { command: cmd.command, detail: done.hint });
+      this.opsReply(
+        `UNABLE ${words}\n${done.hint}\nSEND HELP FOR LIST`,
+        input.now,
+        outbound,
+        events,
+      );
+      return;
+    }
+    note('command', { command: cmd.command });
+    let started = false;
+    for (const sc of this.ordered) {
+      const tr = sc.def.trigger;
+      if (tr.on !== 'command' || tr.command !== cmd.command) continue;
+      if (!sc.conditions.every((c) => c.test(this.lookFor(done.vars)))) continue;
+      if (this.start(sc, done.vars, input, outbound, events)) started = true;
+    }
+    // Every command gets an answer, even with its scenarios switched off.
+    if (!started) this.opsReply(`RCVD ${clip(text)}`, input.now, outbound, events);
+  }
+
+  /**
+   * The engine's part of a command (deterministic, before its scenarios run): `DELAY` moves
+   * the schedule like a late start, `DIVERT` records the airport. `cmd.*` for the scenarios,
+   * or why it cannot be done.
+   */
+  private applyCommand(
+    cmd: Extract<ParsedCommand, { ok: true }>,
+    text: string,
+    input: EngineTickInput,
+  ): { vars: Run['vars'] } | { hint: string } {
+    const { args } = cmd;
+    let icao = args.icao;
+    let metar: string | null = null;
+    switch (cmd.command) {
+      case 'REQ_WX': {
+        icao ??= this.ofp.destination.icao;
+        const o = this.ofp;
+        const known = [o.origin, o.destination, ...o.alternates].find((a) => a.icao === icao);
+        metar = known?.metar ?? null;
+        break;
+      }
+      case 'DELAY':
+        if (input.oooi.OUT !== null) return { hint: 'OFF BLOCK ALREADY' };
+        this.setDelay((this.st.delayMs ?? 0) + (args.minutes as number) * 60_000);
+        break;
+      case 'DIVERT':
+        if (input.oooi.OFF === null || input.oooi.ON !== null) return { hint: 'NOT AIRBORNE' };
+        if (icao === this.ofp.destination.icao) return { hint: `${icao} IS DESTINATION` };
+        this.st.divert = icao;
+        break;
+      default:
+        break;
+    }
+    if (cmd.command === 'DELAY' || cmd.command === 'DIVERT') this.refresh();
+    return {
+      vars: {
+        'cmd.name': cmd.command,
+        'cmd.text': text,
+        'cmd.icao': icao,
+        'cmd.minutes': args.minutes,
+        'cmd.reason': args.reason,
+        'cmd.metar': metar,
+      },
+    };
+  }
+
+  /** A telex of the engine itself (scenario id {@link OPS_REPLY_ID}). */
+  private opsReply(
+    body: string,
+    now: number,
+    outbound: OutboundMessage[],
+    events: ScenarioEvent[],
+  ): void {
+    try {
+      this.emit(OPS_REPLY_ID, formatMessage({ body }, this.profile), now, outbound);
+    } catch (e) {
+      if (!(e instanceof FormatError)) throw e;
+      events.push({ type: 'SCENARIO_ERROR', id: OPS_REPLY_ID, t: now, error: e.message });
+    }
+  }
+
+  private emit(id: string, message: FormattedMessage, now: number, out: OutboundMessage[]): void {
+    out.push({
+      scenarioId: id,
+      from: this.from,
+      to: this.ofp.callsign,
+      kind: 'telex',
+      message,
+      t: now,
+    });
+    if (id === OPS_REPLY_ID) return;
+    const first = !(id in this.st.sent);
+    this.st.sent[id] = { t: now, message };
+    if (first) this.refresh();
   }
 
   private triggered(sc: CompiledScenario, input: EngineTickInput, ctx: ScenarioContext): boolean {
@@ -303,6 +595,8 @@ export class ScenarioEngine {
         return input.phase === tr.phase;
       case 'event':
         return input.events.some((e) => e.type === tr.event);
+      case 'command':
+        return false; // started by `receive`
       case 'time': {
         const ref = ctx[TIME_REF_VAR[tr.at.rel]];
         // `ofp.est_*` in the context already include the delay, `ofp.sched_*` do not.
@@ -324,7 +618,7 @@ export class ScenarioEngine {
     now: number,
   ): 'cooldown' | 'excluded' | 'running' | null {
     if (this.st.runs.some((r) => r.id === sc.id)) return 'running';
-    const cd = sc.def.cooldown ?? 'per_flight';
+    const cd = sc.def.cooldown ?? (sc.def.trigger.on === 'command' ? 'none' : 'per_flight');
     if (cd === 'per_flight' && s.starts > 0) return 'cooldown';
     if (cd === 'per_session' && this.st.sessionFired.includes(sc.id)) return 'cooldown';
     if (
@@ -349,12 +643,28 @@ export class ScenarioEngine {
   private advance(
     run: Run,
     input: EngineTickInput,
-    look: Lookup,
     outbound: OutboundMessage[],
     events: ScenarioEvent[],
   ): void {
     const sc = this.byId.get(run.id) as CompiledScenario;
     const rng = this.rngs.get(run.id) as Rng;
+    const fail = (error: string) => {
+      this.st.runs = this.st.runs.filter((r) => r !== run);
+      events.push({ type: 'SCENARIO_ERROR', id: sc.id, t: input.now, error });
+    };
+    if (run.reply !== null) {
+      if (input.flightTimeMs < run.reply.untilFlightMs) return;
+      const option = run.reply.default;
+      run.reply = null;
+      run.vars = {
+        ...run.vars,
+        'reply.option': option,
+        'reply.text': null,
+        'reply.arg': null,
+        'reply.timeout': true,
+      };
+      events.push({ type: 'REPLY_TIMEOUT', id: sc.id, t: input.now, option });
+    }
     if (run.untilFlightMs !== null) {
       if (input.flightTimeMs < run.untilFlightMs) return;
       run.untilFlightMs = null;
@@ -375,7 +685,46 @@ export class ScenarioEngine {
         run.untilPhase = step.phase;
         return;
       }
+      if (step.kind === 'wait_reply') {
+        const timeoutMs = step.timeoutMin * 60_000;
+        run.reply = {
+          options: [...step.options],
+          default: step.default,
+          untilFlightMs: input.flightTimeMs + timeoutMs,
+        };
+        events.push({
+          type: 'REPLY_EXPECTED',
+          id: sc.id,
+          t: input.now,
+          options: step.options,
+          timeoutMs,
+        });
+        return;
+      }
+      if (step.kind === 'branch') {
+        const option = run.vars['reply.option'];
+        run.step = (typeof option === 'string' ? step.arms[option] : undefined) ?? step.end;
+        continue;
+      }
+      if (step.kind === 'jump') {
+        run.step = step.to;
+        continue;
+      }
+      if (step.kind === 'resend') {
+        let last: Sent | undefined;
+        for (const id of step.of) {
+          const s = this.st.sent[id];
+          if (s !== undefined && (last === undefined || s.t > last.t)) last = s;
+        }
+        if (last === undefined) {
+          fail(`nothing to resend (${step.of.join(', ')})`);
+          return;
+        }
+        this.emit(sc.id, last.message, input.now, outbound);
+        continue;
+      }
       try {
+        const look = this.lookFor(run.vars);
         const header = step.header?.render(look, rng);
         const footer = step.footer?.render(look, rng);
         const message = formatMessage(
@@ -386,18 +735,10 @@ export class ScenarioEngine {
           },
           this.profile,
         );
-        outbound.push({
-          scenarioId: sc.id,
-          from: this.from,
-          to: this.ofp.callsign,
-          kind: 'telex',
-          message,
-          t: input.now,
-        });
+        this.emit(sc.id, message, input.now, outbound);
       } catch (e) {
         if (!(e instanceof TemplateError || e instanceof FormatError)) throw e;
-        this.st.runs = this.st.runs.filter((r) => r !== run);
-        events.push({ type: 'SCENARIO_ERROR', id: sc.id, t: input.now, error: e.message });
+        fail(e.message);
         return;
       }
     }
@@ -418,6 +759,14 @@ export function stationCallsign(
     .replace(/[^A-Z0-9]/g, '');
   if (s === '') throw new Error(`station template "${template}" gives an empty callsign`);
   return s;
+}
+
+/** Pilot text echoed in an engine answer: at most 40 characters, whole words. */
+function clip(text: string): string {
+  if (text.length <= 40) return text;
+  const cut = text.slice(0, 41);
+  const space = cut.lastIndexOf(' ');
+  return space > 0 ? cut.slice(0, space) : cut.slice(0, 40);
 }
 
 /** OFP with the estimated (and, for ops data, also the scheduled) times moved by `ms`. */

@@ -4,6 +4,7 @@ import { type CompiledExpr, compileExpr, ExprError } from './expr.js';
 import { type CompiledTemplate, compileTemplate, TemplateError } from './template.js';
 import {
   DISTANCE_TARGETS,
+  PILOT_COMMANDS,
   type ScenarioDef,
   type Step,
   TIME_REFS,
@@ -27,6 +28,10 @@ export class ScenarioError extends Error {
   }
 }
 
+/**
+ * Steps are a flat program: `branch` jumps to the first step of an arm (or to `end` when the
+ * answer has no arm), each arm ends with a `jump` to `end`. Run state is one step index.
+ */
 export type CompiledStep =
   | {
       readonly kind: 'send';
@@ -35,7 +40,20 @@ export type CompiledStep =
       readonly footer: CompiledTemplate | null;
     }
   | { readonly kind: 'wait_minutes'; readonly minutes: number }
-  | { readonly kind: 'wait_phase'; readonly phase: FlightPhase };
+  | { readonly kind: 'wait_phase'; readonly phase: FlightPhase }
+  | {
+      readonly kind: 'wait_reply';
+      readonly options: readonly string[];
+      readonly timeoutMin: number;
+      readonly default: string;
+    }
+  | {
+      readonly kind: 'branch';
+      readonly arms: Readonly<Record<string, number>>;
+      readonly end: number;
+    }
+  | { readonly kind: 'jump'; readonly to: number }
+  | { readonly kind: 'resend'; readonly of: readonly string[] };
 
 export interface CompiledScenario {
   readonly def: ScenarioDef;
@@ -65,6 +83,11 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
       break;
     case 'event':
       if (!TRIGGER_EVENTS.includes(tr.event)) fail('trigger.event', `unknown event ${tr.event}`);
+      break;
+    case 'command':
+      if (!PILOT_COMMANDS.includes(tr.command)) {
+        fail('trigger.command', `unknown command ${String(tr.command)}`);
+      }
       break;
     case 'time':
       if (!TIME_REFS.includes(tr.at.rel)) fail('trigger.at.rel', `unknown time ${tr.at.rel}`);
@@ -120,33 +143,109 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
     }
   };
 
-  if (def.steps.length === 0) fail('steps', 'must not be empty');
-  const steps = def.steps.map((s: Step, i): CompiledStep => {
-    const path = `steps[${i}]`;
-    if ('send' in s) {
-      const body = template(`${path}.send.body`, s.send.body);
-      if (body === null) return fail(`${path}.send.body`, 'missing');
-      return {
-        kind: 'send',
-        header: template(`${path}.send.header`, s.send.header),
-        body,
-        footer: template(`${path}.send.footer`, s.send.footer),
-      };
-    }
-    if ('wait' in s) {
-      const w = s.wait;
-      if ('minutes' in w) {
-        if (!(w.minutes > 0)) fail(`${path}.wait.minutes`, 'must be > 0');
-        return { kind: 'wait_minutes', minutes: w.minutes };
+  const steps: CompiledStep[] = [];
+  /**
+   * Appends `list` to `steps`. `reply` = options of the answer a `branch` here would see:
+   * null before any `wait: reply`, MIXED after a branch whose arms asked different questions.
+   */
+  const emit = (list: readonly Step[], at: string, reply: Reply): Reply => {
+    if (list.length === 0) fail(at, 'must not be empty');
+    for (const [i, s] of list.entries()) {
+      const path = `${at}[${i}]`;
+      if ('send' in s) {
+        const body = template(`${path}.send.body`, s.send.body);
+        if (body === null) {
+          fail(`${path}.send.body`, 'missing');
+          continue;
+        }
+        steps.push({
+          kind: 'send',
+          header: template(`${path}.send.header`, s.send.header),
+          body,
+          footer: template(`${path}.send.footer`, s.send.footer),
+        });
+        continue;
       }
-      if ('phase' in w) {
-        if (!isPhase(w.phase)) fail(`${path}.wait.phase`, `unknown phase ${String(w.phase)}`);
-        return { kind: 'wait_phase', phase: w.phase };
+      if ('wait' in s) {
+        const w = s.wait;
+        if ('minutes' in w) {
+          if (!(w.minutes > 0)) fail(`${path}.wait.minutes`, 'must be > 0');
+          steps.push({ kind: 'wait_minutes', minutes: w.minutes });
+        } else if ('phase' in w) {
+          if (!isPhase(w.phase)) fail(`${path}.wait.phase`, `unknown phase ${String(w.phase)}`);
+          steps.push({ kind: 'wait_phase', phase: w.phase });
+        } else if ('reply' in w) {
+          const r = w.reply;
+          if (r.options.length === 0) fail(`${path}.wait.reply.options`, 'must not be empty');
+          for (const o of r.options) {
+            if (!OPTION.test(o)) fail(`${path}.wait.reply.options`, `"${o}": one word A-Z0-9`);
+          }
+          if (new Set(r.options).size !== r.options.length) {
+            fail(`${path}.wait.reply.options`, 'must be unique');
+          }
+          if (!(r.timeout_min > 0)) fail(`${path}.wait.reply.timeout_min`, 'must be > 0');
+          if (!r.options.includes(r.default)) {
+            fail(`${path}.wait.reply.default`, `"${r.default}" is not one of the options`);
+          }
+          steps.push({
+            kind: 'wait_reply',
+            options: [...r.options],
+            timeoutMin: r.timeout_min,
+            default: r.default,
+          });
+          reply = r.options;
+        } else {
+          fail(`${path}.wait`, 'needs minutes, phase or reply');
+        }
+        continue;
       }
-      return fail(`${path}.wait`, 'v0 supports wait.minutes and wait.phase only');
+      if ('branch' in s) {
+        if (reply === null) fail(`${path}.branch`, 'needs a wait: reply before it');
+        if (reply === MIXED) {
+          fail(`${path}.branch`, 'the answer depends on the arm taken before; ask again first');
+        }
+        const keys = Object.keys(s.branch);
+        if (keys.length === 0) fail(`${path}.branch`, 'must not be empty');
+        for (const k of keys) {
+          if (!(reply as readonly string[]).includes(k)) {
+            fail(`${path}.branch.${k}`, `"${k}" is not an option of the last wait: reply`);
+          }
+        }
+        const at0 = steps.length;
+        steps.push({ kind: 'jump', to: -1 }); // replaced by the branch below
+        const arms: Record<string, number> = {};
+        const jumps: number[] = [];
+        let after: Reply = reply;
+        for (const k of keys) {
+          arms[k] = steps.length;
+          const out = emit(s.branch[k] as readonly Step[], `${path}.branch.${k}`, reply);
+          if (out !== reply) after = MIXED;
+          jumps.push(steps.length);
+          steps.push({ kind: 'jump', to: -1 });
+        }
+        const end = steps.length;
+        for (const j of jumps) steps[j] = { kind: 'jump', to: end };
+        steps[at0] = { kind: 'branch', arms, end };
+        reply = after;
+        continue;
+      }
+      if ('resend' in s) {
+        if (s.resend.of.length === 0) fail(`${path}.resend.of`, 'must not be empty');
+        for (const x of s.resend.of) {
+          if (!ID.test(x)) fail(`${path}.resend.of`, `"${x}" is not a scenario id`);
+        }
+        steps.push({ kind: 'resend', of: [...s.resend.of] });
+        continue;
+      }
+      fail(path, `unsupported step ${Object.keys(s).join(',')}`);
     }
-    return fail(path, `unsupported step ${Object.keys(s).join(',')} (v0: send, wait)`);
-  });
+    return reply;
+  };
+  emit(def.steps, 'steps', null);
 
   return { def, id, conditions, steps, probability, priority: def.priority ?? 0 };
 }
+
+const OPTION = /^[A-Z][A-Z0-9]*$/;
+const MIXED = Symbol('mixed');
+type Reply = readonly string[] | null | typeof MIXED;

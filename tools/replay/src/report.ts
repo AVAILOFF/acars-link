@@ -44,6 +44,24 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
           return ['TELEMETRY', `restored after ${Math.round(ev.gapMs / 1000)} s`];
         case 'DISCONTINUITY':
           return ['JUMP', `position jumped ${ev.jumpNm.toFixed(1)} nm`];
+        case 'PILOT_MESSAGE': {
+          const to =
+            ev.result === 'reply'
+              ? `reply to ${ev.scenarioId}`
+              : ev.result === 'command'
+                ? `command ${ev.command}`
+                : ev.detail === null
+                  ? ev.result
+                  : `${ev.result}: ${ev.detail}`;
+          return ['PILOT', `"${ev.text}" → ${to}`];
+        }
+        case 'REPLY_EXPECTED':
+          return [
+            'PILOT',
+            `${ev.id} waits for ${ev.options.join('/')} (${Math.round(ev.timeoutMs / 60_000)} min)`,
+          ];
+        case 'REPLY_TIMEOUT':
+          return ['PILOT', `${ev.id}: no answer, takes ${ev.option}`];
         case 'SCENARIO_STARTED':
           return o.verbose === true ? ['SCENARIO', `${ev.id} started`] : null;
         case 'SCENARIO_DONE':

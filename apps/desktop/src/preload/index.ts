@@ -23,6 +23,7 @@ const api: AcarsApi = {
   startFlight: () => ipcRenderer.invoke(IPC.startFlight),
   stopFlight: () => ipcRenderer.invoke(IPC.stopFlight),
   endFlight: (to) => ipcRenderer.invoke(IPC.endFlight, to),
+  sendPilotMessage: (text) => ipcRenderer.invoke(IPC.sendPilotMessage, text),
   openRecordings: () => ipcRenderer.invoke(IPC.openRecordings),
 };
 

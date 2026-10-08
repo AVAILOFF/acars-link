@@ -1,0 +1,17 @@
+# REQ WX <ICAO> (without an airport: the destination). Until METAR fetching (T13) only the
+# airports of the OFP have weather: the METAR SimBrief put into it, and the message says so.
+id: cmd_req_wx
+version: 1
+category: ops
+title: "Pilot command: REQ WX"
+enabled_by_default: true
+trigger:
+  on: command
+  command: REQ_WX
+conditions:
+  - "cmd.metar != null"
+steps:
+  - send:
+      header: WX {cmd.icao}
+      body: "{cmd.metar}"
+      footer: WX AS OF OFP RELEASE

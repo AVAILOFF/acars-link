@@ -1,0 +1,14 @@
+# REQ LOADSHEET: the last loadsheet sent in this flight, again (final, else preliminary).
+id: cmd_req_loadsheet
+version: 1
+category: docs
+title: "Pilot command: REQ LOADSHEET"
+enabled_by_default: true
+trigger:
+  on: command
+  command: REQ_LOADSHEET
+conditions:
+  - "'final_loadsheet' in flight.sent or 'prelim_loadsheet' in flight.sent"
+steps:
+  - resend:
+      of: [final_loadsheet, prelim_loadsheet]

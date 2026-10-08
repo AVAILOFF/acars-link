@@ -1,0 +1,45 @@
+# DIVERT <ICAO> in flight: acknowledge, ask for the reason, arrange what fits it.
+# The core records the airport (flight.divert); arrival scenarios for the destination stop.
+id: cmd_divert
+version: 1
+category: irregular
+title: "Pilot command: DIVERT"
+enabled_by_default: true
+trigger:
+  on: command
+  command: DIVERT
+steps:
+  - send:
+      header: DIVERSION
+      body: |
+        {ofp.callsign} DIVERT {cmd.icao} RCVD
+        OPS AND HANDLING ADVISED
+        REPLY REASON
+        WX TECH MEDICAL FUEL OTHER
+  - wait:
+      reply: { options: [WX, TECH, MEDICAL, FUEL, OTHER], timeout_min: 10, default: OTHER }
+  - branch:
+      MEDICAL:
+        - send:
+            body: |
+              MEDICAL TEAM ORDERED AT {cmd.icao}
+              ADVISE PAX DETAILS WHEN ABLE
+      TECH:
+        - send:
+            body: |
+              MAINT CONTROL ADVISED
+              ENGINEER ORDERED AT {cmd.icao}
+              SEND DEFECT DETAILS
+      FUEL:
+        - send:
+            body: |
+              REFUEL ORDERED AT {cmd.icao}
+      WX:
+        - send:
+            body: |
+              WX DIVERSION NOTED
+              PAX REBOOKING IN PROGRESS
+  - send:
+      body: |
+        STAND AT {cmd.icao} TBA
+        SEND ETA WHEN ABLE

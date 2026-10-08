@@ -89,14 +89,15 @@ describe('parseScenario / loadScenario', () => {
   });
 });
 
-describe('reference/scenarios (docs/05 examples) need features after v0', () => {
+describe('reference/scenarios (docs/05 examples) need features after T12', () => {
   it.each([
-    ['prelim_loadsheet.yaml', /\/steps\/0: step "set" is not supported yet \(T12\/T14\)$/],
+    ['prelim_loadsheet.yaml', /\/steps\/0: step "set" is not supported yet \(T14\)$/],
+    // reply and branch are fine since T12; the set inside an arm is found too.
     [
       'medical_onboard.yaml',
-      /\/steps\/1: "wait: reply" is not supported yet \(T12\); \/steps\/2: step "branch"/,
+      /: \/steps\/2\/branch\/DIVERT\/1: step "set" is not supported yet \(T14\)$/,
     ],
-  ])('%s is rejected by v0 with a clear error', (file, re) => {
+  ])('%s is rejected with a clear error', (file, re) => {
     const { source } = read(REFERENCE, file);
     expect(() => loadScenario(source, file)).toThrow(re);
   });

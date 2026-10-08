@@ -325,4 +325,58 @@ describe('CLI', () => {
     expect(await main(['--help'], h.io)).toBe(0);
     expect(h.out()).toContain('pnpm replay run');
   });
+
+  it('--pilot: pilot telexes on the timeline, answered by the command scenarios', async () => {
+    const dir = await tmp();
+    const rec = join(dir, 'syn.jsonl');
+    expect(await main(['synth', '--ofp', OFP_FILE, '--out', rec])).toBe(0);
+    const a = io();
+    const args = ['run', rec, '--brief', '--pilot', '1=req gate', '--pilot', '2=HELLO'];
+    expect(await main(args, a.io)).toBe(0);
+    expect(a.out()).toContain('PILOT      "REQ GATE" → command REQ_GATE');
+    expect(a.out()).toContain('TELEX      cmd_req_gate');
+    expect(a.out()).toContain('PILOT      "HELLO" → unknown');
+    expect(a.out()).toContain('TELEX      #ops');
+    const bad = io();
+    expect(await main(['run', rec, '--pilot', 'soon=ETA'], bad.io)).toBe(2);
+    expect(bad.err()).toMatch(/expected <min>=<text>/);
+  });
+});
+
+describe('pilot telexes in a recording (T12)', () => {
+  it('tick lines carry inbound; replay passes it to the core', () => {
+    const scenarios = pickScenarios({
+      base: [
+        ...base,
+        {
+          file: 'cmd.yaml',
+          source: [
+            'id: cmd_gate',
+            'version: 1',
+            'category: ops',
+            'title: gate',
+            'enabled_by_default: true',
+            'trigger: { on: command, command: REQ_GATE }',
+            'steps: [{ send: { body: "GATE {ops.arr_gate}" } }]',
+          ].join('\n'),
+        },
+      ],
+      extra: [],
+      recorded: [...enabled, 'cmd_gate'],
+    }).scenarios;
+    const events = normal.events.map((e, i) =>
+      i === 100 && e.type === 'tick'
+        ? { ...e, inbound: [{ from: ofp.callsign, type: 'telex', text: 'REQ GATE' }] }
+        : e,
+    );
+    const rec: Recording = { ...normal, events };
+    const parsed = parseJsonl(encodeRecording(rec));
+    if (parsed.kind !== 'recording') throw new Error('not a recording');
+    const r = replay(parsed.recording, { scenarios });
+    expect(r.outbound.filter((m) => m.scenarioId === 'cmd_gate')).toHaveLength(1);
+    const line = (x: object) => [encodeLine(normal.header).trim(), JSON.stringify(x)].join('\n');
+    expect(() =>
+      parseJsonl(line({ type: 'tick', now: 1, telemetry: null, inbound: [{ from: 'X' }] })),
+    ).toThrow(/inbound/);
+  });
 });

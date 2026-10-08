@@ -8,7 +8,8 @@ import { NAME_KINDS, type NameKind, personName } from './names.js';
  * `{name:ops}` (`K. TANAKA`; surnames by the origin's ICAO region, see `names.ts`).
  *
  * Formatters: `kg1` (12345 → 12.3), `hhmm` and `ddmmm` (epoch ms, UTC), `pad:N`
- * (right-pad to N), `lpad:N` (left-pad), `int` (round), `sign` (+3, -120, 0), `upper`.
+ * (right-pad to N), `lpad:N` (left-pad), `int` (round), `sign` (+3, -120, 0), `upper`,
+ * `or:TEXT` (TEXT when the value is missing).
  * A missing value renders as {@link MISSING}. Numbers are data: templates never invent
  * them (invariant 8) — `rand`/`pick` use the scenario's seeded Rng.
  */
@@ -81,11 +82,13 @@ const FORMATTERS: Readonly<Record<string, (v: Value | string, f: Fmt) => Value |
     return r > 0 ? `+${r}` : String(r);
   },
   upper: (v) => (v === null ? null : text(v).toUpperCase()),
+  // A missing value as this text instead of ----: `{cmd.reason|or:NOT GIVEN}`.
+  or: (v, f) => (v === null ? (f.arg as string) : v),
   pad: (v, f) => text(v).padEnd(intArg(f)),
   lpad: (v, f) => text(v).padStart(intArg(f)),
 };
 
-const ARG_FORMATTERS = new Set(['pad', 'lpad']);
+const ARG_FORMATTERS = new Set(['pad', 'lpad', 'or']);
 
 function text(v: Value | string): string {
   if (v === null) return MISSING;
@@ -129,7 +132,8 @@ function parseFmt(s: string): Fmt {
     );
   }
   const f = { name, arg };
-  if (arg !== undefined) intArg(f);
+  if (name === 'or' && arg?.trim() === '') throw new TemplateError('|or needs a text');
+  if (name === 'pad' || name === 'lpad') intArg(f);
   return f;
 }
 

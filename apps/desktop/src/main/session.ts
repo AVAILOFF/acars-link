@@ -6,6 +6,8 @@ import {
   type DisplayProfile,
   type FlightPhase,
   type Ofp,
+  type PilotMessage,
+  stationCallsign,
   type TelemetrySnapshot,
 } from '@acars/core';
 import { encodeLine, type RecordingEvent, recordingHeader } from '@acars/replay';
@@ -21,6 +23,8 @@ import type { RecordingSink } from './recording.js';
  * logic stays in the core and the transport (CLAUDE.md, invariant 5); this only moves data.
  * With a recording sink, every core input and output goes to a JSONL file (T11) that
  * `pnpm replay` plays back through the core in the same order.
+ * Pilot telexes (T12) — received by the transport or typed in the app — go to the core with the
+ * next tick; a scenario waiting for an answer makes the transport poll faster for a while.
  */
 
 export interface FlightSessionOptions {
@@ -44,6 +48,10 @@ export class FlightSession {
   private readonly transport: Transport;
   private readonly feed: Feed;
   private readonly queue: TelemetrySnapshot[] = [];
+  /** Pilot telexes for the next core tick. */
+  private inbound: PilotMessage[] = [];
+  private readonly callsign: string;
+  private readonly station: string;
   /** Transport telex id → feed entry id. */
   private readonly outbound = new Map<string, string>();
   private last: TelemetrySnapshot | null = null;
@@ -62,6 +70,8 @@ export class FlightSession {
       station: o.stationTemplate,
       sessionFired: o.sessionFired,
     });
+    this.callsign = o.ofp.callsign;
+    this.station = stationCallsign(o.stationTemplate, o.ofp);
     this.transport = o.transport;
     this.feed = o.feed;
     this.recording = o.recording ?? null;
@@ -125,18 +135,32 @@ export class FlightSession {
     if (this.queue.length > MAX_QUEUE) this.queue.splice(0, this.queue.length - MAX_QUEUE);
   }
 
+  /** A pilot telex typed in the app: into the feed now, to the core with the next tick. */
+  pilotMessage(text: string, now: number): void {
+    if (this.stopped) return;
+    this.feed.add({
+      kind: 'inbound',
+      t: now,
+      from: this.callsign,
+      to: this.station,
+      type: 'app',
+      text,
+    });
+    this.inbound.push({ from: this.callsign, type: 'telex', text });
+  }
+
   tick(now: number): void {
     if (this.stopped) return;
-    const batch = this.queue.splice(0);
-    if (batch.length === 0) {
-      this.record({ type: 'tick', now, telemetry: null });
-      this.apply(this.core.tick({ now, telemetry: null }), now);
-    }
-    for (const s of batch) {
-      this.last = s;
-      this.record({ type: 'tick', now, telemetry: s });
-      this.apply(this.core.tick({ now, telemetry: s }), now);
-    }
+    const batch: (TelemetrySnapshot | null)[] = this.queue.splice(0);
+    if (batch.length === 0) batch.push(null);
+    batch.forEach((s, i) => {
+      if (s !== null) this.last = s;
+      // Pilot telexes go with the first tick of the batch.
+      const inbound = i === 0 ? this.inbound.splice(0) : [];
+      const more = inbound.length > 0 ? { inbound } : {};
+      this.record({ type: 'tick', now, telemetry: s, ...more });
+      this.apply(this.core.tick({ now, telemetry: s, ...more }), now);
+    });
     this.transport.tick();
     this.drainTransport();
   }
@@ -218,6 +242,13 @@ export class FlightSession {
         case 'SCENARIO_ERROR':
           this.feed.system(e.t, 'scenario_error', { id: e.id, error: e.error });
           break;
+        case 'REPLY_EXPECTED':
+          // The transport caps this itself (Hoppie: 3 min of faster polling).
+          this.transport.expectReply(e.timeoutMs);
+          break;
+        case 'REPLY_TIMEOUT':
+          this.feed.system(e.t, 'reply_timeout', { id: e.id, option: e.option });
+          break;
         default:
           break;
       }
@@ -266,6 +297,7 @@ export class FlightSession {
           break;
         }
         case 'INBOUND':
+          this.inbound.push({ from: e.message.from, type: e.message.type, text: e.message.packet });
           this.feed.add({
             kind: 'inbound',
             t: e.t,

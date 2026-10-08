@@ -104,6 +104,20 @@ export const CONTEXT_VARIABLES = [
   'flight.eta',
   'flight.block_min',
   'flight.air_min',
+  'flight.divert',
+  'flight.sent',
+  // the run's last pilot answer (`wait: reply`), null before one
+  'reply.option',
+  'reply.text',
+  'reply.arg',
+  'reply.timeout',
+  // the pilot command that started the run (`on: command`), null otherwise
+  'cmd.name',
+  'cmd.text',
+  'cmd.icao',
+  'cmd.minutes',
+  'cmd.reason',
+  'cmd.metar',
   // final load (ops-data.ts)
   'load.pax',
   'load.pax_lmc',
@@ -176,9 +190,28 @@ export interface ContextInput {
   readonly telemetry: TelemetrySnapshot | null;
   readonly oooi: Readonly<Record<OooiKind, number | null>>;
   readonly data: FlightData;
-  /** Late-start delay (engine), ms. */
+  /** Late-start delay plus pilot `DELAY`s (engine), ms. */
   readonly delayMs?: number;
+  /** Diversion airport the pilot declared (`DIVERT`), engine. */
+  readonly divert?: string | null;
+  /** Ids of the scenarios that sent something in this flight, first send first. */
+  readonly sent?: readonly string[];
 }
+
+/** Per-run variables (`reply.*`, `cmd.*`): null in the shared context, set by the engine. */
+export const RUN_VARIABLES = [
+  'reply.option',
+  'reply.text',
+  'reply.arg',
+  'reply.timeout',
+  'cmd.name',
+  'cmd.text',
+  'cmd.icao',
+  'cmd.minutes',
+  'cmd.reason',
+  'cmd.metar',
+] as const satisfies readonly ContextVariable[];
+export type RunVariable = (typeof RUN_VARIABLES)[number];
 
 const r1 = (x: number) => Math.round(x * 10) / 10;
 const minutes = (ms: number) => Math.round(ms / 60_000);
@@ -288,6 +321,18 @@ export function buildContext(input: ContextInput): ScenarioContext {
     'flight.eta': oooi.OFF === null ? null : oooi.OFF + t.estTimeEnrouteSec * 1000,
     'flight.block_min': span(oooi.OUT, oooi.IN),
     'flight.air_min': span(oooi.OFF, oooi.ON),
+    'flight.divert': input.divert ?? null,
+    'flight.sent': [...(input.sent ?? [])],
+    'reply.option': null,
+    'reply.text': null,
+    'reply.arg': null,
+    'reply.timeout': null,
+    'cmd.name': null,
+    'cmd.text': null,
+    'cmd.icao': null,
+    'cmd.minutes': null,
+    'cmd.reason': null,
+    'cmd.metar': null,
     'load.pax': load.pax,
     'load.pax_lmc': load.paxLmc,
     'load.cargo_kg': load.cargoKg,

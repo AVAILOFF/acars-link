@@ -3,6 +3,7 @@ import {
   compileScenario,
   type ScenarioDef,
   ScenarioError,
+  type Step,
 } from '@acars/core';
 import { Ajv2020, type ErrorObject } from 'ajv/dist/2020.js';
 import { parseDocument } from 'yaml';
@@ -58,25 +59,38 @@ export function parseScenario(source: string, file = '<scenario>'): ScenarioDef 
   return data;
 }
 
-/** docs/05 features that exist in the format but not in engine v0. */
-const LATER_STEPS: Readonly<Record<string, string>> = { set: 'T12/T14', branch: 'T12' };
+/** docs/05 features that exist in the format but not in the engine yet. */
+const LATER_STEPS: Readonly<Record<string, string>> = { set: 'T14' };
 
 /** Clear messages for steps from later tasks (the schema would only say "oneOf"). */
 function laterFeatures(data: unknown): string[] {
-  const steps = (data as { steps?: unknown } | null)?.steps;
-  if (!Array.isArray(steps)) return [];
   const out: string[] = [];
-  steps.forEach((step: unknown, i) => {
-    if (step === null || typeof step !== 'object') return;
-    for (const [key, task] of Object.entries(LATER_STEPS)) {
-      if (key in step) out.push(`/steps/${i}: step "${key}" is not supported yet (${task})`);
-    }
-    const wait = (step as { wait?: unknown }).wait;
-    if (wait !== null && typeof wait === 'object' && 'reply' in wait) {
-      out.push(`/steps/${i}: "wait: reply" is not supported yet (T12)`);
-    }
-  });
+  const walk = (steps: unknown, at: string) => {
+    if (!Array.isArray(steps)) return;
+    steps.forEach((step: unknown, i) => {
+      if (step === null || typeof step !== 'object') return;
+      for (const [key, task] of Object.entries(LATER_STEPS)) {
+        if (key in step) out.push(`${at}/${i}: step "${key}" is not supported yet (${task})`);
+      }
+      const branch = (step as { branch?: unknown }).branch;
+      if (branch !== null && typeof branch === 'object') {
+        for (const [k, arm] of Object.entries(branch)) walk(arm, `${at}/${i}/branch/${k}`);
+      }
+    });
+  };
+  walk((data as { steps?: unknown } | null)?.steps, '/steps');
   return out;
+}
+
+/** Scenario ids named by `resend` steps, nested branches included. */
+function resendIds(steps: readonly Step[]): string[] {
+  return steps.flatMap((s) =>
+    'resend' in s
+      ? [...s.resend.of]
+      : 'branch' in s
+        ? Object.values(s.branch).flatMap((arm) => resendIds(arm))
+        : [],
+  );
 }
 
 /** Parses, validates and compiles one scenario file. */
@@ -115,6 +129,10 @@ export function loadScenarios(
     for (const x of s.def.excludes ?? []) {
       if (!seen.has(x))
         problems.push(`${seen.get(s.id) ?? s.id}: excludes unknown scenario "${x}"`);
+    }
+    for (const x of resendIds(s.def.steps)) {
+      if (!seen.has(x))
+        problems.push(`${seen.get(s.id) ?? s.id}: resend of unknown scenario "${x}"`);
     }
   }
   if (problems.length > 0) throw new ScenarioLoadError('scenarios', problems);

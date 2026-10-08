@@ -1,0 +1,17 @@
+# REQ GATE after the pilot declared a diversion: no stand data for the alternate yet.
+id: cmd_req_gate_divert
+version: 1
+category: ops
+title: "Pilot command: REQ GATE, diverting"
+enabled_by_default: true
+trigger:
+  on: command
+  command: REQ_GATE
+conditions:
+  - "flight.divert != null"
+steps:
+  - send:
+      header: GATE INFO
+      body: |
+        {ofp.callsign} DIVERTING {flight.divert}
+        STAND TBA BY HANDLING

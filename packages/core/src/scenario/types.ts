@@ -6,7 +6,8 @@ import type { FlightPhase, PhaseEvent } from '../phase/fsm.js';
  * semantics (expressions, templates, variables).
  *
  * v0 (T06): triggers `phase_enter | phase | time | distance | event`, steps `send | wait`
- * (`minutes`, `phase`). `reply`, `branch`, `set` come with T12.
+ * (`minutes`, `phase`). T12: `wait: reply`, `branch`, `resend`, trigger `command` (pilot
+ * commands, `scenario/pilot.ts`). `set` comes with T14.
  */
 
 export type ScenarioCategory = 'docs' | 'ops' | 'irregular' | 'external' | 'fun';
@@ -31,10 +32,23 @@ export type TimeRef = (typeof TIME_REFS)[number];
 export const DISTANCE_TARGETS = ['dest', 'tod', 'orig'] as const;
 export type DistanceTarget = (typeof DISTANCE_TARGETS)[number];
 
+/** Pilot commands (docs/05 "Входящие команды пилота"), parsed by `scenario/pilot.ts`. */
+export const PILOT_COMMANDS = [
+  'REQ_WX',
+  'REQ_GATE',
+  'REQ_LOADSHEET',
+  'DELAY',
+  'DIVERT',
+  'ETA',
+  'HELP',
+] as const;
+export type PilotCommand = (typeof PILOT_COMMANDS)[number];
+
 export type Trigger =
   | { readonly on: 'phase_enter'; readonly phase: FlightPhase }
   | { readonly on: 'phase'; readonly phase: FlightPhase }
   | { readonly on: 'event'; readonly event: TriggerEvent }
+  | { readonly on: 'command'; readonly command: PilotCommand }
   | { readonly on: 'time'; readonly at: { readonly rel: TimeRef; readonly offset_min: number } }
   | {
       readonly on: 'distance';
@@ -45,7 +59,8 @@ export type Trigger =
       };
     };
 
-export type Cooldown = 'per_flight' | 'per_session' | { readonly minutes: number };
+/** `none`: every trigger may start the scenario (the default for `on: command`). */
+export type Cooldown = 'per_flight' | 'per_session' | 'none' | { readonly minutes: number };
 
 export interface SendStep {
   readonly send: {
@@ -55,11 +70,33 @@ export interface SendStep {
   };
 }
 
+/**
+ * Waits for the pilot's answer: a pilot telex whose first word is one of `options`. After
+ * `timeout_min` of flight time without one, `default` counts as the answer.
+ */
+export interface ReplyWait {
+  /** One word each: `A–Z0–9`, starting with a letter. */
+  readonly options: readonly string[];
+  readonly timeout_min: number;
+  readonly default: string;
+}
+
 export type WaitStep =
   | { readonly wait: { readonly minutes: number } }
-  | { readonly wait: { readonly phase: FlightPhase } };
+  | { readonly wait: { readonly phase: FlightPhase } }
+  | { readonly wait: { readonly reply: ReplyWait } };
 
-export type Step = SendStep | WaitStep;
+/** Steps by the last answer (`reply.option`); an answer without an arm goes on after it. */
+export interface BranchStep {
+  readonly branch: Readonly<Record<string, readonly Step[]>>;
+}
+
+/** Sends again the latest message one of these scenarios sent in this flight. */
+export interface ResendStep {
+  readonly resend: { readonly of: readonly string[] };
+}
+
+export type Step = SendStep | WaitStep | BranchStep | ResendStep;
 
 export interface ScenarioDef {
   readonly id: string;
@@ -72,7 +109,7 @@ export interface ScenarioDef {
   readonly conditions?: readonly string[];
   /** 0..1, rolled once each time the scenario becomes a candidate. Default 1. */
   readonly probability?: number;
-  /** Default `per_flight`. */
+  /** Default `per_flight`; `none` for `on: command`. */
   readonly cooldown?: Cooldown;
   readonly excludes?: readonly string[];
   /** Higher first when several start on one tick. Default 0. */

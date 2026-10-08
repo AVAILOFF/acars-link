@@ -24,7 +24,8 @@ export type Busy =
   | 'code'
   | 'settings'
   | 'scenario'
-  | 'recordings';
+  | 'recordings'
+  | 'pilot';
 
 interface Store {
   readonly app: AppState | null;
@@ -44,6 +45,7 @@ interface Store {
   startFlight(): Promise<void>;
   stopFlight(): Promise<void>;
   endFlight(to: 'TURNAROUND' | 'DONE'): Promise<void>;
+  sendPilotMessage(text: string): Promise<boolean>;
   setScenario(id: string, enabled: boolean): Promise<void>;
   updateSettings(patch: Parameters<AcarsApi['updateSettings']>[0]): Promise<boolean>;
   setUsername(u: string): Promise<boolean>;
@@ -119,6 +121,7 @@ export const useStore = create<Store>()((set, get) => {
     async endFlight(to) {
       await run('end', () => api().endFlight(to));
     },
+    sendPilotMessage: (text) => run('pilot', () => api().sendPilotMessage(text)),
     async setScenario(id, enabled) {
       await run(
         'scenario',

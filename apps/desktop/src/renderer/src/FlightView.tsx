@@ -1,4 +1,5 @@
 import { FLIGHT_PHASES, type FlightPhase } from '@acars/core';
+import { type FormEvent, useState } from 'react';
 import type { AppState, FlightSummary } from '../../shared/api.js';
 import { FeedList } from './FeedList.js';
 import { phaseKey } from './i18n.js';
@@ -19,6 +20,7 @@ export function FlightView() {
         <StatusCard app={app} />
       </div>
       <section className="panel feed-panel" aria-labelledby="feed-title">
+        {app.session === 'running' && <PilotForm />}
         <FeedList entries={app.feed} />
       </section>
     </div>
@@ -112,6 +114,42 @@ function FlightCard({ app }: { app: AppState }) {
         )}
       </div>
     </section>
+  );
+}
+
+/** T12: a pilot telex typed in the app (aircraft without free-text telex, tests). */
+function PilotForm() {
+  const t = useT();
+  const busy = useStore((s) => s.busy);
+  const [text, setText] = useState('');
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (text.trim() === '') return;
+    if (await useStore.getState().sendPilotMessage(text)) setText('');
+  };
+  return (
+    <form className="pilot-form" onSubmit={(e) => void submit(e)}>
+      <label htmlFor="pilot-text" className="small muted">
+        {t('pilot.label')}
+      </label>
+      <div className="row">
+        <input
+          id="pilot-text"
+          type="text"
+          className="mono"
+          maxLength={200}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={t('pilot.placeholder')}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <button type="submit" className="btn" disabled={busy !== null || text.trim() === ''}>
+          {t('pilot.send')}
+        </button>
+      </div>
+      <p className="hint small">{t('pilot.hint')}</p>
+    </form>
   );
 }
 

@@ -178,7 +178,7 @@ describe('AppController', () => {
     await app.updateSettings({ transport: 'offline' });
     await app.loadOfp();
     const list = await app.listScenarios();
-    expect(list).toHaveLength(15);
+    expect(list).toHaveLength(26); // 15 base + 11 pilot command handlers (T12)
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -362,6 +362,60 @@ describe('flight recording (T11)', () => {
     const s = await setup();
     expect(await s.app.openRecordings()).toBeNull();
     expect(s.revealed()).toBe(1);
+  });
+});
+
+describe('pilot telexes (T12)', () => {
+  it('from the network and typed in the app reach the core; recorded and replayed', async () => {
+    const s = await setup();
+    const { app } = s;
+    expect(await guard(() => app.sendPilotMessage('ETA'))).toMatchObject({
+      ok: false,
+      error: { code: 'bad_state' },
+    });
+    await app.setSimbriefUsername('pilot42');
+    await app.updateSettings({ transport: 'offline' });
+    await app.loadOfp();
+    s.sockets.last().hello();
+    await app.startFlight();
+    const mock = s.transports[0]?.t as MockTransport;
+    const half = Math.floor(flight.snapshots.length / 2); // cruise
+    fly(s, 0, half);
+
+    expect(await guard(() => app.sendPilotMessage('   '))).toMatchObject({
+      ok: false,
+      error: { code: 'invalid_input' },
+    });
+    await app.sendPilotMessage('req gate');
+    fly(s, half, half + 1);
+    mock.deliver({ from: ofp.callsign, to: 'OPS822', type: 'telex', packet: 'DIVERT-RJOO' });
+    fly(s, half + 1, half + 3); // the transport reports it on a tick, the core reads it on the next
+    expect(mock.lastExpectReplyMs).toBe(10 * 60_000);
+    mock.deliver({ from: ofp.callsign, to: 'OPS822', type: 'telex', packet: 'TECH' });
+    fly(s, half + 3);
+
+    const feed = app.state().feed;
+    expect(feed.flatMap((e) => (e.kind === 'inbound' ? [`${e.type} ${e.text}`] : []))).toEqual([
+      'app req gate',
+      'telex DIVERT-RJOO',
+      'telex TECH',
+    ]);
+    const ids = outbound(feed).map((m) => m.scenarioId);
+    expect(ids).toContain('cmd_req_gate');
+    expect(ids.filter((id) => id === 'cmd_divert')).toHaveLength(3); // ask, TECH arm, stand
+    expect(ids).not.toContain('arrival_info');
+
+    await app.stopFlight();
+    const files = await readdir(s.recordings);
+    const parsed = parseJsonl(await readFile(join(s.recordings, files[0] as string), 'utf8'));
+    if (parsed.kind !== 'recording') throw new Error('not a recording');
+    const rec = parsed.recording;
+    const inbound = rec.events.flatMap((e) => (e.type === 'tick' ? (e.inbound ?? []) : []));
+    expect(inbound.map((m) => m.text)).toEqual(['req gate', 'DIVERT-RJOO', 'TECH']);
+    const r = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
   });
 });
 

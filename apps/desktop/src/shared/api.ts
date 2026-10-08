@@ -103,6 +103,7 @@ export type SystemCode =
   | 'telemetry_restored'
   | 'discontinuity'
   | 'scenario_error'
+  | 'reply_timeout'
   | 'transport_status';
 
 export type FeedEntry =
@@ -123,6 +124,7 @@ export type FeedEntry =
       readonly t: number;
       readonly from: string;
       readonly to: string;
+      /** Hoppie message type, or `app` for a message typed in the app (T12). */
       readonly type: string;
       readonly text: string;
     }
@@ -195,6 +197,11 @@ export interface AcarsApi {
   startFlight(): Promise<Result<null>>;
   stopFlight(): Promise<Result<null>>;
   endFlight(to: 'TURNAROUND' | 'DONE'): Promise<Result<null>>;
+  /**
+   * A telex "from the pilot" typed in the app (T12), for aircraft without free-text telex:
+   * goes to the core as if the aircraft had sent it; nothing goes to the network.
+   */
+  sendPilotMessage(text: string): Promise<Result<null>>;
   /** Opens the recordings folder in the OS file manager. */
   openRecordings(): Promise<Result<null>>;
 }
@@ -215,5 +222,6 @@ export const IPC = {
   startFlight: 'acars:start-flight',
   stopFlight: 'acars:stop-flight',
   endFlight: 'acars:end-flight',
+  sendPilotMessage: 'acars:send-pilot-message',
   openRecordings: 'acars:open-recordings',
 } as const;

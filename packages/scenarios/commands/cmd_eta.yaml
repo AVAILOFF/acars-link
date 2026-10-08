@@ -1,0 +1,21 @@
+# ETA in flight: planned en-route time after the actual take-off (no wind model), the gate
+# and the transfer passengers.
+id: cmd_eta
+version: 1
+category: ops
+title: "Pilot command: ETA"
+enabled_by_default: true
+trigger:
+  on: command
+  command: ETA
+conditions:
+  - "flight.eta != null"
+steps:
+  - send:
+      header: ETA {ofp.dest}
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        ETA {flight.eta|hhmm}Z STA {ofp.sched_in|hhmm}Z
+        GATE {ops.arr_gate}
+        TRANSFER PAX {ops.transfer_pax}
+        CONNECTIONS ADVISED

@@ -1,0 +1,19 @@
+# REQ GATE: the arrival gate. The same gate as gate_assignment and arrival_info (ops-data).
+id: cmd_req_gate
+version: 1
+category: ops
+title: "Pilot command: REQ GATE"
+enabled_by_default: true
+trigger:
+  on: command
+  command: REQ_GATE
+conditions:
+  - "flight.divert == null"
+steps:
+  - send:
+      header: GATE INFO
+      body: |
+        {ofp.callsign} ARR {ofp.dest}
+        EXPECTED GATE {ops.arr_gate}
+        BAGGAGE BELT {ops.belt}
+        STA {ofp.sched_in|hhmm}Z

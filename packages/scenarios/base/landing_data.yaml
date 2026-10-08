@@ -8,6 +8,7 @@ trigger:
   on: distance
   dist: { to: tod, lte_nm: 150 }
 conditions:
+  - "flight.divert == null"
   - "phase in ['CLIMB','CRUISE']"
 priority: 2
 steps:

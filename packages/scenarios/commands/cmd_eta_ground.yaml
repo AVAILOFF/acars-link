@@ -1,0 +1,19 @@
+# ETA before take-off: the estimates (moved by any delay).
+id: cmd_eta_ground
+version: 1
+category: ops
+title: "Pilot command: ETA, before take-off"
+enabled_by_default: true
+trigger:
+  on: command
+  command: ETA
+conditions:
+  - "flight.eta == null"
+steps:
+  - send:
+      header: ETA {ofp.dest}
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        EOBT {ofp.est_out|hhmm}Z
+        EST IN {ofp.est_in|hhmm}Z STA {ofp.sched_in|hhmm}Z
+        TRANSFER PAX {ops.transfer_pax}

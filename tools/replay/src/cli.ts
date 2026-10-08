@@ -22,7 +22,9 @@ export const USAGE = `usage:
       --ofp <simbrief.json>     OFP (SimBrief json=v2) for a bare snapshot file
       --scenarios <dir|file>    extra scenario YAML; replaces base scenarios with the same id
                                 and is always enabled (repeatable)
-      --no-base                 do not load packages/scenarios/base
+      --no-base                 do not load packages/scenarios/base and /commands
+      --pilot <min>=<text>      a pilot telex <min> minutes after the start (repeatable),
+                                e.g. --pilot "40=REQ GATE" --pilot "95=DIVERT RJOO"
       --only <id,id,…>          run exactly these scenarios
       --all                     run every loaded scenario (default: those enabled in the flight)
       --seed <text>             core seed (default: the recorded one)
@@ -50,7 +52,11 @@ const nodeIo: Io = {
   err: (t) => process.stderr.write(t),
 };
 
-const BASE_DIR = fileURLToPath(new URL('../../../packages/scenarios/base/', import.meta.url));
+/** The scenarios the app ships: the base set and the pilot command handlers (T12). */
+const BASE_DIRS = ['base', 'commands'].map((d) =>
+  fileURLToPath(new URL(`../../../packages/scenarios/${d}/`, import.meta.url)),
+);
+const readBase = () => BASE_DIRS.flatMap((d) => readScenarioPath(d));
 
 class UsageError extends Error {}
 
@@ -105,10 +111,12 @@ function runCommand(args: string[], io: Io): number {
       verbose: { type: 'boolean' },
       json: { type: 'boolean' },
       check: { type: 'boolean' },
+      pilot: { type: 'string', multiple: true },
     },
   });
   const file = one(positionals, 'run <file.jsonl>');
-  const base = v['no-base'] === true ? [] : readScenarioPath(BASE_DIR);
+  const base = v['no-base'] === true ? [] : readBase();
+  const pilot = (v.pilot ?? []).map(pilotLine);
   const extra = (v.scenarios ?? []).flatMap((p) => readScenarioPath(p));
   const recording = readRecording(file, v.ofp, base, io);
 
@@ -127,6 +135,7 @@ function runCommand(args: string[], io: Io): number {
     ...(v.seed === undefined ? {} : { seed: v.seed }),
     ...(v.station === undefined ? {} : { station: v.station }),
     ...(v.profile === undefined ? {} : { profile: profileById(v.profile) }),
+    ...(pilot.length === 0 ? {} : { pilot }),
   });
 
   if (v.json === true) {
@@ -193,7 +202,7 @@ function synthCommand(args: string[], io: Io): number {
   const goAround = v['go-around'] === undefined ? undefined : num(v['go-around'], '--go-around');
   const boarding = v.boarding === undefined ? undefined : num(v.boarding, '--boarding');
   const recording = syntheticRecording(
-    { ofp, scenarios: defaultEnabled(readScenarioPath(BASE_DIR)), seed: v.seed ?? null },
+    { ofp, scenarios: defaultEnabled(readBase()), seed: v.seed ?? null },
     {
       ...(goAround === undefined ? {} : { goAroundAglFt: goAround }),
       ...(boarding === undefined ? {} : { boardingSec: boarding * 60 }),
@@ -248,6 +257,13 @@ function readScenarioPath(p: string): ScenarioFile[] {
     .filter((f) => /\.ya?ml$/.test(f))
     .sort()
     .map((f) => read(join(p, f)));
+}
+
+/** `40=REQ GATE` → 40 min after the start, text `REQ GATE`. */
+function pilotLine(s: string): { afterMin: number; text: string } {
+  const m = /^\s*(\d+(?:\.\d+)?)\s*=(.+)$/.exec(s);
+  if (m === null) throw new UsageError(`--pilot "${s}": expected <min>=<text>`);
+  return { afterMin: Number(m[1]), text: (m[2] as string).trim() };
 }
 
 function profileById(id: string): DisplayProfile {

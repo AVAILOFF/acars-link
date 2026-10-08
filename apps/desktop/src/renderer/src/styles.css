@@ -150,6 +150,18 @@ body {
   min-height: 0;
 }
 
+.pilot-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.pilot-form input {
+  flex: 1;
+  text-transform: uppercase;
+}
+
 /* Text */
 .muted {
   color: var(--muted);

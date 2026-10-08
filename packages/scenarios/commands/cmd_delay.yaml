@@ -1,0 +1,19 @@
+# DELAY <min> <reason>: the core has already moved the schedule (est_*, time triggers) by
+# the minutes; this confirms it with the new off-block time.
+id: cmd_delay
+version: 1
+category: ops
+title: "Pilot command: DELAY"
+enabled_by_default: true
+trigger:
+  on: command
+  command: DELAY
+steps:
+  - send:
+      header: DELAY RCVD
+      body: |
+        {ofp.callsign} DELAY {cmd.minutes} MIN
+        REASON {cmd.reason|or:NOT GIVEN}
+        NEW EOBT {ofp.est_out|hhmm}Z
+        TOTAL DELAY {flight.delay_min} MIN
+      footer: "OPS {name:ops}"

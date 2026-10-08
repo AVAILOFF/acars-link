@@ -23,6 +23,12 @@ export interface ReplayOptions {
   readonly station?: string;
   readonly profile?: DisplayProfile;
   readonly phaseConfig?: Partial<PhaseConfig>;
+  /**
+   * Extra pilot telexes (T12): each goes with the first tick at least `afterMin` minutes after
+   * the first line of the recording, after the recorded ones of that tick. From the flight's
+   * callsign, type `telex`.
+   */
+  readonly pilot?: readonly { readonly afterMin: number; readonly text: string }[];
 }
 
 export type TimelineEntry =
@@ -69,6 +75,7 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
   let firstNow: number | null = null;
   let lastNow: number | null = null;
   let delayReported = false;
+  let pilot = [...(o.pilot ?? [])].sort((a, b) => a.afterMin - b.afterMin);
 
   const apply = (now: number, out: ReturnType<AcarsCore['tick']>) => {
     const delay = core.delayMs;
@@ -97,10 +104,25 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
         if (core.phase !== before) phases.push(core.phase);
         break;
       }
-      case 'tick':
+      case 'tick': {
         ticks++;
-        apply(e.now, core.tick({ now: e.now, telemetry: e.telemetry }));
+        const t0 = firstNow ?? e.now;
+        const due = pilot.filter((p) => e.now >= t0 + p.afterMin * 60_000);
+        pilot = pilot.filter((p) => !due.includes(p));
+        const inbound = [
+          ...(e.inbound ?? []),
+          ...due.map((p) => ({ from: h.ofp.callsign, type: 'telex', text: p.text })),
+        ];
+        apply(
+          e.now,
+          core.tick({
+            now: e.now,
+            telemetry: e.telemetry,
+            ...(inbound.length > 0 ? { inbound } : {}),
+          }),
+        );
         break;
+      }
       case 'end':
         try {
           apply(e.now, core.endFlight(e.to, e.now));

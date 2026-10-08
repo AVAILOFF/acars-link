@@ -19,6 +19,7 @@ export * from './scenario/engine.js';
 export * from './scenario/expr.js';
 export * from './scenario/names.js';
 export * from './scenario/ops-data.js';
+export * from './scenario/pilot.js';
 export * from './scenario/template.js';
 export * from './scenario/types.js';
 export * from './synthetic/anomalies.js';

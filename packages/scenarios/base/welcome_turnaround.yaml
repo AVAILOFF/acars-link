@@ -7,6 +7,8 @@ enabled_by_default: true
 trigger:
   on: event
   event: OOOI_IN
+conditions:
+  - "flight.divert == null"
 steps:
   - wait: { minutes: 2 }
   - send:
