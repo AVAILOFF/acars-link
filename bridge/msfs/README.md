@@ -13,7 +13,9 @@ dotnet test bridge/msfs                                    # or: pnpm bridge:tes
 
 The MSFS SDK is not in the repo. The project looks for
 `<SDK>\SimConnect SDK\lib\managed\Microsoft.FlightSimulator.SimConnect.dll` in `-p:MsfsSdk=…`, then in
-the `MSFS2024_SDK` and `MSFS_SDK` environment variables. Native `SimConnect.dll` is copied next to the exe. x64 only.
+`bridge/msfs/Local.props` (gitignored, copy from `Local.props.example`), then in the `MSFS2024_SDK` and
+`MSFS_SDK` environment variables. Native `SimConnect.dll` is copied next to the exe. x64 only.
+The build prints which folder it used (`SimConnect support ON (…)`).
 
 ## Run
 

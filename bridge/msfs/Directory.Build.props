@@ -9,4 +9,7 @@
     <!-- SimConnect is native x64 only. -->
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
+
+  <!-- Machine-local settings (SimConnect DLL location). Not committed; see Local.props.example. -->
+  <Import Project="$(MSBuildThisFileDirectory)Local.props" Condition="Exists('$(MSBuildThisFileDirectory)Local.props')" />
 </Project>

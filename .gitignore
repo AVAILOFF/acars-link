@@ -27,3 +27,4 @@ bin/
 obj/
 *.user
 TestResults/
+bridge/msfs/Local.props

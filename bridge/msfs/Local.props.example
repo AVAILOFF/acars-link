@@ -1,0 +1,12 @@
+<Project>
+  <!--
+    Copy to Local.props (gitignored) and point MsfsSdk at a folder with the MSFS SDK layout:
+      <MsfsSdk>\SimConnect SDK\lib\SimConnect.dll
+      <MsfsSdk>\SimConnect SDK\lib\managed\Microsoft.FlightSimulator.SimConnect.dll
+    It can be the official SDK root or a folder holding just these two DLLs.
+    A value passed on the command line (-p:MsfsSdk=...) still wins.
+  -->
+  <PropertyGroup>
+    <MsfsSdk Condition="'$(MsfsSdk)' == ''">C:\MSFS 2024 SDK</MsfsSdk>
+  </PropertyGroup>
+</Project>
