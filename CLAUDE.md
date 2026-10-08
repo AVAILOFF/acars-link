@@ -45,6 +45,8 @@ pnpm lint:fix         # biome check --write .
 pnpm test             # vitest run (проекты packages/*)
 pnpm build            # tsc → packages/*/dist
 pnpm -F @acars/core test   # тесты одного пакета
+pnpm bridge:build     # dotnet build bridge/msfs (C# мост, .NET 8; с SimConnect: -p:MsfsSdk="C:\MSFS 2024 SDK")
+pnpm bridge:test      # dotnet test bridge/msfs — при изменениях в bridge/ тоже перед «готово»
 ```
 
 Пакеты воркспейса импортируют друг друга из исходников: условие экспорта `source` (`customConditions` в `tsconfig.base.json`, `resolve.conditions` в `vitest.config.ts`), сборка для тестов не нужна. `pnpm -F <pkg> test` запускает корневой конфиг Vitest с `--project`.

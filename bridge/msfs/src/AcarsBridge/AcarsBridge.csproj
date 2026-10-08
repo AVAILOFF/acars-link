@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>acars-msfs-bridge</AssemblyName>
+    <RootNamespace>AcarsBridge</RootNamespace>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Kestrel + WebSockets from the shared framework: no NuGet packages. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <InternalsVisibleTo Include="AcarsBridge.Tests" />
+  </ItemGroup>
+
+  <!--
+    SimConnect comes from the MSFS SDK, which is not in the repo (and not on NuGet officially).
+    Point MsfsSdk at the SDK root (or set MSFS2024_SDK / MSFS_SDK, which the SDK installer sets):
+      dotnet build -p:MsfsSdk="C:\MSFS 2024 SDK"
+    Without the SDK the bridge still builds and runs with the fake source; the simconnect source
+    then exits with an error that SimConnect support was not compiled in.
+  -->
+  <PropertyGroup>
+    <MsfsSdk Condition="'$(MsfsSdk)' == ''">$(MSFS2024_SDK)</MsfsSdk>
+    <MsfsSdk Condition="'$(MsfsSdk)' == ''">$(MSFS_SDK)</MsfsSdk>
+    <SimConnectManagedDll>$(MsfsSdk)\SimConnect SDK\lib\managed\Microsoft.FlightSimulator.SimConnect.dll</SimConnectManagedDll>
+    <SimConnectNativeDll>$(MsfsSdk)\SimConnect SDK\lib\SimConnect.dll</SimConnectNativeDll>
+    <HasSimConnect Condition="'$(MsfsSdk)' != '' And Exists('$(SimConnectManagedDll)')">true</HasSimConnect>
+    <DefineConstants Condition="'$(HasSimConnect)' == 'true'">$(DefineConstants);SIMCONNECT</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(HasSimConnect)' == 'true'">
+    <Reference Include="Microsoft.FlightSimulator.SimConnect">
+      <HintPath>$(SimConnectManagedDll)</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <!-- The managed wrapper loads the native SimConnect.dll at runtime. -->
+    <None Include="$(SimConnectNativeDll)" Link="SimConnect.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="ReportSimConnect" BeforeTargets="Build">
+    <Message Importance="high" Text="acars-msfs-bridge: SimConnect support ON ($(MsfsSdk))" Condition="'$(HasSimConnect)' == 'true'" />
+    <Message Importance="high" Text="acars-msfs-bridge: SimConnect support OFF (MSFS SDK not found; set -p:MsfsSdk=...)" Condition="'$(HasSimConnect)' != 'true'" />
+  </Target>
+
+</Project>

@@ -21,3 +21,9 @@ Thumbs.db
 
 # real SimBrief OFPs (personal data) — only anonymized fixtures are committed
 reference/ofp/raw/
+
+# .NET bridge build output
+bin/
+obj/
+*.user
+TestResults/
