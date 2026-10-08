@@ -8,9 +8,12 @@ export default defineConfig({
   resolve: { conditions },
   ssr: { resolve: { conditions, externalConditions: ['source'] } },
   test: {
-    projects: ['core', 'scenarios', 'transport'].map((name) => ({
-      extends: true,
-      test: { name: `@acars/${name}`, root: `packages/${name}` },
-    })),
+    projects: [
+      ...['core', 'scenarios', 'transport'].map((name) => ({
+        extends: true,
+        test: { name: `@acars/${name}`, root: `packages/${name}` },
+      })),
+      { extends: true, test: { name: '@acars/desktop', root: 'apps/desktop' } },
+    ],
   },
 });

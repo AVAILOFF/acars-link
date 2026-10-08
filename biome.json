@@ -94,6 +94,30 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/desktop/src/renderer/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["node:*"],
+                    "message": "The renderer is sandboxed: no Node API, use window.acars."
+                  },
+                  {
+                    "group": ["electron", "electron/*", "@acars/transport", "@acars/scenarios"],
+                    "message": "The renderer talks to the main process only through window.acars (preload)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

@@ -14,6 +14,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "desktop:dev": "pnpm -F @acars/desktop dev",
+    "desktop": "pnpm -F @acars/desktop build && pnpm -F @acars/desktop start",
     "bridge:build": "dotnet build bridge/msfs",
     "bridge:test": "dotnet test bridge/msfs",
     "hoppie:telex": "pnpm -F @acars/core -F @acars/transport build && pnpm -F @acars/transport telex"

@@ -91,13 +91,24 @@ export class AcarsCore {
     this.fsm.startFlight();
   }
 
+  /**
+   * The user closes the flight from ON_BLOCK (docs/04: TURNAROUND or DONE). Runs one tick at
+   * `now` so scenarios see the phase change right away. Throws outside ON_BLOCK.
+   */
+  endFlight(to: 'TURNAROUND' | 'DONE', now: number): CoreOutput {
+    return this.run(now, this.fsm.endFlight(to, now));
+  }
+
   tick(input: CoreInput): CoreOutput {
-    const phaseEvents = [
+    return this.run(input.now, [
       ...(input.telemetry === null ? [] : this.fsm.push(input.telemetry, input.now)),
       ...this.fsm.tick(input.now),
-    ];
+    ]);
+  }
+
+  private run(now: number, phaseEvents: readonly PhaseEvent[]): CoreOutput {
     const out = this.engine.tick({
-      now: input.now,
+      now,
       phase: this.fsm.phase,
       events: phaseEvents,
       telemetry: this.fsm.lastSnapshot,

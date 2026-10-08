@@ -386,3 +386,27 @@ describe('compileScenario', () => {
     expect(compileScenario(ok).id).toBe('ok');
   });
 });
+
+describe('AcarsCore.endFlight (user decision at ON_BLOCK)', () => {
+  const defs = [def({ id: 'bye', trigger: { on: 'phase_enter', phase: 'TURNAROUND' } })];
+
+  it('enters TURNAROUND and runs the scenarios in the same call', () => {
+    const r = fly(defs);
+    expect(r.core.phase).toBe('ON_BLOCK');
+    const now = (normal.snapshots.at(-1)?.t ?? 0) + MIN;
+    const out = r.core.endFlight('TURNAROUND', now);
+    expect(out.phase).toBe('TURNAROUND');
+    expect(out.events).toContainEqual({
+      type: 'PHASE_CHANGE',
+      t: now,
+      from: 'ON_BLOCK',
+      to: 'TURNAROUND',
+    });
+    expect(out.outbound.map((m) => m.scenarioId)).toEqual(['bye']);
+  });
+
+  it('throws outside ON_BLOCK', () => {
+    const core = AcarsCore.create({ ofp, scenarios: defs.map(compileScenario) });
+    expect(() => core.endFlight('DONE', 0)).toThrow(/ON_BLOCK/);
+  });
+});

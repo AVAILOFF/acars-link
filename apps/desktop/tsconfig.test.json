@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["test", "src/main", "src/shared", "src/renderer/src/i18n.ts"]
+}

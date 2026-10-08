@@ -1,0 +1,28 @@
+import { contextBridge, ipcRenderer } from 'electron';
+import { type AcarsApi, type AppState, IPC } from '../shared/api.js';
+
+/** The only bridge between the sandboxed renderer and the main process. */
+const api: AcarsApi = {
+  getState: () => ipcRenderer.invoke(IPC.getState),
+  onState: (listener) => {
+    const handler = (_: unknown, state: AppState) => listener(state);
+    ipcRenderer.on(IPC.state, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC.state, handler);
+    };
+  },
+  getSettings: () => ipcRenderer.invoke(IPC.getSettings),
+  updateSettings: (patch) => ipcRenderer.invoke(IPC.updateSettings, patch),
+  listScenarios: () => ipcRenderer.invoke(IPC.listScenarios),
+  setScenarioEnabled: (id, enabled) => ipcRenderer.invoke(IPC.setScenarioEnabled, id, enabled),
+  getCredentials: () => ipcRenderer.invoke(IPC.getCredentials),
+  setSimbriefUsername: (u) => ipcRenderer.invoke(IPC.setSimbriefUsername, u),
+  setHoppieCode: (code) => ipcRenderer.invoke(IPC.setHoppieCode, code),
+  clearHoppieCode: () => ipcRenderer.invoke(IPC.clearHoppieCode),
+  loadOfp: () => ipcRenderer.invoke(IPC.loadOfp),
+  startFlight: () => ipcRenderer.invoke(IPC.startFlight),
+  stopFlight: () => ipcRenderer.invoke(IPC.stopFlight),
+  endFlight: (to) => ipcRenderer.invoke(IPC.endFlight, to),
+};
+
+contextBridge.exposeInMainWorld('acars', api);
