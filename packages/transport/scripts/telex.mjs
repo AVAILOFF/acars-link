@@ -3,11 +3,21 @@
 //
 //   $env:HOPPIE_LOGON = '<your logon code>'      # PowerShell; never pass it as an argument
 //   pnpm hoppie:telex --to DLH4 [--from OPSDLH4] [--text "..."] [--profile b77x] [--listen 180]
+//   pnpm hoppie:telex --ping "DLH4 DLH4A"      # which of these callsigns Hoppie sees online
 //
 // The logon code is read from the environment only and is never printed.
 import { parseArgs } from 'node:util';
 import { BUILTIN_PROFILES, createRng, DEFAULT_PROFILE, formatMessage } from '@acars/core';
-import { fetchHttpClient, HoppieTransport } from '@acars/transport';
+import {
+  buildRequest,
+  fetchHttpClient,
+  HOPPIE_ENDPOINT,
+  HoppieTransport,
+  isValidCallsign,
+  parsePing,
+  parseResponse,
+  SERVER_CALLSIGN,
+} from '@acars/transport';
 
 const { values } = parseArgs({
   options: {
@@ -16,11 +26,13 @@ const { values } = parseArgs({
     text: { type: 'string' },
     profile: { type: 'string', default: DEFAULT_PROFILE.id },
     listen: { type: 'string', default: '180' },
+    ping: { type: 'string' },
   },
 });
 
 const logon = process.env.HOPPIE_LOGON ?? '';
 if (logon.trim() === '') fail('set HOPPIE_LOGON in the environment (not on the command line)');
+if (values.ping !== undefined) await ping(values.ping);
 const to = (values.to ?? '').toUpperCase();
 if (to === '') fail('--to <aircraft callsign> is required');
 const from = (values.from ?? `OPS${to}`).toUpperCase();
@@ -78,6 +90,24 @@ const timer = setInterval(() => {
     });
   }
 }, 1_000);
+
+/** One ping (does not lock callsigns or fetch messages), then exit. */
+async function ping(list) {
+  const callsigns = list.toUpperCase().split(/\s+/).filter(Boolean);
+  const bad = callsigns.filter((cs) => !isValidCallsign(cs));
+  if (callsigns.length === 0 || bad.length > 0) fail(`--ping needs callsigns A-Z0-9: ${bad}`);
+  const req = buildRequest(
+    HOPPIE_ENDPOINT,
+    { logon, from: 'OPSPING', to: SERVER_CALLSIGN, type: 'ping', packet: callsigns.join(' ') },
+    15_000,
+  );
+  const res = await fetchHttpClient().request(req);
+  const r = parseResponse(res.body);
+  if (!r.ok) fail(`error: ${r.reason}`);
+  const online = parsePing(r.content);
+  for (const cs of callsigns) console.log(`${cs}: ${online.includes(cs) ? 'ONLINE' : 'not seen'}`);
+  process.exit(0);
+}
 
 function fail(msg) {
   console.error(msg);

@@ -97,6 +97,7 @@ describe('parsePing and reason classes', () => {
   it('lists online callsigns', () => {
     expect(parsePing('')).toEqual([]);
     expect(parsePing('{DLH4 KLM123}')).toEqual(['DLH4', 'KLM123']);
+    expect(parsePing('DLH4')).toEqual(['DLH4']);
   });
 
   it('classifies server error reasons', () => {

@@ -115,11 +115,11 @@ export function parsePoll(content: string, to: string): PollResult {
   return { messages, malformed };
 }
 
-/** `ok` content of a ping: the online callsigns among those asked (`{CS1 CS2}`), if any. */
+/** `ok` content of a ping: the online callsigns among those asked (`{CS1 CS2}`, braces
+ * optional), if any. */
 export function parsePing(content: string): string[] {
-  const g = groups(content)[0];
-  if (g === undefined) return [];
-  return g.split(/\s+/).filter((cs) => CALLSIGN.test(cs));
+  const text = groups(content)[0] ?? content;
+  return text.split(/\s+/).filter((cs) => CALLSIGN.test(cs));
 }
 
 /** Server error reasons that no retry can fix: the logon code is wrong. */
