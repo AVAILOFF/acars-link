@@ -41,7 +41,9 @@ public sealed class ReconnectPolicy(TimeSpan? initial = null, TimeSpan? max = nu
 /// <list type="bullet">
 /// <item>Frames are throttled to one per <see cref="MinInterval"/> of wall time (at sim rate ×4 the
 ///   SECOND period may fire faster than 1 Hz wall).</item>
-/// <item>A pause change re-emits the last frame at once with the new <c>paused</c> flag.</item>
+/// <item>A pause change re-emits the last frame with the new <c>paused</c> flag: at once if the last
+///   snapshot is older than <see cref="MinInterval"/>, otherwise on the next <see cref="Tick"/> once it
+///   is. MSFS 2024 flips pause many times per second while a flight loads; the stream stays ≤ 1 Hz.</item>
 /// <item><see cref="Tick"/> re-emits the last frame if the sim went quiet (data may stop while
 ///   paused), so the app keeps getting 1 Hz snapshots with <c>paused: true</c>.</item>
 /// <item>Nothing is emitted while the sim is not running (menus, flight loading).</item>
@@ -55,6 +57,7 @@ public sealed class SnapshotPump(TimeProvider clock, Action<TelemetrySnapshot> e
 
     private SimFrame? _last;
     private DateTimeOffset _lastEmit = DateTimeOffset.MinValue;
+    private bool _pending;
 
     public bool Running { get; private set; }
     public bool Paused { get; private set; }
@@ -63,7 +66,8 @@ public sealed class SnapshotPump(TimeProvider clock, Action<TelemetrySnapshot> e
     public void OnFrame(SimFrame frame)
     {
         _last = frame;
-        if (Running && clock.GetUtcNow() - _lastEmit >= MinInterval) Emit();
+        _pending = true;
+        EmitIfDue(MinInterval);
     }
 
     /// <summary>Pause_EX1 flags: any non-zero value (full, active or sim pause) counts as paused.</summary>
@@ -73,7 +77,8 @@ public sealed class SnapshotPump(TimeProvider clock, Action<TelemetrySnapshot> e
         var paused = flags != 0;
         if (paused == Paused) return false;
         Paused = paused;
-        if (Running && _last is not null) Emit();
+        _pending = true;
+        EmitIfDue(MinInterval);
         return true;
     }
 
@@ -89,7 +94,7 @@ public sealed class SnapshotPump(TimeProvider clock, Action<TelemetrySnapshot> e
 
     public void Tick()
     {
-        if (Running && _last is not null && clock.GetUtcNow() - _lastEmit >= KeepAlive) Emit();
+        if (!EmitIfDue(MinInterval)) EmitIfDue(KeepAlive, force: true);
     }
 
     public void Reset()
@@ -98,12 +103,18 @@ public sealed class SnapshotPump(TimeProvider clock, Action<TelemetrySnapshot> e
         _lastEmit = DateTimeOffset.MinValue;
         Running = false;
         Paused = false;
+        _pending = false;
     }
 
-    private void Emit()
+    /// <summary>Emits when something is pending (or <paramref name="force"/>) and <paramref name="gap"/> has passed.</summary>
+    private bool EmitIfDue(TimeSpan gap, bool force = false)
     {
+        if (!Running || _last is null || !(_pending || force)) return false;
         var now = clock.GetUtcNow();
+        if (now - _lastEmit < gap) return false;
         _lastEmit = now;
-        emit(TelemetryMapper.Map(_last!, Paused, now));
+        _pending = false;
+        emit(TelemetryMapper.Map(_last, Paused, now));
+        return true;
     }
 }

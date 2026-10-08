@@ -59,5 +59,11 @@ See `src/AcarsBridge/SimVars.cs`. The names and units were checked against docs.
 
 Checked by a human in MSFS 2024 (A350-1000, 2026-10-08): connect, `running`, `doorsOpen`
 (0-based, order L1, R1, L2, R2), `xpdrState` (AUTO on the ground → 5 Ground), `beacon`,
-`engRunning`/`engN2`, `fuelKg`, `parkingBrake`, pause and active pause.
-Not yet checked: `simRate`, reconnect after MSFS quits, flaps/gear in flight, MSFS 2020.
+`engRunning`/`engN2`, `fuelKg`, `parkingBrake`, pause and active pause, `flapsIdx`, `gearDown`,
+`onGround` on takeoff, reconnect after MSFS quits (2024 breaks the pipe, `0xC000014B`, instead of
+sending Quit; the backoff loop handles both). Not yet checked: `simRate`, MSFS 2020.
+
+Seen while a flight loads in MSFS 2024: pause flips many times per second (the pump keeps the stream
+≤ 1 Hz), and aircraft state jumps (engines, transponder, flaps) before the flight settles.
+During engine start `GENERAL ENG COMBUSTION` flickers for ~30 s (N2 ≈ 25 %); the bridge passes it
+through raw, and the FSM's `holdSec` absorbs it.

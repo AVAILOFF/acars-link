@@ -62,29 +62,66 @@ public class SnapshotPumpTests
     }
 
     [Fact]
-    public void Pause_change_reemits_immediately_and_keepalive_continues_while_paused()
+    public void Pause_change_reemits_at_once_when_stream_is_idle()
     {
         _pump.OnSimRunning(true);
         _pump.OnFrame(Frames.Sample());
-        Step(100);
+        Step(1000);
 
         Assert.True(_pump.OnPauseFlags(4)); // active pause
         Assert.Equal(2, _out.Count);
         Assert.True(_out[^1].Paused);
         Assert.False(_pump.OnPauseFlags(1)); // still paused (different flag)
+    }
 
-        // Sim stops sending data while paused; Tick keeps a ~1.5 s heartbeat.
+    [Fact]
+    public void Pause_change_soon_after_a_snapshot_waits_for_min_interval_then_keepalive_continues()
+    {
+        _pump.OnSimRunning(true);
+        _pump.OnFrame(Frames.Sample());
+        Step(100);
+
+        _pump.OnPauseFlags(1);
+        Assert.Single(_out); // too soon: pending
+
+        // Sim stops sending data while paused; Tick delivers the pending change, then a ~1.5 s heartbeat.
         for (var i = 0; i < 12; i++)
         {
             Step(250);
             _pump.Tick();
         }
-        Assert.Equal(4, _out.Count);
+        // t = 1100 pending pause, t = 2600 keepalive
+        Assert.Equal(3, _out.Count);
         Assert.All(_out.Skip(1), s => Assert.True(s.Paused));
-        Assert.True(_out[^1].T > _out[1].T);
+        Assert.Equal(1500, _out[2].T - _out[1].T);
 
+        Step(1000);
         Assert.True(_pump.OnPauseFlags(0));
         Assert.False(_out[^1].Paused);
+    }
+
+    [Fact]
+    public void Pause_flapping_while_flight_loads_stays_at_1hz_and_ends_in_final_state()
+    {
+        // Seen in MSFS 2024: 13 pause toggles within one second during flight load.
+        _pump.OnSimRunning(true);
+        _pump.OnFrame(Frames.Sample());
+        for (var i = 0; i < 13; i++)
+        {
+            _pump.OnPauseFlags(i % 2 == 0 ? 1u : 0u);
+            Step(70);
+            _pump.Tick();
+        }
+        for (var i = 0; i < 8; i++)
+        {
+            Step(250);
+            _pump.Tick();
+        }
+
+        for (var i = 1; i < _out.Count; i++)
+            Assert.True(_out[i].T - _out[i - 1].T >= SnapshotPump.MinInterval.TotalMilliseconds);
+        Assert.True(_pump.Paused); // 13 toggles starting from "paused" → paused
+        Assert.Equal(_pump.Paused, _out[^1].Paused);
     }
 
     [Fact]

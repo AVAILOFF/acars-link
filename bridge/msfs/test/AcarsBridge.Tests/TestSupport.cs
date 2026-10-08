@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.CompilerServices;
 using AcarsBridge;
 
 namespace AcarsBridge.Tests;
@@ -62,9 +63,10 @@ internal static class Frames
 
 internal static class Repo
 {
-    public static string File(string relative)
+    /// <summary>Finds a repo file by walking up from this source file (works with any output path).</summary>
+    public static string File(string relative, [CallerFilePath] string self = "")
     {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        for (var dir = new DirectoryInfo(Path.GetDirectoryName(self)!); dir is not null; dir = dir.Parent)
         {
             var candidate = Path.Combine(dir.FullName, relative);
             if (System.IO.File.Exists(candidate)) return candidate;
