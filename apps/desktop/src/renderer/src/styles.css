@@ -562,3 +562,8 @@ input.short {
 .pilot-form + .pilot-form {
   border-top: 1px solid var(--line);
 }
+
+/* A scenario row with its description under it. */
+.scenario-desc {
+  margin: -2px 0 6px 28px;
+}

@@ -43,9 +43,18 @@ export interface CredentialsView {
   readonly secureStorage: boolean;
 }
 
+/** A UI text in the app languages; `ru` null = use `en`. */
+export interface UiText {
+  readonly en: string;
+  readonly ru: string | null;
+}
+
 export interface ScenarioInfo {
   readonly id: string;
   readonly title: string;
+  /** Title and description in the UI languages (from the scenario file). */
+  readonly titleText: UiText;
+  readonly description: UiText | null;
   readonly category: ScenarioCategory;
   readonly enabledByDefault: boolean;
   readonly enabled: boolean;
@@ -58,7 +67,7 @@ export interface ScenarioInfo {
 /** An irregular scenario of the running flight that can be started by hand. */
 export interface ForceableScenario {
   readonly id: string;
-  readonly title: string;
+  readonly title: UiText;
 }
 
 export interface FlightSummary {

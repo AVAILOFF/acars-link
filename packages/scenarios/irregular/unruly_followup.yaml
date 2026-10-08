@@ -3,6 +3,9 @@ id: unruly_followup
 version: 1
 category: irregular
 title: Disruptive passenger follow-up (next flight)
+title_ru: "Дебошир: итог (следующий рейс)"
+description: "Before the next flight: the passenger from the earlier flight is on the company no-fly list."
+description_ru: "Перед следующим рейсом: пассажир с прошлого рейса внесён в чёрный список авиакомпании."
 enabled_by_default: true
 trigger:
   on: time

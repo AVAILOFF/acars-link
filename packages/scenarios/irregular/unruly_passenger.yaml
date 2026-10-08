@@ -4,6 +4,9 @@ id: unruly_passenger
 version: 1
 category: irregular
 title: Disruptive passenger
+title_ru: "Пассажир-дебошир"
+description: "In cruise the crew reports a disruptive passenger. RESTRAIN: police at arrival; DIVERT: nearest airport; CONTINUE (default): monitor. RESTRAIN and DIVERT leave a note for the next flight."
+description_ru: "В крейсере экипаж сообщает о дебоширящем пассажире. RESTRAIN — полиция по прилёте, DIVERT — ближайший аэропорт, CONTINUE (по умолчанию) — наблюдать. RESTRAIN и DIVERT оставляют запись для следующего рейса."
 enabled_by_default: true
 trigger:
   on: phase

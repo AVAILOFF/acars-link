@@ -4,6 +4,9 @@ id: mel_carry_over
 version: 1
 category: irregular
 title: Open MEL item from an earlier flight
+title_ru: "Открытый пункт MEL с прошлого рейса"
+description: "Before a flight on the same aircraft: the deferred MEL item is still open. After arrival maintenance closes it."
+description_ru: "Перед рейсом на том же борту: отложенный пункт MEL всё ещё открыт. После прилёта техники его закрывают."
 enabled_by_default: true
 trigger:
   on: time

@@ -3,6 +3,9 @@ id: vip_onboard
 version: 1
 category: irregular
 title: VIP on board
+title_ru: "VIP на борту"
+description: "Before departure: a VIP and the seat; on block: disembarks first, protocol car at the gate."
+description_ru: "Перед вылетом: VIP и его место; на стоянке после прилёта — выходит первым, протокольная машина у гейта."
 enabled_by_default: true
 trigger:
   on: time

@@ -4,6 +4,9 @@ id: short_connection
 version: 1
 category: irregular
 title: Short passenger connection
+title_ru: "Короткая стыковка пассажиров"
+description: "Before the descent when the onward connection is less than an hour away: number of passengers, flight, STD; please expedite."
+description_ru: "Перед снижением, если до стыковочного рейса меньше часа: сколько пассажиров, рейс, STD; просьба ускориться."
 enabled_by_default: true
 trigger:
   on: distance

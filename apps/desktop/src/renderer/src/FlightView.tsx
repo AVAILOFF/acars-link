@@ -4,7 +4,7 @@ import type { AppState, FlightSummary } from '../../shared/api.js';
 import { FeedList } from './FeedList.js';
 import { phaseKey } from './i18n.js';
 import { useStore } from './store.js';
-import { num, useT, zulu } from './ui.js';
+import { num, useT, useUiText, zulu } from './ui.js';
 
 /** The normal sequence shown as a strip; GO_AROUND and the end states only as the label. */
 const STRIP: readonly FlightPhase[] = FLIGHT_PHASES.filter(
@@ -125,6 +125,7 @@ function FlightCard({ app }: { app: AppState }) {
 function ForceForm({ list }: { list: AppState['irregular'] }) {
   const t = useT();
   const busy = useStore((s) => s.busy);
+  const text = useUiText();
   const [id, setId] = useState(list[0]?.id ?? '');
   const current = list.some((x) => x.id === id) ? id : (list[0]?.id ?? '');
   return (
@@ -142,7 +143,7 @@ function ForceForm({ list }: { list: AppState['irregular'] }) {
         <select id="force-id" value={current} onChange={(e) => setId(e.currentTarget.value)}>
           {list.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.title}
+              {text(s.title)}
             </option>
           ))}
         </select>

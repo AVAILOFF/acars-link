@@ -5,6 +5,9 @@ id: medical_onboard
 version: 1
 category: irregular
 title: Medical case on board
+title_ru: "Медицинский случай на борту"
+description: "In cruise the cabin reports a sick passenger. Reply CONTINUE or DIVERT (default CONTINUE after 10 min). DIVERT diverts to the nearest of the origin and the alternates."
+description_ru: "В крейсере кабина сообщает о плохом самочувствии пассажира. Ответ CONTINUE или DIVERT (через 10 мин — CONTINUE). DIVERT — диверсия на ближайший из аэропорта вылета и запасных."
 enabled_by_default: true
 trigger:
   on: phase

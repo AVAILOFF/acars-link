@@ -120,6 +120,10 @@ export interface ScenarioDef {
   readonly version: 1;
   readonly category: ScenarioCategory;
   readonly title: string;
+  /** For the app UI only (Russian title, description in English and Russian). */
+  readonly title_ru?: string;
+  readonly description?: string;
+  readonly description_ru?: string;
   readonly enabled_by_default: boolean;
   readonly trigger: Trigger;
   /** All must be true (expression language: `scenario/expr.ts`). */

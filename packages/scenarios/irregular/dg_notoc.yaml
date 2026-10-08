@@ -3,6 +3,9 @@ id: dg_notoc
 version: 1
 category: irregular
 title: Dangerous goods (NOTOC)
+title_ru: "Опасный груз (NOTOC)"
+description: "Before departure: dangerous goods on board, UN number, class, position. Reply ACK for the captain signature."
+description_ru: "Перед вылетом: опасный груз на борту — номер ООН, класс, позиция. Ответ ACK — подпись КВС."
 enabled_by_default: true
 trigger:
   on: time

@@ -100,8 +100,8 @@ export class FlightSession {
     this.data = o.data ?? null;
     this.irregular = o.scenarios
       .filter((c) => c.def.category === 'irregular' && c.def.trigger.on !== 'command')
-      .map((c) => ({ id: c.id, title: c.def.title }))
-      .sort((a, b) => a.title.localeCompare(b.title));
+      .map((c) => ({ id: c.id, title: { en: c.def.title, ru: c.def.title_ru ?? null } }))
+      .sort((a, b) => a.title.en.localeCompare(b.title.en));
     this.callsign = o.ofp.callsign;
     this.station = stationCallsign(o.stationTemplate, o.ofp);
     this.transport = o.transport;

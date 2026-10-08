@@ -4,6 +4,9 @@ id: tech_defect_mel
 version: 1
 category: irregular
 title: Technical defect and MEL
+title_ru: "Технический отказ и MEL"
+description: "In cruise maintenance reports a system fault. CONFIRM defers it under the MEL and keeps it open on this aircraft; NEGATIVE (default) closes it as a spurious message."
+description_ru: "В крейсере техслужба сообщает об отказе системы. CONFIRM — пункт откладывается по MEL и остаётся открытым на этом борту; NEGATIVE (по умолчанию) — ложное сообщение."
 enabled_by_default: true
 trigger:
   on: phase

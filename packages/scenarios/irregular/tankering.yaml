@@ -3,6 +3,9 @@ id: tankering
 version: 1
 category: irregular
 title: Tankering offer
+title_ru: "Танкеровка топлива"
+description: "Before departure: fuel is expensive at the destination, extra fuel is offered if the landing weight allows. ACCEPT or DECLINE (default)."
+description_ru: "Перед вылетом: топливо в пункте назначения дорогое, предлагается взять дополнительно, если позволяет посадочный вес. ACCEPT или DECLINE (по умолчанию)."
 enabled_by_default: true
 trigger:
   on: time

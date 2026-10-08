@@ -4,6 +4,9 @@ id: curfew_dest
 version: 1
 category: irregular
 title: Destination curfew
+title_ru: "Комендантский час в аэропорту назначения"
+description: "In cruise when the estimated landing is close to the destination noise curfew (usually after a delay). ABLE: priority requested; UNABLE: divert to the alternate."
+description_ru: "В крейсере, если расчётная посадка близка к ночному запрету аэропорта назначения (обычно после задержки). ABLE — запрошен приоритет, UNABLE — диверсия на запасной."
 enabled_by_default: true
 trigger:
   on: phase

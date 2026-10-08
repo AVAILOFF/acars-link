@@ -30,6 +30,10 @@ export const SCENARIO_SCHEMA = {
     version: { const: 1 },
     category: { enum: ['docs', 'ops', 'irregular', 'external', 'fun'] },
     title: text,
+    // UI only (T14): the app shows them in its language; telexes stay English.
+    title_ru: text,
+    description: text,
+    description_ru: text,
     enabled_by_default: { type: 'boolean' },
     trigger: {
       type: 'object',

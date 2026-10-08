@@ -61,6 +61,9 @@ export interface AppControllerOptions {
   readonly flags?: FlagsStore;
 }
 
+/** Title of a scenario in the UI languages. */
+export const titleText = (c: CompiledScenario) => ({ en: c.def.title, ru: c.def.title_ru ?? null });
+
 /** Irregular events: category `irregular`, not a pilot-command handler (`cmd_divert`). */
 export const isIrregularEvent = (c: CompiledScenario): boolean =>
   c.def.category === 'irregular' && c.def.trigger.on !== 'command';
@@ -180,6 +183,11 @@ export class AppController {
       .map((c) => ({
         id: c.id,
         title: c.def.title,
+        titleText: titleText(c),
+        description:
+          c.def.description === undefined
+            ? null
+            : { en: c.def.description, ru: c.def.description_ru ?? null },
         category: c.def.category,
         enabledByDefault: c.def.enabled_by_default,
         enabled: chosen[c.id] ?? c.def.enabled_by_default,

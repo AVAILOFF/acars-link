@@ -3,6 +3,9 @@ id: drone_activity
 version: 1
 category: irregular
 title: Drone activity at destination
+title_ru: "Дрон у аэропорта назначения"
+description: "About 90 NM out: arrivals suspended because of a drone. HOLD (default) or DIVERT to the alternate."
+description_ru: "Примерно за 90 NM: прилёты приостановлены из-за дрона. HOLD (по умолчанию) или DIVERT — на запасной."
 enabled_by_default: true
 trigger:
   on: distance

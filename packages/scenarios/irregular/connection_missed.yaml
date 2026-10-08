@@ -3,6 +3,9 @@ id: connection_missed
 version: 1
 category: irregular
 title: Connection missed
+title_ru: "Стыковка: не успели"
+description: "On block after a short connection with less than 30 min left: passengers rebooked."
+description_ru: "На стоянке после короткой стыковки, если осталось меньше 30 мин: пассажиры переоформлены."
 enabled_by_default: true
 trigger:
   on: phase_enter

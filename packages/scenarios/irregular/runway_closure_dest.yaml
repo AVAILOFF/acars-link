@@ -3,6 +3,9 @@ id: runway_closure_dest
 version: 1
 category: irregular
 title: Destination runway closed
+title_ru: "Закрыта ВПП назначения"
+description: "At the start of the descent the planned runway is closed. HOLD (default) or DIVERT to the alternate."
+description_ru: "В начале снижения плановая ВПП закрыта. HOLD (по умолчанию) — ожидание или DIVERT — на запасной."
 enabled_by_default: true
 trigger:
   on: phase_enter

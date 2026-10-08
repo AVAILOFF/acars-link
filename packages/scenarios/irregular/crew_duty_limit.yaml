@@ -5,6 +5,9 @@ id: crew_duty_limit
 version: 1
 category: irregular
 title: Crew duty time at the limit
+title_ru: "Рабочее время экипажа на пределе"
+description: "At the gate after a delay of 30 min or more: latest off-block time. EXTEND (commander discretion) leaves a note for the next flight; NO (default): standby crew."
+description_ru: "На стоянке при задержке 30 мин и больше: последнее допустимое время отхода. EXTEND (продление по решению КВС) оставляет запись для следующего рейса; NO (по умолчанию) — резервный экипаж."
 enabled_by_default: true
 trigger:
   on: phase

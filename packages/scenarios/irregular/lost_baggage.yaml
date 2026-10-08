@@ -4,6 +4,9 @@ id: lost_baggage
 version: 1
 category: irregular
 title: Bags left behind
+title_ru: "Багаж не долетел"
+description: "On block: bags left at the origin (missed transfer), PIR desk at the belt. The next flight gets the case closure."
+description_ru: "На стоянке: часть багажа осталась в аэропорту вылета (не успели при трансфере), стойка розыска у ленты. Следующий рейс получит закрытие дела."
 enabled_by_default: true
 trigger:
   on: phase_enter

@@ -2,7 +2,7 @@ import type { ScenarioCategory } from '@acars/core';
 import { useEffect, useState } from 'react';
 import type { ScenarioInfo } from '../../shared/api.js';
 import { useStore } from './store.js';
-import { useT } from './ui.js';
+import { useT, useUiText } from './ui.js';
 
 export function ScenariosView() {
   const t = useT();
@@ -10,6 +10,7 @@ export function ScenariosView() {
   const running = useStore((s) => s.app?.session === 'running');
   const busy = useStore((s) => s.busy);
   const setScenario = useStore((s) => s.setScenario);
+  const text = useUiText();
 
   const groups = new Map<ScenarioCategory, ScenarioInfo[]>();
   for (const s of scenarios) groups.set(s.category, [...(groups.get(s.category) ?? []), s]);
@@ -24,22 +25,27 @@ export function ScenariosView() {
         <fieldset key={category} className="group">
           <legend>{t(`cat.${category}`)}</legend>
           {list.map((s) => (
-            <label key={s.id} className="check">
-              <input
-                type="checkbox"
-                checked={s.enabled}
-                disabled={busy !== null}
-                onChange={(e) => void setScenario(s.id, e.currentTarget.checked)}
-              />
-              <span className="check-title">{s.title}</span>
-              <span className="mono muted small">{s.id}</span>
-              {s.enabled !== s.enabledByDefault && (
-                <span className="muted small">
-                  {t('scen.default', { value: t(s.enabledByDefault ? 'scen.on' : 'scen.off') })}
-                </span>
+            <div key={s.id} className="scenario-row">
+              <label className="check">
+                <input
+                  type="checkbox"
+                  checked={s.enabled}
+                  disabled={busy !== null}
+                  onChange={(e) => void setScenario(s.id, e.currentTarget.checked)}
+                />
+                <span className="check-title">{text(s.titleText)}</span>
+                <span className="mono muted small">{s.id}</span>
+                {s.enabled !== s.enabledByDefault && (
+                  <span className="muted small">
+                    {t('scen.default', { value: t(s.enabledByDefault ? 'scen.on' : 'scen.off') })}
+                  </span>
+                )}
+                {s.category === 'irregular' && <ChanceInput s={s} />}
+              </label>
+              {s.description !== null && (
+                <p className="hint small scenario-desc">{text(s.description)}</p>
               )}
-              {s.category === 'irregular' && <ChanceInput s={s} />}
-            </label>
+            </div>
           ))}
         </fieldset>
       ))}

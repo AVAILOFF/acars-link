@@ -4,6 +4,9 @@ id: deicing_holdover
 version: 1
 category: irregular
 title: De-icing and holdover time
+title_ru: "Противообледенительная обработка"
+description: "At the gate when the origin is 3 C or colder: fluid type and pad. After READY: the de-icing truck and the holdover time."
+description_ru: "На стоянке, если в аэропорту вылета 3 °C или холоднее: тип жидкости и площадка. После READY — машина обработки и holdover time."
 enabled_by_default: true
 trigger:
   on: time

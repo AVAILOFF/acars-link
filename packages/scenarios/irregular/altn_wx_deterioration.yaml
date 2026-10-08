@@ -3,6 +3,9 @@ id: altn_wx_deterioration
 version: 1
 category: irregular
 title: Alternate weather deteriorating
+title_ru: "Ухудшение погоды на запасном"
+description: "Before TOD the alternate weather turns bad. OK (default) or LOW: the nearest airport and its distance."
+description_ru: "Перед TOD погода на запасном ухудшается. OK (по умолчанию) или LOW — ближайший аэропорт и расстояние до него."
 enabled_by_default: true
 trigger:
   on: distance

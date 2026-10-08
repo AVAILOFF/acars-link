@@ -232,6 +232,12 @@ describe('irregular scenario files', () => {
     expect(irregular.length).toBeGreaterThanOrEqual(15);
     expect(irregular.map((s) => `${s.id}.yaml`)).toEqual(irregularFiles.map((f) => f.file));
     expect(irregular.every((s) => s.def.category === 'irregular')).toBe(true);
+    // UI texts in both app languages (the telexes stay English).
+    for (const s of irregular) {
+      expect(s.def.title_ru, s.id).toMatch(/[А-Яа-яЁё]/);
+      expect(s.def.description, s.id).toMatch(/^[ -~]+$/);
+      expect(s.def.description_ru, s.id).toMatch(/[А-Яа-яЁё]/);
+    }
     // Questions are tested answer by answer: every scenario that asks lists its answers.
     for (const s of irregular) {
       const asks = s.steps.some((x) => x.kind === 'wait_reply');

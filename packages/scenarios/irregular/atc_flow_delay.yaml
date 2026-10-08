@@ -3,6 +3,9 @@ id: atc_flow_delay
 version: 1
 category: irregular
 title: ATC flow control delay
+title_ru: "Перенос слота ATC"
+description: "Shortly before departure the CTOT moves later because of flow control."
+description_ru: "Незадолго до вылета CTOT переносится на более позднее время из-за ограничения потока."
 enabled_by_default: true
 trigger:
   on: time

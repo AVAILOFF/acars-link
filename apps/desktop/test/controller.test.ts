@@ -610,7 +610,17 @@ describe('irregular events by hand', () => {
   it('a chance in percent replaces the file one for the next flight', async () => {
     const s = await ready();
     const info = (await s.app.listScenarios()).find((x) => x.id === 'dg_notoc');
-    expect(info).toMatchObject({ defaultChance: 6, chance: null });
+    expect(info).toMatchObject({
+      defaultChance: 6,
+      chance: null,
+      titleText: { en: 'Dangerous goods (NOTOC)', ru: 'Опасный груз (NOTOC)' },
+      description: { en: expect.stringContaining('ACK'), ru: expect.stringContaining('ACK') },
+    });
+    const base = (await s.app.listScenarios()).find((x) => x.id === 'crew_info');
+    expect(base).toMatchObject({
+      titleText: { en: 'Crew information', ru: null },
+      description: null,
+    });
     const list = await s.app.setScenarioChance('dg_notoc', 100);
     expect(list.find((x) => x.id === 'dg_notoc')).toMatchObject({ chance: 100 });
     for (const bad of [
@@ -655,6 +665,10 @@ describe('irregular events by hand', () => {
     await s.app.startFlight();
     const list = s.app.state().irregular;
     expect(list.length).toBe(22);
+    expect(list.find((x) => x.id === 'vip_onboard')?.title).toEqual({
+      en: 'VIP on board',
+      ru: 'VIP на борту',
+    });
     expect(await guard(() => s.app.forceScenario('crew_info'))).toMatchObject({
       ok: false,
       error: { code: 'invalid_input' },

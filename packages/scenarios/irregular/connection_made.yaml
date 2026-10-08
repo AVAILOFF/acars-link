@@ -3,6 +3,9 @@ id: connection_made
 version: 1
 category: irregular
 title: Connection made
+title_ru: "Стыковка: успели"
+description: "On block after a short connection with 30 min or more left: the onward flight waits."
+description_ru: "На стоянке после короткой стыковки, если осталось 30 мин и больше: стыковочный рейс подождёт."
 enabled_by_default: true
 trigger:
   on: phase_enter

@@ -4,6 +4,9 @@ id: gate_reassignment
 version: 1
 category: irregular
 title: Gate reassignment
+title_ru: "Смена гейта"
+description: "At the start of the descent the assigned gate is taken: a new gate, used by arrival info and REQ GATE from then on."
+description_ru: "В начале снижения назначенный гейт занят: новый гейт, дальше его называют arrival info и REQ GATE."
 enabled_by_default: true
 trigger:
   on: phase_enter

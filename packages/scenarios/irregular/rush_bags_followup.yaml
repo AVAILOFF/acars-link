@@ -3,6 +3,9 @@ id: rush_bags_followup
 version: 1
 category: irregular
 title: Rush bags delivered (next flight)
+title_ru: "Багаж доставлен (следующий рейс)"
+description: "Before the next flight: the left-behind bags reached their owners, case closed."
+description_ru: "Перед следующим рейсом: оставшийся багаж доставлен владельцам, дело закрыто."
 enabled_by_default: true
 trigger:
   on: time
