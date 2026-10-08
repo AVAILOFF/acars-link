@@ -56,3 +56,8 @@ See `src/AcarsBridge/SimVars.cs`. The names and units were checked against docs.
 - N2 comes from `TURB ENG N2:n` (percent), because `ENG N2 RPM` uses a 0–16384 scale.
 - `GEAR HANDLE POSITION` and `EXIT OPEN` are "Percent Over 100". Gear down means ≥ 0.5; exits are requested in `percent`.
 - `AircraftLoaded` is not subscribed. `TITLE` is read with every snapshot.
+
+Checked by a human in MSFS 2024 (A350-1000, 2026-10-08): connect, `running`, `doorsOpen`
+(0-based, order L1, R1, L2, R2), `xpdrState` (AUTO on the ground → 5 Ground), `beacon`,
+`engRunning`/`engN2`, `fuelKg`, `parkingBrake`, pause and active pause.
+Not yet checked: `simRate`, reconnect after MSFS quits, flaps/gear in flight, MSFS 2020.

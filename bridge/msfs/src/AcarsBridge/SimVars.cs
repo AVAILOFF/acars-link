@@ -12,10 +12,11 @@ public sealed record SimVarDef(string Name, string Unit);
 /// <item>ENG N2 RPM is a 0..16384 scale, so N2 comes from TURB ENG N2:n (percent). Engines are 1-based.</item>
 /// <item>FUEL TOTAL QUANTITY WEIGHT is natively pounds; requested in "kilograms".</item>
 /// <item>GEAR HANDLE POSITION is "Percent Over 100" (0 up … 1 down).</item>
-/// <item>EXIT OPEN:n is "Percent Over 100"; requested in "percent" (0..100). Index base not stated in the
-///   docs; aircraft.cfg numbers exits from 0, so 0..3 is used. [ПРОВЕРИТЬ человеком]</item>
+/// <item>EXIT OPEN:n is "Percent Over 100"; requested in "percent" (0..100). Checked by a human in
+///   MSFS 2024 (A350-1000): 0-based, order L1, R1, L2, R2. Only the first 4 exits are read.</item>
 /// <item>TRANSPONDER STATE: unindexed in the 2020 docs, ":1" in the 2024 docs (docs/03 uses ":1").
-///   Enum 0 Off, 1 Standby, 2 Test, 3 On, 4 Alt, 5 Ground. [ПРОВЕРИТЬ человеком в 2020]</item>
+///   Enum 0 Off, 1 Standby, 2 Test, 3 On, 4 Alt, 5 Ground. ":1" checked in MSFS 2024 (AUTO on the
+///   ground → 5). [ПРОВЕРИТЬ человеком в 2020]</item>
 /// <item>SIMULATION RATE is an environment variable, unit Number.</item>
 /// </list>
 /// TITLE is requested separately as STRING256 (see SimConnectSource).
