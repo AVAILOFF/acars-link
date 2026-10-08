@@ -1,0 +1,22 @@
+# Next leg with the same aircraft. Mutually exclusive with aircraft_change.
+id: next_leg
+version: 1
+category: ops
+title: Next leg
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: off, offset_min: 40 }
+conditions:
+  - "phase in ['CLIMB','CRUISE']"
+probability: 0.7
+excludes: [aircraft_change]
+steps:
+  - send:
+      header: NEXT LEG
+      body: |
+        NEXT SECTOR {ops.next_flight}
+        {ofp.dest}-{ofp.orig}
+        STD {ops.next_std|hhmm}Z
+        SAME A/C {ofp.ac_reg}
+        TURNAROUND {ops.turnaround_min} MIN

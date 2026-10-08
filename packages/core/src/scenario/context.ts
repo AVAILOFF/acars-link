@@ -3,12 +3,14 @@ import type { Ofp } from '../ofp/types.js';
 import type { FlightPhase, OooiKind } from '../phase/fsm.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import type { Value } from './expr.js';
+import type { FlightData } from './ops-data.js';
 
 /**
  * Variables visible to scenario conditions and templates (docs/05: `ofp.*`, `tm.*`,
- * `phase`, `flight.*`, `aircraft.*`). Names are snake_case and stable: scenarios depend
- * on them. Masses kg, times epoch ms UTC, distances NM, durations minutes.
- * `wx.*` / `ext.*` arrive with the data adapters (T13).
+ * `phase`, `flight.*`, `aircraft.*`; `load.*` and `ops.*` from `ops-data.ts`, T07).
+ * Names are snake_case and stable: scenarios depend on them. Masses kg, times epoch ms
+ * UTC, distances NM, durations minutes. `wx.*` / `ext.*` arrive with the data adapters
+ * (T13); until then `ofp.*_metar` is the METAR SimBrief put into the OFP.
  */
 export const CONTEXT_VARIABLES = [
   'phase',
@@ -20,6 +22,15 @@ export const CONTEXT_VARIABLES = [
   'ofp.dest',
   'ofp.orig_name',
   'ofp.dest_name',
+  'ofp.orig_iata',
+  'ofp.dest_iata',
+  'ofp.orig_elev_ft',
+  'ofp.dest_elev_ft',
+  'ofp.orig_trans_alt_ft',
+  'ofp.dest_trans_level_ft',
+  'ofp.orig_metar',
+  'ofp.dest_metar',
+  'ofp.altn_metar',
   'ofp.orig_rwy',
   'ofp.dest_rwy',
   'ofp.altn',
@@ -33,7 +44,9 @@ export const CONTEXT_VARIABLES = [
   'ofp.ac_name',
   'ofp.ac_reg',
   'ofp.pax',
+  'ofp.bags',
   'ofp.cargo_kg',
+  'ofp.oew_kg',
   'ofp.payload_kg',
   'ofp.zfw_kg',
   'ofp.max_zfw_kg',
@@ -45,6 +58,12 @@ export const CONTEXT_VARIABLES = [
   'ofp.fuel_takeoff_kg',
   'ofp.fuel_burn_kg',
   'ofp.fuel_landing_kg',
+  'ofp.fuel_taxi_kg',
+  'ofp.fuel_cont_kg',
+  'ofp.fuel_altn_kg',
+  'ofp.fuel_reserve_kg',
+  'ofp.fuel_extra_kg',
+  'ofp.fuel_min_takeoff_kg',
   'ofp.sched_out',
   'ofp.sched_off',
   'ofp.sched_on',
@@ -81,6 +100,30 @@ export const CONTEXT_VARIABLES = [
   'flight.minutes_to_dest',
   'flight.minutes_to_sched_out',
   'flight.minutes_since_off',
+  'flight.eta',
+  'flight.block_min',
+  'flight.air_min',
+  // final load (ops-data.ts)
+  'load.pax',
+  'load.pax_lmc',
+  'load.cargo_kg',
+  'load.cargo_lmc_kg',
+  'load.lmc_kg',
+  'load.zfw_kg',
+  'load.tow_kg',
+  'load.ldw_kg',
+  'load.underload_kg',
+  'load.lmc',
+  // airline ops (ops-data.ts)
+  'ops.slot_delay_min',
+  'ops.ctot',
+  'ops.arr_gate',
+  'ops.belt',
+  'ops.transfer_pax',
+  'ops.turnaround_min',
+  'ops.next_flight',
+  'ops.next_std',
+  'ops.cabin_crew',
 ] as const;
 
 export type ContextVariable = (typeof CONTEXT_VARIABLES)[number];
@@ -131,6 +174,7 @@ export interface ContextInput {
   readonly phase: FlightPhase;
   readonly telemetry: TelemetrySnapshot | null;
   readonly oooi: Readonly<Record<OooiKind, number | null>>;
+  readonly data: FlightData;
 }
 
 const r1 = (x: number) => Math.round(x * 10) / 10;
@@ -138,6 +182,9 @@ const minutes = (ms: number) => Math.round(ms / 60_000);
 
 export function buildContext(input: ContextInput): ScenarioContext {
   const { ofp, route, now, telemetry: tm, oooi } = input;
+  const { load, ops } = input.data;
+  const span = (a: number | null, b: number | null) =>
+    a === null || b === null ? null : minutes(b - a);
   const w = ofp.weights;
   const f = ofp.fuel;
   const t = ofp.times;
@@ -158,6 +205,15 @@ export function buildContext(input: ContextInput): ScenarioContext {
     'ofp.dest': ofp.destination.icao,
     'ofp.orig_name': ofp.origin.name,
     'ofp.dest_name': ofp.destination.name,
+    'ofp.orig_iata': ofp.origin.iata,
+    'ofp.dest_iata': ofp.destination.iata,
+    'ofp.orig_elev_ft': ofp.origin.elevationFt,
+    'ofp.dest_elev_ft': ofp.destination.elevationFt,
+    'ofp.orig_trans_alt_ft': ofp.origin.transAltFt,
+    'ofp.dest_trans_level_ft': ofp.destination.transLevelFt,
+    'ofp.orig_metar': ofp.origin.metar,
+    'ofp.dest_metar': ofp.destination.metar,
+    'ofp.altn_metar': ofp.alternates[0]?.metar ?? null,
     'ofp.orig_rwy': ofp.origin.planRwy,
     'ofp.dest_rwy': ofp.destination.planRwy,
     'ofp.altn': ofp.alternates[0]?.icao ?? null,
@@ -171,7 +227,9 @@ export function buildContext(input: ContextInput): ScenarioContext {
     'ofp.ac_name': ofp.aircraft.name,
     'ofp.ac_reg': ofp.aircraft.reg,
     'ofp.pax': w.paxCount,
+    'ofp.bags': w.bagCount,
     'ofp.cargo_kg': w.cargoKg,
+    'ofp.oew_kg': w.oewKg,
     'ofp.payload_kg': w.payloadKg,
     'ofp.zfw_kg': w.estZfwKg,
     'ofp.max_zfw_kg': w.maxZfwKg,
@@ -183,6 +241,12 @@ export function buildContext(input: ContextInput): ScenarioContext {
     'ofp.fuel_takeoff_kg': f.planTakeoffKg,
     'ofp.fuel_burn_kg': f.enrouteBurnKg,
     'ofp.fuel_landing_kg': f.planLandingKg,
+    'ofp.fuel_taxi_kg': f.taxiKg,
+    'ofp.fuel_cont_kg': f.contingencyKg,
+    'ofp.fuel_altn_kg': f.alternateBurnKg,
+    'ofp.fuel_reserve_kg': f.reserveKg,
+    'ofp.fuel_extra_kg': f.extraKg,
+    'ofp.fuel_min_takeoff_kg': f.minTakeoffKg,
     'ofp.sched_out': t.schedOutMs,
     'ofp.sched_off': t.schedOffMs,
     'ofp.sched_on': t.schedOnMs,
@@ -216,5 +280,28 @@ export function buildContext(input: ContextInput): ScenarioContext {
     'flight.minutes_to_dest': eta(toDest),
     'flight.minutes_to_sched_out': minutes(t.schedOutMs - now),
     'flight.minutes_since_off': oooi.OFF === null ? null : minutes(now - oooi.OFF),
+    // Planned en-route time after the actual take-off; no wind model here.
+    'flight.eta': oooi.OFF === null ? null : oooi.OFF + t.estTimeEnrouteSec * 1000,
+    'flight.block_min': span(oooi.OUT, oooi.IN),
+    'flight.air_min': span(oooi.OFF, oooi.ON),
+    'load.pax': load.pax,
+    'load.pax_lmc': load.paxLmc,
+    'load.cargo_kg': load.cargoKg,
+    'load.cargo_lmc_kg': load.cargoLmcKg,
+    'load.lmc_kg': load.lmcKg,
+    'load.zfw_kg': load.zfwKg,
+    'load.tow_kg': load.towKg,
+    'load.ldw_kg': load.ldwKg,
+    'load.underload_kg': load.underloadKg,
+    'load.lmc': load.lmc,
+    'ops.slot_delay_min': ops.slotDelayMin,
+    'ops.ctot': ops.ctot,
+    'ops.arr_gate': ops.arrGate,
+    'ops.belt': ops.belt,
+    'ops.transfer_pax': ops.transferPax,
+    'ops.turnaround_min': ops.turnaroundMin,
+    'ops.next_flight': ops.nextFlight,
+    'ops.next_std': ops.nextStd,
+    'ops.cabin_crew': ops.cabinCrew,
   };
 }

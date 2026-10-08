@@ -1,0 +1,22 @@
+# Aircraft change for the next leg (only when next_leg did not come: see its excludes).
+id: aircraft_change
+version: 1
+category: ops
+title: Aircraft change
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: off, offset_min: 55 }
+conditions:
+  - "phase in ['CLIMB','CRUISE']"
+probability: 0.2
+steps:
+  - send:
+      header: A/C CHANGE
+      body: |
+        NEXT SECTOR {ops.next_flight}
+        {ofp.dest}-{ofp.orig}
+        STD {ops.next_std|hhmm}Z
+        {ofp.ac_reg} TO MAINT AFTER ARR
+        CREW CHANGES A/C
+        NEW REG ADVISED ON BLOCK

@@ -1,0 +1,23 @@
+# MVP base set (docs/02). Crew list for the flight before boarding.
+id: crew_info
+version: 1
+category: docs
+title: Crew information
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -45 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+priority: 5
+steps:
+  - send:
+      header: CREW INFO
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
+        STD {ofp.sched_out|hhmm}Z STA {ofp.sched_in|hhmm}Z
+        CPT {name:crew}
+        FO {name:crew}
+        SCCM {name:crew}
+        CABIN CREW {ops.cabin_crew}
+      footer: "CREW CONTROL {name:ops}"

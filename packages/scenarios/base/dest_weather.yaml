@@ -1,0 +1,21 @@
+# Destination and alternate weather before TOD. Until METAR fetching (T13) this is the
+# METAR SimBrief put into the OFP, and the message says so.
+id: dest_weather
+version: 1
+category: ops
+title: Destination weather before TOD
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 200 }
+conditions:
+  - "phase in ['CLIMB','CRUISE']"
+priority: 3
+steps:
+  - send:
+      header: DEST WX
+      body: |
+        {ofp.dest_metar}
+        ALTN {ofp.altn}
+        {ofp.altn_metar}
+      footer: WX AS OF OFP RELEASE

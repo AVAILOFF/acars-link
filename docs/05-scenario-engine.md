@@ -75,3 +75,13 @@ steps:                     # последовательность
 - `wait.minutes` считает «время полёта» FSM (× `simRate`, без пауз); `time`-триггеры — по `Clock`. Пока телеметрия потеряна, движок стоит.
 - Переменные — `CONTEXT_VARIABLES` в `scenario/context.ts` (`ofp.*`, `aircraft.*`, `tm.*`, `flight.*`, `phase`); неизвестная переменная — ошибка загрузки. Отсутствующее значение печатается как `----`.
 - Форматтеры: `kg1`, `hhmm`, `ddmmm`, `pad:N`, `lpad:N`, `int`, `upper`. `qnh` — с METAR (T13). Генераторы: `rand`, `pick`, `seat`; `name:*` — T07.
+- T07 добавил: форматтер `sign` (+3 / -120 / 0), генераторы `{name:crew}` / `{name:ops}`.
+
+## Базовый набор (T07)
+
+- 15 сценариев MVP из `02` — `packages/scenarios/base/*.yaml` (имя файла = `id`): `crew_info`, `slot_ctot`, `prelim_loadsheet`, `takeoff_data`, `fuel_slip`, `final_loadsheet`, `departure_report`, `next_leg`, `aircraft_change`, `dest_weather`, `landing_data`, `gate_assignment`, `arrival_info`, `block_report`, `welcome_turnaround`.
+- Данные, о которых должны договориться несколько сценариев (LMC между prelim и final, CTOT, гейт, следующий рейс), — переменные `load.*` и `ops.*` из `core/src/scenario/ops-data.ts`. Считаются один раз на рейс из OFP и Rng `<seed>/#ops`, не сериализуются (выводятся заново). Это детерминированная логика ядра (инвариант 8), а не `set`; `set` по-прежнему T12/T14.
+- LMC по оригиналу: ±5 пакс с p = 0.5, ±200 кг груза (шаг 10) с p = 0.5; масса пассажира = `pax_weight + bag_weight` из OFP (иначе 84 кг). Underload = min(MTOW, MZFW + TOF, MLW + TIF) − TOW.
+- Гейт, лента, транзитные пассажиры — заглушки до адаптера стоянок OSM (T13). Погода — METAR из OFP (на момент выпуска OFP, о чём сказано в сообщении) до T13. В `takeoff_data` нет V-скоростей: их нет в OFP.
+- `{name:*}`: «страна авиакомпании» в OFP отсутствует, вместо неё регион ICAO аэропорта вылета (`core/src/scenario/names.ts`).
+- Тест `packages/scenarios/test/base.test.ts`: каждый сценарий отдельно (probability = 1) на 3 синтетических полётах (норма; уход на второй круг + пауза + ×4; OFP в lbs без номера рейса + разрыв телеметрии) × 3 профиля дисплея; весь набор на одном полёте — порядок, снапшот, согласованность LMC и гейта.

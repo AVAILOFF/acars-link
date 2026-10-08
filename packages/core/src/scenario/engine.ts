@@ -7,6 +7,7 @@ import type { TelemetrySnapshot } from '../telemetry/types.js';
 import type { CompiledScenario } from './compile.js';
 import { buildContext, RouteGeometry, type ScenarioContext } from './context.js';
 import type { Lookup } from './expr.js';
+import { buildFlightData, type FlightData } from './ops-data.js';
 import { TemplateError } from './template.js';
 import type { TimeRef } from './types.js';
 
@@ -133,6 +134,8 @@ const DIST_VAR = {
 export class ScenarioEngine {
   private readonly ofp: Ofp;
   private readonly route: RouteGeometry;
+  /** Derived from OFP + seed, so not part of the serialized state. */
+  private readonly data: FlightData;
   private readonly profile: DisplayProfile;
   private readonly from: string;
   private readonly byId: ReadonlyMap<string, CompiledScenario>;
@@ -144,6 +147,7 @@ export class ScenarioEngine {
   constructor(options: ScenarioEngineOptions) {
     this.ofp = options.ofp;
     this.route = new RouteGeometry(options.ofp);
+    this.data = buildFlightData(options.ofp, options.seed);
     this.profile = options.profile ?? DEFAULT_PROFILE;
     this.from = stationCallsign(options.station ?? DEFAULT_STATION, options.ofp);
     const byId = new Map<string, CompiledScenario>();
@@ -207,6 +211,7 @@ export class ScenarioEngine {
       phase: input.phase,
       telemetry: input.telemetry,
       oooi: input.oooi,
+      data: this.data,
     });
     const look: Lookup = (path) => (path in ctx ? ctx[path as keyof ScenarioContext] : undefined);
 

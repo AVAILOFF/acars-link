@@ -1,12 +1,14 @@
 import type { Rng } from '../random/rng.js';
 import type { Lookup, Value } from './expr.js';
+import { NAME_KINDS, type NameKind, personName } from './names.js';
 
 /**
  * Message templates (docs/05 "Шаблоны"): `{var}`, `{var|fmt}`, `{var|fmt:arg|fmt2}`,
- * generators `{rand:10-35}`, `{rand:-5-5}`, `{pick:[A,B,C]}`, `{seat}`.
+ * generators `{rand:10-35}`, `{rand:-5-5}`, `{pick:[A,B,C]}`, `{seat}`, `{name:crew}`,
+ * `{name:ops}` (`K. TANAKA`; surnames by the origin's ICAO region, see `names.ts`).
  *
  * Formatters: `kg1` (12345 → 12.3), `hhmm` and `ddmmm` (epoch ms, UTC), `pad:N`
- * (right-pad to N), `lpad:N` (left-pad), `int` (round), `upper`.
+ * (right-pad to N), `lpad:N` (left-pad), `int` (round), `sign` (+3, -120, 0), `upper`.
  * A missing value renders as {@link MISSING}. Numbers are data: templates never invent
  * them (invariant 8) — `rand`/`pick` use the scenario's seeded Rng.
  */
@@ -21,7 +23,8 @@ type Source =
   | { readonly k: 'var'; readonly path: string }
   | { readonly k: 'rand'; readonly min: number; readonly max: number }
   | { readonly k: 'pick'; readonly items: readonly string[] }
-  | { readonly k: 'seat' };
+  | { readonly k: 'seat' }
+  | { readonly k: 'name'; readonly kind: NameKind };
 
 interface Fmt {
   readonly name: string;
@@ -71,6 +74,12 @@ const FORMATTERS: Readonly<Record<string, (v: Value | string, f: Fmt) => Value |
     const d = new Date(n);
     return pad2(d.getUTCDate()) + (MONTHS[d.getUTCMonth()] as string);
   },
+  sign: (v, f) => {
+    const n = asNumber(v, f.name);
+    if (n === null) return null;
+    const r = Math.round(n);
+    return r > 0 ? `+${r}` : String(r);
+  },
   upper: (v) => (v === null ? null : text(v).toUpperCase()),
   pad: (v, f) => text(v).padEnd(intArg(f)),
   lpad: (v, f) => text(v).padStart(intArg(f)),
@@ -86,6 +95,14 @@ function text(v: Value | string): string {
 
 function parseSource(expr: string): Source {
   if (expr === 'seat') return { k: 'seat' };
+  const name = /^name:([a-z]+)$/.exec(expr);
+  if (name !== null) {
+    const kind = name[1] as NameKind;
+    if (!NAME_KINDS.includes(kind)) {
+      throw new TemplateError(`{${expr}}: name kinds are ${NAME_KINDS.join(', ')}`);
+    }
+    return { k: 'name', kind };
+  }
   const rand = /^rand:(-?\d+)-(-?\d+)$/.exec(expr);
   if (rand !== null) {
     const min = Number(rand[1]);
@@ -145,6 +162,7 @@ export function compileTemplate(source: string): CompiledTemplate {
     const [head = '', ...rest] = splitPipes(inner);
     const src = parseSource(head.trim());
     if (src.k === 'var') vars.add(src.path);
+    if (src.k === 'name') vars.add('ofp.orig');
     parts.push({ src, fmts: rest.map((s) => parseFmt(s.trim())) });
     i = end + 1;
   }
@@ -193,5 +211,9 @@ function resolve(src: Source, look: Lookup, rng: Rng): Value {
       return rng.pick(src.items);
     case 'seat':
       return `${rng.int(1, 45)}${rng.pick([...SEAT_LETTERS])}`;
+    case 'name': {
+      const orig = look('ofp.orig');
+      return personName(src.kind, typeof orig === 'string' ? orig : '', rng);
+    }
   }
 }

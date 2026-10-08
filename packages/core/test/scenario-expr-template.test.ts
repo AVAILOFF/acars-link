@@ -111,7 +111,7 @@ describe('compileTemplate', () => {
     '{ofp.zfw_kg|kg1:2}',
     '{rand:9-1}',
     '{pick:[A,,B]}',
-    '{name:crew}',
+    '{name:pilot}',
     '{Bad.Var}',
     'open {ofp.zfw_kg',
     'close }',

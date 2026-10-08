@@ -1,0 +1,20 @@
+# Arrival info on the way down: gate confirmed, belt, transfer passengers.
+id: arrival_info
+version: 1
+category: ops
+title: Arrival info
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: dest, lte_nm: 60 }
+conditions:
+  - "phase in ['DESCENT','APPROACH']"
+steps:
+  - send:
+      header: ARRIVAL INFO
+      body: |
+        {ofp.callsign} {ofp.dest}
+        GATE {ops.arr_gate} CONFIRMED
+        BAGGAGE BELT {ops.belt}
+        TRANSFER PAX {ops.transfer_pax}
+        GPU AND PCA AVBL

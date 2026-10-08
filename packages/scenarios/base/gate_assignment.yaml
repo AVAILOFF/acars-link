@@ -1,0 +1,19 @@
+# Expected arrival gate. The same gate appears in arrival_info (core ops-data.ts).
+id: gate_assignment
+version: 1
+category: ops
+title: Gate assignment
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 120 }
+conditions:
+  - "phase in ['CLIMB','CRUISE','DESCENT']"
+priority: 1
+steps:
+  - send:
+      header: GATE ASSIGNMENT
+      body: |
+        {ofp.callsign} ARR {ofp.dest}
+        EXPECTED GATE {ops.arr_gate}
+        STA {ofp.sched_in|hhmm}Z

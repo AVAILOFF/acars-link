@@ -1,0 +1,20 @@
+# Welcome at the destination and the turnaround plan.
+id: welcome_turnaround
+version: 1
+category: ops
+title: Welcome and turnaround
+enabled_by_default: true
+trigger:
+  on: event
+  event: OOOI_IN
+steps:
+  - wait: { minutes: 2 }
+  - send:
+      header: "WELCOME TO {ofp.dest}"
+      body: |
+        TURNAROUND {ops.turnaround_min} MIN
+        NEXT {ops.next_flight}
+        STD {ops.next_std|hhmm}Z
+        CLEANING AND CATERING
+        ON THE WAY
+      footer: "STATION OPS {name:ops}"

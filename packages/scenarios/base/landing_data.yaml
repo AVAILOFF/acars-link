@@ -1,0 +1,23 @@
+# Arrival / landing data before TOD.
+id: landing_data
+version: 1
+category: docs
+title: Landing data
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 150 }
+conditions:
+  - "phase in ['CLIMB','CRUISE']"
+priority: 2
+steps:
+  - send:
+      header: LANDING DATA
+      body: |
+        {ofp.callsign} {ofp.dest} RWY {ofp.dest_rwy}
+        STAR {ofp.star}
+        ELEV {ofp.dest_elev_ft} FT
+        TRANS LVL {ofp.dest_trans_level_ft} FT
+        LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
+        LDG FUEL {ofp.fuel_landing_kg|kg1}
+        ALTN {ofp.altn} FUEL {ofp.fuel_altn_kg|kg1}

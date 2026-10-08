@@ -1,0 +1,22 @@
+# ATC flow slot. CTOT and delay come from ops data (core ops-data.ts), not the template.
+id: slot_ctot
+version: 1
+category: ops
+title: Slot / CTOT
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -30 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.25
+priority: 4
+steps:
+  - send:
+      header: SLOT ALLOCATION
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        ATC FLOW RESTRICTION
+        CTOT {ops.ctot|hhmm}Z
+        DELAY {ops.slot_delay_min} MIN
+        PLAN BOARDING TO SUIT

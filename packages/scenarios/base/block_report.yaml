@@ -1,0 +1,20 @@
+# OOOI arrival log: all four times, block and flight time, fuel on block.
+id: block_report
+version: 1
+category: ops
+title: Block times (OOOI)
+enabled_by_default: true
+trigger:
+  on: event
+  event: OOOI_IN
+priority: 2
+steps:
+  - send:
+      header: BLOCK TIMES
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        OUT {flight.out|hhmm} OFF {flight.off|hhmm}
+        ON {flight.on|hhmm} IN {flight.in|hhmm}
+        BLOCK {flight.block_min} MIN
+        FLIGHT {flight.air_min} MIN
+        FOB {tm.fuel_kg|kg1}

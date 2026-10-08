@@ -10,7 +10,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "base"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

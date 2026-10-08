@@ -1,0 +1,25 @@
+# Departure data from the OFP. No V-speeds: the OFP has none, numbers are never invented.
+id: takeoff_data
+version: 1
+category: docs
+title: Takeoff data
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -20 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+priority: 2
+steps:
+  - send:
+      header: TAKEOFF DATA
+      body: |
+        {ofp.callsign} {ofp.orig} RWY {ofp.orig_rwy}
+        SID {ofp.sid}
+        ELEV {ofp.orig_elev_ft} FT
+        TRANS ALT {ofp.orig_trans_alt_ft} FT
+        TOW {ofp.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
+        TOF {ofp.fuel_takeoff_kg|kg1}
+        CRZ FL{ofp.cruise_fl} CI {ofp.cost_index}
+        WX {ofp.orig_metar}
+      footer: VERIFY PERF ON EFB

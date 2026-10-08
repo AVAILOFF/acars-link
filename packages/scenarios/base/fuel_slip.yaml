@@ -1,0 +1,28 @@
+# Fuel slip after refuelling: planned block fuel against the fuel on board.
+id: fuel_slip
+version: 1
+category: docs
+title: Fuel slip
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -12 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "tm.fuel_kg != null"
+priority: 2
+steps:
+  - send:
+      header: FUEL SLIP
+      body: |
+        {ofp.callsign} {ofp.ac_reg} {ofp.orig}
+        PLAN RAMP {ofp.fuel_ramp_kg|kg1}
+        FOB {tm.fuel_kg|kg1}
+        TAXI {ofp.fuel_taxi_kg|kg1}
+        TRIP {ofp.fuel_burn_kg|kg1}
+        CONT {ofp.fuel_cont_kg|kg1}
+        ALTN {ofp.fuel_altn_kg|kg1}
+        FINRES {ofp.fuel_reserve_kg|kg1}
+        EXTRA {ofp.fuel_extra_kg|kg1}
+        FUEL IN TONNES
+      footer: "FUELLER {name:ops}"
