@@ -194,3 +194,68 @@ describe('the whole set on one flight', () => {
     expect(again.out).toEqual(r.out);
   });
 });
+
+describe('late start (docs/05 "Поздний старт")', () => {
+  const MIN = 60_000;
+  const STD = kg.times.schedOutMs;
+  const all = base.map((s) => ({ ...s, probability: 1 }));
+  const PRE = ['crew_info', 'slot_ctot', 'prelim_loadsheet', 'takeoff_data', 'fuel_slip'];
+
+  /** Started `minBefore` minutes before STD; boarding then takes the usual 35 min. */
+  const lateRun = (minBefore: number) =>
+    fly(
+      {
+        name: 'late',
+        ofp: kg,
+        flight: generateSyntheticFlight({ ofp: kg, startMs: STD - minBefore * MIN }),
+        seed: 'late',
+      },
+      all,
+    );
+
+  it('started 5 min before STD: delayed 30 min, documents in order with their spacing', () => {
+    const r = lateRun(5);
+    const start = STD - 5 * MIN;
+    const at = (id: string) => r.out.find((m) => m.scenarioId === id)?.t;
+    // Only crew info (−45 min, already past for the delayed flight) goes out at the start.
+    expect(r.out.filter((m) => m.t === start).map((m) => m.scenarioId)).toEqual(['crew_info']);
+    const newStd = STD + 30 * MIN;
+    expect(at('slot_ctot')).toBe(newStd - 30 * MIN);
+    expect(at('prelim_loadsheet')).toBe(newStd - 25 * MIN);
+    expect(at('takeoff_data')).toBe(newStd - 20 * MIN);
+    expect(at('fuel_slip')).toBe(newStd - 12 * MIN);
+    expect(at('final_loadsheet')).toBe(newStd - 7 * MIN);
+    const order = r.out
+      .map((m) => m.scenarioId)
+      .filter((id) => [...PRE, 'final_loadsheet'].includes(id));
+    expect(order).toEqual([...PRE, 'final_loadsheet']);
+    expect(errors(r)).toEqual([]);
+  });
+
+  it('STD/STA stay as published; the CTOT is after the new off-block time', () => {
+    const r = lateRun(5);
+    expect(textOf(r, 'crew_info')).toContain(`STD ${hhmm(STD)}Z`);
+    const ctot = /CTOT (\d{4})Z/.exec(textOf(r, 'slot_ctot'))?.[1] ?? '';
+    const offMs = (kg.times.schedOffMs ?? STD) + 30 * MIN;
+    expect(ctot > hhmm(offMs) || ctot < hhmm(STD)).toBe(true);
+  });
+
+  it('started in time (35 min or more before STD): no delay, as before', () => {
+    const core = AcarsCore.create({ ofp: kg, scenarios: all, seed: 'x' });
+    core.startFlight();
+    core.tick({ now: STD - 35 * MIN, telemetry: null });
+    expect(core.getState().engine.delayMs).toBe(0);
+    const late = AcarsCore.create({ ofp: kg, scenarios: all, seed: 'x' });
+    late.tick({ now: STD - 33 * MIN, telemetry: null });
+    expect(late.getState().engine.delayMs).toBe(5 * MIN); // 2 min late → rounded up to 5
+    expect(
+      AcarsCore.fromState(late.getState(), { ofp: kg, scenarios: all, seed: 'x' }).getState().engine
+        .delayMs,
+    ).toBe(5 * MIN);
+  });
+});
+
+function hhmm(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getUTCHours()).padStart(2, '0')}${String(d.getUTCMinutes()).padStart(2, '0')}`;
+}

@@ -45,6 +45,7 @@ export class FlightSession {
   /** The last transport status put into the feed was a problem. */
   private feedHasProblem = false;
   private stopped = false;
+  private delayReported = false;
 
   constructor(o: FlightSessionOptions) {
     this.core = AcarsCore.create({
@@ -103,10 +104,10 @@ export class FlightSession {
   tick(now: number): void {
     if (this.stopped) return;
     const batch = this.queue.splice(0);
-    if (batch.length === 0) this.apply(this.core.tick({ now, telemetry: null }));
+    if (batch.length === 0) this.apply(this.core.tick({ now, telemetry: null }), now);
     for (const s of batch) {
       this.last = s;
-      this.apply(this.core.tick({ now, telemetry: s }));
+      this.apply(this.core.tick({ now, telemetry: s }), now);
     }
     this.transport.tick();
     this.drainTransport();
@@ -114,7 +115,7 @@ export class FlightSession {
 
   /** User decision at ON_BLOCK; throws in any other phase. */
   endFlight(to: 'TURNAROUND' | 'DONE', now: number): void {
-    this.apply(this.core.endFlight(to, now));
+    this.apply(this.core.endFlight(to, now), now);
     this.transport.tick();
     this.drainTransport();
   }
@@ -130,7 +131,16 @@ export class FlightSession {
     this.feed.system(now, 'flight_stopped', { phase: this.core.phase });
   }
 
-  private apply(out: CoreOutput): void {
+  private apply(out: CoreOutput, now: number): void {
+    const delay = this.core.delayMs;
+    if (!this.delayReported && delay !== null) {
+      this.delayReported = true;
+      if (delay > 0) {
+        this.feed.system(now, 'late_start', {
+          min: String(Math.round(delay / 60_000)),
+        });
+      }
+    }
     for (const e of out.events) {
       switch (e.type) {
         case 'PHASE_CHANGE':

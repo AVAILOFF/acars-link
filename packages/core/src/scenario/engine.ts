@@ -22,6 +22,12 @@ import type { TimeRef } from './types.js';
  * Determinism: each scenario has its own Rng seeded `${seed}/${id}`, so adding a
  * scenario does not change the dice of the others. `wait.minutes` counts flight time
  * (sim rate, pauses), `time` triggers use the injected clock (`now`).
+ *
+ * Late start (docs/05 "Поздний старт"): on the first tick the engine checks how much time is
+ * left before `sched_out`. If less than `lateStartLeadMin`, the flight counts as delayed by
+ * the difference (rounded up to 5 min): `sched_*`/`est_*` time triggers, `ofp.est_*`, the
+ * CTOT and the next leg move by the delay, so the pre-departure documents come in their
+ * order and spacing instead of all at once. `ofp.sched_*` (STD/STA) stay as published.
  */
 
 export interface OutboundMessage {
@@ -77,6 +83,8 @@ export interface ScenarioEngineOptions {
   readonly station?: string;
   /** Scenario ids already run in this app session (`cooldown: per_session`). */
   readonly sessionFired?: readonly string[];
+  /** Minutes before `sched_out` a flight must start not to count as delayed. Default 35. */
+  readonly lateStartLeadMin?: number;
 }
 
 interface ScenarioState {
@@ -99,9 +107,13 @@ export interface ScenarioEngineState {
   readonly scenarios: Readonly<Record<string, Readonly<ScenarioState>>>;
   readonly runs: readonly Readonly<Run>[];
   readonly sessionFired: readonly string[];
+  /** Late-start delay, ms; null until the first tick. */
+  readonly delayMs: number | null;
 }
 
 export const DEFAULT_STATION = 'OPS{flight}';
+export const DEFAULT_LATE_START_LEAD_MIN = 35;
+const DELAY_STEP_MS = 5 * 60_000;
 
 const PHASE_ORDER: ReadonlyMap<FlightPhase, number> = new Map(FLIGHT_PHASES.map((p, i) => [p, i]));
 
@@ -133,20 +145,33 @@ const DIST_VAR = {
 
 export class ScenarioEngine {
   private readonly ofp: Ofp;
+  /** The OFP the templates see: `est_*` moved by the late-start delay. */
+  private ctxOfp: Ofp;
   private readonly route: RouteGeometry;
-  /** Derived from OFP + seed, so not part of the serialized state. */
-  private readonly data: FlightData;
+  private readonly seed: number | string;
+  private readonly leadMs: number;
+  /** Derived from OFP + seed (+ delay), so not part of the serialized state. */
+  private data: FlightData;
   private readonly profile: DisplayProfile;
   private readonly from: string;
   private readonly byId: ReadonlyMap<string, CompiledScenario>;
   /** Start order for one tick: priority desc, then id. */
   private readonly ordered: readonly CompiledScenario[];
   private readonly rngs = new Map<string, Rng>();
-  private st: { scenarios: Record<string, ScenarioState>; runs: Run[]; sessionFired: string[] };
+  private st: {
+    scenarios: Record<string, ScenarioState>;
+    runs: Run[];
+    sessionFired: string[];
+    delayMs: number | null;
+  };
 
   constructor(options: ScenarioEngineOptions) {
     this.ofp = options.ofp;
+    this.ctxOfp = options.ofp;
     this.route = new RouteGeometry(options.ofp);
+    this.seed = options.seed;
+    this.leadMs = (options.lateStartLeadMin ?? DEFAULT_LATE_START_LEAD_MIN) * 60_000;
+    if (!(this.leadMs >= 0)) throw new RangeError('lateStartLeadMin must be ≥ 0');
     this.data = buildFlightData(options.ofp, options.seed);
     this.profile = options.profile ?? DEFAULT_PROFILE;
     this.from = stationCallsign(options.station ?? DEFAULT_STATION, options.ofp);
@@ -165,7 +190,12 @@ export class ScenarioEngine {
       this.rngs.set(s.id, rng);
       scenarios[s.id] = { candidate: false, starts: 0, lastStartMs: null, rng: rng.getState() };
     }
-    this.st = { scenarios, runs: [], sessionFired: [...(options.sessionFired ?? [])] };
+    this.st = {
+      scenarios,
+      runs: [],
+      sessionFired: [...(options.sessionFired ?? [])],
+      delayMs: null,
+    };
   }
 
   /** Resumes from {@link getState}; the same compiled scenarios must be passed in. */
@@ -181,6 +211,8 @@ export class ScenarioEngine {
     }
     e.st.runs = copy.runs.filter((r) => e.byId.has(r.id)).map((r) => ({ ...r }));
     e.st.sessionFired = [...copy.sessionFired];
+    // States saved before the late-start rule have no `delayMs`: no delay, as before.
+    e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
   }
 
@@ -199,13 +231,30 @@ export class ScenarioEngine {
     return this.st.runs.map((r) => r.id);
   }
 
+  /** Late-start delay in ms (0 = on time), null before the first tick. */
+  get delayMs(): number | null {
+    return this.st.delayMs;
+  }
+
+  private setDelay(delayMs: number | null): void {
+    this.st.delayMs = delayMs;
+    if (delayMs === null || delayMs === 0) return;
+    this.ctxOfp = delayedOfp(this.ofp, delayMs, false);
+    this.data = buildFlightData(delayedOfp(this.ofp, delayMs, true), this.seed);
+  }
+
   tick(input: EngineTickInput): EngineTickOutput {
     const outbound: OutboundMessage[] = [];
     const events: ScenarioEvent[] = [];
+    if (this.st.delayMs === null) {
+      const late = input.now + this.leadMs - this.ofp.times.schedOutMs;
+      this.setDelay(late > 0 ? Math.ceil(late / DELAY_STEP_MS) * DELAY_STEP_MS : 0);
+    }
     if (input.telemetryLost) return { outbound, events };
 
     const ctx = buildContext({
-      ofp: this.ofp,
+      ofp: this.ctxOfp,
+      delayMs: this.st.delayMs ?? 0,
       route: this.route,
       now: input.now,
       phase: input.phase,
@@ -256,7 +305,9 @@ export class ScenarioEngine {
         return input.events.some((e) => e.type === tr.event);
       case 'time': {
         const ref = ctx[TIME_REF_VAR[tr.at.rel]];
-        return typeof ref === 'number' && input.now >= ref + tr.at.offset_min * 60_000;
+        // `ofp.est_*` in the context already include the delay, `ofp.sched_*` do not.
+        const shift = tr.at.rel.startsWith('sched_') ? (this.st.delayMs ?? 0) : 0;
+        return typeof ref === 'number' && input.now >= ref + shift + tr.at.offset_min * 60_000;
       }
       case 'distance': {
         const d = ctx[DIST_VAR[tr.dist.to]];
@@ -367,4 +418,28 @@ export function stationCallsign(
     .replace(/[^A-Z0-9]/g, '');
   if (s === '') throw new Error(`station template "${template}" gives an empty callsign`);
   return s;
+}
+
+/** OFP with the estimated (and, for ops data, also the scheduled) times moved by `ms`. */
+function delayedOfp(ofp: Ofp, ms: number, sched: boolean): Ofp {
+  const t = ofp.times;
+  const add = (x: number | null) => (x === null ? null : x + ms);
+  return {
+    ...ofp,
+    times: {
+      ...t,
+      estOutMs: t.estOutMs + ms,
+      estOffMs: add(t.estOffMs),
+      estOnMs: add(t.estOnMs),
+      estInMs: t.estInMs + ms,
+      ...(sched
+        ? {
+            schedOutMs: t.schedOutMs + ms,
+            schedOffMs: add(t.schedOffMs),
+            schedOnMs: add(t.schedOnMs),
+            schedInMs: t.schedInMs + ms,
+          }
+        : {}),
+    },
+  };
 }

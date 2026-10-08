@@ -67,6 +67,8 @@ const en = {
 
   'sys.flight_started': 'Flight {callsign} started ({transport})',
   'sys.flight_stopped': 'Flight stopped in phase {phase}',
+  'sys.late_start':
+    'Late start: the flight is treated as delayed by {min} min, documents follow the new departure time',
   'sys.phase': 'Phase: {to}',
   'sys.oooi': 'OOOI {kind}',
   'sys.telemetry_lost': 'Telemetry lost — scenarios paused',
@@ -206,6 +208,8 @@ const ru: Record<MessageKey, string> = {
 
   'sys.flight_started': 'Полёт {callsign} начат ({transport})',
   'sys.flight_stopped': 'Полёт остановлен в фазе {phase}',
+  'sys.late_start':
+    'Поздний старт: рейс считается задержанным на {min} мин, документы идут от нового времени вылета',
   'sys.phase': 'Фаза: {to}',
   'sys.oooi': 'OOOI {kind}',
   'sys.telemetry_lost': 'Телеметрия потеряна — сценарии на паузе',

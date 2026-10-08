@@ -201,6 +201,49 @@ describe('AppController', () => {
   });
 });
 
+describe('late start', () => {
+  it('5 min before STD: one telex at the start and a late_start note, not a burst', async () => {
+    const s = await setup();
+    const { app } = s;
+    const start = ofp.times.schedOutMs - 5 * 60_000;
+    s.clock.set(start);
+    await app.setSimbriefUsername('pilot42');
+    await app.updateSettings({ transport: 'offline' });
+    await app.loadOfp();
+    s.sockets.last().hello();
+    await app.startFlight();
+    const late = generateSyntheticFlight({ ofp, startMs: start });
+    const socket = s.sockets.last();
+    for (const snap of late.snapshots.slice(0, 600)) {
+      s.clock.set(Math.max(s.clock.now(), snap.t));
+      socket.frame({ type: 'telemetry', data: snap });
+      app.tick(s.clock.now());
+    }
+    const feed = app.state().feed;
+    expect(feed).toContainEqual(
+      expect.objectContaining({ kind: 'system', code: 'late_start', params: { min: '30' } }),
+    );
+    expect(
+      outbound(feed)
+        .filter((m) => m.t === start)
+        .map((m) => m.scenarioId),
+    ).toEqual(['crew_info']);
+  });
+
+  it('on time: no late_start note', async () => {
+    const s = await setup();
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline' });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    fly(s, 0, 60);
+    expect(s.app.state().feed.some((e) => e.kind === 'system' && e.code === 'late_start')).toBe(
+      false,
+    );
+  });
+});
+
 describe('i18n', () => {
   it('EN and RU have the same keys and placeholders', () => {
     const { en, ru } = MESSAGES;

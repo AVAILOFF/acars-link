@@ -82,6 +82,11 @@ export class AcarsCore {
     return this.engine.sessionFired;
   }
 
+  /** Late-start delay in ms (docs/05), null before the first tick. */
+  get delayMs(): number | null {
+    return this.engine.delayMs;
+  }
+
   getState(): CoreState {
     return { v: 1, phase: this.fsm.getState(), engine: this.engine.getState() };
   }

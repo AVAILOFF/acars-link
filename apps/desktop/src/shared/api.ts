@@ -92,6 +92,7 @@ export type Delivery = 'queued' | 'sent' | 'retry' | 'failed' | 'dropped';
 export type SystemCode =
   | 'flight_started'
   | 'flight_stopped'
+  | 'late_start'
   | 'phase'
   | 'oooi'
   | 'telemetry_lost'

@@ -99,6 +99,7 @@ export const CONTEXT_VARIABLES = [
   'flight.minutes_to_tod',
   'flight.minutes_to_dest',
   'flight.minutes_to_sched_out',
+  'flight.delay_min',
   'flight.minutes_since_off',
   'flight.eta',
   'flight.block_min',
@@ -175,6 +176,8 @@ export interface ContextInput {
   readonly telemetry: TelemetrySnapshot | null;
   readonly oooi: Readonly<Record<OooiKind, number | null>>;
   readonly data: FlightData;
+  /** Late-start delay (engine), ms. */
+  readonly delayMs?: number;
 }
 
 const r1 = (x: number) => Math.round(x * 10) / 10;
@@ -279,6 +282,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
     'flight.minutes_to_tod': toTod === null || toTod < 0 ? null : eta(toTod),
     'flight.minutes_to_dest': eta(toDest),
     'flight.minutes_to_sched_out': minutes(t.schedOutMs - now),
+    'flight.delay_min': minutes(input.delayMs ?? 0),
     'flight.minutes_since_off': oooi.OFF === null ? null : minutes(now - oooi.OFF),
     // Planned en-route time after the actual take-off; no wind model here.
     'flight.eta': oooi.OFF === null ? null : oooi.OFF + t.estTimeEnrouteSec * 1000,
