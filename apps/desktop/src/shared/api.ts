@@ -28,6 +28,11 @@ export interface Settings {
   readonly liveData: boolean;
   /** Play a sound when a new airline message appears in the feed. Off by default. */
   readonly soundOnMessage: boolean;
+  /**
+   * Minimum seconds between two airline telexes (0 = none). Aircraft poll Hoppie about once a
+   * minute; closer messages arrive together. Default 60.
+   */
+  readonly messageGapSec: number;
   /** Scenario id → enabled; absent ids use `enabled_by_default`. */
   readonly scenarios: Readonly<Record<string, boolean>>;
   /** Irregular scenario id → chance in percent (0–100); absent ids use the YAML `probability`. */
@@ -110,6 +115,8 @@ export interface TelemetryView {
 }
 
 export interface TransportView {
+  /** Telexes the core holds back for the gap between messages (`messageGapSec`). */
+  readonly outbox: number;
   readonly kind: 'hoppie' | 'mock';
   readonly status: TransportStatus;
   readonly pending: number;

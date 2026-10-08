@@ -1,6 +1,10 @@
 import { type FormEvent, useState } from 'react';
 import type { Language, TransportChoice } from '../../shared/api.js';
 import { playMessageSound } from './sound.js';
+
+/** Choices for the gap between messages, seconds. */
+const GAPS: readonly number[] = [0, 30, 60, 90, 120, 180];
+
 import { useStore } from './store.js';
 import { useT } from './ui.js';
 
@@ -201,6 +205,25 @@ function NetworkForm() {
           {t('set.liveData')}
         </label>
         <p className="hint">{t('set.liveDataHint')}</p>
+      </div>
+      <div className="field">
+        <label htmlFor="gap">{t('set.gap')}</label>
+        <select
+          id="gap"
+          value={settings.messageGapSec}
+          disabled={busy !== null}
+          onChange={(e) => void update({ messageGapSec: Number(e.currentTarget.value) })}
+        >
+          {GAPS.includes(settings.messageGapSec) ? null : (
+            <option value={settings.messageGapSec}>{settings.messageGapSec}</option>
+          )}
+          {GAPS.map((s) => (
+            <option key={s} value={s}>
+              {s === 0 ? t('set.gapNone') : t('set.gapSec', { s })}
+            </option>
+          ))}
+        </select>
+        <p className="hint">{t('set.gapHint')}</p>
       </div>
       <div className="field">
         <div className="row">

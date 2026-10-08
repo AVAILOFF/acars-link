@@ -702,3 +702,43 @@ describe('irregular events by hand', () => {
     expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
   });
 });
+
+describe('gap between messages', () => {
+  it('one airline telex per minute by default; recorded and replayed the same', async () => {
+    const s = await setup();
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    fly(s);
+    await s.app.stopFlight();
+    const t = outbound(s.app.state().feed).map((m) => m.t);
+    expect(t.length).toBeGreaterThan(5);
+    for (let i = 1; i < t.length; i++) {
+      expect((t[i] as number) - (t[i - 1] as number)).toBeGreaterThanOrEqual(60_000);
+    }
+    const rec = await readRecording(s.recordings);
+    expect(rec.header.minGapMs).toBe(60_000);
+    const r = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+  });
+
+  it('0 sends at once', async () => {
+    const s = await setup();
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false, messageGapSec: 0 });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    fly(s);
+    expect((await readRecordingOrNull(s)).header.minGapMs).toBeUndefined();
+  });
+});
+
+async function readRecordingOrNull(s: Awaited<ReturnType<typeof setup>>) {
+  await s.app.stopFlight();
+  return readRecording(s.recordings);
+}

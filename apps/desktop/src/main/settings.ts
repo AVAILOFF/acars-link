@@ -25,6 +25,7 @@ export function defaultSettings(locale: string): Settings {
     recordFlights: true,
     liveData: true,
     soundOnMessage: false,
+    messageGapSec: 60,
     scenarios: {},
     chances: {},
   };
@@ -54,6 +55,12 @@ export function validatePatch(patch: unknown): SettingsPatch {
           throw bad(key, 'letters, digits, {flight}, {airline}');
         }
         out.stationTemplate = value;
+        break;
+      case 'messageGapSec':
+        if (!Number.isInteger(value) || (value as number) < 0 || (value as number) > 600) {
+          throw bad(key, 'integer 0..600');
+        }
+        out.messageGapSec = value as number;
         break;
       case 'bridgePort':
         if (!Number.isInteger(value) || (value as number) < 1024 || (value as number) > 65535) {
@@ -87,6 +94,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'recordFlights',
     'liveData',
     'soundOnMessage',
+    'messageGapSec',
   ] as const;
   for (const key of keys) {
     if (!(key in r)) continue;

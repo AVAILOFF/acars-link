@@ -317,6 +317,7 @@ export class AppController {
       recording,
       data: settings.liveData ? this.data : null,
       flags,
+      minGapMs: settings.messageGapSec * 1000,
     });
     if (Object.keys(flags).length > 0) {
       this.feed.system(now, 'memory', { names: Object.keys(flags).sort().join(', ') });

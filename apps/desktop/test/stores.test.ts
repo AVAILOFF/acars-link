@@ -59,6 +59,7 @@ describe('settings', () => {
       recordFlights: true,
       liveData: true,
       soundOnMessage: false,
+      messageGapSec: 60,
       scenarios: {},
       chances: {},
     });
@@ -79,6 +80,9 @@ describe('settings', () => {
       { bridgePort: 80 },
       { bridgePort: 47830.5 },
       { recordFlights: 'yes' },
+      { messageGapSec: -1 },
+      { messageGapSec: 1.5 },
+      { messageGapSec: 601 },
       { scenarios: {} },
       { chances: {} },
       { evil: 1 },

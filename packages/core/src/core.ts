@@ -57,34 +57,68 @@ export interface CoreOptions {
   readonly dataWaitMs?: number;
   /** `flags.*` left by earlier flights (T14); read back with {@link AcarsCore.flags}. */
   readonly flags?: Readonly<Record<string, Value>>;
+  /**
+   * Minimum clock time between two outgoing telexes, ms (default 0 = none). Aircraft poll
+   * Hoppie about once a minute, so messages closer together arrive as a bunch. Messages wait
+   * in the outbox; answers to the pilot go first.
+   */
+  readonly minGapMs?: number;
 }
 
 export interface CoreState {
   readonly v: 1;
   readonly phase: PhaseMachineState;
   readonly engine: ScenarioEngineState;
+  /** Telexes waiting for the gap (`minGapMs`); absent in states saved before it. */
+  readonly outbox?: OutboxState;
+}
+
+export interface OutboxState {
+  readonly queue: readonly OutboundMessage[];
+  /** Clock time of the last telex let out. */
+  readonly lastAt: number | null;
 }
 
 export class AcarsCore {
+  private queue: OutboundMessage[] = [];
+  private lastAt: number | null = null;
+  private readonly gapMs: number;
+
   private constructor(
     private readonly fsm: PhaseMachine,
     private readonly engine: ScenarioEngine,
-  ) {}
+    options: CoreOptions,
+  ) {
+    this.gapMs = options.minGapMs ?? 0;
+    if (!(this.gapMs >= 0)) throw new RangeError('minGapMs must be >= 0');
+  }
 
   static create(options: CoreOptions): AcarsCore {
     const fsm = new PhaseMachine({
       ofp: options.ofp,
       ...(options.phaseConfig === undefined ? {} : { config: options.phaseConfig }),
     });
-    return new AcarsCore(fsm, new ScenarioEngine(engineOptions(options)));
+    return new AcarsCore(fsm, new ScenarioEngine(engineOptions(options)), options);
+  }
+
+  /** Telexes waiting for the gap between messages. */
+  get queued(): number {
+    return this.queue.length;
   }
 
   static fromState(state: CoreState, options: CoreOptions): AcarsCore {
     if (state.v !== 1) throw new Error(`unsupported CoreState version ${String(state.v)}`);
-    return new AcarsCore(
+    const core = new AcarsCore(
       PhaseMachine.fromState(state.phase, options.phaseConfig),
       ScenarioEngine.fromState(state.engine, engineOptions(options)),
+      options,
     );
+    if (state.outbox !== undefined) {
+      const copy = JSON.parse(JSON.stringify(state.outbox)) as OutboxState;
+      core.queue = [...copy.queue];
+      core.lastAt = copy.lastAt;
+    }
+    return core;
   }
 
   get phase(): FlightPhase {
@@ -111,7 +145,12 @@ export class AcarsCore {
   }
 
   getState(): CoreState {
-    return { v: 1, phase: this.fsm.getState(), engine: this.engine.getState() };
+    return {
+      v: 1,
+      phase: this.fsm.getState(),
+      engine: this.engine.getState(),
+      outbox: JSON.parse(JSON.stringify({ queue: this.queue, lastAt: this.lastAt })) as OutboxState,
+    };
   }
 
   /** The user starts the flight (PREFLIGHT → BOARDING). */
@@ -160,10 +199,33 @@ export class AcarsCore {
       ...(force === undefined || force.length === 0 ? {} : { force }),
     });
     return {
-      outbound: out.outbound,
+      outbound: this.pace(now, out.outbound),
       phase: this.fsm.phase,
       events: [...phaseEvents, ...out.events],
     };
+  }
+
+  /**
+   * The outbox: with `minGapMs`, at most one telex per gap of clock time leaves; answers to the
+   * pilot queue before the others (in their own order). A telex leaves stamped with that time.
+   */
+  private pace(now: number, fresh: readonly OutboundMessage[]): readonly OutboundMessage[] {
+    if (this.gapMs === 0 && this.queue.length === 0) return fresh;
+    for (const m of fresh) {
+      if (!m.toPilot) this.queue.push(m);
+      else {
+        const i = this.queue.findIndex((q) => !q.toPilot);
+        this.queue.splice(i < 0 ? this.queue.length : i, 0, m);
+      }
+    }
+    const out: OutboundMessage[] = [];
+    while (this.queue.length > 0 && (this.lastAt === null || now - this.lastAt >= this.gapMs)) {
+      const m = this.queue.shift() as OutboundMessage;
+      out.push({ ...m, t: now });
+      this.lastAt = now;
+      if (this.gapMs > 0) break;
+    }
+    return out;
   }
 }
 

@@ -47,6 +47,8 @@ export interface FlightSessionOptions {
   readonly data?: ExternalDataService | null;
   /** Airline memory from earlier flights (T14 `flags.*`). */
   readonly flags?: Readonly<Record<string, Value>>;
+  /** Minimum time between airline telexes, ms (core `minGapMs`). */
+  readonly minGapMs?: number;
 }
 
 /** Names of the data sources in the feed (proper names, the same in every language). */
@@ -96,6 +98,7 @@ export class FlightSession {
       sessionFired: o.sessionFired,
       ...(o.data == null ? {} : { dataWaitMs: DATA_WAIT_MS }),
       ...(o.flags === undefined ? {} : { flags: o.flags }),
+      ...(o.minGapMs === undefined ? {} : { minGapMs: o.minGapMs }),
     });
     this.data = o.data ?? null;
     this.irregular = o.scenarios
@@ -120,6 +123,7 @@ export class FlightSession {
         ...(o.data == null ? {} : { dataWaitMs: DATA_WAIT_MS }),
         ...(o.flags === undefined || Object.keys(o.flags).length === 0 ? {} : { flags: o.flags }),
         ...probabilities(o.scenarios),
+        ...(o.minGapMs === undefined || o.minGapMs === 0 ? {} : { minGapMs: o.minGapMs }),
       }),
     );
     this.core.startFlight();
@@ -162,6 +166,7 @@ export class FlightSession {
 
   get transportView(): TransportView {
     return {
+      outbox: this.core.queued,
       kind: this.transport.kind === 'mock' ? 'mock' : 'hoppie',
       status: this.transport.status,
       pending: this.transport.pending,

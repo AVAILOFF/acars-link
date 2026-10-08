@@ -58,6 +58,8 @@ export interface RecordingHeader {
   readonly sessionFired: readonly string[];
   /** Core `dataWaitMs` (T13): how long `REQ WX` waited for fetched weather; absent = 0. */
   readonly dataWaitMs?: number;
+  /** Core `minGapMs`: minimum time between telexes; absent = 0. */
+  readonly minGapMs?: number;
   /** Probabilities set by the user instead of the files' (scenario id → 0..1); absent = none. */
   readonly probabilities?: Readonly<Record<string, number>>;
   /** Airline memory the flight started with (T14 `flags.*`); absent = none. */
@@ -179,6 +181,8 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
   if (!isOfpLike(x['ofp'])) throw bad('ofp');
   if (!isProfile(x['profile'])) throw bad('profile');
   if (x['flags'] !== undefined && !isObj(x['flags'])) throw bad('flags');
+  if (x['minGapMs'] !== undefined && !(isNum(x['minGapMs']) && x['minGapMs'] >= 0))
+    throw bad('minGapMs');
   const p = x['probabilities'];
   if (p !== undefined && !(isObj(p) && Object.values(p).every((v) => isNum(v) && v >= 0 && v <= 1)))
     throw bad('probabilities');

@@ -73,6 +73,7 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
     ...(seed === null ? {} : { seed }),
     ...(h.dataWaitMs === undefined ? {} : { dataWaitMs: h.dataWaitMs }),
     ...(h.flags === undefined ? {} : { flags: h.flags }),
+    ...(h.minGapMs === undefined ? {} : { minGapMs: h.minGapMs }),
     ...(o.phaseConfig === undefined ? {} : { phaseConfig: o.phaseConfig }),
   });
   const timeline: TimelineEntry[] = [];

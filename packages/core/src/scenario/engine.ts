@@ -80,6 +80,8 @@ export interface OutboundMessage {
   readonly kind: 'telex';
   readonly message: FormattedMessage;
   readonly t: number;
+  /** Sent while handling a pilot message (an answer, a command reply): goes first in the outbox. */
+  readonly toPilot: boolean;
 }
 
 /**
@@ -329,6 +331,8 @@ export class ScenarioEngine {
   };
   /** Context of the current tick; rebuilt when a command or a send changes it. */
   private ctx: ScenarioContext | null = null;
+  /** Inside `receive`: messages are answers to the pilot. */
+  private answering = false;
   private tickInput: EngineTickInput | null = null;
 
   constructor(options: ScenarioEngineOptions) {
@@ -487,8 +491,13 @@ export class ScenarioEngine {
         (p) => this.wxFresh(p.icao, input.now) || input.now >= p.until,
       );
       this.st.pendingWx = this.st.pendingWx.filter((p) => !due.includes(p));
-      for (const p of due) this.receive(p.message, input, outbound, events, false);
-      for (const m of inbox) this.receive(m, input, outbound, events);
+      this.answering = true;
+      try {
+        for (const p of due) this.receive(p.message, input, outbound, events, false);
+        for (const m of inbox) this.receive(m, input, outbound, events);
+      } finally {
+        this.answering = false;
+      }
 
       // 1. Running scenarios.
       for (const run of [...this.st.runs]) this.advance(run, input, outbound, events);
@@ -777,6 +786,7 @@ export class ScenarioEngine {
       kind: 'telex',
       message,
       t: now,
+      toPilot: this.answering || id === OPS_REPLY_ID,
     });
     if (id === OPS_REPLY_ID) return;
     const first = !(id in this.st.sent);

@@ -30,6 +30,14 @@ export function FlightView() {
   );
 }
 
+/**
+ * iniBuilds A350/A380 fetch Hoppie telexes only after a flight plan request in the FMS
+ * (docs/06, human check 2026-10-08).
+ */
+function needsFplnRequest(title: string | undefined): boolean {
+  return title !== undefined && /\bA3(50|5K|80)|A350|A380|A35K/i.test(title);
+}
+
 function FlightCard({ app }: { app: AppState }) {
   const t = useT();
   const busy = useStore((s) => s.busy);
@@ -55,6 +63,10 @@ function FlightCard({ app }: { app: AppState }) {
             ? t('flight.offlineHint')
             : t('flight.fmsHint', { callsign: f.callsign, station: f.station })}
         </p>
+      )}
+
+      {running && needsFplnRequest(app.telemetry?.aircraftTitle) && (
+        <p className="hint warn">{t('flight.fplnHint')}</p>
       )}
 
       {running && app.phase === 'ON_BLOCK' && (
@@ -253,6 +265,7 @@ function StatusCard({ app }: { app: AppState }) {
     netText = tr.kind === 'mock' ? t('net.mock') : t(`net.${tr.status}`);
     if (tr.reason !== null) netText += ` — ${tr.reason}`;
     if (tr.pending > 0) netText += ` · ${t('net.pending', { n: tr.pending })}`;
+    if (tr.outbox > 0) netText += ` · ${t('net.outbox', { n: tr.outbox })}`;
   }
 
   const tm = app.telemetry;

@@ -82,6 +82,9 @@ const en = {
   'sys.scenario_error': 'Scenario {id} failed: {error}',
   'sys.reply_timeout': 'No answer to {id}: taken as {option}',
   'sys.transport_status': 'Network: {status} {reason}',
+  'net.outbox': '{n} waiting for the gap',
+  'flight.fplnHint':
+    'iniBuilds A350/A380: do F-PLN REQUEST (INIT REQUEST) in the FMS, otherwise the aircraft does not fetch the messages.',
   'sys.recording': 'Recording the flight to {file}',
   'sys.recording_failed': 'Flight recording stopped: {error}',
   'sys.data_failed': 'Live data unavailable: {source} ({error}); messages use the OFP',
@@ -141,6 +144,11 @@ const en = {
   'set.memoryHint':
     'What irregular events leave for the next flights: an open MEL item, a banned passenger, crew rest after discretion.',
   'set.clearMemory': 'Clear',
+  'set.gap': 'Gap between messages',
+  'set.gapNone': 'None (send at once)',
+  'set.gapSec': '{s} s',
+  'set.gapHint':
+    'Aircraft fetch telexes about once a minute; closer messages arrive together. Answers to your requests go first. Applies to the next flight.',
   'set.sound': 'Sound on new message',
   'set.soundTest': 'Play',
   'set.soundHint': 'A short sound when a message from the airline appears in the feed.',
@@ -259,6 +267,9 @@ const ru: Record<MessageKey, string> = {
   'sys.scenario_error': 'Ошибка сценария {id}: {error}',
   'sys.reply_timeout': 'Нет ответа на {id}: принято {option}',
   'sys.transport_status': 'Сеть: {status} {reason}',
+  'net.outbox': 'ждут интервала: {n}',
+  'flight.fplnHint':
+    'iniBuilds A350/A380: сделайте F-PLN REQUEST (INIT REQUEST) в FMS, иначе самолёт не забирает сообщения.',
   'sys.recording': 'Полёт записывается в {file}',
   'sys.recording_failed': 'Запись полёта остановлена: {error}',
   'sys.data_failed': 'Живые данные недоступны: {source} ({error}); сообщения по OFP',
@@ -319,6 +330,11 @@ const ru: Record<MessageKey, string> = {
   'set.memoryHint':
     'Что нестандартные события оставляют следующим рейсам: открытый пункт MEL, пассажир в чёрном списке, отдых экипажа после продления.',
   'set.clearMemory': 'Очистить',
+  'set.gap': 'Интервал между сообщениями',
+  'set.gapNone': 'Нет (отправлять сразу)',
+  'set.gapSec': '{s} с',
+  'set.gapHint':
+    'Самолёт забирает telex примерно раз в минуту; сообщения чаще приходят пачкой. Ответы на ваши запросы идут первыми. Действует со следующего рейса.',
   'set.sound': 'Звук при новом сообщении',
   'set.soundTest': 'Прослушать',
   'set.soundHint': 'Короткий звук, когда в ленте появляется сообщение от авиакомпании.',
