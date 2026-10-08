@@ -24,6 +24,15 @@ PREFLIGHT → BOARDING → PUSHBACK → TAXI_OUT → TAKEOFF → CLIMB → CRUIS
 | APPROACH → GO_AROUND | VS > +500 fpm и AGL рос после < 1000 ft | 5 с |
 | LANDED → TAXI_IN | GS < 30 kt | 5 с |
 | TAXI_IN → ON_BLOCK | GS < 1 kt, тормоз ON, все двигатели выкл. | 10 с |
+| *+ TAKEOFF → TAXI_OUT* | *прерванный взлёт: на земле, GS < 20 kt* | *10 с* |
+| *+ CLIMB → DESCENT* | *VS < −800 fpm (эшелон OFP не достигнут: короткий рейс, уход на запасной)* | *60 с* |
+| *+ GO_AROUND → CLIMB* | *AGL > 5000 ft и VS > 0 (уход на запасной)* | *10 с* |
+| *+ GO_AROUND → APPROACH* | *VS < +300 fpm (горизонт/снижение на повторный заход)* | *10 с* |
+| *+ ON_BLOCK → TURNAROUND \| DONE* | *решение пользователя* | *сразу* |
+
+Строки *курсивом с «+»* добавлены в T04: без них FSM застревает. Подобрать на записях вместе с остальными.
+
+Реализация: `packages/core/src/phase/fsm.ts`. Таймеры устойчивости идут по «времени полёта» (Δt снимков × `simRate`, без пауз); OOOI OUT — тормоз снят и GS ≥ 1 kt 3 с подряд (время — начало движения); DISCONTINUITY — скачок позиции > 2 nm + 1,5 × GS × Δt полёта; ALT_CHANGE — новый уровень (±1000 ft, |VS| < 300) держится 30 с.
 
 Step climb в крейсере — событие `ALT_CHANGE`, а не смена фазы.
 

@@ -1,0 +1,84 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PhaseMachine — go-around > event log 1`] = `
+[
+  "07:10:00 PREFLIGHT → BOARDING",
+  "07:45:01 OOOI_OUT",
+  "07:45:05 BOARDING → PUSHBACK",
+  "07:47:43 PUSHBACK → TAXI_OUT",
+  "08:10:17 TAXI_OUT → TAKEOFF",
+  "08:11:16 TAKEOFF → CLIMB",
+  "08:10:50 OOOI_OFF",
+  "08:27:33 CLIMB → CRUISE",
+  "10:00:25 CRUISE → DESCENT",
+  "10:12:21 DESCENT → APPROACH",
+  "10:19:44 APPROACH → GO_AROUND",
+  "10:21:05 GO_AROUND → APPROACH",
+  "10:32:15 APPROACH → LANDED",
+  "10:32:13 OOOI_ON",
+  "10:32:55 LANDED → TAXI_IN",
+  "10:41:35 TAXI_IN → ON_BLOCK",
+  "10:41:25 OOOI_IN",
+]
+`;
+
+exports[`PhaseMachine — normal flight > event log 1`] = `
+[
+  "07:10:00 PREFLIGHT → BOARDING",
+  "07:45:01 OOOI_OUT",
+  "07:45:05 BOARDING → PUSHBACK",
+  "07:47:43 PUSHBACK → TAXI_OUT",
+  "08:10:17 TAXI_OUT → TAKEOFF",
+  "08:11:16 TAKEOFF → CLIMB",
+  "08:10:50 OOOI_OFF",
+  "08:27:33 CLIMB → CRUISE",
+  "10:00:25 CRUISE → DESCENT",
+  "10:12:21 DESCENT → APPROACH",
+  "10:20:03 APPROACH → LANDED",
+  "10:20:01 OOOI_ON",
+  "10:20:43 LANDED → TAXI_IN",
+  "10:29:23 TAXI_IN → ON_BLOCK",
+  "10:29:13 OOOI_IN",
+]
+`;
+
+exports[`PhaseMachine — pause and sim rate > ×4 in cruise and descent: hold timers count flight time, same phases 1`] = `
+[
+  "07:10:00 PREFLIGHT → BOARDING",
+  "07:45:01 OOOI_OUT",
+  "07:45:05 BOARDING → PUSHBACK",
+  "07:47:43 PUSHBACK → TAXI_OUT",
+  "08:10:17 TAXI_OUT → TAKEOFF",
+  "08:11:16 TAKEOFF → CLIMB",
+  "08:10:50 OOOI_OFF",
+  "08:27:33 CLIMB → CRUISE",
+  "08:50:46 CRUISE → DESCENT",
+  "08:53:46 DESCENT → APPROACH",
+  "08:59:02 APPROACH → LANDED",
+  "08:59:00 OOOI_ON",
+  "08:59:42 LANDED → TAXI_IN",
+  "09:08:22 TAXI_IN → ON_BLOCK",
+  "09:08:12 OOOI_IN",
+]
+`;
+
+exports[`PhaseMachine — teleport / slew > slew 40 min ahead in cruise: DISCONTINUITY, phase kept, no false transitions 1`] = `
+[
+  "07:10:00 PREFLIGHT → BOARDING",
+  "07:45:01 OOOI_OUT",
+  "07:45:05 BOARDING → PUSHBACK",
+  "07:47:43 PUSHBACK → TAXI_OUT",
+  "08:10:17 TAXI_OUT → TAKEOFF",
+  "08:11:16 TAKEOFF → CLIMB",
+  "08:10:50 OOOI_OFF",
+  "08:27:33 CLIMB → CRUISE",
+  "08:31:33 DISCONTINUITY 317.3 NM",
+  "09:20:25 CRUISE → DESCENT",
+  "09:32:21 DESCENT → APPROACH",
+  "09:40:03 APPROACH → LANDED",
+  "09:40:01 OOOI_ON",
+  "09:40:43 LANDED → TAXI_IN",
+  "09:49:23 TAXI_IN → ON_BLOCK",
+  "09:49:13 OOOI_IN",
+]
+`;

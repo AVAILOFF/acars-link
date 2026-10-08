@@ -8,7 +8,9 @@ export const CORE_PACKAGE = '@acars/core';
 
 export * from './geo/geo.js';
 export * from './ofp/index.js';
+export * from './phase/fsm.js';
 export * from './random/rng.js';
+export * from './synthetic/anomalies.js';
 export * from './synthetic/flight.js';
 export * from './telemetry/types.js';
 export * from './time/clock.js';

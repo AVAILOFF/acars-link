@@ -9,7 +9,8 @@ import type { TelemetrySnapshot } from '../telemetry/types.js';
  * A tiny kinematic model, not a flight model: gate with refuelling → pushback with engine
  * start → taxi → takeoff roll → climb → cruise → 3° path descent → landing → taxi in →
  * shutdown. The aircraft moves along the OFP navlog. Same options → same snapshots.
- * Anomalies (go-around, pause, teleport …) are layered on top by later tasks.
+ * A go-around is built in (`goAround`); pause, sim rate, teleport and telemetry gaps are
+ * applied afterwards by `synthetic/anomalies.ts`.
  */
 
 export type SyntheticStage =
@@ -21,6 +22,7 @@ export type SyntheticStage =
   | 'CRUISE'
   | 'DESCENT'
   | 'APPROACH'
+  | 'GO_AROUND'
   | 'ROLLOUT'
   | 'TAXI_IN'
   | 'PARKED';
@@ -45,6 +47,11 @@ export interface SyntheticFlightOptions {
   /** Taxi from runway exit to the stand. Default OFP `taxi_in` or 5 min. */
   readonly taxiInSec?: number;
   readonly aircraftTitle?: string;
+  /**
+   * Go around once on the first approach at this height above the destination, fly a
+   * level circuit at 3000 ft AGL and land from the second approach. Default: no go-around.
+   */
+  readonly goAroundAglFt?: number;
 }
 
 export interface SyntheticStageMark {
@@ -68,6 +75,9 @@ const TAXI_KT = 15;
 const CLIMB_FPM = 2500;
 const PATH_FT_PER_NM = 318; // 3° glide path
 const APPROACH_AGL_FT = 3000;
+const MISSED_APPROACH_AGL_FT = 3000;
+/** How far out the go-around circuit turns back to the runway. */
+const CIRCUIT_OUTBOUND_NM = 15;
 const SAFETY_LIMIT_SEC = 24 * 3600;
 
 class Route {
@@ -166,6 +176,9 @@ export function generateSyntheticFlight(options: SyntheticFlightOptions): Synthe
   const running: boolean[] = Array.from({ length: engineCount }, () => false);
   const n2: number[] = Array.from({ length: engineCount }, () => 0);
   const doors = [100, 0, 0, 0];
+  let goAroundDone = false;
+  // GO_AROUND legs: climb straight ahead → fly back away from the runway → turn inbound.
+  let circuit: 'climb' | 'outbound' | 'inbound' = 'climb';
 
   const snapshots: TelemetrySnapshot[] = [];
   const stages: SyntheticStageMark[] = [];
@@ -178,6 +191,7 @@ export function generateSyntheticFlight(options: SyntheticFlightOptions): Synthe
     switch (stage) {
       case 'TAKEOFF_ROLL':
       case 'CLIMB':
+      case 'GO_AROUND':
         return 88;
       case 'CRUISE':
         return 78;
@@ -263,12 +277,42 @@ export function generateSyntheticFlight(options: SyntheticFlightOptions): Synthe
           flaps = 3;
           enter('APPROACH');
         }
+        const ga = options.goAroundAglFt;
+        if (stage === 'APPROACH' && ga !== undefined && !goAroundDone && alt - destElev < ga) {
+          goAroundDone = true;
+          circuit = 'climb';
+          flaps = 2;
+          enter('GO_AROUND');
+          break;
+        }
         if (along >= route.totalNm) {
           onGround = true;
           alt = destElev;
           vs = 0;
           flaps = 4;
           enter('ROLLOUT');
+        }
+        break;
+      }
+      case 'GO_AROUND': {
+        const maAlt = destElev + MISSED_APPROACH_AGL_FT;
+        ias = Math.min(180, ias + 2 * dt);
+        if (stageSec > 5) gear = false;
+        if (circuit === 'climb') {
+          vs = Math.min(2000, vs + 300 * dt);
+          if (alt >= maAlt) {
+            alt = maAlt;
+            vs = 0;
+            circuit = 'outbound';
+          }
+        } else vs = 0;
+        if (circuit === 'outbound' && route.totalNm - along >= CIRCUIT_OUTBOUND_NM) {
+          circuit = 'inbound';
+        }
+        if (circuit === 'inbound' && pathAlt(along) <= alt) {
+          gear = true;
+          flaps = 3;
+          enter('APPROACH');
         }
         break;
       }
@@ -320,8 +364,9 @@ export function generateSyntheticFlight(options: SyntheticFlightOptions): Synthe
 
     // --- emit ---
     if (stages.at(-1)?.stage !== stage) stages.push({ stage, index: snapshots.length, t });
-    const backwards = stage === 'PUSHBACK';
-    const { pos, course } = route.at(along);
+    const backwards = stage === 'PUSHBACK' || (stage === 'GO_AROUND' && circuit === 'outbound');
+    const { pos, course: track } = route.at(along);
+    const course = stage === 'GO_AROUND' && circuit === 'outbound' ? (track + 180) % 360 : track;
     const jitter = (amp: number) => (noise && !onGround ? (rng.next() - 0.5) * 2 * amp : 0);
     const agl = onGround ? 0 : Math.max(0, alt - elevAt(along));
     snapshots.push({
