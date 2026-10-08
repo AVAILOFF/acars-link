@@ -5,16 +5,22 @@
   "type": "module",
   "exports": {
     ".": {
+      "source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "scripts"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
-    "test": "vitest run --root ../.. --project @acars/transport"
+    "test": "vitest run --root ../.. --project @acars/transport",
+    "telex": "node scripts/telex.mjs"
+  },
+  "dependencies": {
+    "@acars/core": "workspace:*"
   }
 }

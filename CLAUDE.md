@@ -45,6 +45,7 @@ pnpm lint:fix         # biome check --write .
 pnpm test             # vitest run (проекты packages/*)
 pnpm build            # tsc → packages/*/dist
 pnpm -F @acars/core test   # тесты одного пакета
+pnpm hoppie:telex --to <АВИА> [--from OPS…] [--text …] [--listen 180]   # ручной telex в Hoppie; код — только из env HOPPIE_LOGON
 pnpm bridge:build     # dotnet build bridge/msfs (C# мост, .NET 8; с SimConnect: -p:MsfsSdk="C:\MSFS 2024 SDK")
 pnpm bridge:test      # dotnet test bridge/msfs — при изменениях в bridge/ тоже перед «готово»
 ```

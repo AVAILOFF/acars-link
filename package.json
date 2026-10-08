@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "bridge:build": "dotnet build bridge/msfs",
-    "bridge:test": "dotnet test bridge/msfs"
+    "bridge:test": "dotnet test bridge/msfs",
+    "hoppie:telex": "pnpm -F @acars/core -F @acars/transport build && pnpm -F @acars/transport telex"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
