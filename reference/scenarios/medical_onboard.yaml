@@ -1,0 +1,40 @@
+# Пример нестандартного сценария с ответом пилота и ветвлением
+id: medical_onboard
+version: 1
+category: irregular
+title: Medical case on board
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "flight.minutes_to_tod >= 40"
+  - "ofp.block_time_min >= 120"
+probability: 0.03
+cooldown: per_flight
+excludes: [unruly_passenger]
+steps:
+  - send:
+      header: "OPS MSG"
+      body: |
+        CABIN REPORTS MEDICAL CASE
+        SEAT {seat} PAX {rand:25-80}Y {pick:[CHEST PAIN,FAINTED,BREATHING DIFFICULTY]}
+        DOCTOR ON BOARD: {pick:[YES,NO]}
+        ADVISE INTENTIONS: CONTINUE OR DIVERT
+  - wait:
+      reply: { options: [CONTINUE, DIVERT], timeout_min: 10, default: CONTINUE }
+  - branch:
+      DIVERT:
+        - send:
+            body: |
+              ROGER DIVERT
+              NEAREST SUITABLE {calc.nearest_suitable_icao} {calc.nearest_suitable_dist_nm} NM
+              MEDICAL TEAM AND HANDLING ORDERED
+              SEND NEW ETA WHEN ABLE
+        - set: { flags.diverted: true }
+      CONTINUE:
+        - wait: { minutes: 15 }
+        - send:
+            body: |
+              MEDICAL UPDATE: PAX CONDITION STABLE
+              AMBULANCE ORDERED AT {ofp.dest} STAND
