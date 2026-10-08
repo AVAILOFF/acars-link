@@ -64,6 +64,11 @@ import type { PilotCommand, TimeRef } from './types.js';
  * in the state and handed over to the next flight (`flags` option / getter); `flight.divert`
  * and `ops.arr_gate` change the diversion and the arrival gate of this flight. Every
  * assignment is an event (`SET`), one that cannot apply (a diversion on the ground) too.
+ *
+ * Forced start (`input.force`, the user's "run now"): the scenario starts on this tick without
+ * its trigger, probability, cooldown and excludes, but only when its conditions hold (they
+ * keep its messages meaningful) and it is not running. The outcome is a `FORCED` event.
+ * While telemetry is lost the request waits in the state like a pilot message.
  */
 
 export interface OutboundMessage {
@@ -126,6 +131,14 @@ export type ScenarioEvent =
       readonly value: Value;
       readonly applied: boolean;
     }
+  | {
+      /** Outcome of a forced start (`input.force`). `detail`: the condition that failed. */
+      readonly type: 'FORCED';
+      readonly id: string;
+      readonly t: number;
+      readonly result: 'started' | 'conditions' | 'running' | 'unknown';
+      readonly detail: string | null;
+    }
   | { readonly type: 'SCENARIO_STARTED'; readonly id: string; readonly t: number }
   | {
       readonly type: 'SCENARIO_SKIPPED';
@@ -154,6 +167,8 @@ export interface EngineTickInput {
   readonly inbound?: readonly PilotMessage[];
   /** External data fetched since the last tick (T13). */
   readonly data?: ExtDataUpdate;
+  /** Scenario ids the user starts by hand. */
+  readonly force?: readonly string[];
 }
 
 export interface EngineTickOutput {
@@ -228,6 +243,8 @@ export interface ScenarioEngineState {
   readonly flags: Readonly<Record<string, Value>>;
   /** Arrival gate set by a scenario (`set: { ops.arr_gate }`), T14. */
   readonly gate: string | null;
+  /** Forced starts that arrived while telemetry was lost. */
+  readonly forced: readonly string[];
 }
 
 interface PendingWx {
@@ -308,6 +325,7 @@ export class ScenarioEngine {
     pendingWx: PendingWx[];
     flags: Record<string, Value>;
     gate: string | null;
+    forced: string[];
   };
   /** Context of the current tick; rebuilt when a command or a send changes it. */
   private ctx: ScenarioContext | null = null;
@@ -354,6 +372,7 @@ export class ScenarioEngine {
       pendingWx: [],
       flags: { ...(options.flags ?? {}) },
       gate: null,
+      forced: [],
     };
     this.rebuildData();
   }
@@ -383,6 +402,7 @@ export class ScenarioEngine {
     // Fields added with T14.
     e.st.flags = { ...(copy.flags ?? options.flags ?? {}) };
     e.st.gate = copy.gate ?? null;
+    e.st.forced = [...(copy.forced ?? [])];
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
     e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
@@ -450,11 +470,14 @@ export class ScenarioEngine {
       if (this.st.ext.stands !== before) this.rebuildData();
     }
     const inbox = [...this.st.inbox, ...(input.inbound ?? [])];
+    const forced = [...this.st.forced, ...(input.force ?? [])];
     if (input.telemetryLost) {
       this.st.inbox = inbox;
+      this.st.forced = forced;
       return { outbound, events };
     }
     this.st.inbox = [];
+    this.st.forced = [];
     this.tickInput = input;
     this.refresh();
     try {
@@ -479,6 +502,9 @@ export class ScenarioEngine {
         s.candidate = active;
         if (fresh) this.start(sc, {}, input, outbound, events);
       }
+
+      // 3. Forced by the user.
+      for (const id of forced) this.forceStart(id, input, outbound, events);
     } finally {
       this.ctx = null;
       this.tickInput = null;
@@ -521,21 +547,45 @@ export class ScenarioEngine {
     });
   }
 
-  /** Cooldown, excludes, probability; then starts the run. True when it started. */
+  /** A start by hand: conditions only (see the class comment). */
+  private forceStart(
+    id: string,
+    input: EngineTickInput,
+    outbound: OutboundMessage[],
+    events: ScenarioEvent[],
+  ): void {
+    const note = (
+      result: 'started' | 'conditions' | 'running' | 'unknown',
+      detail = null as string | null,
+    ) => events.push({ type: 'FORCED', id, t: input.now, result, detail });
+    const sc = this.byId.get(id);
+    if (sc === undefined) return void note('unknown');
+    if (this.st.runs.some((r) => r.id === id)) return void note('running');
+    const failed = sc.conditions.findIndex((c) => !c.test(this.look));
+    if (failed >= 0) return void note('conditions', sc.def.conditions?.[failed] ?? null);
+    note('started');
+    this.start(sc, {}, input, outbound, events, true);
+  }
+
+  /**
+   * Cooldown, excludes, probability (all skipped when `forced`); then starts the run. True when
+   * it started.
+   */
   private start(
     sc: CompiledScenario,
     vars: Run['vars'],
     input: EngineTickInput,
     outbound: OutboundMessage[],
     events: ScenarioEvent[],
+    forced = false,
   ): boolean {
     const s = this.st.scenarios[sc.id] as ScenarioState;
-    const skip = this.blocker(sc, s, input.now);
+    const skip = forced ? null : this.blocker(sc, s, input.now);
     if (skip !== null) {
       events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason: skip });
       return false;
     }
-    if (!(this.rngs.get(sc.id) as Rng).chance(sc.probability)) {
+    if (!forced && !(this.rngs.get(sc.id) as Rng).chance(sc.probability)) {
       events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason: 'probability' });
       return false;
     }

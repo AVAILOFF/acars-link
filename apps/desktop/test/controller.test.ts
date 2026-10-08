@@ -596,3 +596,95 @@ describe('airline memory (T14)', () => {
     expect(await store.get()).toEqual({});
   });
 });
+
+describe('irregular events by hand', () => {
+  async function ready() {
+    const s = await setup();
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    return s;
+  }
+
+  it('a chance in percent replaces the file one for the next flight', async () => {
+    const s = await ready();
+    const info = (await s.app.listScenarios()).find((x) => x.id === 'dg_notoc');
+    expect(info).toMatchObject({ defaultChance: 6, chance: null });
+    const list = await s.app.setScenarioChance('dg_notoc', 100);
+    expect(list.find((x) => x.id === 'dg_notoc')).toMatchObject({ chance: 100 });
+    for (const bad of [
+      ['crew_info', 50],
+      ['dg_notoc', 'x'],
+      ['dg_notoc', 120],
+      ['ghost', 5],
+    ] as const) {
+      expect(await guard(() => s.app.setScenarioChance(bad[0], bad[1]))).toMatchObject({
+        ok: false,
+        error: { code: 'invalid_input' },
+      });
+    }
+    await s.app.startFlight();
+    fly(s);
+    expect(outbound(s.app.state().feed).some((m) => m.scenarioId === 'dg_notoc')).toBe(true);
+    await s.app.stopFlight();
+    // The recording keeps the chance: the replay sends the same.
+    const rec = await readRecording(s.recordings);
+    expect(rec.header.probabilities).toEqual({ dg_notoc: 1 });
+    const r = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+    // 0 % switches it off without disabling it.
+    const t = await ready();
+    await t.app.setScenarioChance('dg_notoc', 0);
+    await t.app.startFlight();
+    fly(t);
+    const second = outbound(t.app.state().feed);
+    expect(second.length).toBeGreaterThan(0);
+    expect(second.some((m) => m.scenarioId === 'dg_notoc')).toBe(false);
+  });
+
+  it('run now: starts at once or tells why not; recorded and replayed', async () => {
+    const s = await ready();
+    expect(s.app.state().irregular).toEqual([]);
+    expect(await guard(() => s.app.forceScenario('vip_onboard'))).toMatchObject({
+      ok: false,
+      error: { code: 'bad_state' },
+    });
+    await s.app.startFlight();
+    const list = s.app.state().irregular;
+    expect(list.length).toBe(22);
+    expect(await guard(() => s.app.forceScenario('crew_info'))).toMatchObject({
+      ok: false,
+      error: { code: 'invalid_input' },
+    });
+    fly(s, 0, 60); // boarding
+    await s.app.forceScenario('vip_onboard');
+    await s.app.forceScenario('medical_onboard'); // cruise only
+    fly(s, 60, 62);
+    const feed = s.app.state().feed;
+    expect(feed).toContainEqual(
+      expect.objectContaining({
+        code: 'forced_started',
+        params: { id: 'vip_onboard', detail: '' },
+      }),
+    );
+    expect(feed).toContainEqual(
+      expect.objectContaining({
+        code: 'forced_conditions',
+        params: expect.objectContaining({ id: 'medical_onboard' }),
+      }),
+    );
+    expect(outbound(feed).some((m) => m.scenarioId === 'vip_onboard')).toBe(true);
+    fly(s, 62);
+    await s.app.stopFlight();
+    const rec = await readRecording(s.recordings);
+    const forced = rec.events.flatMap((e) => (e.type === 'tick' ? (e.force ?? []) : []));
+    expect(forced).toEqual(['vip_onboard', 'medical_onboard']);
+    const r = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+  });
+});

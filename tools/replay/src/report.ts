@@ -67,6 +67,8 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
             'SET',
             `${ev.id}: ${ev.name} = ${JSON.stringify(ev.value)}${ev.applied ? '' : ' (not applied)'}`,
           ];
+        case 'FORCED':
+          return ['FORCED', `${ev.id}: ${ev.result}${ev.detail === null ? '' : ` (${ev.detail})`}`];
         case 'DATA_REQUEST':
           return ['DATA', `core asks for ${ev.kind} ${ev.icao}`];
         case 'SCENARIO_STARTED':

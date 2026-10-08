@@ -21,6 +21,9 @@ export function FlightView() {
       </div>
       <section className="panel feed-panel" aria-labelledby="feed-title">
         {app.session === 'running' && <PilotForm />}
+        {app.session === 'running' && app.irregular.length > 0 && (
+          <ForceForm list={app.irregular} />
+        )}
         <FeedList entries={app.feed} />
       </section>
     </div>
@@ -118,6 +121,40 @@ function FlightCard({ app }: { app: AppState }) {
 }
 
 /** T12: a pilot telex typed in the app (aircraft without free-text telex, tests). */
+/** "Run now" for an irregular scenario of the running flight; the result goes to the feed. */
+function ForceForm({ list }: { list: AppState['irregular'] }) {
+  const t = useT();
+  const busy = useStore((s) => s.busy);
+  const [id, setId] = useState(list[0]?.id ?? '');
+  const current = list.some((x) => x.id === id) ? id : (list[0]?.id ?? '');
+  return (
+    <form
+      className="pilot-form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (current !== '') void useStore.getState().forceScenario(current);
+      }}
+    >
+      <label htmlFor="force-id" className="small muted">
+        {t('force.label')}
+      </label>
+      <div className="row">
+        <select id="force-id" value={current} onChange={(e) => setId(e.currentTarget.value)}>
+          {list.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.title}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="btn" disabled={busy !== null || current === ''}>
+          {t('force.run')}
+        </button>
+      </div>
+      <p className="hint small">{t('force.hint')}</p>
+    </form>
+  );
+}
+
 function PilotForm() {
   const t = useT();
   const busy = useStore((s) => s.busy);

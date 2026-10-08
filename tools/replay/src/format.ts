@@ -18,7 +18,8 @@ import {
  * {"type":"start","now":…}                                             user started the flight
  * {"type":"tick","now":…,"telemetry":{…}|null[,"inbound":[…]][,"data":{…}]}
  *                                                                      one core tick (+ pilot telexes, T12;
- *                                                                      + external data fetched, T13)
+ *                                                                      + external data fetched, T13;
+ *                                                                      + "force": [id] started by hand)
  * {"type":"end","now":…,"to":"DONE"}                                   user closed the flight
  * {"type":"out","t":…,"scenarioId":…,"from":…,"to":…,"text":…}        telex the core produced live
  * {"type":"stop","now":…}                                              flight stopped
@@ -57,6 +58,8 @@ export interface RecordingHeader {
   readonly sessionFired: readonly string[];
   /** Core `dataWaitMs` (T13): how long `REQ WX` waited for fetched weather; absent = 0. */
   readonly dataWaitMs?: number;
+  /** Probabilities set by the user instead of the files' (scenario id → 0..1); absent = none. */
+  readonly probabilities?: Readonly<Record<string, number>>;
   /** Airline memory the flight started with (T14 `flags.*`); absent = none. */
   readonly flags?: Readonly<Record<string, Value>>;
 }
@@ -71,6 +74,8 @@ export type RecordingEvent =
       readonly inbound?: readonly PilotMessage[];
       /** External data passed with this tick (T13); absent = none. */
       readonly data?: ExtDataUpdate;
+      /** Scenarios the user started by hand with this tick; absent = none. */
+      readonly force?: readonly string[];
     }
   | { readonly type: 'end'; readonly now: number; readonly to: 'TURNAROUND' | 'DONE' }
   | {
@@ -174,6 +179,9 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
   if (!isOfpLike(x['ofp'])) throw bad('ofp');
   if (!isProfile(x['profile'])) throw bad('profile');
   if (x['flags'] !== undefined && !isObj(x['flags'])) throw bad('flags');
+  const p = x['probabilities'];
+  if (p !== undefined && !(isObj(p) && Object.values(p).every((v) => isNum(v) && v >= 0 && v <= 1)))
+    throw bad('probabilities');
   if (x['dataWaitMs'] !== undefined && !(isNum(x['dataWaitMs']) && x['dataWaitMs'] >= 0))
     throw bad('dataWaitMs');
   return x as unknown as RecordingHeader;
@@ -232,6 +240,7 @@ function checkEvent(x: unknown, no: number): RecordingEvent {
           );
         if (!ok) throw bad('inbound must be [{from, type, text}]');
       }
+      if (x['force'] !== undefined && !isStrArr(x['force'])) throw bad('force must be [id]');
       if (x['data'] !== undefined) {
         try {
           checkExtDataUpdate(x['data']);

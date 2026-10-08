@@ -25,6 +25,7 @@ export function defaultSettings(locale: string): Settings {
     recordFlights: true,
     liveData: true,
     scenarios: {},
+    chances: {},
   };
 }
 
@@ -98,8 +99,18 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
       if (SCENARIO_ID_RE.test(id) && typeof on === 'boolean') scenarios[id] = on;
     }
   }
-  return { ...s, scenarios };
+  const chances: Record<string, number> = {};
+  if (typeof r['chances'] === 'object' && r['chances'] !== null) {
+    for (const [id, p] of Object.entries(r['chances'] as Record<string, unknown>)) {
+      if (SCENARIO_ID_RE.test(id) && isChance(p)) chances[id] = p;
+    }
+  }
+  return { ...s, scenarios, chances };
 }
+
+/** Percent 0–100, at most one decimal. */
+export const isChance = (p: unknown): p is number =>
+  typeof p === 'number' && p >= 0 && p <= 100 && Math.round(p * 10) === p * 10;
 
 export class SettingsStore {
   private current: Settings | null = null;
@@ -132,6 +143,17 @@ export class SettingsStore {
     if (!SCENARIO_ID_RE.test(id)) throw bad('scenario', 'bad id');
     const s = await this.get();
     return this.save({ ...s, scenarios: { ...s.scenarios, [id]: enabled } });
+  }
+
+  /** Chance in percent, null = the scenario file's. */
+  async setChance(id: string, percent: number | null): Promise<Settings> {
+    if (!SCENARIO_ID_RE.test(id)) throw bad('scenario', 'bad id');
+    if (percent !== null && !isChance(percent)) throw bad('chance', '0..100, one decimal');
+    const s = await this.get();
+    const chances = { ...s.chances };
+    if (percent === null) delete chances[id];
+    else chances[id] = percent;
+    return this.save({ ...s, chances });
   }
 
   private async save(s: Settings): Promise<Settings> {

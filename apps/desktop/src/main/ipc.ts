@@ -41,6 +41,10 @@ export function registerIpc(
       return app.setScenarioEnabled(str(id, 'scenario'), enabled);
     }),
   );
+  on(IPC.setScenarioChance, (id, percent) =>
+    guard(() => app.setScenarioChance(str(id, 'scenario'), percent)),
+  );
+  on(IPC.forceScenario, (id) => guard(() => app.forceScenario(str(id, 'scenario'))));
   on(IPC.getCredentials, () => app.credentials());
   on(IPC.setSimbriefUsername, (u) => guard(() => app.setSimbriefUsername(u)));
   on(IPC.setHoppieCode, (code) => guard(() => app.setHoppieCode(code)));

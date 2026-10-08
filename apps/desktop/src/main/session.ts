@@ -14,7 +14,7 @@ import {
 import type { DataSourceKind, ExternalDataService } from '@acars/data-sources';
 import { encodeLine, type RecordingEvent, recordingHeader } from '@acars/replay';
 import type { Transport, TransportStatus } from '@acars/transport';
-import type { TelemetryView, TransportView } from '../shared/api.js';
+import type { ForceableScenario, TelemetryView, TransportView } from '../shared/api.js';
 import type { Feed } from './feed.js';
 import type { RecordingSink } from './recording.js';
 
@@ -70,6 +70,10 @@ export class FlightSession {
   private readonly queue: TelemetrySnapshot[] = [];
   /** Pilot telexes for the next core tick. */
   private inbound: PilotMessage[] = [];
+  /** Scenarios started by hand, for the next core tick. */
+  private forced: string[] = [];
+  /** Irregular scenarios of this flight, for "run now". */
+  readonly irregular: readonly ForceableScenario[];
   private readonly callsign: string;
   private readonly station: string;
   /** Transport telex id → feed entry id. */
@@ -94,6 +98,10 @@ export class FlightSession {
       ...(o.flags === undefined ? {} : { flags: o.flags }),
     });
     this.data = o.data ?? null;
+    this.irregular = o.scenarios
+      .filter((c) => c.def.category === 'irregular' && c.def.trigger.on !== 'command')
+      .map((c) => ({ id: c.id, title: c.def.title }))
+      .sort((a, b) => a.title.localeCompare(b.title));
     this.callsign = o.ofp.callsign;
     this.station = stationCallsign(o.stationTemplate, o.ofp);
     this.transport = o.transport;
@@ -111,6 +119,7 @@ export class FlightSession {
         sessionFired: o.sessionFired,
         ...(o.data == null ? {} : { dataWaitMs: DATA_WAIT_MS }),
         ...(o.flags === undefined || Object.keys(o.flags).length === 0 ? {} : { flags: o.flags }),
+        ...probabilities(o.scenarios),
       }),
     );
     this.core.startFlight();
@@ -180,6 +189,11 @@ export class FlightSession {
     this.inbound.push({ from: this.callsign, type: 'telex', text });
   }
 
+  /** Starts a scenario by hand with the next tick (the core checks its conditions). */
+  force(id: string): void {
+    if (!this.stopped) this.forced.push(id);
+  }
+
   tick(now: number): void {
     if (this.stopped) return;
     const batch: (TelemetrySnapshot | null)[] = this.queue.splice(0);
@@ -195,9 +209,11 @@ export class FlightSession {
       // Pilot telexes and fetched data go with the first tick of the batch.
       const inbound = i === 0 ? this.inbound.splice(0) : [];
       const data = i === 0 ? fetched.update : null;
+      const force = i === 0 ? this.forced.splice(0) : [];
       const more = {
         ...(inbound.length > 0 ? { inbound } : {}),
         ...(data === null ? {} : { data }),
+        ...(force.length > 0 ? { force } : {}),
       };
       this.record({ type: 'tick', now, telemetry: s, ...more });
       this.apply(this.core.tick({ now, telemetry: s, ...more }), now);
@@ -286,6 +302,9 @@ export class FlightSession {
         case 'REPLY_EXPECTED':
           // The transport caps this itself (Hoppie: 3 min of faster polling).
           this.transport.expectReply(e.timeoutMs);
+          break;
+        case 'FORCED':
+          this.feed.system(e.t, `forced_${e.result}`, { id: e.id, detail: e.detail ?? '' });
           break;
         case 'DATA_REQUEST':
           this.data?.requestWx(e.icao);
@@ -377,4 +396,13 @@ function outLine(m: CoreOutput['outbound'][number]): RecordingEvent {
     to: m.to,
     text: m.message.text,
   };
+}
+
+/** Probabilities that differ from the scenario files (user's chances), for the recording. */
+function probabilities(list: readonly CompiledScenario[]): {
+  probabilities?: Record<string, number>;
+} {
+  const out: Record<string, number> = {};
+  for (const c of list) if (c.probability !== (c.def.probability ?? 1)) out[c.id] = c.probability;
+  return Object.keys(out).length === 0 ? {} : { probabilities: out };
 }

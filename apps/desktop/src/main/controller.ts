@@ -61,6 +61,10 @@ export interface AppControllerOptions {
   readonly flags?: FlagsStore;
 }
 
+/** Irregular events: category `irregular`, not a pilot-command handler (`cmd_divert`). */
+export const isIrregularEvent = (c: CompiledScenario): boolean =>
+  c.def.category === 'irregular' && c.def.trigger.on !== 'command';
+
 /** Identifies the app to aviationweather.gov, VATSIM, NASA and Overpass (they ask for it). */
 export const DATA_USER_AGENT = 'ACARS-Sim/0.1 (flight simulator ACARS; personal use)';
 
@@ -148,6 +152,7 @@ export class AppController {
       transport: s?.transportView ?? null,
       feed: this.feed.entries,
       memory: this.memory,
+      irregular: s?.irregular ?? [],
     };
   }
 
@@ -170,7 +175,7 @@ export class AppController {
 
   async listScenarios(): Promise<ScenarioInfo[]> {
     if (this.scenarioError !== null) throw new AppFailure('scenarios_invalid', this.scenarioError);
-    const { scenarios: chosen } = await this.o.settings.get();
+    const { scenarios: chosen, chances } = await this.o.settings.get();
     return this.scenarios
       .map((c) => ({
         id: c.id,
@@ -178,6 +183,8 @@ export class AppController {
         category: c.def.category,
         enabledByDefault: c.def.enabled_by_default,
         enabled: chosen[c.id] ?? c.def.enabled_by_default,
+        defaultChance: Math.round(c.probability * 1000) / 10,
+        chance: isIrregularEvent(c) ? (chances[c.id] ?? null) : null,
       }))
       .sort((a, b) => a.category.localeCompare(b.category) || a.title.localeCompare(b.title));
   }
@@ -188,6 +195,20 @@ export class AppController {
       throw new AppFailure('invalid_input', `unknown scenario ${id}`);
     }
     await this.o.settings.setScenario(id, enabled);
+    return this.listScenarios();
+  }
+
+  /** Chance of an irregular scenario, percent (null = the file's); takes effect next flight. */
+  async setScenarioChance(id: string, percent: unknown): Promise<ScenarioInfo[]> {
+    const c = this.scenarios.find((x) => x.id === id);
+    if (c === undefined) throw new AppFailure('invalid_input', `unknown scenario ${id}`);
+    if (!isIrregularEvent(c)) {
+      throw new AppFailure('invalid_input', `${id}: chances are set for irregular scenarios only`);
+    }
+    if (percent !== null && typeof percent !== 'number') {
+      throw new AppFailure('invalid_input', 'chance: a number 0..100 or null');
+    }
+    await this.o.settings.setChance(id, percent);
     return this.listScenarios();
   }
 
@@ -257,9 +278,12 @@ export class AppController {
     } else {
       transport = this.o.createTransport({ kind: 'offline' });
     }
-    const enabled = this.scenarios.filter(
-      (c) => settings.scenarios[c.id] ?? c.def.enabled_by_default,
-    );
+    const enabled = this.scenarios
+      .filter((c) => settings.scenarios[c.id] ?? c.def.enabled_by_default)
+      .map((c) => {
+        const pct = isIrregularEvent(c) ? settings.chances[c.id] : undefined;
+        return pct === undefined ? c : { ...c, probability: pct / 100 };
+      });
     const now = this.o.now();
     this.prefetch(ofp, settings);
     const flags = await this.flagStore.get();
@@ -349,6 +373,21 @@ export class AppController {
         `airline memory: ${e instanceof Error ? e.message : String(e)}`,
       );
     }
+  }
+
+  /** "Run now" for an irregular scenario of the running flight; the result shows in the feed. */
+  async forceScenario(id: unknown): Promise<null> {
+    const s = this.session;
+    if (s === null) throw new AppFailure('bad_state', 'no flight running');
+    if (typeof id !== 'string' || !s.irregular.some((x) => x.id === id)) {
+      throw new AppFailure(
+        'invalid_input',
+        `not an irregular scenario of this flight: ${String(id)}`,
+      );
+    }
+    s.force(id);
+    this.o.onChange();
+    return null;
   }
 
   async openRecordings(): Promise<null> {

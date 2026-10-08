@@ -26,6 +26,7 @@ export type Busy =
   | 'scenario'
   | 'recordings'
   | 'memory'
+  | 'force'
   | 'pilot';
 
 interface Store {
@@ -48,6 +49,8 @@ interface Store {
   endFlight(to: 'TURNAROUND' | 'DONE'): Promise<void>;
   sendPilotMessage(text: string): Promise<boolean>;
   setScenario(id: string, enabled: boolean): Promise<void>;
+  setChance(id: string, percent: number | null): Promise<void>;
+  forceScenario(id: string): Promise<void>;
   updateSettings(patch: Parameters<AcarsApi['updateSettings']>[0]): Promise<boolean>;
   setUsername(u: string): Promise<boolean>;
   setHoppieCode(code: string): Promise<boolean>;
@@ -130,6 +133,16 @@ export const useStore = create<Store>()((set, get) => {
         () => api().setScenarioEnabled(id, enabled),
         (scenarios) => set({ scenarios }),
       );
+    },
+    async setChance(id, percent) {
+      await run(
+        'scenario',
+        () => api().setScenarioChance(id, percent),
+        (scenarios) => set({ scenarios }),
+      );
+    },
+    async forceScenario(id) {
+      await run('force', () => api().forceScenario(id));
     },
     updateSettings: (patch) =>
       run(

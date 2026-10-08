@@ -269,3 +269,71 @@ describe('irregular data', () => {
     expect(metarTempC(null)).toBeNull();
   });
 });
+
+describe('forced start (run now)', () => {
+  const evt = def({
+    id: 'evt',
+    trigger: { on: 'phase_enter', phase: 'DESCENT' },
+    conditions: ["phase in ['CLIMB','CRUISE']"],
+    probability: 0,
+    steps: [
+      { send: { body: 'EVT {phase}' } },
+      { wait: { minutes: 30 } },
+      { send: { body: 'END' } },
+    ],
+  });
+
+  function run(forceAt: readonly number[], lostFrom?: number) {
+    const core = AcarsCore.create({ ofp, scenarios: [compileScenario(evt)], seed: 'f' });
+    core.startFlight();
+    const out: OutboundMessage[] = [];
+    const events: ScenarioEvent[] = [];
+    flight.snapshots.forEach((s, i) => {
+      const lost = lostFrom !== undefined && i >= lostFrom && i < lostFrom + 120;
+      const force = forceAt.filter((x) => x === i).map(() => 'evt');
+      const r = core.tick({
+        now: s.t,
+        telemetry: lost ? null : s,
+        ...(force.length > 0 ? { force } : {}),
+      });
+      out.push(...r.outbound);
+      for (const e of r.events) if (e.type === 'FORCED') events.push(e);
+    });
+    return { out, events };
+  }
+  const cruise = flight.snapshots.findIndex((s) => s.altFt > 30_000) + 60;
+
+  it('starts without trigger and probability when the conditions hold', () => {
+    const r = run([cruise]);
+    expect(r.out.map((m) => m.message.text)).toEqual(['EVT CLIMB', 'END']);
+    expect(r.events).toEqual([
+      expect.objectContaining({ id: 'evt', result: 'started', detail: null }),
+    ]);
+  });
+
+  it('refuses on failed conditions, while running, for unknown ids', () => {
+    const atGate = run([5]);
+    expect(atGate.out).toEqual([]);
+    expect(atGate.events[0]).toMatchObject({
+      result: 'conditions',
+      detail: "phase in ['CLIMB','CRUISE']",
+    });
+    const twice = run([cruise, cruise + 10]);
+    expect(twice.events.map((e) => (e as { result: string }).result)).toEqual([
+      'started',
+      'running',
+    ]);
+    const core = AcarsCore.create({ ofp, scenarios: [], seed: 'f' });
+    core.startFlight();
+    const s = flight.snapshots[0] as (typeof flight.snapshots)[number];
+    expect(core.tick({ now: s.t, telemetry: s, force: ['ghost'] }).events).toContainEqual(
+      expect.objectContaining({ type: 'FORCED', id: 'ghost', result: 'unknown' }),
+    );
+  });
+
+  it('waits while telemetry is lost', () => {
+    const r = run([cruise + 30], cruise);
+    expect(r.events).toEqual([expect.objectContaining({ result: 'started' })]);
+    expect(r.out[0]?.t).toBeGreaterThan((flight.snapshots[cruise + 30] as { t: number }).t);
+  });
+});

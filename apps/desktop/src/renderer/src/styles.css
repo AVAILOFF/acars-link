@@ -545,3 +545,20 @@ input.short {
 .check-title {
   min-width: 200px;
 }
+
+/* Chance of an irregular scenario (percent), at the end of its row. */
+.chance {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.chance input {
+  width: 72px;
+  text-align: right;
+}
+
+.pilot-form + .pilot-form {
+  border-top: 1px solid var(--line);
+}

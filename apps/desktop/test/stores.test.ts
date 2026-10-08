@@ -59,6 +59,7 @@ describe('settings', () => {
       recordFlights: true,
       liveData: true,
       scenarios: {},
+      chances: {},
     });
     expect(defaultSettings('ru-RU').language).toBe('ru');
   });
@@ -78,6 +79,7 @@ describe('settings', () => {
       { bridgePort: 47830.5 },
       { recordFlights: 'yes' },
       { scenarios: {} },
+      { chances: {} },
       { evil: 1 },
       null,
       [],
@@ -95,10 +97,17 @@ describe('settings', () => {
           bridgePort: 47831,
           recordFlights: 'no',
           scenarios: { fuel_slip: false, 'BAD ID': true, crew_info: 'yes' },
+          chances: { medical_onboard: 25, dg_notoc: 150, vip_onboard: 2.55, 'BAD ID': 5 },
         },
         defaults,
       ),
-    ).toEqual({ ...defaults, language: 'ru', bridgePort: 47831, scenarios: { fuel_slip: false } });
+    ).toEqual({
+      ...defaults,
+      language: 'ru',
+      bridgePort: 47831,
+      scenarios: { fuel_slip: false },
+      chances: { medical_onboard: 25 },
+    });
     expect(sanitize({ recordFlights: false }, defaults).recordFlights).toBe(false);
     expect(sanitize('garbage', defaults)).toEqual(defaults);
   });
@@ -112,5 +121,15 @@ describe('settings', () => {
     expect(again.transport).toBe('offline');
     expect(again.scenarios).toEqual({ fuel_slip: false });
     await expect(store.setScenario('../x', true)).rejects.toThrow(AppFailure);
+    await store.setChance('medical_onboard', 12.5);
+    await store.setChance('dg_notoc', 0);
+    expect((await new SettingsStore(file, defaults).get()).chances).toEqual({
+      medical_onboard: 12.5,
+      dg_notoc: 0,
+    });
+    await store.setChance('dg_notoc', null);
+    expect((await store.get()).chances).toEqual({ medical_onboard: 12.5 });
+    await expect(store.setChance('dg_notoc', 101)).rejects.toThrow(AppFailure);
+    await expect(store.setChance('dg_notoc', 1.25)).rejects.toThrow(AppFailure);
   });
 });

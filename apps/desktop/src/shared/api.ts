@@ -28,9 +28,11 @@ export interface Settings {
   readonly liveData: boolean;
   /** Scenario id → enabled; absent ids use `enabled_by_default`. */
   readonly scenarios: Readonly<Record<string, boolean>>;
+  /** Irregular scenario id → chance in percent (0–100); absent ids use the YAML `probability`. */
+  readonly chances: Readonly<Record<string, number>>;
 }
 
-export type SettingsPatch = Partial<Omit<Settings, 'scenarios'>>;
+export type SettingsPatch = Partial<Omit<Settings, 'scenarios' | 'chances'>>;
 
 export interface CredentialsView {
   readonly simbriefUsername: string;
@@ -45,6 +47,16 @@ export interface ScenarioInfo {
   readonly category: ScenarioCategory;
   readonly enabledByDefault: boolean;
   readonly enabled: boolean;
+  /** Chance from the scenario file, percent. */
+  readonly defaultChance: number;
+  /** The user's chance, percent; null = the default. Irregular scenarios only. */
+  readonly chance: number | null;
+}
+
+/** An irregular scenario of the running flight that can be started by hand. */
+export interface ForceableScenario {
+  readonly id: string;
+  readonly title: string;
 }
 
 export interface FlightSummary {
@@ -111,6 +123,10 @@ export type SystemCode =
   | 'reply_timeout'
   | 'data_failed'
   | 'memory'
+  | 'forced_started'
+  | 'forced_conditions'
+  | 'forced_running'
+  | 'forced_unknown'
   | 'data_restored'
   | 'transport_status';
 
@@ -162,6 +178,8 @@ export interface AppState {
   readonly feed: readonly FeedEntry[];
   /** Names of the airline-memory flags kept for the next flight (T14). */
   readonly memory: readonly string[];
+  /** Irregular scenarios of the running flight ("run now"); empty when no flight runs. */
+  readonly irregular: readonly ForceableScenario[];
 }
 
 export type ErrorCode =
@@ -196,6 +214,8 @@ export interface AcarsApi {
   updateSettings(patch: SettingsPatch): Promise<Result<Settings>>;
   listScenarios(): Promise<Result<ScenarioInfo[]>>;
   setScenarioEnabled(id: string, enabled: boolean): Promise<Result<ScenarioInfo[]>>;
+  /** Chance of an irregular scenario in percent (0–100), null = back to the file's. */
+  setScenarioChance(id: string, percent: number | null): Promise<Result<ScenarioInfo[]>>;
 
   getCredentials(): Promise<CredentialsView>;
   setSimbriefUsername(username: string): Promise<Result<CredentialsView>>;
@@ -212,6 +232,8 @@ export interface AcarsApi {
    * goes to the core as if the aircraft had sent it; nothing goes to the network.
    */
   sendPilotMessage(text: string): Promise<Result<null>>;
+  /** Starts an irregular scenario of the running flight now (its conditions must hold). */
+  forceScenario(id: string): Promise<Result<null>>;
   /** Opens the recordings folder in the OS file manager. */
   openRecordings(): Promise<Result<null>>;
   /** Forgets the airline memory (T14 flags: open MEL items, follow-ups); not during a flight. */
@@ -226,6 +248,8 @@ export const IPC = {
   updateSettings: 'acars:update-settings',
   listScenarios: 'acars:list-scenarios',
   setScenarioEnabled: 'acars:set-scenario-enabled',
+  setScenarioChance: 'acars:set-scenario-chance',
+  forceScenario: 'acars:force-scenario',
   getCredentials: 'acars:get-credentials',
   setSimbriefUsername: 'acars:set-simbrief-username',
   setHoppieCode: 'acars:set-hoppie-code',

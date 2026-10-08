@@ -34,6 +34,8 @@ export interface CoreInput {
   readonly inbound?: readonly PilotMessage[];
   /** External data fetched since the last tick (T13, `ext/data.ts`). */
   readonly data?: ExtDataUpdate;
+  /** Scenario ids the user starts by hand ("run now"): see `ScenarioEngine`. */
+  readonly force?: readonly string[];
 }
 
 export interface CoreOutput {
@@ -134,6 +136,7 @@ export class AcarsCore {
       ],
       input.inbound ?? [],
       input.data,
+      input.force,
     );
   }
 
@@ -142,6 +145,7 @@ export class AcarsCore {
     phaseEvents: readonly PhaseEvent[],
     inbound: readonly PilotMessage[] = [],
     data?: ExtDataUpdate,
+    force?: readonly string[],
   ): CoreOutput {
     const out = this.engine.tick({
       now,
@@ -153,6 +157,7 @@ export class AcarsCore {
       telemetryLost: this.fsm.telemetryLost,
       inbound,
       ...(data === undefined ? {} : { data }),
+      ...(force === undefined || force.length === 0 ? {} : { force }),
     });
     return {
       outbound: out.outbound,

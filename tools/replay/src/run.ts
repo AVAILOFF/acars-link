@@ -58,9 +58,15 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
   const h = recording.header;
   const seed = o.seed ?? h.seed;
   const profile = o.profile ?? h.profile;
+  // The user's chances of that flight (desktop settings) replace the files'.
+  const p = h.probabilities ?? {};
+  const scenarios = o.scenarios.map((s) => {
+    const v = p[s.id];
+    return v === undefined ? s : { ...s, probability: v };
+  });
   const core = AcarsCore.create({
     ofp: h.ofp,
-    scenarios: o.scenarios,
+    scenarios,
     profile,
     station: o.station ?? h.station,
     sessionFired: h.sessionFired,
@@ -122,6 +128,7 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
             telemetry: e.telemetry,
             ...(inbound.length > 0 ? { inbound } : {}),
             ...(e.data === undefined ? {} : { data: e.data }),
+            ...(e.force === undefined ? {} : { force: e.force }),
           }),
         );
         break;

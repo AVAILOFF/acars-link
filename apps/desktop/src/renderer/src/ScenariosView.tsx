@@ -1,4 +1,5 @@
 import type { ScenarioCategory } from '@acars/core';
+import { useEffect, useState } from 'react';
 import type { ScenarioInfo } from '../../shared/api.js';
 import { useStore } from './store.js';
 import { useT } from './ui.js';
@@ -37,10 +38,60 @@ export function ScenariosView() {
                   {t('scen.default', { value: t(s.enabledByDefault ? 'scen.on' : 'scen.off') })}
                 </span>
               )}
+              {s.category === 'irregular' && <ChanceInput s={s} />}
             </label>
           ))}
         </fieldset>
       ))}
     </section>
+  );
+}
+
+/** Chance of an irregular scenario in percent; empty = the file's value. */
+function ChanceInput({ s }: { s: ScenarioInfo }) {
+  const t = useT();
+  const busy = useStore((st) => st.busy);
+  const setChance = useStore((st) => st.setChance);
+  const [text, setText] = useState(s.chance === null ? '' : String(s.chance));
+  useEffect(() => setText(s.chance === null ? '' : String(s.chance)), [s.chance]);
+  const commit = () => {
+    const v = text.trim().replace(',', '.');
+    if (v === '') {
+      if (s.chance !== null) void setChance(s.id, null);
+      return;
+    }
+    const n = Math.round(Number(v) * 10) / 10;
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      setText(s.chance === null ? '' : String(s.chance));
+      return;
+    }
+    if (n !== s.chance) void setChance(s.id, n);
+  };
+  return (
+    <span className="chance">
+      <input
+        type="number"
+        min={0}
+        max={100}
+        step={0.5}
+        className="mono"
+        aria-label={t('scen.chance', { id: s.id })}
+        placeholder={String(s.defaultChance)}
+        value={text}
+        disabled={busy !== null}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit();
+          }
+        }}
+      />
+      <span className="muted small">%</span>
+      {s.chance !== null && (
+        <span className="muted small">{t('scen.chanceDefault', { value: s.defaultChance })}</span>
+      )}
+    </span>
   );
 }
