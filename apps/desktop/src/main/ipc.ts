@@ -51,4 +51,5 @@ export function registerIpc(
   on(IPC.endFlight, (to) => guard(() => app.endFlight(to)));
   on(IPC.sendPilotMessage, (text) => guard(() => app.sendPilotMessage(text)));
   on(IPC.openRecordings, () => guard(() => app.openRecordings()));
+  on(IPC.clearMemory, () => guard(() => app.clearMemory()));
 }

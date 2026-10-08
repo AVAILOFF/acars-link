@@ -1,0 +1,22 @@
+# The assigned gate is taken: a new gate after gate_assignment; arrival_info and REQ GATE then
+# name the new one (set ops.arr_gate).
+id: gate_reassignment
+version: 1
+category: irregular
+title: Gate reassignment
+enabled_by_default: true
+trigger:
+  on: phase_enter
+  phase: DESCENT
+conditions:
+  - "flight.divert == null"
+  - "'gate_assignment' in flight.sent"
+probability: 0.08
+steps:
+  - send:
+      header: GATE CHANGE
+      body: |
+        GATE {ops.arr_gate} OCCUPIED
+        {pick:[DEPARTURE DELAYED,TECH ACFT ON GATE,STAND U/S]}
+        NEW GATE {irr.new_gate}
+  - set: { ops.arr_gate: "{irr.new_gate}" }

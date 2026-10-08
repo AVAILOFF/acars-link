@@ -1,0 +1,22 @@
+# Flight after commander's discretion (crew_duty_limit): extended rest, a reserve pilot.
+id: discretion_followup
+version: 1
+category: irregular
+title: Crew rest after discretion (next flight)
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -60 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "flags.crew_discretion != null"
+  - "flags.crew_discretion_date != flight.date"
+steps:
+  - send:
+      header: CREW CONTROL
+      body: |
+        AFTER DISCRETION ON {flags.crew_discretion}
+        EXTENDED REST APPLIED
+        RESERVE FO {name:crew} JOINS CREW
+        BRIEFING AT GATE 40 MIN BEFORE STD
+  - set: { flags.crew_discretion: null, flags.crew_discretion_date: null }

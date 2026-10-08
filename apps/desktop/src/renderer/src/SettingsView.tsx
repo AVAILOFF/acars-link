@@ -130,6 +130,9 @@ function NetworkForm() {
   const busy = useStore((s) => s.busy);
   const update = useStore((s) => s.updateSettings);
   const openRecordings = useStore((s) => s.openRecordings);
+  const clearMemory = useStore((s) => s.clearMemory);
+  const memory = useStore((s) => s.app?.memory ?? []);
+  const running = useStore((s) => s.app?.session === 'running');
   const [station, setStation] = useState(settings?.stationTemplate ?? '');
   const [port, setPort] = useState(String(settings?.bridgePort ?? ''));
   if (settings === null) return null;
@@ -197,6 +200,24 @@ function NetworkForm() {
           {t('set.liveData')}
         </label>
         <p className="hint">{t('set.liveDataHint')}</p>
+      </div>
+      <div className="field">
+        <div className="row">
+          <span>
+            {memory.length === 0
+              ? t('set.memoryEmpty')
+              : t('set.memory', { names: memory.join(', ') })}
+          </span>
+          <button
+            type="button"
+            className="btn ghost"
+            disabled={busy !== null || running || memory.length === 0}
+            onClick={() => void clearMemory()}
+          >
+            {t('set.clearMemory')}
+          </button>
+        </div>
+        <p className="hint">{t('set.memoryHint')}</p>
       </div>
       <form onSubmit={submit}>
         <div className="field">

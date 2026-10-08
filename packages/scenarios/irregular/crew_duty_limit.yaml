@@ -1,0 +1,41 @@
+# A long delay eats the crew's duty time. EXTEND (commander's discretion) leaves a note for
+# the next flight (discretion_followup). Crew control reacts as soon as the delay is known
+# (late start or a pilot DELAY during boarding).
+id: crew_duty_limit
+version: 1
+category: irregular
+title: Crew duty time at the limit
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: BOARDING
+conditions:
+  - "flight.delay_min >= 30"
+probability: 0.6
+steps:
+  - send:
+      header: CREW CONTROL
+      body: |
+        DELAY {flight.delay_min} MIN AFFECTS FDP
+        LATEST OFF BLOCK {irr.latest_out|hhmm}Z
+        EST OFF BLOCK {ofp.est_out|hhmm}Z
+        CAPT DISCRETION MAY BE REQUIRED
+        REPLY EXTEND OR NO
+  - wait:
+      reply: { options: [EXTEND, NO], timeout_min: 10, default: NO }
+  - branch:
+      EXTEND:
+        - set: { flags.crew_discretion: "{ofp.callsign}", flags.crew_discretion_date: "{flight.date}" }
+        - send:
+            header: CREW CONTROL
+            body: |
+              COMMANDER DISCRETION LOGGED
+              FILE DISCRETION REPORT
+              EXTENDED REST BEFORE NEXT DUTY
+      NO:
+        - send:
+            header: CREW CONTROL
+            body: |
+              NOTED, STANDBY CREW ALERTED
+              IF NOT OFF BLOCK BY {irr.latest_out|hhmm}Z
+              CREW CHANGE WILL APPLY

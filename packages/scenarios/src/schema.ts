@@ -9,7 +9,8 @@ import {
 /**
  * JSON Schema (2020-12) of a scenario file (docs/05-scenario-engine.md; T06, T12: `wait: reply`,
  * `branch`, `resend`, `on: command`). Structure only; semantics (expressions, templates,
- * variables, branch keys) are checked by `compileScenario` in `@acars/core`. `set` is T14.
+ * variables, branch keys, `set` targets) are checked by `compileScenario` in `@acars/core`.
+ * `set` — T14.
  */
 
 const phase = { enum: [...FLIGHT_PHASES] } as const;
@@ -181,6 +182,26 @@ export const SCENARIO_SCHEMA = {
                 additionalProperties: false,
                 required: ['of'],
                 properties: { of: { type: 'array', minItems: 1, items: id } },
+              },
+            },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            required: ['set'],
+            properties: {
+              set: {
+                type: 'object',
+                minProperties: 1,
+                propertyNames: { type: 'string', pattern: '^[a-z][a-z0-9_]*\\.[a-z0-9_]+$' },
+                additionalProperties: {
+                  anyOf: [
+                    { type: 'string' },
+                    { type: 'number' },
+                    { type: 'boolean' },
+                    { type: 'null' },
+                  ],
+                },
               },
             },
           },

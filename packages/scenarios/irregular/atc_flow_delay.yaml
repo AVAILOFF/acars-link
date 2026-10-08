@@ -1,0 +1,20 @@
+# Air traffic flow management: the slot moves after the CTOT was given.
+id: atc_flow_delay
+version: 1
+category: irregular
+title: ATC flow control delay
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -15 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.06
+steps:
+  - send:
+      header: SLOT REVISION
+      body: |
+        ATFM REGULATION {pick:[ATC STAFFING,WEATHER,TRAFFIC VOLUME]}
+        CTOT {ops.ctot|hhmm}Z REVISED TO {irr.revised_ctot|hhmm}Z
+        PLUS {irr.flow_delay_min} MIN
+        START UP ACCORDINGLY

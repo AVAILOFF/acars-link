@@ -1,0 +1,26 @@
+# Bags left behind at the origin (missed transfer): PIR at the destination; the next flight
+# gets the case closure (rush_bags_followup).
+id: lost_baggage
+version: 1
+category: irregular
+title: Bags left behind
+enabled_by_default: true
+trigger:
+  on: phase_enter
+  phase: ON_BLOCK
+conditions:
+  - "flight.divert == null"
+probability: 0.05
+steps:
+  - set:
+      flags.rush_bags: "{irr.lost_bags}"
+      flags.rush_from: "{ofp.orig}"
+      flags.rush_to: "{ofp.dest}"
+      flags.rush_date: "{flight.date}"
+  - send:
+      header: BAGGAGE
+      body: |
+        {irr.lost_bags} BAGS NOT LOADED AT {ofp.orig}
+        MISSED TRANSFER
+        PIR DESK AT BELT {ops.belt}
+        BAGS FWD ON NEXT SERVICE

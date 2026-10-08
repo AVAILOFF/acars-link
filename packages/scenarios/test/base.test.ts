@@ -187,7 +187,7 @@ describe('the whole set on one flight', () => {
     }
     expect(counts.next_leg).toBeGreaterThan(0);
     expect(counts.aircraft_change).toBeGreaterThan(0);
-  });
+  }, 20_000); // 30 whole flights
 
   it('same seed → same messages', () => {
     const again = fly(FLIGHTS[0] as Case, all);

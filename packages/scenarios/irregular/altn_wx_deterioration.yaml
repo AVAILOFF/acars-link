@@ -1,0 +1,38 @@
+# The alternate's weather turns bad on the way: dispatch asks about the fuel.
+id: altn_wx_deterioration
+version: 1
+category: irregular
+title: Alternate weather deteriorating
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 250 }
+conditions:
+  - "phase in ['CLIMB','CRUISE']"
+  - "ofp.altn != null"
+  - "flight.divert == null"
+probability: 0.04
+steps:
+  - send:
+      header: DISPATCH
+      body: |
+        ALTN {ofp.altn} WX DETERIORATING
+        {pick:[TS FCST AT ETA,VIS BLW MINIMA FCST,STRONG XWIND FCST]}
+        CONSIDER ENRT ALTN OR ADDL FUEL
+        REPLY OK OR LOW FUEL STATE
+  - wait:
+      reply: { options: [OK, LOW], timeout_min: 10, default: OK }
+  - branch:
+      OK:
+        - send:
+            header: DISPATCH
+            body: |
+              NOTED, MONITOR {ofp.altn} WX
+              UPDATE WILL FOLLOW BEFORE TOD
+      LOW:
+        - send:
+            header: DISPATCH
+            body: |
+              NEAREST ALTN {flight.nearest_altn|or:NONE}
+              {flight.nearest_altn_nm|or:-} NM FROM PRESENT POS
+              DECLARE MIN FUEL IF REQUIRED

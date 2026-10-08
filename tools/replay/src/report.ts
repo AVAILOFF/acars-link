@@ -62,6 +62,11 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
           ];
         case 'REPLY_TIMEOUT':
           return ['PILOT', `${ev.id}: no answer, takes ${ev.option}`];
+        case 'SET':
+          return [
+            'SET',
+            `${ev.id}: ${ev.name} = ${JSON.stringify(ev.value)}${ev.applied ? '' : ' (not applied)'}`,
+          ];
         case 'DATA_REQUEST':
           return ['DATA', `core asks for ${ev.kind} ${ev.icao}`];
         case 'SCENARIO_STARTED':

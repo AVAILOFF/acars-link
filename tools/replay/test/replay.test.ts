@@ -423,3 +423,33 @@ describe('external data in a recording (T13)', () => {
     ).toThrow(/dataWaitMs/);
   });
 });
+
+describe('airline memory in a recording (T14)', () => {
+  it('the header flags start the replayed core', () => {
+    const reader = {
+      file: 'reader.yaml',
+      source: [
+        'id: reader',
+        'version: 1',
+        'category: irregular',
+        'title: reader',
+        'enabled_by_default: true',
+        'trigger: { on: phase_enter, phase: CRUISE }',
+        'conditions: ["flags.note != null"]',
+        'steps: [{ send: { body: "NOTE {flags.note}" } }, { set: { flags.note: null } }]',
+      ].join('\n'),
+    };
+    const scenarios = pickScenarios({ base: [reader], extra: [], recorded: ['reader'] }).scenarios;
+    const rec: Recording = { ...normal, header: { ...normal.header, flags: { note: 'MEL OPEN' } } };
+    const parsed = parseJsonl(encodeRecording(rec));
+    if (parsed.kind !== 'recording') throw new Error('not a recording');
+    expect(replay(parsed.recording, { scenarios }).outbound.map((m) => m.message.text)).toEqual([
+      'NOTE MEL OPEN',
+    ]);
+    expect(replay(normal, { scenarios }).outbound).toEqual([]);
+    const [h] = encodeRecording(normal).split('\n');
+    expect(() => parseJsonl(JSON.stringify({ ...JSON.parse(h as string), flags: [1] }))).toThrow(
+      /flags/,
+    );
+  });
+});

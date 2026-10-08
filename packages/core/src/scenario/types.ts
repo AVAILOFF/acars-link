@@ -7,7 +7,8 @@ import type { FlightPhase, PhaseEvent } from '../phase/fsm.js';
  *
  * v0 (T06): triggers `phase_enter | phase | time | distance | event`, steps `send | wait`
  * (`minutes`, `phase`). T12: `wait: reply`, `branch`, `resend`, trigger `command` (pilot
- * commands, `scenario/pilot.ts`). `set` comes with T14.
+ * commands, `scenario/pilot.ts`). T14: `set` (flags that outlive the flight, the run's
+ * diversion and arrival gate).
  */
 
 export type ScenarioCategory = 'docs' | 'ops' | 'irregular' | 'external' | 'fun';
@@ -96,7 +97,23 @@ export interface ResendStep {
   readonly resend: { readonly of: readonly string[] };
 }
 
-export type Step = SendStep | WaitStep | BranchStep | ResendStep;
+/** A literal, or a template (string) rendered when the step runs. */
+export type SetValue = string | number | boolean | null;
+
+/**
+ * Assignments (T14): `flags.<name>` — airline memory that later scenarios of this flight and of
+ * the next flights read (`null` clears it); `flight.divert` — diversion airport (ICAO, only in
+ * the air, not the destination); `ops.arr_gate` — the arrival gate from now on.
+ */
+export interface SetStep {
+  readonly set: Readonly<Record<string, SetValue>>;
+}
+
+/** Engine fields a `set` may change besides `flags.*`. */
+export const SET_TARGETS = ['flight.divert', 'ops.arr_gate'] as const;
+export type SetTarget = (typeof SET_TARGETS)[number];
+
+export type Step = SendStep | WaitStep | BranchStep | ResendStep | SetStep;
 
 export interface ScenarioDef {
   readonly id: string;

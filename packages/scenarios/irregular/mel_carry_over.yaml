@@ -1,0 +1,32 @@
+# The MEL item deferred on an earlier flight (tech_defect_mel) is still open on this aircraft;
+# maintenance closes it after this flight's arrival.
+id: mel_carry_over
+version: 1
+category: irregular
+title: Open MEL item from an earlier flight
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -45 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "flags.mel_reg != null"
+  - "flags.mel_reg == ofp.ac_reg"
+  - "flags.mel_date != flight.date"
+steps:
+  - send:
+      header: MEL STATUS {ofp.ac_reg}
+      body: |
+        OPEN ITEM SINCE {flags.mel_date|ddmmm}
+        {flags.mel_item}
+        CAT C, APPLY MEL OPS PROCEDURE
+        REVIEW PERF AND FUEL PENALTY
+        MX SLOT AT {ofp.dest} AFTER ARRIVAL
+  - wait: { phase: ON_BLOCK }
+  - send:
+      header: MEL STATUS {ofp.ac_reg}
+      body: |
+        {flags.mel_item}
+        RECTIFIED AT {ofp.dest}
+        MEL ITEM CLOSED, TECH LOG SIGNED
+  - set: { flags.mel_item: null, flags.mel_reg: null, flags.mel_date: null }

@@ -1,0 +1,42 @@
+# Destination noise curfew close to the estimated landing (a delay brings it closer).
+# UNABLE plans the alternate: the flight's diversion is set.
+id: curfew_dest
+version: 1
+category: irregular
+title: Destination curfew
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "flight.divert == null"
+  - "irr.curfew_margin_min < 20"
+  - "ofp.altn != null"
+steps:
+  - send:
+      header: CURFEW {ofp.dest}
+      body: |
+        NOISE CURFEW AT {ofp.dest}
+        LATEST LANDING {irr.curfew|hhmm}Z
+        LOCAL {irr.curfew_local|hhmm|or:N/A}
+        MARGIN {irr.curfew_margin_min} MIN
+        EXPEDITE IF ABLE
+        REPLY ABLE OR UNABLE
+  - wait:
+      reply: { options: [ABLE, UNABLE], timeout_min: 10, default: ABLE }
+  - branch:
+      ABLE:
+        - send:
+            header: CURFEW {ofp.dest}
+            body: |
+              NOTED, PRIORITY REQUESTED
+              HANDLING ON STANDBY
+              IF LATE PLAN {ofp.altn}
+      UNABLE:
+        - set: { flight.divert: "{ofp.altn}" }
+        - send:
+            header: CURFEW {ofp.dest}
+            body: |
+              PLAN DIVERT {ofp.altn}
+              HOTEL AND BUSES ARRANGED
+              PAX TRANSFER BY ROAD

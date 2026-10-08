@@ -1,0 +1,53 @@
+# Disruptive passenger. RESTRAIN or DIVERT leave a note for the next flight
+# (unruly_followup: the passenger is on the no-fly list); CONTINUE clears it.
+id: unruly_passenger
+version: 1
+category: irregular
+title: Disruptive passenger
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "flight.minutes_to_tod != null"
+  - "flight.minutes_to_tod >= 30"
+probability: 0.03
+excludes: [medical_onboard]
+steps:
+  - set:
+      flags.unruly_seat: "{seat}"
+      flags.unruly_flight: "{ofp.callsign}"
+      flags.unruly_date: "{flight.date}"
+  - send:
+      header: OPS MSG SECURITY
+      body: |
+        CABIN REPORTS DISRUPTIVE PAX
+        SEAT {flags.unruly_seat} {pick:[INTOXICATED,AGGRESSIVE TO CREW,SMOKING IN LAV]}
+        CREW ISSUED FORMAL WARNING
+        REPLY RESTRAIN, DIVERT OR CONTINUE
+  - wait:
+      reply: { options: [RESTRAIN, DIVERT, CONTINUE], timeout_min: 10, default: CONTINUE }
+  - branch:
+      RESTRAIN:
+        - send:
+            header: OPS MSG SECURITY
+            body: |
+              RESTRAINT NOTED
+              POLICE WILL MEET ACFT AT {ofp.dest}
+              DO NOT OPEN DOORS BEFORE POLICE
+              FILE CABIN INCIDENT REPORT
+      DIVERT:
+        - set: { flight.divert: "{flight.nearest_altn}" }
+        - send:
+            header: OPS MSG SECURITY
+            body: |
+              DIVERT {flight.divert|or:NEAREST SUITABLE} NOTED
+              POLICE AND HANDLING ORDERED
+              FILE CABIN INCIDENT REPORT
+      CONTINUE:
+        - set: { flags.unruly_seat: null, flags.unruly_flight: null, flags.unruly_date: null }
+        - send:
+            header: OPS MSG SECURITY
+            body: |
+              NOTED, CREW TO MONITOR
+              ADVISE IF SITUATION CHANGES

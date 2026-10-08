@@ -110,6 +110,7 @@ export type SystemCode =
   | 'scenario_error'
   | 'reply_timeout'
   | 'data_failed'
+  | 'memory'
   | 'data_restored'
   | 'transport_status';
 
@@ -159,6 +160,8 @@ export interface AppState {
   readonly transport: TransportView | null;
   /** Newest last, capped. */
   readonly feed: readonly FeedEntry[];
+  /** Names of the airline-memory flags kept for the next flight (T14). */
+  readonly memory: readonly string[];
 }
 
 export type ErrorCode =
@@ -211,6 +214,8 @@ export interface AcarsApi {
   sendPilotMessage(text: string): Promise<Result<null>>;
   /** Opens the recordings folder in the OS file manager. */
   openRecordings(): Promise<Result<null>>;
+  /** Forgets the airline memory (T14 flags: open MEL items, follow-ups); not during a flight. */
+  clearMemory(): Promise<Result<null>>;
 }
 
 /** IPC channel names (invoke) and the push channel. */
@@ -231,4 +236,5 @@ export const IPC = {
   endFlight: 'acars:end-flight',
   sendPilotMessage: 'acars:send-pilot-message',
   openRecordings: 'acars:open-recordings',
+  clearMemory: 'acars:clear-memory',
 } as const;

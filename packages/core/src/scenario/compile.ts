@@ -1,11 +1,12 @@
 import { FLIGHT_PHASES, type FlightPhase } from '../phase/fsm.js';
-import { isContextVariable } from './context.js';
+import { isContextVariable, isFlagVariable } from './context.js';
 import { type CompiledExpr, compileExpr, ExprError } from './expr.js';
 import { type CompiledTemplate, compileTemplate, TemplateError } from './template.js';
 import {
   DISTANCE_TARGETS,
   PILOT_COMMANDS,
   type ScenarioDef,
+  SET_TARGETS,
   type Step,
   TIME_REFS,
   TRIGGER_EVENTS,
@@ -53,7 +54,17 @@ export type CompiledStep =
       readonly end: number;
     }
   | { readonly kind: 'jump'; readonly to: number }
-  | { readonly kind: 'resend'; readonly of: readonly string[] };
+  | { readonly kind: 'resend'; readonly of: readonly string[] }
+  | { readonly kind: 'set'; readonly assigns: readonly CompiledAssign[] };
+
+/** One `set` assignment: a literal, a variable's raw value, or a rendered template. */
+export interface CompiledAssign {
+  readonly target: string;
+  readonly value:
+    | { readonly k: 'lit'; readonly v: string | number | boolean | null }
+    | { readonly k: 'var'; readonly path: string }
+    | { readonly k: 'tpl'; readonly t: CompiledTemplate };
+}
 
 export interface CompiledScenario {
   readonly def: ScenarioDef;
@@ -235,6 +246,40 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
           if (!ID.test(x)) fail(`${path}.resend.of`, `"${x}" is not a scenario id`);
         }
         steps.push({ kind: 'resend', of: [...s.resend.of] });
+        continue;
+      }
+      if ('set' in s) {
+        const entries = Object.entries(s.set);
+        if (entries.length === 0) fail(`${path}.set`, 'must not be empty');
+        const assigns: CompiledAssign[] = [];
+        for (const [target, v] of entries) {
+          const at = `${path}.set.${target}`;
+          if (!isFlagVariable(target) && !(SET_TARGETS as readonly string[]).includes(target)) {
+            fail(at, `can set flags.<name> (a-z0-9_) or ${SET_TARGETS.join(', ')}`);
+          }
+          if (typeof v !== 'string') {
+            if (v !== null && typeof v !== 'number' && typeof v !== 'boolean') {
+              fail(at, 'value must be a string, number, boolean or null');
+            }
+            if (typeof v === 'number' && !Number.isFinite(v)) fail(at, 'number must be finite');
+            if (target !== 'flight.divert' || v === null) {
+              assigns.push({ target, value: { k: 'lit', v } });
+              continue;
+            }
+            fail(at, 'must be an ICAO code or a template');
+          }
+          const only = /^\{\s*([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)\s*\}$/.exec(v as string);
+          if (only !== null) {
+            vars(at, [only[1] as string]);
+            assigns.push({ target, value: { k: 'var', path: only[1] as string } });
+            continue;
+          }
+          assigns.push({
+            target,
+            value: { k: 'tpl', t: template(at, v as string) as CompiledTemplate },
+          });
+        }
+        steps.push({ kind: 'set', assigns });
         continue;
       }
       fail(path, `unsupported step ${Object.keys(s).join(',')}`);

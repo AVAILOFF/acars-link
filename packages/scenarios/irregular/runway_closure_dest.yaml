@@ -1,0 +1,40 @@
+# Planned destination runway closed during the descent: hold or divert to the alternate.
+id: runway_closure_dest
+version: 1
+category: irregular
+title: Destination runway closed
+enabled_by_default: true
+trigger:
+  on: phase_enter
+  phase: DESCENT
+conditions:
+  - "flight.divert == null"
+  - "ofp.dest_rwy != null"
+  - "ofp.altn != null"
+probability: 0.04
+excludes: [drone_activity]
+steps:
+  - send:
+      header: OPS MSG {ofp.dest}
+      body: |
+        RWY {ofp.dest_rwy} CLOSED
+        {pick:[FOD INSPECTION,DISABLED ACFT,BIRD STRIKE CHECK]}
+        EXPECT OTHER RWY OR HOLDING
+        CHECK FUEL, REPLY HOLD OR DIVERT
+  - wait:
+      reply: { options: [HOLD, DIVERT], timeout_min: 8, default: HOLD }
+  - branch:
+      HOLD:
+        - send:
+            header: OPS MSG {ofp.dest}
+            body: |
+              NOTED, EXPECT {rand:10-20} MIN HOLDING
+              STAND AND HANDLING UNCHANGED
+      DIVERT:
+        - set: { flight.divert: "{ofp.altn}" }
+        - send:
+            header: OPS MSG {ofp.dest}
+            body: |
+              DIVERT {ofp.altn} NOTED
+              HANDLING AND FUEL ORDERED
+              SEND ETA WHEN ABLE

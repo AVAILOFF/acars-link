@@ -1,0 +1,19 @@
+# Outcome of short_connection: on block with at least 30 min before the connection's STD.
+id: connection_made
+version: 1
+category: irregular
+title: Connection made
+enabled_by_default: true
+trigger:
+  on: phase_enter
+  phase: ON_BLOCK
+conditions:
+  - "'short_connection' in flight.sent"
+  - "irr.connect_left_min >= 30"
+steps:
+  - send:
+      header: CONNECTIONS
+      body: |
+        {irr.connect_flight} WILL WAIT
+        TRANSFER BUS AT GATE {ops.arr_gate}
+        THANK YOU FOR THE EFFORT

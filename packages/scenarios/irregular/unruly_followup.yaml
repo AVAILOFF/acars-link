@@ -1,0 +1,21 @@
+# Next flight after a restrained or offloaded disruptive passenger (flags of unruly_passenger).
+id: unruly_followup
+version: 1
+category: irregular
+title: Disruptive passenger follow-up (next flight)
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -50 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "flags.unruly_flight != null"
+steps:
+  - send:
+      header: SECURITY INFO
+      body: |
+        PAX OF {flags.unruly_flight} {flags.unruly_date|ddmmm}
+        SEAT {flags.unruly_seat} PLACED ON
+        COMPANY NO-FLY LIST
+        POLICE REPORT FILED, NO ACTION REQ
+  - set: { flags.unruly_seat: null, flags.unruly_flight: null, flags.unruly_date: null }

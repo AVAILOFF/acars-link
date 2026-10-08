@@ -16,6 +16,7 @@ import type { TelemetrySnapshot } from '../telemetry/types.js';
 import type { CompiledScenario } from './compile.js';
 import { buildContext, RouteGeometry, type RunVariable, type ScenarioContext } from './context.js';
 import type { Lookup, Value } from './expr.js';
+import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
 import { buildFlightData, type FlightData } from './ops-data.js';
 import {
   normalizePilotText,
@@ -58,6 +59,11 @@ import type { PilotCommand, TimeRef } from './types.js';
  * drawn from them (`${seed}/#stands`) instead of the placeholder; once a message showed the
  * gate, later stand updates are ignored so it never changes. `REQ WX` for an airport without
  * fresh weather waits up to `dataWaitMs` for the app to fetch it (event `DATA_REQUEST`).
+ *
+ * `set` (T14): `flags.<name>` is airline memory — read by any scenario as `flags.<name>`, kept
+ * in the state and handed over to the next flight (`flags` option / getter); `flight.divert`
+ * and `ops.arr_gate` change the diversion and the arrival gate of this flight. Every
+ * assignment is an event (`SET`), one that cannot apply (a diversion on the ground) too.
  */
 
 export interface OutboundMessage {
@@ -111,6 +117,15 @@ export type ScenarioEvent =
       /** The default answer taken. */
       readonly option: string;
     }
+  | {
+      /** A `set` assignment (T14); `applied: false` when the value was not allowed. */
+      readonly type: 'SET';
+      readonly id: string;
+      readonly t: number;
+      readonly name: string;
+      readonly value: Value;
+      readonly applied: boolean;
+    }
   | { readonly type: 'SCENARIO_STARTED'; readonly id: string; readonly t: number }
   | {
       readonly type: 'SCENARIO_SKIPPED';
@@ -163,6 +178,8 @@ export interface ScenarioEngineOptions {
    * 0 (default) = answer at once with what the core has (no live data source).
    */
   readonly dataWaitMs?: number;
+  /** `flags.*` left by earlier flights (T14). */
+  readonly flags?: Readonly<Record<string, Value>>;
 }
 
 interface ScenarioState {
@@ -207,6 +224,10 @@ export interface ScenarioEngineState {
   readonly ext: ExtState;
   /** `REQ WX` waiting for weather (until clock time `until`). */
   readonly pendingWx: readonly PendingWx[];
+  /** `flags.*` (T14): from earlier flights, changed by `set`. */
+  readonly flags: Readonly<Record<string, Value>>;
+  /** Arrival gate set by a scenario (`set: { ops.arr_gate }`), T14. */
+  readonly gate: string | null;
 }
 
 interface PendingWx {
@@ -223,6 +244,9 @@ export const DEFAULT_LATE_START_LEAD_MIN = 35;
 const DELAY_STEP_MS = 5 * 60_000;
 /** Weather fetched longer ago than this is refreshed for `REQ WX` (when the app fetches). */
 const WX_FRESH_MS = 15 * 60_000;
+/** Limits of the airline memory (T14). */
+const MAX_FLAGS = 64;
+const MAX_FLAG_TEXT = 80;
 
 const PHASE_ORDER: ReadonlyMap<FlightPhase, number> = new Map(FLIGHT_PHASES.map((p, i) => [p, i]));
 
@@ -263,6 +287,9 @@ export class ScenarioEngine {
   private readonly leadMs: number;
   /** Derived from OFP + seed (+ delay), so not part of the serialized state. */
   private data: FlightData;
+  /** Irregular-scenario data (T14), from the published OFP and the seed. */
+  private readonly irr: IrregularData;
+  private newGate = '';
   private readonly profile: DisplayProfile;
   private readonly from: string;
   private readonly byId: ReadonlyMap<string, CompiledScenario>;
@@ -279,6 +306,8 @@ export class ScenarioEngine {
     inbox: PilotMessage[];
     ext: ExtState;
     pendingWx: PendingWx[];
+    flags: Record<string, Value>;
+    gate: string | null;
   };
   /** Context of the current tick; rebuilt when a command or a send changes it. */
   private ctx: ScenarioContext | null = null;
@@ -295,6 +324,7 @@ export class ScenarioEngine {
     this.leadMs = (options.lateStartLeadMin ?? DEFAULT_LATE_START_LEAD_MIN) * 60_000;
     if (!(this.leadMs >= 0)) throw new RangeError('lateStartLeadMin must be ≥ 0');
     this.data = buildFlightData(options.ofp, options.seed);
+    this.irr = buildIrregularData(options.ofp, options.seed);
     this.profile = options.profile ?? DEFAULT_PROFILE;
     this.from = stationCallsign(options.station ?? DEFAULT_STATION, options.ofp);
     const byId = new Map<string, CompiledScenario>();
@@ -322,7 +352,10 @@ export class ScenarioEngine {
       inbox: [],
       ext: EMPTY_EXT,
       pendingWx: [],
+      flags: { ...(options.flags ?? {}) },
+      gate: null,
     };
+    this.rebuildData();
   }
 
   /** Resumes from {@link getState}; the same compiled scenarios must be passed in. */
@@ -347,6 +380,9 @@ export class ScenarioEngine {
     // Fields added with T13.
     e.st.ext = copy.ext ?? EMPTY_EXT;
     e.st.pendingWx = [...(copy.pendingWx ?? [])];
+    // Fields added with T14.
+    e.st.flags = { ...(copy.flags ?? options.flags ?? {}) };
+    e.st.gate = copy.gate ?? null;
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
     e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
@@ -386,10 +422,14 @@ export class ScenarioEngine {
       this.seed,
     );
     const stands = this.st.ext.stands;
-    this.data =
-      stands === null
-        ? data
-        : { ...data, ops: { ...data.ops, arrGate: pickStand(stands, this.seed) } };
+    const planned = stands === null ? data.ops.arrGate : pickStand(stands, this.seed);
+    this.newGate = reassignedGate(planned, stands, this.seed);
+    this.data = { ...data, ops: { ...data.ops, arrGate: this.st.gate ?? planned } };
+  }
+
+  /** `flags.*` now (T14): hand them to the next flight. */
+  get flags(): Readonly<Record<string, Value>> {
+    return JSON.parse(JSON.stringify(this.st.flags)) as Record<string, Value>;
   }
 
   /** External data kept in the state (T13). */
@@ -451,6 +491,7 @@ export class ScenarioEngine {
   }
 
   private readonly look: Lookup = (path) => {
+    if (path.startsWith('flags.')) return this.st.flags[path.slice(6)] ?? null;
     const ctx = this.context;
     return path in ctx ? ctx[path as keyof ScenarioContext] : undefined;
   };
@@ -476,6 +517,7 @@ export class ScenarioEngine {
       sent: Object.keys(this.st.sent),
       ext: this.st.ext,
       polyline: this.polyline,
+      irr: { ...this.irr, newGate: this.newGate },
     });
   }
 
@@ -692,6 +734,61 @@ export class ScenarioEngine {
     if (first) this.refresh();
   }
 
+  /** Runs a `set` step (T14). */
+  private assign(
+    id: string,
+    step: Extract<CompiledScenario['steps'][number], { kind: 'set' }>,
+    look: Lookup,
+    rng: Rng,
+    input: EngineTickInput,
+    events: ScenarioEvent[],
+  ): void {
+    let refresh = false;
+    for (const a of step.assigns) {
+      let value: Value =
+        a.value.k === 'lit'
+          ? a.value.v
+          : a.value.k === 'var'
+            ? (look(a.value.path) ?? null)
+            : a.value.t.render(look, rng);
+      if (typeof value === 'string') value = value.slice(0, MAX_FLAG_TEXT);
+      let applied = true;
+      if (a.target === 'flight.divert') {
+        const icao = typeof value === 'string' ? value.trim().toUpperCase() : null;
+        applied =
+          (icao === null && value === null) ||
+          (icao !== null &&
+            /^[A-Z]{4}$/.test(icao) &&
+            icao !== this.ofp.destination.icao &&
+            input.oooi.OFF !== null &&
+            input.oooi.ON === null);
+        if (applied) {
+          this.st.divert = icao;
+          value = icao;
+          refresh = true;
+        }
+      } else if (a.target === 'ops.arr_gate') {
+        const gate = typeof value === 'string' ? value.trim().toUpperCase() : '';
+        applied = /^[A-Z0-9]{1,6}$/.test(gate);
+        if (applied) {
+          this.st.gate = gate;
+          this.st.ext = { ...this.st.ext, gateLocked: true };
+          this.rebuildData();
+          value = gate;
+          refresh = true;
+        }
+      } else {
+        const name = a.target.slice(6);
+        if (value === null) delete this.st.flags[name];
+        else if (name in this.st.flags || Object.keys(this.st.flags).length < MAX_FLAGS)
+          this.st.flags[name] = value;
+        else applied = false;
+      }
+      events.push({ type: 'SET', id, t: input.now, name: a.target, value, applied });
+    }
+    if (refresh) this.refresh();
+  }
+
   /** The core has weather for `icao` fetched within {@link WX_FRESH_MS} (a report or none). */
   private wxFresh(icao: string, now: number): boolean {
     const r = this.st.ext.wx[icao];
@@ -822,6 +919,16 @@ export class ScenarioEngine {
       }
       if (step.kind === 'jump') {
         run.step = step.to;
+        continue;
+      }
+      if (step.kind === 'set') {
+        try {
+          this.assign(sc.id, step, this.lookFor(run.vars), rng, input, events);
+        } catch (e) {
+          if (!(e instanceof TemplateError)) throw e;
+          fail(e.message);
+          return;
+        }
         continue;
       }
       if (step.kind === 'resend') {

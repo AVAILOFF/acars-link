@@ -1,0 +1,37 @@
+# Cold departure (METAR at the origin 3 C or colder, live or from the OFP): de-icing slot,
+# fluid and holdover time once the crew reports READY.
+id: deicing_holdover
+version: 1
+category: irregular
+title: De-icing and holdover time
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -25 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "wx.orig_temp_c != null"
+  - "wx.orig_temp_c <= 3"
+probability: 0.6
+steps:
+  - set:
+      flags.deice_pad: "{pick:[1,2,3,4]}"
+      flags.deice_fluid: "{pick:[TYPE II,TYPE IV]}"
+  - send:
+      header: DEICING
+      body: |
+        DEICING REQUIRED AT {ofp.orig}
+        OAT {wx.orig_temp_c} C
+        {flags.deice_fluid} FLUID, PAD {flags.deice_pad}
+        EXPECT {rand:10-20} MIN ON PAD
+        REPLY READY WHEN DOORS CLOSED
+  - wait:
+      reply: { options: [READY], timeout_min: 20, default: READY }
+  - send:
+      header: DEICING
+      body: |
+        TRUCK ASSIGNED PAD {flags.deice_pad}
+        {flags.deice_fluid} 75/25
+        HOLDOVER {rand:20-45} MIN FROM START
+        CHECK HOT TABLE BEFORE T/O
+  - set: { flags.deice_pad: null, flags.deice_fluid: null }

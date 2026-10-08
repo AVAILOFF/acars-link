@@ -1,0 +1,29 @@
+# VIP passenger: notice at boarding, protocol on arrival.
+id: vip_onboard
+version: 1
+category: irregular
+title: VIP on board
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -35 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.04
+steps:
+  - set: { flags.vip_seat: "{pick:[1A,1K,2A,2K]}" }
+  - send:
+      header: OPS MSG
+      body: |
+        VIP ON BOARD SEAT {flags.vip_seat}
+        {pick:[GOVERNMENT DELEGATION,COMPANY CEO,STATE GUEST]}
+        BOARDS LAST, DISEMBARKS FIRST
+        NO ANNOUNCEMENT ON BOARD
+  - wait: { phase: ON_BLOCK }
+  - send:
+      header: OPS MSG
+      body: |
+        VIP SEAT {flags.vip_seat} DISEMBARKS FIRST
+        PROTOCOL CAR AT GATE {ops.arr_gate}
+        HOLD OTHER PAX 3 MIN
+  - set: { flags.vip_seat: null }

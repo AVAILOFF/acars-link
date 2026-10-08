@@ -1,0 +1,45 @@
+# A system fault in cruise. CONFIRM defers it under the MEL and leaves it open on this
+# aircraft (flags): mel_carry_over brings it up on the next flight with the same registration.
+id: tech_defect_mel
+version: 1
+category: irregular
+title: Technical defect and MEL
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "flags.mel_reg == null"
+probability: 0.04
+steps:
+  - set:
+      flags.mel_item: "{pick:[21-52-01 PACK 2 INOP,36-11-02 ENG 2 BLEED VALVE,30-42-01 R WINDSHIELD HEAT,34-11-03 ADR 3 FAULT,49-11-01 APU INOP]}"
+  - send:
+      header: MAINT CONTROL
+      body: |
+        CMS REPORTS FAULT
+        {flags.mel_item}
+        CONFIRM INDICATION ON ECAM/EICAS
+        REPLY CONFIRM OR NEGATIVE
+  - wait:
+      reply: { options: [CONFIRM, NEGATIVE], timeout_min: 15, default: NEGATIVE }
+  - branch:
+      CONFIRM:
+        - set:
+            flags.mel_reg: "{ofp.ac_reg}"
+            flags.mel_date: "{flight.date}"
+        - send:
+            header: MAINT CONTROL
+            body: |
+              ENTER DEFECT IN TECH LOG
+              MEL {flags.mel_item}
+              DEFERRED CAT C
+              MX WILL MEET ACFT AT {ofp.dest}
+              DISPATCH NEXT SECTOR PER MEL
+      NEGATIVE:
+        - set: { flags.mel_item: null }
+        - send:
+            header: MAINT CONTROL
+            body: |
+              NOTED, SPURIOUS CMS MSG
+              NO ACTION REQUIRED

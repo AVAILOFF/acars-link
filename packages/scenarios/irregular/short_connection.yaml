@@ -1,0 +1,23 @@
+# Connecting passengers with a short transfer; connection_made / connection_missed tell how it
+# ended on block.
+id: short_connection
+version: 1
+category: irregular
+title: Short passenger connection
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 100 }
+conditions:
+  - "flight.divert == null"
+  - "irr.connect_margin_min < 60"
+probability: 0.5
+steps:
+  - send:
+      header: CONNECTIONS
+      body: |
+        {irr.connect_pax} PAX TO {irr.connect_flight}
+        STD {irr.connect_std|hhmm}Z
+        MARGIN {irr.connect_margin_min} MIN
+        EXPEDITE ARRIVAL IF ABLE
+        TRANSFER STAFF AT GATE {ops.arr_gate}

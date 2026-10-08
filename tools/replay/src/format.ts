@@ -7,6 +7,7 @@ import {
   type Ofp,
   type PilotMessage,
   type TelemetrySnapshot,
+  type Value,
 } from '@acars/core';
 
 /**
@@ -56,6 +57,8 @@ export interface RecordingHeader {
   readonly sessionFired: readonly string[];
   /** Core `dataWaitMs` (T13): how long `REQ WX` waited for fetched weather; absent = 0. */
   readonly dataWaitMs?: number;
+  /** Airline memory the flight started with (T14 `flags.*`); absent = none. */
+  readonly flags?: Readonly<Record<string, Value>>;
 }
 
 export type RecordingEvent =
@@ -170,6 +173,7 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
   if (!isStrArr(x['sessionFired'])) throw bad('sessionFired');
   if (!isOfpLike(x['ofp'])) throw bad('ofp');
   if (!isProfile(x['profile'])) throw bad('profile');
+  if (x['flags'] !== undefined && !isObj(x['flags'])) throw bad('flags');
   if (x['dataWaitMs'] !== undefined && !(isNum(x['dataWaitMs']) && x['dataWaitMs'] >= 0))
     throw bad('dataWaitMs');
   return x as unknown as RecordingHeader;

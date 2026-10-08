@@ -14,7 +14,8 @@
     "dist",
     "base",
     "commands",
-    "external"
+    "external",
+    "irregular"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

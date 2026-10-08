@@ -25,6 +25,7 @@ const api: AcarsApi = {
   endFlight: (to) => ipcRenderer.invoke(IPC.endFlight, to),
   sendPilotMessage: (text) => ipcRenderer.invoke(IPC.sendPilotMessage, text),
   openRecordings: () => ipcRenderer.invoke(IPC.openRecordings),
+  clearMemory: () => ipcRenderer.invoke(IPC.clearMemory),
 };
 
 contextBridge.exposeInMainWorld('acars', api);

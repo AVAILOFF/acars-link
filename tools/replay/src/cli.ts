@@ -22,7 +22,7 @@ export const USAGE = `usage:
       --ofp <simbrief.json>     OFP (SimBrief json=v2) for a bare snapshot file
       --scenarios <dir|file>    extra scenario YAML; replaces base scenarios with the same id
                                 and is always enabled (repeatable)
-      --no-base                 do not load packages/scenarios/base, /commands, /external
+      --no-base                 do not load packages/scenarios/base, /commands, /external, /irregular
       --pilot <min>=<text>      a pilot telex <min> minutes after the start (repeatable),
                                 e.g. --pilot "40=REQ GATE" --pilot "95=DIVERT RJOO"
       --only <id,id,…>          run exactly these scenarios
@@ -53,7 +53,7 @@ const nodeIo: Io = {
 };
 
 /** The scenarios the app ships: the base set and the pilot command handlers (T12) and the live-data scenarios (T13). */
-const BASE_DIRS = ['base', 'commands', 'external'].map((d) =>
+const BASE_DIRS = ['base', 'commands', 'external', 'irregular'].map((d) =>
   fileURLToPath(new URL(`../../../packages/scenarios/${d}/`, import.meta.url)),
 );
 const readBase = () => BASE_DIRS.flatMap((d) => readScenarioPath(d));

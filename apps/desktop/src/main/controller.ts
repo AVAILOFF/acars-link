@@ -19,6 +19,7 @@ import type {
 import { BridgeClient, type SocketLike, type Timers } from './bridge.js';
 import { AppFailure } from './errors.js';
 import { Feed } from './feed.js';
+import type { Flags, FlagsStore } from './flags.js';
 import type { OpenRecording, RecordingSink } from './recording.js';
 import type { SecretStore } from './secrets.js';
 import { FlightSession } from './session.js';
@@ -56,6 +57,8 @@ export interface AppControllerOptions {
   readonly onChange: () => void;
   /** Cache of the external data (T13); default in memory. */
   readonly dataCache?: DataCache;
+  /** Airline memory between flights (T14); default in memory only. */
+  readonly flags?: FlagsStore;
 }
 
 /** Identifies the app to aviationweather.gov, VATSIM, NASA and Overpass (they ask for it). */
@@ -78,6 +81,9 @@ export class AppController {
   private sessionFired: readonly string[] = [];
   /** External data (T13): prefetches for the loaded OFP, feeds the running flight. */
   private readonly data: ExternalDataService;
+  private readonly flagStore: FlagsStore | { get(): Promise<Flags>; set(f: Flags): Promise<Flags> };
+  /** Names of the stored flags, for the UI. */
+  private memory: readonly string[] = [];
 
   constructor(private readonly o: AppControllerOptions) {
     this.data = new ExternalDataService({
@@ -85,6 +91,14 @@ export class AppController {
       userAgent: DATA_USER_AGENT,
       ...(o.dataCache === undefined ? {} : { cache: o.dataCache }),
     });
+    let mem: Flags = {};
+    this.flagStore = o.flags ?? {
+      get: async () => mem,
+      set: async (f) => {
+        mem = f;
+        return f;
+      },
+    };
     this.bridge = new BridgeClient({
       port: 0,
       createSocket: o.createSocket,
@@ -106,6 +120,7 @@ export class AppController {
     const s = await this.o.settings.get();
     this.bridge.setPort(s.bridgePort);
     this.bridge.start();
+    this.memory = Object.keys(await this.flagStore.get()).sort();
   }
 
   dispose(): void {
@@ -132,6 +147,7 @@ export class AppController {
       telemetry: s?.telemetry ?? null,
       transport: s?.transportView ?? null,
       feed: this.feed.entries,
+      memory: this.memory,
     };
   }
 
@@ -246,6 +262,7 @@ export class AppController {
     );
     const now = this.o.now();
     this.prefetch(ofp, settings);
+    const flags = await this.flagStore.get();
     let recording: RecordingSink | null = null;
     if (settings.recordFlights && this.o.openRecording !== null) {
       try {
@@ -267,7 +284,11 @@ export class AppController {
       now,
       recording,
       data: settings.liveData ? this.data : null,
+      flags,
     });
+    if (Object.keys(flags).length > 0) {
+      this.feed.system(now, 'memory', { names: Object.keys(flags).sort().join(', ') });
+    }
     this.flight = flight;
     this.o.onChange();
     return null;
@@ -278,6 +299,7 @@ export class AppController {
     if (s === null) throw new AppFailure('bad_state', 'no flight running');
     s.stop(this.o.now());
     this.data.stopFlight();
+    await this.saveMemory(s);
     this.sessionFired = s.sessionFired;
     this.session = null;
     this.o.onChange();
@@ -290,6 +312,7 @@ export class AppController {
     if (to !== 'TURNAROUND' && to !== 'DONE') throw new AppFailure('invalid_input', 'end flight');
     if (s.phase !== 'ON_BLOCK') throw new AppFailure('bad_state', `phase ${s.phase}`);
     s.endFlight(to, this.o.now());
+    await this.saveMemory(s);
     this.o.onChange();
     return null;
   }
@@ -305,6 +328,27 @@ export class AppController {
     s.pilotMessage(text, this.o.now());
     this.o.onChange();
     return null;
+  }
+
+  /** Forgets the airline memory (T14 flags). */
+  async clearMemory(): Promise<null> {
+    if (this.session !== null) throw new AppFailure('bad_state', 'stop the flight first');
+    await this.flagStore.set({});
+    this.memory = [];
+    this.o.onChange();
+    return null;
+  }
+
+  /** Keeps the flight's flags for the next one; a failed write costs only the memory. */
+  private async saveMemory(s: FlightSession): Promise<void> {
+    try {
+      this.memory = Object.keys(await this.flagStore.set(s.flags)).sort();
+    } catch (e) {
+      throw new AppFailure(
+        'internal',
+        `airline memory: ${e instanceof Error ? e.message : String(e)}`,
+      );
+    }
   }
 
   async openRecordings(): Promise<null> {

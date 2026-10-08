@@ -86,6 +86,7 @@ const en = {
   'sys.recording_failed': 'Flight recording stopped: {error}',
   'sys.data_failed': 'Live data unavailable: {source} ({error}); messages use the OFP',
   'sys.data_restored': 'Live data available again: {source}',
+  'sys.memory': 'Airline memory from earlier flights: {names}',
 
   'scen.title': 'Scenarios',
   'scen.hint': 'Changes apply to the next flight.',
@@ -125,6 +126,11 @@ const en = {
   'set.recordHint':
     'Telemetry and messages of each flight go to a file for replay (the last 20 flights are kept).',
   'set.openRecordings': 'Open recordings folder',
+  'set.memory': 'Airline memory: {names}',
+  'set.memoryEmpty': 'Airline memory is empty',
+  'set.memoryHint':
+    'What irregular events leave for the next flights: an open MEL item, a banned passenger, crew rest after discretion.',
+  'set.clearMemory': 'Clear',
   'set.liveData': 'Live data',
   'set.liveDataHint':
     'Free sources, no keys: METAR/TAF (aviationweather.gov), VATSIM ATC, NASA EONET events, gates from OpenStreetMap. Off: messages use the OFP only.',
@@ -244,6 +250,7 @@ const ru: Record<MessageKey, string> = {
   'sys.recording_failed': 'Запись полёта остановлена: {error}',
   'sys.data_failed': 'Живые данные недоступны: {source} ({error}); сообщения по OFP',
   'sys.data_restored': 'Живые данные снова доступны: {source}',
+  'sys.memory': 'Память авиакомпании с прошлых рейсов: {names}',
 
   'scen.title': 'Сценарии',
   'scen.hint': 'Изменения действуют со следующего полёта.',
@@ -284,6 +291,11 @@ const ru: Record<MessageKey, string> = {
   'set.recordHint':
     'Телеметрия и сообщения каждого полёта сохраняются в файл для replay (хранятся последние 20).',
   'set.openRecordings': 'Открыть папку записей',
+  'set.memory': 'Память авиакомпании: {names}',
+  'set.memoryEmpty': 'Память авиакомпании пуста',
+  'set.memoryHint':
+    'Что нестандартные события оставляют следующим рейсам: открытый пункт MEL, пассажир в чёрном списке, отдых экипажа после продления.',
+  'set.clearMemory': 'Очистить',
   'set.liveData': 'Живые данные',
   'set.liveDataHint':
     'Бесплатные источники без ключей: METAR/TAF (aviationweather.gov), диспетчеры VATSIM, события NASA EONET, гейты из OpenStreetMap. Выключено — сообщения только по OFP.',

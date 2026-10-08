@@ -1,0 +1,29 @@
+# Dangerous goods on board: NOTOC before departure, the captain acknowledges.
+id: dg_notoc
+version: 1
+category: irregular
+title: Dangerous goods (NOTOC)
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -30 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.06
+steps:
+  - send:
+      header: NOTOC
+      body: |
+        DANGEROUS GOODS ON BOARD
+        {pick:[UN3480 LI-ION BATTERIES CL 9,UN1845 DRY ICE CL 9,UN1266 PERFUMERY CL 3,UN2814 INFECTIOUS SUBST CL 6.2]}
+        POS {pick:[11L,12R,31L,32R,41P]} QTY {rand:2-12} PKG
+        CAO NO, IMP CODE PER NOTOC
+        REPLY ACK FOR CAPT SIGNATURE
+  - wait:
+      reply: { options: [ACK], timeout_min: 10, default: ACK }
+  - send:
+      header: NOTOC
+      body: |
+        NOTOC ACK RECEIVED
+        COPY IN FLIGHT FOLDER
+        LOADING SUPERVISOR INFORMED

@@ -49,37 +49,12 @@ export function parseScenario(source: string, file = '<scenario>'): ScenarioDef 
       doc.errors.map((e) => e.message),
     );
   const data: unknown = doc.toJS();
-  const later = laterFeatures(data);
-  if (later.length > 0) throw new ScenarioLoadError(file, later);
   if (!validate(data)) {
     // oneOf failures repeat every branch's errors; keep them unique.
     const problems = [...new Set((validate.errors ?? []).map(describe))];
     throw new ScenarioLoadError(file, problems);
   }
   return data;
-}
-
-/** docs/05 features that exist in the format but not in the engine yet. */
-const LATER_STEPS: Readonly<Record<string, string>> = { set: 'T14' };
-
-/** Clear messages for steps from later tasks (the schema would only say "oneOf"). */
-function laterFeatures(data: unknown): string[] {
-  const out: string[] = [];
-  const walk = (steps: unknown, at: string) => {
-    if (!Array.isArray(steps)) return;
-    steps.forEach((step: unknown, i) => {
-      if (step === null || typeof step !== 'object') return;
-      for (const [key, task] of Object.entries(LATER_STEPS)) {
-        if (key in step) out.push(`${at}/${i}: step "${key}" is not supported yet (${task})`);
-      }
-      const branch = (step as { branch?: unknown }).branch;
-      if (branch !== null && typeof branch === 'object') {
-        for (const [k, arm] of Object.entries(branch)) walk(arm, `${at}/${i}/branch/${k}`);
-      }
-    });
-  };
-  walk((data as { steps?: unknown } | null)?.steps, '/steps');
-  return out;
 }
 
 /** Scenario ids named by `resend` steps, nested branches included. */

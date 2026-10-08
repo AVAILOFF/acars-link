@@ -15,6 +15,7 @@ import {
   type ScenarioEngineState,
   type ScenarioEvent,
 } from './scenario/engine.js';
+import type { Value } from './scenario/expr.js';
 import type { PilotMessage } from './scenario/pilot.js';
 import type { TelemetrySnapshot } from './telemetry/types.js';
 
@@ -52,6 +53,8 @@ export interface CoreOptions {
   readonly phaseConfig?: Partial<PhaseConfig>;
   /** `REQ WX` wait for fetched weather, ms (T13); 0 = no live data source. */
   readonly dataWaitMs?: number;
+  /** `flags.*` left by earlier flights (T14); read back with {@link AcarsCore.flags}. */
+  readonly flags?: Readonly<Record<string, Value>>;
 }
 
 export interface CoreState {
@@ -93,6 +96,11 @@ export class AcarsCore {
   /** Late-start delay in ms (docs/05), null before the first tick. */
   get delayMs(): number | null {
     return this.engine.delayMs;
+  }
+
+  /** `flags.*` (T14) to hand to the next flight. */
+  get flags(): Readonly<Record<string, Value>> {
+    return this.engine.flags;
   }
 
   /** External data the core holds (T13). */
@@ -163,5 +171,6 @@ function engineOptions(o: CoreOptions) {
     ...(o.station === undefined ? {} : { station: o.station }),
     ...(o.sessionFired === undefined ? {} : { sessionFired: o.sessionFired }),
     ...(o.dataWaitMs === undefined ? {} : { dataWaitMs: o.dataWaitMs }),
+    ...(o.flags === undefined ? {} : { flags: o.flags }),
   };
 }

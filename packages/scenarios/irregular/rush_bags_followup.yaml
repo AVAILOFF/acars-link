@@ -1,0 +1,21 @@
+# Next flight after bags were left behind (lost_baggage): the bags reached their owners.
+id: rush_bags_followup
+version: 1
+category: irregular
+title: Rush bags delivered (next flight)
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -40 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "flags.rush_bags != null"
+  - "flags.rush_date != flight.date"
+steps:
+  - send:
+      header: BAGGAGE
+      body: |
+        {flags.rush_bags} RUSH BAGS {flags.rush_from}-{flags.rush_to}
+        DELIVERED TO PAX
+        PIR CASE CLOSED
+  - set: { flags.rush_bags: null, flags.rush_from: null, flags.rush_to: null, flags.rush_date: null }

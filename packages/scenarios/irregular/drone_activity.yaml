@@ -1,0 +1,39 @@
+# Drone sighting at the destination: arrivals stopped, hold or divert.
+id: drone_activity
+version: 1
+category: irregular
+title: Drone activity at destination
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: dest, lte_nm: 90 }
+conditions:
+  - "phase in ['CRUISE','DESCENT']"
+  - "flight.divert == null"
+  - "ofp.altn != null"
+probability: 0.03
+excludes: [runway_closure_dest]
+steps:
+  - send:
+      header: OPS MSG {ofp.dest}
+      body: |
+        DRONE ACTIVITY REPORTED
+        ARRIVALS SUSPENDED AT {ofp.dest}
+        EXPECT HOLDING {rand:10-25} MIN
+        REPLY HOLD OR DIVERT
+  - wait:
+      reply: { options: [HOLD, DIVERT], timeout_min: 8, default: HOLD }
+  - branch:
+      HOLD:
+        - send:
+            header: OPS MSG {ofp.dest}
+            body: |
+              NOTED, UPDATE WHEN ARRIVALS RESUME
+              ADVISE IF FUEL BECOMES CRITICAL
+      DIVERT:
+        - set: { flight.divert: "{ofp.altn}" }
+        - send:
+            header: OPS MSG {ofp.dest}
+            body: |
+              DIVERT {ofp.altn} NOTED
+              HANDLING ORDERED, PAX INFO SENT

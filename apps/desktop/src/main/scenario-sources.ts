@@ -3,7 +3,8 @@ import type { ScenarioSource } from './controller.js';
 /**
  * The scenarios the app ships: the base pack (`packages/scenarios/base/*.yaml`), the pilot
  * command handlers (`packages/scenarios/commands/*.yaml`, T12) and the live-data scenarios
- * (`packages/scenarios/external/*.yaml`, T13), embedded into the main bundle
+ * (`packages/scenarios/external/*.yaml`, T13) and the irregular ones
+ * (`packages/scenarios/irregular/*.yaml`, T14), embedded into the main bundle
  * at build time, so the app needs no path to the repository at run time.
  */
 const files = {
@@ -18,6 +19,11 @@ const files = {
     eager: true,
   }),
   ...import.meta.glob<string>('../../../../packages/scenarios/external/*.yaml', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }),
+  ...import.meta.glob<string>('../../../../packages/scenarios/irregular/*.yaml', {
     query: '?raw',
     import: 'default',
     eager: true,

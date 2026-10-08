@@ -1,0 +1,42 @@
+# Fuel price difference: dispatch offers extra fuel when the landing weight allows it.
+id: tankering
+version: 1
+category: irregular
+title: Tankering offer
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -55 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "ofp.block_time_min <= 300"
+  - "irr.tanker_ldw_kg != null"
+  - "ofp.max_ldw_kg != null"
+  - "irr.tanker_ldw_kg <= ofp.max_ldw_kg"
+probability: 0.05
+steps:
+  - send:
+      header: FUEL DISPATCH
+      body: |
+        FUEL PRICE AT {ofp.dest} HIGH
+        TANKERING RECOMMENDED
+        EXTRA {irr.tanker_kg} KG
+        BLOCK FUEL {irr.tanker_block_kg|kg1} T
+        EST LDW {irr.tanker_ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
+        REPLY ACCEPT OR DECLINE
+  - wait:
+      reply: { options: [ACCEPT, DECLINE], timeout_min: 15, default: DECLINE }
+  - branch:
+      ACCEPT:
+        - send:
+            header: FUEL DISPATCH
+            body: |
+              TANKERING ACCEPTED
+              FUELLER ADVISED {irr.tanker_block_kg|kg1} T
+              LOADSHEET WILL FOLLOW
+      DECLINE:
+        - send:
+            header: FUEL DISPATCH
+            body: |
+              NOTED, PLANNED FUEL UNCHANGED
+              {ofp.fuel_ramp_kg|kg1} T

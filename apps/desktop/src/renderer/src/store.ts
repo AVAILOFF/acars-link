@@ -25,6 +25,7 @@ export type Busy =
   | 'settings'
   | 'scenario'
   | 'recordings'
+  | 'memory'
   | 'pilot';
 
 interface Store {
@@ -52,6 +53,7 @@ interface Store {
   setHoppieCode(code: string): Promise<boolean>;
   clearHoppieCode(): Promise<void>;
   openRecordings(): Promise<void>;
+  clearMemory(): Promise<void>;
 }
 
 const api = (): AcarsApi => window.acars;
@@ -156,6 +158,9 @@ export const useStore = create<Store>()((set, get) => {
     },
     async openRecordings() {
       await run('recordings', () => api().openRecordings());
+    },
+    async clearMemory() {
+      await run('memory', () => api().clearMemory());
     },
   };
 });

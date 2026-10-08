@@ -50,7 +50,7 @@ describe('parseScenario / loadScenario', () => {
     ['bad category', minimal.replace('fun', 'funny'), /category: must be one of docs/],
     ['bad phase', minimal.replace('CRUISE', 'CRUISING'), /trigger/],
     ['missing steps', minimal.replace(/steps:[\s\S]*/, ''), /must have required property 'steps'/],
-    ['v0 step', minimal.replace('- send: { body: HELLO }', '- set: { x: 1 }'), /not supported yet/],
+    ['set target', minimal.replace('- send: { body: HELLO }', '- set: { x: 1 }'), /steps\/0/],
     ['unknown step', minimal.replace('- send: { body: HELLO }', '- jump: 1'), /steps\/0/],
     ['probability', `${minimal}probability: 2\n`, /probability: must be <= 1/],
     ['duplicate key', `${minimal}title: Again\n`, /unique|duplicate/i],
@@ -89,15 +89,16 @@ describe('parseScenario / loadScenario', () => {
   });
 });
 
-describe('reference/scenarios (docs/05 examples) need features after T12', () => {
+describe('reference/scenarios (docs/05 drafts) are rejected with a clear error', () => {
+  // `set` exists since T14, but only for flags.*, flight.divert, ops.arr_gate; `calc.*` never
+  // came (load.* / flight.nearest_altn instead). The shipped versions are in packages/scenarios.
   it.each([
-    ['prelim_loadsheet.yaml', /\/steps\/0: step "set" is not supported yet \(T14\)$/],
-    // reply and branch are fine since T12; the set inside an arm is found too.
+    ['prelim_loadsheet.yaml', /steps\[0\]\.set\.flight\.pax_delta: can set flags/],
     [
       'medical_onboard.yaml',
-      /: \/steps\/2\/branch\/DIVERT\/1: step "set" is not supported yet \(T14\)$/,
+      /steps\[2\]\.branch\.DIVERT\[0\]\.send\.body: .*unknown variable calc\./,
     ],
-  ])('%s is rejected with a clear error', (file, re) => {
+  ])('%s', (file, re) => {
     const { source } = read(REFERENCE, file);
     expect(() => loadScenario(source, file)).toThrow(re);
   });

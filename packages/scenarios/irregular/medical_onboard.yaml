@@ -1,0 +1,47 @@
+# Medical case in cruise: the crew decides CONTINUE or DIVERT (default CONTINUE after 10 min).
+# DIVERT sets the flight's diversion to the nearest of the origin and the alternates, so the
+# arrival messages for the destination stop (docs/02 irregular list).
+id: medical_onboard
+version: 1
+category: irregular
+title: Medical case on board
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "flight.minutes_to_tod != null"
+  - "flight.minutes_to_tod >= 30"
+probability: 0.03
+excludes: [unruly_passenger]
+steps:
+  - send:
+      header: OPS MSG MEDICAL
+      body: |
+        CABIN REPORTS MEDICAL CASE
+        SEAT {seat} PAX {rand:25-80}Y
+        {pick:[CHEST PAIN,FAINTED,BREATHING DIFFICULTY,SEVERE ALLERGY]}
+        DOCTOR ON BOARD {pick:[YES,NO]}
+        MEDLINK ADVISES DIVERT IF NO IMPROVEMENT
+        REPLY CONTINUE OR DIVERT
+  - wait:
+      reply: { options: [CONTINUE, DIVERT], timeout_min: 10, default: CONTINUE }
+  - branch:
+      DIVERT:
+        - set: { flight.divert: "{flight.nearest_altn}" }
+        - send:
+            header: OPS MSG MEDICAL
+            body: |
+              ROGER DIVERT {flight.divert|or:NEAREST SUITABLE}
+              {flight.nearest_altn_nm} NM FROM PRESENT POS
+              AMBULANCE AND HANDLING ORDERED
+              SEND NEW ETA WHEN ABLE
+      CONTINUE:
+        - wait: { minutes: 15 }
+        - send:
+            header: OPS MSG MEDICAL
+            body: |
+              MEDICAL UPDATE NOTED
+              CONTINUE TO {ofp.dest}
+              AMBULANCE ORDERED TO GATE {ops.arr_gate}
+              PLEASE REQUEST PRIORITY WITH ATC

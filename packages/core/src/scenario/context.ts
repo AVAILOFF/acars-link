@@ -10,6 +10,7 @@ import type { Ofp } from '../ofp/types.js';
 import type { FlightPhase, OooiKind } from '../phase/fsm.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import type { Value } from './expr.js';
+import type { IrregularData } from './irregular-data.js';
 import type { FlightData } from './ops-data.js';
 
 /**
@@ -113,6 +114,9 @@ export const CONTEXT_VARIABLES = [
   'flight.air_min',
   'flight.divert',
   'flight.sent',
+  // nearest of the origin and the alternates to the aircraft (T14), null without position
+  'flight.nearest_altn',
+  'flight.nearest_altn_nm',
   // the run's last pilot answer (`wait: reply`), null before one
   'reply.option',
   'reply.text',
@@ -142,6 +146,9 @@ export const CONTEXT_VARIABLES = [
   'wx.altn_taf',
   'wx.altn_live',
   'wx.altn_obs',
+  // temperature °C from the METAR above (live or OFP), T14
+  'wx.orig_temp_c',
+  'wx.dest_temp_c',
   // VATSIM (T13): `*_atc` lines `CALLSIGN FREQ`, null when none online or no data;
   // `*_atc_count` null without data
   'ext.orig_atc',
@@ -176,13 +183,34 @@ export const CONTEXT_VARIABLES = [
   'ops.next_flight',
   'ops.next_std',
   'ops.cabin_crew',
+  // irregular-scenario data (T14, irregular-data.ts); `*_margin_min` against the estimates
+  // (the delay included), negative = too late
+  'irr.curfew',
+  'irr.curfew_local',
+  'irr.curfew_margin_min',
+  'irr.connect_flight',
+  'irr.connect_std',
+  'irr.connect_pax',
+  'irr.connect_margin_min',
+  'irr.connect_left_min',
+  'irr.tanker_kg',
+  'irr.tanker_block_kg',
+  'irr.tanker_ldw_kg',
+  'irr.flow_delay_min',
+  'irr.revised_ctot',
+  'irr.latest_out',
+  'irr.new_gate',
+  'irr.lost_bags',
 ] as const;
 
 export type ContextVariable = (typeof CONTEXT_VARIABLES)[number];
 export type ScenarioContext = Readonly<Record<ContextVariable, Value>>;
 
 const KNOWN: ReadonlySet<string> = new Set(CONTEXT_VARIABLES);
-export const isContextVariable = (path: string): path is ContextVariable => KNOWN.has(path);
+/** `flags.<name>` (T14): set by scenarios, kept across flights; null when not set. */
+const FLAG = /^flags\.[a-z][a-z0-9_]{0,39}$/;
+export const isFlagVariable = (path: string): boolean => FLAG.test(path);
+export const isContextVariable = (path: string): boolean => KNOWN.has(path) || FLAG.test(path);
 
 /**
  * Remaining route distance: min over navlog fixes of (direct to the fix + route after
@@ -235,6 +263,8 @@ export interface ContextInput {
   readonly sent?: readonly string[];
   /** External data (T13). */
   readonly ext?: ExtState;
+  /** Irregular-scenario data and the gate a reassignment would move to (T14). */
+  readonly irr?: IrregularData & { readonly newGate: string };
   readonly polyline?: RoutePolyline;
 }
 
@@ -380,6 +410,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
     'cmd.wx_live': null,
     'cmd.wx_obs': null,
     ...extVariables(input),
+    ...irrVariables(input),
     'load.pax': load.pax,
     'load.pax_lmc': load.paxLmc,
     'load.cargo_kg': load.cargoKg,
@@ -472,6 +503,8 @@ function extVariables(input: ContextInput): Record<ExtVariable, Value> {
     'wx.altn_taf': a.taf,
     'wx.altn_live': a.live,
     'wx.altn_obs': a.obs,
+    'wx.orig_temp_c': metarTempC(o.metar),
+    'wx.dest_temp_c': metarTempC(d.metar),
     'ext.orig_atc': oAtc.lines,
     'ext.orig_atc_count': oAtc.count,
     'ext.dest_atc': dAtc.lines,
@@ -483,4 +516,56 @@ function extVariables(input: ContextInput): Record<ExtVariable, Value> {
     'ext.event_ahead_nm': ev?.ahead ?? null,
     'ext.event_off_nm': ev?.off ?? null,
   };
+}
+
+type IrrVariable = Extract<
+  ContextVariable,
+  `irr.${string}` | 'flight.nearest_altn' | 'flight.nearest_altn_nm'
+>;
+
+/** `irr.*` (T14) and the nearest alternate; margins use the delayed estimates of the context. */
+function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
+  const { ofp, telemetry: tm } = input;
+  let nearest: { icao: string; nm: number } | null = null;
+  if (tm !== null) {
+    for (const a of [ofp.origin, ...ofp.alternates]) {
+      if (a.icao === ofp.destination.icao) continue;
+      const nm = distanceNm(tm, a);
+      if (nearest === null || nm < nearest.nm) nearest = { icao: a.icao, nm: Math.round(nm) };
+    }
+  }
+  const i = input.irr;
+  const t = ofp.times;
+  const offset = ofp.destination.utcOffsetH;
+  return {
+    'flight.nearest_altn': nearest?.icao ?? null,
+    'flight.nearest_altn_nm': nearest?.nm ?? null,
+    'irr.curfew': i?.curfew ?? null,
+    'irr.curfew_local': i === undefined || offset === null ? null : i.curfew + offset * 3_600_000,
+    'irr.curfew_margin_min': i === undefined ? null : minutes(i.curfew - (t.estOnMs ?? t.estInMs)),
+    'irr.connect_flight': i?.connectFlight ?? null,
+    'irr.connect_std': i?.connectStd ?? null,
+    'irr.connect_pax': i?.connectPax ?? null,
+    'irr.connect_margin_min': i === undefined ? null : minutes(i.connectStd - t.estInMs),
+    'irr.connect_left_min': i === undefined ? null : minutes(i.connectStd - input.now),
+    'irr.tanker_kg': i?.tankerKg ?? null,
+    'irr.tanker_block_kg': i === undefined ? null : ofp.fuel.planRampKg + i.tankerKg,
+    'irr.tanker_ldw_kg':
+      i === undefined || ofp.weights.estLdwKg === null ? null : ofp.weights.estLdwKg + i.tankerKg,
+    'irr.flow_delay_min': i?.flowDelayMin ?? null,
+    'irr.revised_ctot': i === undefined ? null : input.data.ops.ctot + i.flowDelayMin * 60_000,
+    'irr.latest_out': i === undefined ? null : t.estOutMs + i.fdpBufferMin * 60_000,
+    'irr.new_gate': i?.newGate ?? null,
+    'irr.lost_bags': i?.lostBags ?? null,
+  };
+}
+
+/** Temperature of a METAR's `TT/DD` group (`M05/M08` → -5), null without one. */
+export function metarTempC(metar: string | null): number | null {
+  if (metar === null) return null;
+  const body = metar.split(/\sRMK\s/)[0] as string;
+  const m = /(?:^|\s)(M?\d{2})\/(?:M?\d{2})?(?=\s|$)/.exec(body);
+  if (m === null) return null;
+  const v = m[1] as string;
+  return v.startsWith('M') ? -Number(v.slice(1)) : Number(v);
 }

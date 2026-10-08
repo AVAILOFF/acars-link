@@ -1,0 +1,78 @@
+import type { ParkingStand } from '../ext/data.js';
+import type { Ofp } from '../ofp/types.js';
+import { createRng } from '../random/rng.js';
+
+/**
+ * Per-flight data of the irregular scenarios (T14) that a condition and a message, or two
+ * messages, must agree on: the destination curfew, the onward connection, the extra fuel of a
+ * tankering offer, the flow-control delay, the crew duty buffer, the gate a reassignment moves
+ * to, the bags left behind. Deterministic logic over the OFP and Rng `${seed}/#irr`
+ * (invariant 8); computed from the published schedule, so a delay brings a curfew or a
+ * connection closer instead of moving it. Draw order is part of the replay contract: append
+ * new draws at the end.
+ */
+
+export interface IrregularData {
+  /** Latest landing at the destination (noise curfew), epoch ms UTC. */
+  readonly curfew: number;
+  readonly connectFlight: string;
+  /** STD of the onward connection, epoch ms UTC. */
+  readonly connectStd: number;
+  readonly connectPax: number;
+  /** Extra fuel offered for tankering, kg. */
+  readonly tankerKg: number;
+  readonly flowDelayMin: number;
+  /** Minutes the crew's duty allows after the estimated off-block. */
+  readonly fdpBufferMin: number;
+  readonly lostBags: number;
+}
+
+const MIN = 60_000;
+const ceilTo = (ms: number, step: number) => Math.ceil(ms / step) * step;
+
+export function buildIrregularData(ofp: Ofp, seed: number | string): IrregularData {
+  const rng = createRng(`${String(seed)}/#irr`);
+  const t = ofp.times;
+  const on = t.schedOnMs ?? t.schedInMs - (t.taxiInSec ?? 300) * 1000;
+  const curfew = ceilTo(on + rng.int(20, 60) * MIN, 15 * MIN);
+  const connectStd = ceilTo(t.schedInMs + rng.int(50, 95) * MIN, 5 * MIN);
+  const connectNo = rng.int(100, 989);
+  const pax = ofp.weights.paxCount;
+  const connectPax = Math.max(2, Math.round((pax * rng.int(4, 12)) / 100));
+  // 10–25 % of the trip fuel, in 100 kg steps.
+  const tankerKg = Math.round((ofp.fuel.enrouteBurnKg * rng.int(10, 25)) / 100 / 100) * 100;
+  const flowDelayMin = rng.int(3, 8) * 5;
+  const fdpBufferMin = rng.int(3, 8) * 5;
+  const lostBags = rng.int(2, 9);
+  const prefix =
+    ofp.airlineIcao ?? /^([A-Z]+)\d/.exec(ofp.callsign)?.[1] ?? ofp.callsign.slice(0, 3);
+  return {
+    curfew,
+    connectFlight: `${prefix}${connectNo}`,
+    connectStd,
+    connectPax,
+    tankerKg,
+    flowDelayMin,
+    fdpBufferMin,
+    lostBags,
+  };
+}
+
+/**
+ * The gate a reassignment moves to: another stand of the OSM list when there is one, else a
+ * placeholder of the same pier letter; never `current`. One draw of `${seed}/#irr-gate`.
+ */
+export function reassignedGate(
+  current: string,
+  stands: readonly ParkingStand[] | null,
+  seed: number | string,
+): string {
+  const rng = createRng(`${String(seed)}/#irr-gate`);
+  const pool = [...new Set((stands ?? []).map((s) => s.ref))].filter((r) => r !== current).sort();
+  if (pool.length > 0) return rng.pick(pool);
+  const m = /^([A-Z]*)(\d+)$/.exec(current);
+  const pier = m?.[1] ?? '';
+  const n = Number(m?.[2] ?? 0);
+  const step = rng.int(1, 9);
+  return `${pier}${n + step > 99 ? Math.max(1, n - step) : n + step}`;
+}

@@ -7,6 +7,7 @@ import { MockTransport } from '@acars/transport';
 import { describe, expect, it } from 'vitest';
 import { AppController, type TransportFactory } from '../src/main/controller.js';
 import { guard } from '../src/main/errors.js';
+import type { FlagsStore } from '../src/main/flags.js';
 import { fileRecordings, type OpenRecording } from '../src/main/recording.js';
 import { BASE_SCENARIOS } from '../src/main/scenario-sources.js';
 import { SecretStore } from '../src/main/secrets.js';
@@ -28,7 +29,9 @@ const ofp = parseSimbriefOfp(JSON.parse(await readFile(OFP_FIXTURE, 'utf8')));
 const flight = generateSyntheticFlight({ ofp });
 const T0 = flight.snapshots[0]?.t ?? 0;
 
-async function setup(o: { openRecording?: OpenRecording | null; http?: FakeHttp } = {}) {
+async function setup(
+  o: { openRecording?: OpenRecording | null; http?: FakeHttp; flags?: FlagsStore } = {},
+) {
   const dir = await tempDir();
   const recordings = join(dir, 'recordings');
   let revealed = 0;
@@ -55,6 +58,7 @@ async function setup(o: { openRecording?: OpenRecording | null; http?: FakeHttp 
       revealed++;
     },
     onChange: () => {},
+    ...(o.flags === undefined ? {} : { flags: o.flags }),
   });
   await app.init();
   return { app, clock, sockets, transports, secretsFile, recordings, revealed: () => revealed };
@@ -188,7 +192,7 @@ describe('AppController', () => {
     await app.updateSettings({ transport: 'offline' });
     await app.loadOfp();
     const list = await app.listScenarios();
-    expect(list).toHaveLength(31); // 15 base + 12 pilot command handlers (T12) + 4 live-data (T13)
+    expect(list).toHaveLength(53); // 15 base + 12 commands (T12) + 4 live-data (T13) + 22 irregular (T14)
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -243,9 +247,13 @@ describe('late start', () => {
     expect(feed).toContainEqual(
       expect.objectContaining({ kind: 'system', code: 'late_start', params: { min: '30' } }),
     );
+    // Documents, not a burst; an irregular reaction to the delay (crew duty, T14) may come too.
+    const irregular = new Set(
+      BASE_SCENARIOS_COMPILED.filter((c) => c.def.category === 'irregular').map((c) => c.id),
+    );
     expect(
       outbound(feed)
-        .filter((m) => m.t === start)
+        .filter((m) => m.t === start && !irregular.has(m.scenarioId))
         .map((m) => m.scenarioId),
     ).toEqual(['crew_info']);
   });
@@ -546,5 +554,45 @@ describe('live data (T13)', () => {
     expect(http.requests.every((r) => r.url.includes('simbrief'))).toBe(true);
     const rec = await readRecording(s.recordings);
     expect(rec.header.dataWaitMs).toBeUndefined();
+  });
+});
+
+describe('airline memory (T14)', () => {
+  it('flags of a flight go to the next one; recorded; can be cleared', async () => {
+    const dir = await tempDir();
+    const { FlagsStore } = await import('../src/main/flags.js');
+    const store = new FlagsStore(join(dir, 'airline-memory.json'));
+    await store.set({ mel_item: '49-11-01 APU INOP', mel_reg: ofp.aircraft.reg, mel_date: 1 });
+    const s = await setup({ flags: store });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    expect(s.app.state().memory).toEqual(['mel_date', 'mel_item', 'mel_reg']);
+    await s.app.startFlight();
+    expect(await guard(() => s.app.clearMemory())).toMatchObject({
+      ok: false,
+      error: { code: 'bad_state' },
+    });
+    fly(s);
+    await s.app.endFlight('DONE');
+    await s.app.stopFlight();
+    const feed = s.app.state().feed;
+    expect(feed).toContainEqual(
+      expect.objectContaining({ code: 'memory', params: { names: 'mel_date, mel_item, mel_reg' } }),
+    );
+    // mel_carry_over closed the item after arrival: nothing left.
+    const texts = outbound(feed).filter((m) => m.scenarioId === 'mel_carry_over');
+    expect(texts.map((m) => m.text).join(' ')).toContain('MEL ITEM CLOSED');
+    expect(await store.get()).toEqual({});
+    expect(s.app.state().memory).toEqual([]);
+    const rec = await readRecording(s.recordings);
+    expect(rec.header.flags).toMatchObject({ mel_item: '49-11-01 APU INOP' });
+
+    await store.set({ x: 1 });
+    const t = await setup({ flags: store });
+    expect(t.app.state().memory).toEqual(['x']);
+    await t.app.clearMemory();
+    expect(await store.get()).toEqual({});
   });
 });

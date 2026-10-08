@@ -9,6 +9,7 @@ import {
   type PilotMessage,
   stationCallsign,
   type TelemetrySnapshot,
+  type Value,
 } from '@acars/core';
 import type { DataSourceKind, ExternalDataService } from '@acars/data-sources';
 import { encodeLine, type RecordingEvent, recordingHeader } from '@acars/replay';
@@ -44,6 +45,8 @@ export interface FlightSessionOptions {
   readonly recording?: RecordingSink | null;
   /** Live data (T13); null when the user turned it off. Ticked by the controller. */
   readonly data?: ExternalDataService | null;
+  /** Airline memory from earlier flights (T14 `flags.*`). */
+  readonly flags?: Readonly<Record<string, Value>>;
 }
 
 /** Names of the data sources in the feed (proper names, the same in every language). */
@@ -88,6 +91,7 @@ export class FlightSession {
       station: o.stationTemplate,
       sessionFired: o.sessionFired,
       ...(o.data == null ? {} : { dataWaitMs: DATA_WAIT_MS }),
+      ...(o.flags === undefined ? {} : { flags: o.flags }),
     });
     this.data = o.data ?? null;
     this.callsign = o.ofp.callsign;
@@ -106,6 +110,7 @@ export class FlightSession {
         scenarios: o.scenarios.map((c) => c.id),
         sessionFired: o.sessionFired,
         ...(o.data == null ? {} : { dataWaitMs: DATA_WAIT_MS }),
+        ...(o.flags === undefined || Object.keys(o.flags).length === 0 ? {} : { flags: o.flags }),
       }),
     );
     this.core.startFlight();
@@ -125,6 +130,11 @@ export class FlightSession {
 
   get sessionFired(): readonly string[] {
     return this.core.sessionFired;
+  }
+
+  /** Airline memory now (T14): saved by the controller for the next flight. */
+  get flags(): Readonly<Record<string, Value>> {
+    return this.core.flags;
   }
 
   get telemetry(): TelemetryView | null {
