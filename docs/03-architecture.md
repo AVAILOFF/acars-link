@@ -57,7 +57,9 @@ interface CoreOutput {
 // core.tick(input) → output. Состояние — внутри экземпляра, сериализуемо (resume после рестарта).
 ```
 
-Rng: seeded (например, xoshiro128**), seed = hash(callsign + OFP id) или задаётся пользователем.
+Rng: xoshiro128** (`packages/core/src/random/rng.ts`), seed = `"<callsign>/<OFP request_id>"` или задаётся пользователем. Строка → FNV-1a 32 → расширение до 128 бит (SplitMix32-подобный миксер). Схема сидирования — часть контракта replay, закреплена golden-тестами. Состояние сериализуется (`getState`/`rngFromState`).
+
+Clock: интерфейс `now(): number` (мс UTC). В ядре только `ManualClock`; реальные часы передаёт приложение.
 
 ## TelemetrySnapshot (v1)
 
@@ -65,6 +67,8 @@ Rng: seeded (например, xoshiro128**), seed = hash(callsign + OFP id) и�
 
 | Поле | SimVar | Единицы |
 |---|---|---|
+| `v` | — | версия схемы, `1` |
+| `t` | — | время снимка, мс UTC (часы моста) |
 | `lat`, `lon` | PLANE LATITUDE / PLANE LONGITUDE | degrees |
 | `altFt` | PLANE ALTITUDE | feet |
 | `aglFt` | PLANE ALT ABOVE GROUND | feet |
