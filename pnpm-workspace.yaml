@@ -1,5 +1,6 @@
 packages:
   - "packages/*"
   - "apps/*"
+  - "tools/replay"
 allowBuilds:
   esbuild: true

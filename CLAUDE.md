@@ -48,11 +48,15 @@ pnpm -F @acars/core test   # тесты одного пакета
 pnpm desktop:dev      # Electron-приложение (apps/desktop) с HMR renderer
 pnpm desktop          # сборка apps/desktop/out и запуск
 pnpm hoppie:telex --to <АВИА> [--from OPS…] [--text …] [--listen 180]   # ручной telex в Hoppie; код — только из env HOPPIE_LOGON
+pnpm replay run <запись.jsonl> [--scenarios <yaml|папка>] [--only id,…] [--check]   # прогон записи полёта через ядро (tools/replay)
+pnpm replay synth --ofp <simbrief.json> --out <файл.jsonl>   # синтетический полёт как запись; pnpm replay --help
 pnpm bridge:build     # dotnet build bridge/msfs (C# мост, .NET 8; с SimConnect: -p:MsfsSdk="C:\MSFS 2024 SDK")
 pnpm bridge:test      # dotnet test bridge/msfs — при изменениях в bridge/ тоже перед «готово»
 ```
 
 `apps/desktop` — Electron 44 + electron-vite 5 (Vite 7: electron-vite не поддерживает Vite 8) + React 19 + Zustand. Main-процесс собирает пакеты воркспейса в один бандл; preload — один CJS-файл (sandbox). Renderer не импортирует Node/Electron/транспорт (правило Biome) и общается с main только через `window.acars`. Логика без Electron — `src/main/controller.ts`, тесты в `apps/desktop/test`. Бинарник Electron скачивается при первом запуске.
+
+`tools/replay` (`@acars/replay`) — формат записи полёта (JSONL: заголовок с OFP и опциями ядра, затем входы ядра по порядку), прогон через ядро, CLI. Приложение пишет запись каждого полёта в `<userData>/recordings` (настройка «Записывать полёты», хранятся последние 20).
 
 Пакеты воркспейса импортируют друг друга из исходников: условие экспорта `source` (`customConditions` в `tsconfig.base.json`, `resolve.conditions` в `vitest.config.ts`), сборка для тестов не нужна. `pnpm -F <pkg> test` запускает корневой конфиг Vitest с `--project`.
 

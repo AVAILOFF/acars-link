@@ -14,6 +14,7 @@ export default defineConfig({
         test: { name: `@acars/${name}`, root: `packages/${name}` },
       })),
       { extends: true, test: { name: '@acars/desktop', root: 'apps/desktop' } },
+      { extends: true, test: { name: '@acars/replay', root: 'tools/replay' } },
     ],
   },
 });

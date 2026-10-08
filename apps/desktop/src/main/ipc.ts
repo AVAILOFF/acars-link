@@ -49,4 +49,5 @@ export function registerIpc(
   on(IPC.startFlight, () => guard(() => app.startFlight()));
   on(IPC.stopFlight, () => guard(() => app.stopFlight()));
   on(IPC.endFlight, (to) => guard(() => app.endFlight(to)));
+  on(IPC.openRecordings, () => guard(() => app.openRecordings()));
 }

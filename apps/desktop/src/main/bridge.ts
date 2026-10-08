@@ -1,4 +1,4 @@
-import { TELEMETRY_VERSION, type TelemetrySnapshot } from '@acars/core';
+import { isTelemetrySnapshot, TELEMETRY_VERSION, type TelemetrySnapshot } from '@acars/core';
 import type { BridgeView } from '../shared/api.js';
 
 /**
@@ -189,26 +189,4 @@ export class BridgeClient {
     this.v = v;
     this.o.onChange();
   }
-}
-
-const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
-const isBool = (x: unknown): x is boolean => typeof x === 'boolean';
-const isArr = <T>(x: unknown, item: (y: unknown) => y is T): boolean =>
-  Array.isArray(x) && x.every(item);
-
-/** Shape check of a bridge snapshot (TelemetrySnapshot v1); bad frames are dropped. */
-export function isTelemetrySnapshot(x: unknown): x is TelemetrySnapshot {
-  if (typeof x !== 'object' || x === null) return false;
-  const s = x as Record<string, unknown>;
-  return (
-    s['v'] === TELEMETRY_VERSION &&
-    ['t', 'lat', 'lon', 'altFt', 'aglFt', 'iasKt', 'gsKt', 'vsFpm', 'hdgTrue', 'fuelKg']
-      .concat(['flapsIdx', 'xpdrState', 'simRate'])
-      .every((k) => isNum(s[k])) &&
-    ['onGround', 'parkingBrake', 'beacon', 'gearDown', 'paused'].every((k) => isBool(s[k])) &&
-    isArr(s['engRunning'], isBool) &&
-    isArr(s['engN2'], isNum) &&
-    isArr(s['doorsOpen'], isNum) &&
-    typeof s['aircraftTitle'] === 'string'
-  );
 }

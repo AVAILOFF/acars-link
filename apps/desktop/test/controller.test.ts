@@ -1,10 +1,13 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { generateSyntheticFlight, ManualClock, parseSimbriefOfp } from '@acars/core';
+import { compareOutbound, parseJsonl, type Recording, replay } from '@acars/replay';
+import { loadScenarios } from '@acars/scenarios';
 import { MockTransport } from '@acars/transport';
 import { describe, expect, it } from 'vitest';
 import { AppController, type TransportFactory } from '../src/main/controller.js';
 import { guard } from '../src/main/errors.js';
+import { fileRecordings, type OpenRecording } from '../src/main/recording.js';
 import { BASE_SCENARIOS } from '../src/main/scenario-sources.js';
 import { SecretStore } from '../src/main/secrets.js';
 import { defaultSettings, SettingsStore } from '../src/main/settings.js';
@@ -19,12 +22,15 @@ import {
   tempDir,
 } from './support.js';
 
+const BASE_SCENARIOS_COMPILED = loadScenarios(BASE_SCENARIOS);
 const ofp = parseSimbriefOfp(JSON.parse(await readFile(OFP_FIXTURE, 'utf8')));
 const flight = generateSyntheticFlight({ ofp });
 const T0 = flight.snapshots[0]?.t ?? 0;
 
-async function setup() {
+async function setup(o: { openRecording?: OpenRecording | null } = {}) {
   const dir = await tempDir();
+  const recordings = join(dir, 'recordings');
+  let revealed = 0;
   const clock = new ManualClock(T0);
   const sockets = socketFactory();
   const transports: { choice: Parameters<TransportFactory>[0]; t: MockTransport }[] = [];
@@ -43,10 +49,14 @@ async function setup() {
     createSocket: sockets.create,
     timers: new FakeTimers(),
     now: () => clock.now(),
+    openRecording: o.openRecording === undefined ? fileRecordings(recordings) : o.openRecording,
+    revealRecordings: async () => {
+      revealed++;
+    },
     onChange: () => {},
   });
   await app.init();
-  return { app, clock, sockets, transports, secretsFile };
+  return { app, clock, sockets, transports, secretsFile, recordings, revealed: () => revealed };
 }
 
 /** Streams the synthetic flight through the fake bridge socket and the 1 Hz main loop. */
@@ -241,6 +251,117 @@ describe('late start', () => {
     expect(s.app.state().feed.some((e) => e.kind === 'system' && e.code === 'late_start')).toBe(
       false,
     );
+  });
+});
+
+describe('flight recording (T11)', () => {
+  async function offlineFlight(s: Awaited<ReturnType<typeof setup>>) {
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline' });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+  }
+
+  async function readRecording(dir: string): Promise<Recording> {
+    const files = await readdir(dir);
+    expect(files).toHaveLength(1);
+    const parsed = parseJsonl(await readFile(join(dir, files[0] as string), 'utf8'));
+    if (parsed.kind !== 'recording') throw new Error('not a recording');
+    expect(parsed.warnings).toEqual([]);
+    return parsed.recording;
+  }
+
+  it('records the core inputs; the replay reproduces the live telexes exactly', async () => {
+    const s = await setup();
+    await offlineFlight(s);
+    const feed0 = s.app.state().feed;
+    expect(feed0.find((e) => e.kind === 'system' && e.code === 'recording')).toMatchObject({
+      params: { file: expect.stringMatching(/^\d{8}-\d{6}-SJX822\.jsonl$/) },
+    });
+    fly(s);
+    await s.app.endFlight('DONE');
+    await s.app.stopFlight();
+
+    const rec = await readRecording(s.recordings);
+    expect(rec.header).toMatchObject({
+      source: 'desktop',
+      seed: null,
+      station: 'OPS{flight}',
+      profile: { id: 'default' },
+      sessionFired: [],
+    });
+    expect(rec.header.ofp.callsign).toBe(ofp.callsign);
+    const types = rec.events.map((e) => e.type);
+    expect(types[0]).toBe('start');
+    expect(types.at(-1)).toBe('stop');
+    expect(types.filter((t) => t === 'tick')).toHaveLength(flight.snapshots.length);
+    expect(types).toContain('end');
+
+    const live = outbound(s.app.state().feed);
+    const recorded = rec.events.flatMap((e) => (e.type === 'out' ? [e] : []));
+    expect(recorded.map((e) => e.text)).toEqual(live.map((m) => m.text));
+
+    const scenarios = BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id));
+    const r = replay(rec, { scenarios });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+    expect(r.finalPhase).toBe('DONE');
+  });
+
+  it('can be switched off', async () => {
+    const s = await setup();
+    await s.app.updateSettings({ recordFlights: false });
+    await offlineFlight(s);
+    fly(s, 0, 30);
+    await s.app.stopFlight();
+    await expect(readdir(s.recordings)).rejects.toThrow();
+    expect(s.app.state().feed.some((e) => e.kind === 'system' && e.code === 'recording')).toBe(
+      false,
+    );
+  });
+
+  it('a recording that cannot be opened or written never stops the flight', async () => {
+    const s = await setup({
+      openRecording: () => {
+        throw new Error('disk full');
+      },
+    });
+    await offlineFlight(s);
+    fly(s, 0, 30);
+    expect(s.app.state()).toMatchObject({ session: 'running', phase: 'BOARDING' });
+    expect(s.app.state().feed).toContainEqual(
+      expect.objectContaining({ code: 'recording_failed', params: { error: 'disk full' } }),
+    );
+
+    let writes = 0;
+    let closed = 0;
+    const t = await setup({
+      openRecording: () => ({
+        file: 'x.jsonl',
+        write: () => {
+          if (++writes > 5) throw new Error('EIO');
+        },
+        close: () => {
+          closed++;
+        },
+      }),
+    });
+    await offlineFlight(t);
+    fly(t, 0, 30);
+    await t.app.stopFlight();
+    const failed = t.app
+      .state()
+      .feed.filter((e) => e.kind === 'system' && e.code === 'recording_failed');
+    expect(failed).toHaveLength(1);
+    expect(writes).toBe(6);
+    expect(closed).toBe(1);
+    expect(outbound(t.app.state().feed).length).toBeGreaterThan(0);
+  });
+
+  it('opens the recordings folder on request', async () => {
+    const s = await setup();
+    expect(await s.app.openRecordings()).toBeNull();
+    expect(s.revealed()).toBe(1);
   });
 });
 

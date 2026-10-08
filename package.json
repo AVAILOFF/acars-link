@@ -18,6 +18,7 @@
     "desktop": "pnpm -F @acars/desktop build && pnpm -F @acars/desktop start",
     "bridge:build": "dotnet build bridge/msfs",
     "bridge:test": "dotnet test bridge/msfs",
+    "replay": "pnpm -F @acars/core -F @acars/scenarios -F @acars/replay build && node tools/replay/dist/cli.js",
     "hoppie:telex": "pnpm -F @acars/core -F @acars/transport build && pnpm -F @acars/transport telex"
   },
   "devDependencies": {

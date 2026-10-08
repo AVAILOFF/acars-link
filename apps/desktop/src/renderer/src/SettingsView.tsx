@@ -129,6 +129,7 @@ function NetworkForm() {
   const settings = useStore((s) => s.settings);
   const busy = useStore((s) => s.busy);
   const update = useStore((s) => s.updateSettings);
+  const openRecordings = useStore((s) => s.openRecordings);
   const [station, setStation] = useState(settings?.stationTemplate ?? '');
   const [port, setPort] = useState(String(settings?.bridgePort ?? ''));
   if (settings === null) return null;
@@ -162,6 +163,28 @@ function NetworkForm() {
           <option value="hoppie">{t('set.transport.hoppie')}</option>
           <option value="offline">{t('set.transport.offline')}</option>
         </select>
+      </div>
+      <div className="field">
+        <div className="row">
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={settings.recordFlights}
+              disabled={busy !== null}
+              onChange={(e) => void update({ recordFlights: e.currentTarget.checked })}
+            />
+            {t('set.record')}
+          </label>
+          <button
+            type="button"
+            className="btn ghost"
+            disabled={busy !== null}
+            onClick={() => void openRecordings()}
+          >
+            {t('set.openRecordings')}
+          </button>
+        </div>
+        <p className="hint">{t('set.recordHint')}</p>
       </div>
       <form onSubmit={submit}>
         <div className="field">

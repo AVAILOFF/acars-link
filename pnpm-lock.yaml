@@ -184,6 +184,9 @@ importers:
       '@acars/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@acars/replay':
+        specifier: workspace:*
+        version: link:../../tools/replay
       '@acars/scenarios':
         specifier: workspace:*
         version: link:../../packages/scenarios
@@ -237,6 +240,15 @@ importers:
       '@acars/core':
         specifier: workspace:*
         version: link:../core
+
+  tools/replay:
+    dependencies:
+      '@acars/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@acars/scenarios':
+        specifier: workspace:*
+        version: link:../../packages/scenarios
 
 packages:
 

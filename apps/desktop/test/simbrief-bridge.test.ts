@@ -1,13 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { TelemetrySnapshot } from '@acars/core';
+import { isTelemetrySnapshot, type TelemetrySnapshot } from '@acars/core';
 import { describe, expect, it } from 'vitest';
-import {
-  BridgeClient,
-  bridgeUrl,
-  isTelemetrySnapshot,
-  RECONNECT_DELAYS_MS,
-} from '../src/main/bridge.js';
+import { BridgeClient, bridgeUrl, RECONNECT_DELAYS_MS } from '../src/main/bridge.js';
 import { fetchOfp, normalizeSimbriefUsername, simbriefUrl } from '../src/main/simbrief.js';
 import { FakeHttp, FakeTimers, simbriefOk, socketFactory } from './support.js';
 

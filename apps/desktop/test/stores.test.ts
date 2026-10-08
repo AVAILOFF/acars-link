@@ -56,6 +56,7 @@ describe('settings', () => {
       transport: 'hoppie',
       stationTemplate: 'OPS{flight}',
       bridgePort: 47830,
+      recordFlights: true,
       scenarios: {},
     });
     expect(defaultSettings('ru-RU').language).toBe('ru');
@@ -74,6 +75,7 @@ describe('settings', () => {
       { stationTemplate: '' },
       { bridgePort: 80 },
       { bridgePort: 47830.5 },
+      { recordFlights: 'yes' },
       { scenarios: {} },
       { evil: 1 },
       null,
@@ -90,11 +92,13 @@ describe('settings', () => {
           language: 'ru',
           transport: 'carrier-pigeon',
           bridgePort: 47831,
+          recordFlights: 'no',
           scenarios: { fuel_slip: false, 'BAD ID': true, crew_info: 'yes' },
         },
         defaults,
       ),
     ).toEqual({ ...defaults, language: 'ru', bridgePort: 47831, scenarios: { fuel_slip: false } });
+    expect(sanitize({ recordFlights: false }, defaults).recordFlights).toBe(false);
     expect(sanitize('garbage', defaults)).toEqual(defaults);
   });
 

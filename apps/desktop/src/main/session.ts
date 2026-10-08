@@ -1,3 +1,4 @@
+import { basename } from 'node:path';
 import {
   AcarsCore,
   type CompiledScenario,
@@ -7,15 +8,19 @@ import {
   type Ofp,
   type TelemetrySnapshot,
 } from '@acars/core';
+import { encodeLine, type RecordingEvent, recordingHeader } from '@acars/replay';
 import type { Transport, TransportStatus } from '@acars/transport';
 import type { TelemetryView, TransportView } from '../shared/api.js';
 import type { Feed } from './feed.js';
+import type { RecordingSink } from './recording.js';
 
 /**
  * One flight: the core (phase machine + scenarios) wired to a transport and the feed.
  * Driven by the app's main loop: snapshots are queued as they arrive from the bridge and fed
  * to the core in order on the next {@link tick}, which also ticks the transport. Business
  * logic stays in the core and the transport (CLAUDE.md, invariant 5); this only moves data.
+ * With a recording sink, every core input and output goes to a JSONL file (T11) that
+ * `pnpm replay` plays back through the core in the same order.
  */
 
 export interface FlightSessionOptions {
@@ -28,6 +33,7 @@ export interface FlightSessionOptions {
   /** `per_session` scenario ids already run in this app session. */
   readonly sessionFired: readonly string[];
   readonly now: number;
+  readonly recording?: RecordingSink | null;
 }
 
 /** Snapshots kept while the main loop is late; older ones are dropped. */
@@ -46,6 +52,7 @@ export class FlightSession {
   private feedHasProblem = false;
   private stopped = false;
   private delayReported = false;
+  private recording: RecordingSink | null;
 
   constructor(o: FlightSessionOptions) {
     this.core = AcarsCore.create({
@@ -57,11 +64,28 @@ export class FlightSession {
     });
     this.transport = o.transport;
     this.feed = o.feed;
+    this.recording = o.recording ?? null;
+    this.record(
+      recordingHeader({
+        recordedAt: o.now,
+        source: 'desktop',
+        ofp: o.ofp,
+        seed: null,
+        station: o.stationTemplate,
+        profile: o.profile,
+        scenarios: o.scenarios.map((c) => c.id),
+        sessionFired: o.sessionFired,
+      }),
+    );
     this.core.startFlight();
+    this.record({ type: 'start', now: o.now });
     this.feed.system(o.now, 'flight_started', {
       callsign: o.ofp.callsign,
       transport: o.transport.kind,
     });
+    if (this.recording !== null) {
+      this.feed.system(o.now, 'recording', { file: basename(this.recording.file) });
+    }
   }
 
   get phase(): FlightPhase {
@@ -104,9 +128,13 @@ export class FlightSession {
   tick(now: number): void {
     if (this.stopped) return;
     const batch = this.queue.splice(0);
-    if (batch.length === 0) this.apply(this.core.tick({ now, telemetry: null }), now);
+    if (batch.length === 0) {
+      this.record({ type: 'tick', now, telemetry: null });
+      this.apply(this.core.tick({ now, telemetry: null }), now);
+    }
     for (const s of batch) {
       this.last = s;
+      this.record({ type: 'tick', now, telemetry: s });
       this.apply(this.core.tick({ now, telemetry: s }), now);
     }
     this.transport.tick();
@@ -115,7 +143,9 @@ export class FlightSession {
 
   /** User decision at ON_BLOCK; throws in any other phase. */
   endFlight(to: 'TURNAROUND' | 'DONE', now: number): void {
-    this.apply(this.core.endFlight(to, now), now);
+    const out = this.core.endFlight(to, now);
+    this.record({ type: 'end', now, to });
+    this.apply(out, now);
     this.transport.tick();
     this.drainTransport();
   }
@@ -128,7 +158,29 @@ export class FlightSession {
       this.feed.updateOutbound(feedId, { delivery: 'dropped' });
     }
     this.outbound.clear();
+    this.record({ type: 'stop', now });
+    this.recording?.close();
+    this.recording = null;
     this.feed.system(now, 'flight_stopped', { phase: this.core.phase });
+  }
+
+  /** A failed write ends the recording, not the flight. */
+  private record(line: Parameters<typeof encodeLine>[0]): void {
+    const r = this.recording;
+    if (r === null) return;
+    try {
+      r.write(encodeLine(line));
+    } catch (e) {
+      this.recording = null;
+      try {
+        r.close();
+      } catch {
+        // already broken
+      }
+      const error = e instanceof Error ? e.message : String(e);
+      const t = 'now' in line ? line.now : 't' in line ? line.t : line.recordedAt;
+      this.feed.system(t, 'recording_failed', { error });
+    }
   }
 
   private apply(out: CoreOutput, now: number): void {
@@ -171,6 +223,7 @@ export class FlightSession {
       }
     }
     for (const m of out.outbound) {
+      this.record(outLine(m));
       const entry = {
         kind: 'outbound' as const,
         t: m.t,
@@ -237,4 +290,15 @@ export class FlightSession {
     }
     this.feedHasProblem = status === 'degraded' || status === 'halted';
   }
+}
+
+function outLine(m: CoreOutput['outbound'][number]): RecordingEvent {
+  return {
+    type: 'out',
+    t: m.t,
+    scenarioId: m.scenarioId,
+    from: m.from,
+    to: m.to,
+    text: m.message.text,
+  };
 }

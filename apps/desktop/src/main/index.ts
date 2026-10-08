@@ -1,4 +1,5 @@
 import { randomInt } from 'node:crypto';
+import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createRng } from '@acars/core';
 import { fetchHttpClient, HoppieTransport, MockTransport } from '@acars/transport';
@@ -15,6 +16,7 @@ import { type AppState, IPC } from '../shared/api.js';
 import type { SocketLike } from './bridge.js';
 import { AppController } from './controller.js';
 import { registerIpc } from './ipc.js';
+import { fileRecordings } from './recording.js';
 import { BASE_SCENARIOS } from './scenario-sources.js';
 import { type Cipher, SecretStore } from './secrets.js';
 import { defaultSettings, SettingsStore } from './settings.js';
@@ -95,6 +97,7 @@ async function main(): Promise<void> {
   session.defaultSession.setPermissionRequestHandler((_wc, _perm, callback) => callback(false));
 
   const userData = app.getPath('userData');
+  const recordings = join(userData, 'recordings');
   const http = fetchHttpClient();
   const clock = { now: () => Date.now() };
   let controller: AppController | null = null;
@@ -120,6 +123,12 @@ async function main(): Promise<void> {
     createSocket: (url) => new WebSocket(url) as unknown as SocketLike,
     timers: { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as never) },
     now: clock.now,
+    openRecording: fileRecordings(recordings),
+    revealRecordings: async () => {
+      await mkdir(recordings, { recursive: true });
+      const error = await shell.openPath(recordings);
+      if (error !== '') throw new Error(error);
+    },
     onChange,
   });
   const ctl = controller;

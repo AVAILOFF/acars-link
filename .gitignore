@@ -22,6 +22,8 @@ Thumbs.db
 
 # real SimBrief OFPs (personal data) — only anonymized fixtures are committed
 reference/ofp/raw/
+# flight recordings (pnpm replay); commit only small curated ones as test fixtures
+reference/recordings/
 
 # .NET bridge build output
 bin/

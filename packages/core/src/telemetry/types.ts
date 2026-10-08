@@ -46,3 +46,40 @@ export interface TelemetrySnapshot {
   /** Aircraft TITLE string, used to pick a DisplayProfile. */
   readonly aircraftTitle: string;
 }
+
+const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
+const isBool = (x: unknown): x is boolean => typeof x === 'boolean';
+const isArr = <T>(x: unknown, item: (y: unknown) => y is T): boolean =>
+  Array.isArray(x) && x.every(item);
+
+const NUM_FIELDS = [
+  't',
+  'lat',
+  'lon',
+  'altFt',
+  'aglFt',
+  'iasKt',
+  'gsKt',
+  'vsFpm',
+  'hdgTrue',
+  'fuelKg',
+  'flapsIdx',
+  'xpdrState',
+  'simRate',
+] as const;
+const BOOL_FIELDS = ['onGround', 'parkingBrake', 'beacon', 'gearDown', 'paused'] as const;
+
+/** Shape check of untrusted input (bridge frames, recordings) against {@link TelemetrySnapshot} v1. */
+export function isTelemetrySnapshot(x: unknown): x is TelemetrySnapshot {
+  if (typeof x !== 'object' || x === null) return false;
+  const s = x as Record<string, unknown>;
+  return (
+    s['v'] === TELEMETRY_VERSION &&
+    NUM_FIELDS.every((k) => isNum(s[k])) &&
+    BOOL_FIELDS.every((k) => isBool(s[k])) &&
+    isArr(s['engRunning'], isBool) &&
+    isArr(s['engN2'], isNum) &&
+    isArr(s['doorsOpen'], isNum) &&
+    typeof s['aircraftTitle'] === 'string'
+  );
+}

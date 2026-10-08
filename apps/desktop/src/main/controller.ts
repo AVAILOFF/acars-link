@@ -18,6 +18,7 @@ import type {
 import { BridgeClient, type SocketLike, type Timers } from './bridge.js';
 import { AppFailure } from './errors.js';
 import { Feed } from './feed.js';
+import type { OpenRecording, RecordingSink } from './recording.js';
 import type { SecretStore } from './secrets.js';
 import { FlightSession } from './session.js';
 import type { SettingsStore } from './settings.js';
@@ -46,6 +47,10 @@ export interface AppControllerOptions {
   readonly createSocket: (url: string) => SocketLike;
   readonly timers: Timers;
   readonly now: () => number;
+  /** Creates the JSONL recording of a flight (T11); null = no recordings. */
+  readonly openRecording: OpenRecording | null;
+  /** Shows the recordings folder (file manager). */
+  readonly revealRecordings: () => Promise<void>;
   /** Called when the state may have changed (debounce/compare on the caller side). */
   readonly onChange: () => void;
 }
@@ -212,6 +217,17 @@ export class AppController {
     const enabled = this.scenarios.filter(
       (c) => settings.scenarios[c.id] ?? c.def.enabled_by_default,
     );
+    const now = this.o.now();
+    let recording: RecordingSink | null = null;
+    if (settings.recordFlights && this.o.openRecording !== null) {
+      try {
+        recording = this.o.openRecording(ofp.callsign, now);
+      } catch (e) {
+        this.feed.system(now, 'recording_failed', {
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    }
     this.session = new FlightSession({
       ofp,
       scenarios: enabled,
@@ -220,7 +236,8 @@ export class AppController {
       transport,
       feed: this.feed,
       sessionFired: this.sessionFired,
-      now: this.o.now(),
+      now,
+      recording,
     });
     this.flight = flight;
     this.o.onChange();
@@ -244,6 +261,15 @@ export class AppController {
     if (s.phase !== 'ON_BLOCK') throw new AppFailure('bad_state', `phase ${s.phase}`);
     s.endFlight(to, this.o.now());
     this.o.onChange();
+    return null;
+  }
+
+  async openRecordings(): Promise<null> {
+    try {
+      await this.o.revealRecordings();
+    } catch (e) {
+      throw new AppFailure('internal', e instanceof Error ? e.message : String(e));
+    }
     return null;
   }
 

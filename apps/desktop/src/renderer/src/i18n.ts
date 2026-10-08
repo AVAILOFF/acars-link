@@ -76,6 +76,8 @@ const en = {
   'sys.discontinuity': 'Position jump of {nm} NM (slew / teleport)',
   'sys.scenario_error': 'Scenario {id} failed: {error}',
   'sys.transport_status': 'Network: {status} {reason}',
+  'sys.recording': 'Recording the flight to {file}',
+  'sys.recording_failed': 'Flight recording stopped: {error}',
 
   'scen.title': 'Scenarios',
   'scen.hint': 'Changes apply to the next flight.',
@@ -111,6 +113,10 @@ const en = {
   'set.bridgePort': 'Sim bridge port (127.0.0.1)',
   'set.language': 'Language',
   'set.runningNote': 'Network settings apply to the next flight.',
+  'set.record': 'Record flights',
+  'set.recordHint':
+    'Telemetry and messages of each flight go to a file for replay (the last 20 flights are kept).',
+  'set.openRecordings': 'Open recordings folder',
 
   'err.invalid_input': 'Invalid value: {detail}',
   'err.no_username': 'Set your SimBrief username in Settings first.',
@@ -217,6 +223,8 @@ const ru: Record<MessageKey, string> = {
   'sys.discontinuity': 'Скачок позиции на {nm} NM (slew / телепорт)',
   'sys.scenario_error': 'Ошибка сценария {id}: {error}',
   'sys.transport_status': 'Сеть: {status} {reason}',
+  'sys.recording': 'Полёт записывается в {file}',
+  'sys.recording_failed': 'Запись полёта остановлена: {error}',
 
   'scen.title': 'Сценарии',
   'scen.hint': 'Изменения действуют со следующего полёта.',
@@ -253,6 +261,10 @@ const ru: Record<MessageKey, string> = {
   'set.bridgePort': 'Порт моста симулятора (127.0.0.1)',
   'set.language': 'Язык',
   'set.runningNote': 'Сетевые настройки подействуют со следующего полёта.',
+  'set.record': 'Записывать полёты',
+  'set.recordHint':
+    'Телеметрия и сообщения каждого полёта сохраняются в файл для replay (хранятся последние 20).',
+  'set.openRecordings': 'Открыть папку записей',
 
   'err.invalid_input': 'Неверное значение: {detail}',
   'err.no_username': 'Сначала укажите имя пользователя SimBrief в настройках.',

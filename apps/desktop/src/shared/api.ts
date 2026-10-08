@@ -19,6 +19,8 @@ export interface Settings {
   readonly stationTemplate: string;
   /** Port of the sim bridge on 127.0.0.1. */
   readonly bridgePort: number;
+  /** Write every flight to a JSONL recording (T11) in the user-data folder. */
+  readonly recordFlights: boolean;
   /** Scenario id → enabled; absent ids use `enabled_by_default`. */
   readonly scenarios: Readonly<Record<string, boolean>>;
 }
@@ -93,6 +95,8 @@ export type SystemCode =
   | 'flight_started'
   | 'flight_stopped'
   | 'late_start'
+  | 'recording'
+  | 'recording_failed'
   | 'phase'
   | 'oooi'
   | 'telemetry_lost'
@@ -191,6 +195,8 @@ export interface AcarsApi {
   startFlight(): Promise<Result<null>>;
   stopFlight(): Promise<Result<null>>;
   endFlight(to: 'TURNAROUND' | 'DONE'): Promise<Result<null>>;
+  /** Opens the recordings folder in the OS file manager. */
+  openRecordings(): Promise<Result<null>>;
 }
 
 /** IPC channel names (invoke) and the push channel. */
@@ -209,4 +215,5 @@ export const IPC = {
   startFlight: 'acars:start-flight',
   stopFlight: 'acars:stop-flight',
   endFlight: 'acars:end-flight',
+  openRecordings: 'acars:open-recordings',
 } as const;

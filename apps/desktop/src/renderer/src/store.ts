@@ -23,7 +23,8 @@ export type Busy =
   | 'username'
   | 'code'
   | 'settings'
-  | 'scenario';
+  | 'scenario'
+  | 'recordings';
 
 interface Store {
   readonly app: AppState | null;
@@ -48,6 +49,7 @@ interface Store {
   setUsername(u: string): Promise<boolean>;
   setHoppieCode(code: string): Promise<boolean>;
   clearHoppieCode(): Promise<void>;
+  openRecordings(): Promise<void>;
 }
 
 const api = (): AcarsApi => window.acars;
@@ -148,6 +150,9 @@ export const useStore = create<Store>()((set, get) => {
         () => api().clearHoppieCode(),
         (creds) => set({ creds }),
       );
+    },
+    async openRecordings() {
+      await run('recordings', () => api().openRecordings());
     },
   };
 });
