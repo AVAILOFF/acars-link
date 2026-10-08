@@ -1,0 +1,56 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the whole set with live data on the normal flight > snapshot 1`] = `
+[
+  "2026-10-08T07:25:00.000Z takeoff_data
+TAKEOFF DATA
+------------------------
+SJX822 RCTP RWY 05R
+SID MOLK1A
+ELEV 108 FT
+TRANS ALT 11000 FT
+TOW 204.7 MAX 247.9
+TOF 22.1
+CRZ FL390 CI 109
+WX RCTP 080600Z 03008KT
+9999 FEW030 22/15 Q1012
+NOSIG
+........................
+VERIFY PERF ON EFB",
+  "2026-10-08T09:22:20.000Z natural_event
+OPS ADVISORY
+------------------------
+SEVERE STORM REPORTED
+TROPICAL STORM TEST
+APPROX 243 NM AHEAD
+20 NM FROM ROUTE
+CHECK WX RADAR AND
+SIGMET
+DEVIATE AS REQUIRED
+........................
+SOURCE NASA EONET",
+  "2026-10-08T09:26:30.000Z dest_weather_live
+DEST WX RJBB
+------------------------
+RJBB 080600Z 03008KT
+9999 FEW030 22/15 Q1018
+NOSIG
+TAF RJBB 080500Z 0806/
+0912 03010KT 9999
+------------------------
+ALTN RJGG
+RJGG 080600Z 03008KT
+9999 FEW030 22/15 Q1017
+NOSIG",
+  "2026-10-08T09:41:43.000Z vatsim_atc
+VATSIM ATC RJBB
+------------------------
+ONLINE NOW:
+RJBB-ATIS 128.600
+RJBB-TWR 118.200
+KIX-APP 120.250
+ATIS INFO C
+........................
+FREQ PER VATSIM DATA",
+]
+`;

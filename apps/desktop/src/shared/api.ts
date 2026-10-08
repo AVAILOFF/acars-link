@@ -21,6 +21,11 @@ export interface Settings {
   readonly bridgePort: number;
   /** Write every flight to a JSONL recording (T11) in the user-data folder. */
   readonly recordFlights: boolean;
+  /**
+   * Fetch free external data (T13): METAR/TAF, VATSIM ATC, NASA EONET, OSM stands. Off: the
+   * messages use the OFP only and nothing but SimBrief and Hoppie is contacted.
+   */
+  readonly liveData: boolean;
   /** Scenario id → enabled; absent ids use `enabled_by_default`. */
   readonly scenarios: Readonly<Record<string, boolean>>;
 }
@@ -104,6 +109,8 @@ export type SystemCode =
   | 'discontinuity'
   | 'scenario_error'
   | 'reply_timeout'
+  | 'data_failed'
+  | 'data_restored'
   | 'transport_status';
 
 export type FeedEntry =

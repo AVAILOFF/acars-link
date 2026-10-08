@@ -1,3 +1,4 @@
+import { metarQnh } from '../ext/data.js';
 import type { Rng } from '../random/rng.js';
 import type { Lookup, Value } from './expr.js';
 import { NAME_KINDS, type NameKind, personName } from './names.js';
@@ -9,7 +10,8 @@ import { NAME_KINDS, type NameKind, personName } from './names.js';
  *
  * Formatters: `kg1` (12345 → 12.3), `hhmm` and `ddmmm` (epoch ms, UTC), `pad:N`
  * (right-pad to N), `lpad:N` (left-pad), `int` (round), `sign` (+3, -120, 0), `upper`,
- * `or:TEXT` (TEXT when the value is missing).
+ * `or:TEXT` (TEXT when the value is missing), `qnh` (the `Q1013` / `A2992` group of a METAR,
+ * T13).
  * A missing value renders as {@link MISSING}. Numbers are data: templates never invent
  * them (invariant 8) — `rand`/`pick` use the scenario's seeded Rng.
  */
@@ -81,6 +83,7 @@ const FORMATTERS: Readonly<Record<string, (v: Value | string, f: Fmt) => Value |
     const r = Math.round(n);
     return r > 0 ? `+${r}` : String(r);
   },
+  qnh: (v) => (v === null ? null : metarQnh(text(v))),
   upper: (v) => (v === null ? null : text(v).toUpperCase()),
   // A missing value as this text instead of ----: `{cmd.reason|or:NOT GIVEN}`.
   or: (v, f) => (v === null ? (f.arg as string) : v),

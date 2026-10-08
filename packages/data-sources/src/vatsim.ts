@@ -1,0 +1,86 @@
+import type { AtcFacility, AtcStation } from '@acars/core';
+import {
+  DataSourceError,
+  expectOk,
+  type FetchContext,
+  isObj,
+  parseJson,
+  request,
+} from './common.js';
+
+/**
+ * Online VATSIM ATC from the data feed v3 (docs/06; URL from `status.vatsim.net/status.json`,
+ * checked 2026-10-08): `GET https://data.vatsim.net/v3/vatsim-data.json`, ~1.5 MB, refreshed
+ * every 15 s. `controllers[]` and `atis[]` have `callsign`, `frequency`, `facility` (0 OBS,
+ * 1 FSS, 2 DEL, 3 GND, 4 TWR, 5 APP, 6 CTR) and `atis_code` (ATIS). Only callsign,
+ * frequency, facility and ATIS letter are kept — no names or CIDs.
+ *
+ * Which airport a station serves is not in the feed: the callsign prefix (before the first
+ * `_`) is matched against the ICAO code, the IATA code and, for US airports (`K…`), the
+ * ICAO code without the `K` (`MCI_TWR`) `[ПРОВЕРИТЬ]` other local conventions.
+ */
+
+export const VATSIM_DATA_URL = 'https://data.vatsim.net/v3/vatsim-data.json';
+
+const FACILITY: Readonly<Record<number, AtcFacility>> = { 2: 'DEL', 3: 'GND', 4: 'TWR', 5: 'APP' };
+
+/** A station of the feed with its callsign prefix. */
+export interface VatsimStation extends AtcStation {
+  readonly prefix: string;
+}
+
+export async function fetchVatsimStations(ctx: FetchContext): Promise<VatsimStation[]> {
+  const res = await request(ctx, VATSIM_DATA_URL);
+  expectOk(res, 'VATSIM');
+  return parseVatsimFeed(parseJson(res.body, 'VATSIM'));
+}
+
+export function parseVatsimFeed(json: unknown): VatsimStation[] {
+  if (!isObj(json) || !Array.isArray(json['controllers'])) {
+    throw new DataSourceError('VATSIM: no controllers[] in the feed');
+  }
+  const out: VatsimStation[] = [];
+  const add = (x: unknown, atis: boolean) => {
+    if (!isObj(x) || typeof x['callsign'] !== 'string' || typeof x['frequency'] !== 'string')
+      return;
+    const facility: AtcFacility | undefined = atis ? 'ATIS' : FACILITY[x['facility'] as number];
+    if (facility === undefined) return; // OBS, FSS, CTR
+    const callsign = x['callsign'].toUpperCase();
+    // Air band only: 199.998 is the "no frequency" of observers and supervisors.
+    const mhz = Number(x['frequency']);
+    if (!/^[A-Z0-9_]{3,20}$/.test(callsign) || !(mhz >= 118 && mhz < 137)) return;
+    const code = typeof x['atis_code'] === 'string' ? x['atis_code'].toUpperCase() : '';
+    out.push({
+      callsign,
+      facility,
+      frequency: x['frequency'],
+      atisCode: atis && /^[A-Z]$/.test(code) ? code : null,
+      prefix: callsign.split('_')[0] as string,
+    });
+  };
+  for (const c of json['controllers']) add(c, false);
+  if (Array.isArray(json['atis'])) for (const a of json['atis']) add(a, true);
+  return out;
+}
+
+/** Stations serving each airport (see the prefix rule above). */
+export function stationsFor(
+  stations: readonly VatsimStation[],
+  airports: readonly { readonly icao: string; readonly iata: string | null }[],
+): Record<string, AtcStation[]> {
+  const out: Record<string, AtcStation[]> = {};
+  for (const a of airports) {
+    const prefixes = new Set([a.icao]);
+    if (a.iata !== null && /^[A-Z]{3}$/.test(a.iata)) prefixes.add(a.iata);
+    if (/^K[A-Z]{3}$/.test(a.icao)) prefixes.add(a.icao.slice(1));
+    out[a.icao] = stations
+      .filter((s) => prefixes.has(s.prefix))
+      .map(({ callsign, facility, frequency, atisCode }) => ({
+        callsign,
+        facility,
+        frequency,
+        atisCode,
+      }));
+  }
+  return out;
+}

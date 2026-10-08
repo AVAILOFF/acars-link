@@ -1,0 +1,24 @@
+# Online VATSIM ATC at the destination, 80 NM before TOD as in the original (docs/01).
+# Needs VATSIM data (T13); without it nothing is sent.
+id: vatsim_atc
+version: 1
+category: external
+title: VATSIM ATC online at destination
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 80 }
+conditions:
+  - "flight.divert == null"
+  - "phase in ['CLIMB','CRUISE']"
+  - "ext.dest_atc_count != null"
+  - "ext.dest_atc_count > 0"
+priority: 0
+steps:
+  - send:
+      header: VATSIM ATC {ofp.dest}
+      body: |
+        ONLINE NOW:
+        {ext.dest_atc}
+        ATIS INFO {ext.dest_atis|or:NOT ONLINE}
+      footer: FREQ PER VATSIM DATA

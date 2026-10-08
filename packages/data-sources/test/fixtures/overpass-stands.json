@@ -1,0 +1,66 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API (synthetic test fixture, T13: the public server was overloaded)",
+  "osm3s": {
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+    {
+      "type": "node",
+      "id": 1,
+      "lat": 34.43,
+      "lon": 135.23,
+      "tags": { "aeroway": "parking_position", "ref": "11" }
+    },
+    {
+      "type": "node",
+      "id": 2,
+      "lat": 34.43,
+      "lon": 135.23,
+      "tags": { "aeroway": "parking_position", "ref": "2" }
+    },
+    {
+      "type": "node",
+      "id": 3,
+      "lat": 34.43,
+      "lon": 135.23,
+      "tags": { "aeroway": "parking_position", "ref": "12;13" }
+    },
+    { "type": "way", "id": 4, "tags": { "aeroway": "parking_position", "ref": "Stand 41" } },
+    {
+      "type": "node",
+      "id": 5,
+      "lat": 34.43,
+      "lon": 135.23,
+      "tags": { "aeroway": "gate", "ref": "Gate 5" }
+    },
+    {
+      "type": "node",
+      "id": 6,
+      "lat": 34.43,
+      "lon": 135.23,
+      "tags": { "aeroway": "parking_position" }
+    },
+    {
+      "type": "node",
+      "id": 7,
+      "lat": 34.43,
+      "lon": 135.23,
+      "tags": { "aeroway": "parking_position", "ref": "remote apron west" }
+    },
+    {
+      "type": "node",
+      "id": 8,
+      "lat": 34.43,
+      "lon": 135.23,
+      "tags": { "aeroway": "taxiway", "ref": "A" }
+    },
+    {
+      "type": "node",
+      "id": 9,
+      "lat": 34.43,
+      "lon": 135.23,
+      "tags": { "aeroway": "parking_position", "ref": "2" }
+    }
+  ]
+}

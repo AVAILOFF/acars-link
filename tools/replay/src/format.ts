@@ -1,5 +1,8 @@
 import {
+  checkExtDataUpdate,
   type DisplayProfile,
+  ExtDataError,
+  type ExtDataUpdate,
   isTelemetrySnapshot,
   type Ofp,
   type PilotMessage,
@@ -12,7 +15,9 @@ import {
  * ```
  * {"type":"header","format":"acars-sim-recording","v":1,…,"ofp":{…}}   first line
  * {"type":"start","now":…}                                             user started the flight
- * {"type":"tick","now":…,"telemetry":{…}|null[,"inbound":[…]]}         one core tick (+ pilot telexes, T12)
+ * {"type":"tick","now":…,"telemetry":{…}|null[,"inbound":[…]][,"data":{…}]}
+ *                                                                      one core tick (+ pilot telexes, T12;
+ *                                                                      + external data fetched, T13)
  * {"type":"end","now":…,"to":"DONE"}                                   user closed the flight
  * {"type":"out","t":…,"scenarioId":…,"from":…,"to":…,"text":…}        telex the core produced live
  * {"type":"stop","now":…}                                              flight stopped
@@ -49,6 +54,8 @@ export interface RecordingHeader {
   readonly scenarios: readonly string[];
   /** `per_session` scenario ids already run in the app session before this flight. */
   readonly sessionFired: readonly string[];
+  /** Core `dataWaitMs` (T13): how long `REQ WX` waited for fetched weather; absent = 0. */
+  readonly dataWaitMs?: number;
 }
 
 export type RecordingEvent =
@@ -59,6 +66,8 @@ export type RecordingEvent =
       readonly telemetry: TelemetrySnapshot | null;
       /** Messages from the aircraft passed with this tick (T12); absent = none. */
       readonly inbound?: readonly PilotMessage[];
+      /** External data passed with this tick (T13); absent = none. */
+      readonly data?: ExtDataUpdate;
     }
   | { readonly type: 'end'; readonly now: number; readonly to: 'TURNAROUND' | 'DONE' }
   | {
@@ -161,6 +170,8 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
   if (!isStrArr(x['sessionFired'])) throw bad('sessionFired');
   if (!isOfpLike(x['ofp'])) throw bad('ofp');
   if (!isProfile(x['profile'])) throw bad('profile');
+  if (x['dataWaitMs'] !== undefined && !(isNum(x['dataWaitMs']) && x['dataWaitMs'] >= 0))
+    throw bad('dataWaitMs');
   return x as unknown as RecordingHeader;
 }
 
@@ -216,6 +227,14 @@ function checkEvent(x: unknown, no: number): RecordingEvent {
             (m: unknown) => isObj(m) && isStr(m['from']) && isStr(m['type']) && isStr(m['text']),
           );
         if (!ok) throw bad('inbound must be [{from, type, text}]');
+      }
+      if (x['data'] !== undefined) {
+        try {
+          checkExtDataUpdate(x['data']);
+        } catch (err) {
+          if (err instanceof ExtDataError) throw bad(err.message);
+          throw err;
+        }
       }
       return x as unknown as RecordingEvent;
     case 'end':

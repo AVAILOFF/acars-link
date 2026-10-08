@@ -9,7 +9,7 @@ export default defineConfig({
   ssr: { resolve: { conditions, externalConditions: ['source'] } },
   test: {
     projects: [
-      ...['core', 'scenarios', 'transport'].map((name) => ({
+      ...['core', 'data-sources', 'scenarios', 'transport'].map((name) => ({
         extends: true,
         test: { name: `@acars/${name}`, root: `packages/${name}` },
       })),

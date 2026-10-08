@@ -1,3 +1,12 @@
+import {
+  applyExtData,
+  EMPTY_EXT,
+  type ExtDataUpdate,
+  type ExtState,
+  liveWx,
+  type ParkingStand,
+  RoutePolyline,
+} from '../ext/data.js';
 import { FormatError, type FormattedMessage, formatMessage } from '../format/formatter.js';
 import { DEFAULT_PROFILE, type DisplayProfile } from '../format/profile.js';
 import type { Ofp } from '../ofp/types.js';
@@ -43,6 +52,12 @@ import type { PilotCommand, TimeRef } from './types.js';
  * engine's `UNABLE …`, known ones without an enabled scenario a `RCVD …`. A reply times out
  * after its minutes of flight time (as `wait.minutes`) with the default answer. While
  * telemetry is lost, pilot messages wait in the state.
+ *
+ * External data (T13): `input.data` updates (METAR/TAF, VATSIM, EONET, OSM stands) are kept
+ * in the state and feed `wx.*` / `ext.*`. With stands of the destination the arrival gate is
+ * drawn from them (`${seed}/#stands`) instead of the placeholder; once a message showed the
+ * gate, later stand updates are ignored so it never changes. `REQ WX` for an airport without
+ * fresh weather waits up to `dataWaitMs` for the app to fetch it (event `DATA_REQUEST`).
  */
 
 export interface OutboundMessage {
@@ -83,6 +98,13 @@ export type ScenarioEvent =
       readonly timeoutMs: number;
     }
   | {
+      /** The app should fetch weather for `icao` and pass it in `CoreInput.data` (T13). */
+      readonly type: 'DATA_REQUEST';
+      readonly kind: 'wx';
+      readonly icao: string;
+      readonly t: number;
+    }
+  | {
       readonly type: 'REPLY_TIMEOUT';
       readonly id: string;
       readonly t: number;
@@ -115,6 +137,8 @@ export interface EngineTickInput {
   readonly telemetryLost: boolean;
   /** Messages from the aircraft since the last tick, oldest first. */
   readonly inbound?: readonly PilotMessage[];
+  /** External data fetched since the last tick (T13). */
+  readonly data?: ExtDataUpdate;
 }
 
 export interface EngineTickOutput {
@@ -134,6 +158,11 @@ export interface ScenarioEngineOptions {
   readonly sessionFired?: readonly string[];
   /** Minutes before `sched_out` a flight must start not to count as delayed. Default 35. */
   readonly lateStartLeadMin?: number;
+  /**
+   * How long `REQ WX` waits for weather the app fetches on `DATA_REQUEST`, ms of clock time.
+   * 0 (default) = answer at once with what the core has (no live data source).
+   */
+  readonly dataWaitMs?: number;
 }
 
 interface ScenarioState {
@@ -174,6 +203,16 @@ export interface ScenarioEngineState {
   readonly divert: string | null;
   /** Pilot messages that arrived while telemetry was lost; handled when it is back. */
   readonly inbox: readonly PilotMessage[];
+  /** External data (T13). */
+  readonly ext: ExtState;
+  /** `REQ WX` waiting for weather (until clock time `until`). */
+  readonly pendingWx: readonly PendingWx[];
+}
+
+interface PendingWx {
+  readonly message: PilotMessage;
+  readonly icao: string;
+  readonly until: number;
 }
 
 /** Scenario id of the engine's own answers (unknown command, nobody to handle it). */
@@ -182,6 +221,8 @@ export const OPS_REPLY_ID = '#ops';
 export const DEFAULT_STATION = 'OPS{flight}';
 export const DEFAULT_LATE_START_LEAD_MIN = 35;
 const DELAY_STEP_MS = 5 * 60_000;
+/** Weather fetched longer ago than this is refreshed for `REQ WX` (when the app fetches). */
+const WX_FRESH_MS = 15 * 60_000;
 
 const PHASE_ORDER: ReadonlyMap<FlightPhase, number> = new Map(FLIGHT_PHASES.map((p, i) => [p, i]));
 
@@ -216,6 +257,8 @@ export class ScenarioEngine {
   /** The OFP the templates see: `est_*` moved by the late-start delay. */
   private ctxOfp: Ofp;
   private readonly route: RouteGeometry;
+  private readonly polyline: RoutePolyline;
+  private readonly dataWaitMs: number;
   private readonly seed: number | string;
   private readonly leadMs: number;
   /** Derived from OFP + seed (+ delay), so not part of the serialized state. */
@@ -234,6 +277,8 @@ export class ScenarioEngine {
     sent: Record<string, Sent>;
     divert: string | null;
     inbox: PilotMessage[];
+    ext: ExtState;
+    pendingWx: PendingWx[];
   };
   /** Context of the current tick; rebuilt when a command or a send changes it. */
   private ctx: ScenarioContext | null = null;
@@ -243,6 +288,9 @@ export class ScenarioEngine {
     this.ofp = options.ofp;
     this.ctxOfp = options.ofp;
     this.route = new RouteGeometry(options.ofp);
+    this.polyline = new RoutePolyline(options.ofp);
+    this.dataWaitMs = options.dataWaitMs ?? 0;
+    if (!(this.dataWaitMs >= 0)) throw new RangeError('dataWaitMs must be ≥ 0');
     this.seed = options.seed;
     this.leadMs = (options.lateStartLeadMin ?? DEFAULT_LATE_START_LEAD_MIN) * 60_000;
     if (!(this.leadMs >= 0)) throw new RangeError('lateStartLeadMin must be ≥ 0');
@@ -272,6 +320,8 @@ export class ScenarioEngine {
       sent: {},
       divert: null,
       inbox: [],
+      ext: EMPTY_EXT,
+      pendingWx: [],
     };
   }
 
@@ -294,6 +344,9 @@ export class ScenarioEngine {
     e.st.sent = { ...(copy.sent ?? {}) };
     e.st.divert = copy.divert ?? null;
     e.st.inbox = [...(copy.inbox ?? [])];
+    // Fields added with T13.
+    e.st.ext = copy.ext ?? EMPTY_EXT;
+    e.st.pendingWx = [...(copy.pendingWx ?? [])];
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
     e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
@@ -321,9 +374,27 @@ export class ScenarioEngine {
 
   private setDelay(delayMs: number | null): void {
     this.st.delayMs = delayMs;
-    if (delayMs === null || delayMs === 0) return;
-    this.ctxOfp = delayedOfp(this.ofp, delayMs, false);
-    this.data = buildFlightData(delayedOfp(this.ofp, delayMs, true), this.seed);
+    if (delayMs !== null && delayMs !== 0) this.ctxOfp = delayedOfp(this.ofp, delayMs, false);
+    this.rebuildData();
+  }
+
+  /** Ops data from the (delayed) OFP and seed; the gate from the OSM stands when known. */
+  private rebuildData(): void {
+    const delay = this.st.delayMs ?? 0;
+    const data = buildFlightData(
+      delay === 0 ? this.ofp : delayedOfp(this.ofp, delay, true),
+      this.seed,
+    );
+    const stands = this.st.ext.stands;
+    this.data =
+      stands === null
+        ? data
+        : { ...data, ops: { ...data.ops, arrGate: pickStand(stands, this.seed) } };
+  }
+
+  /** External data kept in the state (T13). */
+  get ext(): ExtState {
+    return this.st.ext;
   }
 
   tick(input: EngineTickInput): EngineTickOutput {
@@ -332,6 +403,11 @@ export class ScenarioEngine {
     if (this.st.delayMs === null) {
       const late = input.now + this.leadMs - this.ofp.times.schedOutMs;
       this.setDelay(late > 0 ? Math.ceil(late / DELAY_STEP_MS) * DELAY_STEP_MS : 0);
+    }
+    if (input.data !== undefined) {
+      const before = this.st.ext.stands;
+      this.st.ext = applyExtData(this.st.ext, input.data, this.ofp, this.polyline);
+      if (this.st.ext.stands !== before) this.rebuildData();
     }
     const inbox = [...this.st.inbox, ...(input.inbound ?? [])];
     if (input.telemetryLost) {
@@ -342,7 +418,13 @@ export class ScenarioEngine {
     this.tickInput = input;
     this.refresh();
     try {
-      // 0. Pilot messages: answers to waiting scenarios, then commands.
+      // 0. `REQ WX` whose weather arrived (or that waited long enough), then new pilot
+      // messages: answers to waiting scenarios, then commands.
+      const due = this.st.pendingWx.filter(
+        (p) => this.wxFresh(p.icao, input.now) || input.now >= p.until,
+      );
+      this.st.pendingWx = this.st.pendingWx.filter((p) => !due.includes(p));
+      for (const p of due) this.receive(p.message, input, outbound, events, false);
       for (const m of inbox) this.receive(m, input, outbound, events);
 
       // 1. Running scenarios.
@@ -392,6 +474,8 @@ export class ScenarioEngine {
       data: this.data,
       divert: this.st.divert,
       sent: Object.keys(this.st.sent),
+      ext: this.st.ext,
+      polyline: this.polyline,
     });
   }
 
@@ -436,6 +520,7 @@ export class ScenarioEngine {
     input: EngineTickInput,
     outbound: OutboundMessage[],
     events: ScenarioEvent[],
+    mayWait = true,
   ): void {
     const text = normalizePilotText(m.text);
     const note = (
@@ -486,6 +571,14 @@ export class ScenarioEngine {
       this.opsReply(`UNABLE ${clip(text)}\nSEND HELP FOR LIST`, input.now, outbound, events);
       return;
     }
+    if (cmd.ok && cmd.command === 'REQ_WX' && mayWait && this.dataWaitMs > 0) {
+      const icao = cmd.args.icao ?? this.ofp.destination.icao;
+      if (!this.wxFresh(icao, input.now)) {
+        this.st.pendingWx.push({ message: m, icao, until: input.now + this.dataWaitMs });
+        events.push({ type: 'DATA_REQUEST', kind: 'wx', icao, t: input.now });
+        return;
+      }
+    }
     const words = cmd.command.replace('_', ' ');
     const done = cmd.ok ? this.applyCommand(cmd, text, input) : { hint: `FORMAT ${cmd.hint}` };
     if ('hint' in done) {
@@ -522,13 +615,23 @@ export class ScenarioEngine {
   ): { vars: Run['vars'] } | { hint: string } {
     const { args } = cmd;
     let icao = args.icao;
-    let metar: string | null = null;
+    let wx: { metar: string | null; taf: string | null; live: boolean; obs: number | null } = {
+      metar: null,
+      taf: null,
+      live: false,
+      obs: null,
+    };
     switch (cmd.command) {
       case 'REQ_WX': {
         icao ??= this.ofp.destination.icao;
         const o = this.ofp;
         const known = [o.origin, o.destination, ...o.alternates].find((a) => a.icao === icao);
-        metar = known?.metar ?? null;
+        // Live weather first (T13), else the METAR SimBrief put into the OFP.
+        const live = liveWx(this.st.ext, icao, input.now);
+        wx =
+          live?.metar != null
+            ? { metar: live.metar, taf: live.taf, live: true, obs: live.obsTime }
+            : { metar: known?.metar ?? null, taf: live?.taf ?? null, live: false, obs: null };
         break;
       }
       case 'DELAY':
@@ -551,7 +654,10 @@ export class ScenarioEngine {
         'cmd.icao': icao,
         'cmd.minutes': args.minutes,
         'cmd.reason': args.reason,
-        'cmd.metar': metar,
+        'cmd.metar': wx.metar,
+        'cmd.taf': wx.taf,
+        'cmd.wx_live': cmd.command === 'REQ_WX' ? wx.live : null,
+        'cmd.wx_obs': wx.obs,
       },
     };
   }
@@ -584,6 +690,14 @@ export class ScenarioEngine {
     const first = !(id in this.st.sent);
     this.st.sent[id] = { t: now, message };
     if (first) this.refresh();
+  }
+
+  /** The core has weather for `icao` fetched within {@link WX_FRESH_MS} (a report or none). */
+  private wxFresh(icao: string, now: number): boolean {
+    const r = this.st.ext.wx[icao];
+    if (r === undefined) return false;
+    // A "no report" answer has no time of its own: asking again would give the same.
+    return r === null || now - r.t <= WX_FRESH_MS;
   }
 
   private triggered(sc: CompiledScenario, input: EngineTickInput, ctx: ScenarioContext): boolean {
@@ -736,6 +850,9 @@ export class ScenarioEngine {
           this.profile,
         );
         this.emit(sc.id, message, input.now, outbound);
+        if (!this.st.ext.gateLocked && sendReads(step, 'ops.arr_gate')) {
+          this.st.ext = { ...this.st.ext, gateLocked: true };
+        }
       } catch (e) {
         if (!(e instanceof TemplateError || e instanceof FormatError)) throw e;
         fail(e.message);
@@ -791,4 +908,36 @@ function delayedOfp(ofp: Ofp, ms: number, sched: boolean): Ofp {
         : {}),
     },
   };
+}
+
+function sendReads(step: CompiledScenario['steps'][number], variable: string): boolean {
+  if (step.kind !== 'send') return false;
+  return [step.header, step.body, step.footer].some((t) => t?.vars.includes(variable) === true);
+}
+
+/**
+ * Arrival gate from the OSM data (T13): gates when the airport maps at least 3, else parking
+ * positions; refs in natural order (`A2` < `A10`); one draw of `${seed}/#stands`.
+ */
+export function pickStand(stands: readonly ParkingStand[], seed: number | string): string {
+  const gates = stands.filter((s) => s.kind === 'gate');
+  const pool = (gates.length >= 3 ? gates : stands).map((s) => s.ref);
+  const refs = [...new Set(pool)].sort(naturalCompare);
+  return createRng(`${String(seed)}/#stands`).pick(refs);
+}
+
+/** Digit runs compare as numbers, the rest by char code (locale-free, deterministic). */
+function naturalCompare(a: string, b: string): number {
+  const ta = a.match(/\d+|\D+/g) ?? [];
+  const tb = b.match(/\d+|\D+/g) ?? [];
+  for (let i = 0; i < Math.min(ta.length, tb.length); i++) {
+    const x = ta[i] as string;
+    const y = tb[i] as string;
+    if (x === y) continue;
+    const nx = /^\d/.test(x);
+    const ny = /^\d/.test(y);
+    if (nx && ny) return Number(x) - Number(y) || (x < y ? -1 : 1);
+    return x < y ? -1 : 1;
+  }
+  return ta.length - tb.length;
 }

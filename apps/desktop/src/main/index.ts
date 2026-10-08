@@ -15,6 +15,7 @@ import {
 import { type AppState, IPC } from '../shared/api.js';
 import type { SocketLike } from './bridge.js';
 import { AppController } from './controller.js';
+import { FileDataCache } from './data-cache.js';
 import { registerIpc } from './ipc.js';
 import { fileRecordings } from './recording.js';
 import { BASE_SCENARIOS } from './scenario-sources.js';
@@ -130,6 +131,7 @@ async function main(): Promise<void> {
       if (error !== '') throw new Error(error);
     },
     onChange,
+    dataCache: new FileDataCache(join(userData, 'cache')),
   });
   const ctl = controller;
   registerIpc(ipcMain, ctl, isTrustedSender);

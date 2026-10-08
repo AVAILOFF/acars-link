@@ -1,5 +1,5 @@
-# REQ WX <ICAO> (without an airport: the destination). Until METAR fetching (T13) only the
-# airports of the OFP have weather: the METAR SimBrief put into it, and the message says so.
+# REQ WX <ICAO> (without an airport: the destination) without live weather (T13 data off or
+# unavailable): the METAR SimBrief put into the OFP, and the message says so.
 id: cmd_req_wx
 version: 1
 category: ops
@@ -10,6 +10,7 @@ trigger:
   command: REQ_WX
 conditions:
   - "cmd.metar != null"
+  - "!cmd.wx_live"
 steps:
   - send:
       header: WX {cmd.icao}

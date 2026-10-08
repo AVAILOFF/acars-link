@@ -1,0 +1,21 @@
+# No VATSIM ATC at the destination: uncontrolled, use UNICOM (VATSIM 122.800).
+id: vatsim_atc_none
+version: 1
+category: external
+title: VATSIM no ATC at destination
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 80 }
+conditions:
+  - "flight.divert == null"
+  - "phase in ['CLIMB','CRUISE']"
+  - "ext.dest_atc_count == 0"
+priority: 0
+steps:
+  - send:
+      header: VATSIM ATC {ofp.dest}
+      body: |
+        NO ATC ONLINE AT {ofp.dest}
+        USE UNICOM 122.800
+        CHECK AGAIN BEFORE APPROACH

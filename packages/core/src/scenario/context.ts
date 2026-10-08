@@ -1,3 +1,10 @@
+import {
+  ATC_MAX_AGE_MS,
+  type ExtState,
+  liveWx,
+  type RoutePolyline,
+  sortStations,
+} from '../ext/data.js';
 import { distanceNm, type LatLon } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';
 import type { FlightPhase, OooiKind } from '../phase/fsm.js';
@@ -9,8 +16,8 @@ import type { FlightData } from './ops-data.js';
  * Variables visible to scenario conditions and templates (docs/05: `ofp.*`, `tm.*`,
  * `phase`, `flight.*`, `aircraft.*`; `load.*` and `ops.*` from `ops-data.ts`, T07).
  * Names are snake_case and stable: scenarios depend on them. Masses kg, times epoch ms
- * UTC, distances NM, durations minutes. `wx.*` / `ext.*` arrive with the data adapters
- * (T13); until then `ofp.*_metar` is the METAR SimBrief put into the OFP.
+ * UTC, distances NM, durations minutes. `wx.*` / `ext.*` come from the data adapters
+ * (T13, `ext/data.ts`); `ofp.*_metar` stays the METAR SimBrief put into the OFP.
  */
 export const CONTEXT_VARIABLES = [
   'phase',
@@ -118,6 +125,36 @@ export const CONTEXT_VARIABLES = [
   'cmd.minutes',
   'cmd.reason',
   'cmd.metar',
+  'cmd.taf',
+  'cmd.wx_live',
+  'cmd.wx_obs',
+  // weather (T13): `*_metar` live METAR, else the OFP one; `*_live` true for a live one;
+  // `*_obs` its observation time; `*_taf` live TAF only
+  'wx.orig_metar',
+  'wx.orig_taf',
+  'wx.orig_live',
+  'wx.orig_obs',
+  'wx.dest_metar',
+  'wx.dest_taf',
+  'wx.dest_live',
+  'wx.dest_obs',
+  'wx.altn_metar',
+  'wx.altn_taf',
+  'wx.altn_live',
+  'wx.altn_obs',
+  // VATSIM (T13): `*_atc` lines `CALLSIGN FREQ`, null when none online or no data;
+  // `*_atc_count` null without data
+  'ext.orig_atc',
+  'ext.orig_atc_count',
+  'ext.dest_atc',
+  'ext.dest_atc_count',
+  'ext.dest_atis',
+  // the next natural event (EONET) ahead on the route, within 150 NM of it
+  'ext.event_id',
+  'ext.event_title',
+  'ext.event_category',
+  'ext.event_ahead_nm',
+  'ext.event_off_nm',
   // final load (ops-data.ts)
   'load.pax',
   'load.pax_lmc',
@@ -196,6 +233,9 @@ export interface ContextInput {
   readonly divert?: string | null;
   /** Ids of the scenarios that sent something in this flight, first send first. */
   readonly sent?: readonly string[];
+  /** External data (T13). */
+  readonly ext?: ExtState;
+  readonly polyline?: RoutePolyline;
 }
 
 /** Per-run variables (`reply.*`, `cmd.*`): null in the shared context, set by the engine. */
@@ -210,6 +250,9 @@ export const RUN_VARIABLES = [
   'cmd.minutes',
   'cmd.reason',
   'cmd.metar',
+  'cmd.taf',
+  'cmd.wx_live',
+  'cmd.wx_obs',
 ] as const satisfies readonly ContextVariable[];
 export type RunVariable = (typeof RUN_VARIABLES)[number];
 
@@ -333,6 +376,10 @@ export function buildContext(input: ContextInput): ScenarioContext {
     'cmd.minutes': null,
     'cmd.reason': null,
     'cmd.metar': null,
+    'cmd.taf': null,
+    'cmd.wx_live': null,
+    'cmd.wx_obs': null,
+    ...extVariables(input),
     'load.pax': load.pax,
     'load.pax_lmc': load.paxLmc,
     'load.cargo_kg': load.cargoKg,
@@ -352,5 +399,88 @@ export function buildContext(input: ContextInput): ScenarioContext {
     'ops.next_flight': ops.nextFlight,
     'ops.next_std': ops.nextStd,
     'ops.cabin_crew': ops.cabinCrew,
+  };
+}
+
+const EVENT_CATEGORY: Readonly<Record<string, string>> = {
+  severeStorms: 'SEVERE STORM',
+  wildfires: 'WILDFIRE',
+  volcanoes: 'VOLCANO',
+  earthquakes: 'EARTHQUAKE',
+  manmade: 'MANMADE EVENT',
+  dustHaze: 'DUST AND HAZE',
+  floods: 'FLOOD',
+};
+
+type ExtVariable = Extract<ContextVariable, `wx.${string}` | `ext.${string}`>;
+
+/** `wx.*` and `ext.*` from the external data (T13); null where there is none. */
+function extVariables(input: ContextInput): Record<ExtVariable, Value> {
+  const { ofp, now, ext, telemetry: tm } = input;
+  const wx = (icao: string | null, ofpMetar: string | null) => {
+    const live = ext === undefined ? null : liveWx(ext, icao, now);
+    return {
+      metar: live?.metar ?? ofpMetar,
+      taf: live?.taf ?? null,
+      live: live?.metar != null,
+      obs: live?.metar != null ? live.obsTime : null,
+    };
+  };
+  const o = wx(ofp.origin.icao, ofp.origin.metar);
+  const d = wx(ofp.destination.icao, ofp.destination.metar);
+  const altn = ofp.alternates[0];
+  const a = wx(altn?.icao ?? null, altn?.metar ?? null);
+
+  const atcFresh =
+    ext !== undefined && ext.atc !== null && ext.atcT !== null && now - ext.atcT <= ATC_MAX_AGE_MS;
+  const atc = (icao: string) => {
+    if (!atcFresh) return { lines: null, count: null, atis: null };
+    const list = sortStations(ext.atc?.[icao] ?? []);
+    const lines = list.map((s) => `${s.callsign} ${s.frequency}`).join('\n');
+    const atis = list.find((s) => s.facility === 'ATIS')?.atisCode ?? null;
+    return { lines: lines === '' ? null : lines, count: list.length, atis };
+  };
+  const oAtc = atc(ofp.origin.icao);
+  const dAtc = atc(ofp.destination.icao);
+
+  // The first event ahead of the aircraft (before take-off: from the origin).
+  let ev: { id: string; title: string; category: string; ahead: number; off: number } | null = null;
+  if (ext !== undefined && ext.events.length > 0 && input.polyline !== undefined) {
+    const flown = tm === null ? 0 : input.polyline.locate(tm).alongNm;
+    const next = ext.events.find((e) => e.alongNm >= flown);
+    if (next !== undefined) {
+      ev = {
+        id: next.id,
+        title: next.title,
+        category: EVENT_CATEGORY[next.category] ?? next.category.toUpperCase(),
+        ahead: next.alongNm - flown,
+        off: next.offNm,
+      };
+    }
+  }
+
+  return {
+    'wx.orig_metar': o.metar,
+    'wx.orig_taf': o.taf,
+    'wx.orig_live': o.live,
+    'wx.orig_obs': o.obs,
+    'wx.dest_metar': d.metar,
+    'wx.dest_taf': d.taf,
+    'wx.dest_live': d.live,
+    'wx.dest_obs': d.obs,
+    'wx.altn_metar': a.metar,
+    'wx.altn_taf': a.taf,
+    'wx.altn_live': a.live,
+    'wx.altn_obs': a.obs,
+    'ext.orig_atc': oAtc.lines,
+    'ext.orig_atc_count': oAtc.count,
+    'ext.dest_atc': dAtc.lines,
+    'ext.dest_atc_count': dAtc.count,
+    'ext.dest_atis': dAtc.atis,
+    'ext.event_id': ev?.id ?? null,
+    'ext.event_title': ev?.title ?? null,
+    'ext.event_category': ev?.category ?? null,
+    'ext.event_ahead_nm': ev?.ahead ?? null,
+    'ext.event_off_nm': ev?.off ?? null,
   };
 }

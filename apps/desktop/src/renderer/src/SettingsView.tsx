@@ -186,6 +186,18 @@ function NetworkForm() {
         </div>
         <p className="hint">{t('set.recordHint')}</p>
       </div>
+      <div className="field">
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={settings.liveData}
+            disabled={busy !== null}
+            onChange={(e) => void update({ liveData: e.currentTarget.checked })}
+          />
+          {t('set.liveData')}
+        </label>
+        <p className="hint">{t('set.liveDataHint')}</p>
+      </div>
       <form onSubmit={submit}>
         <div className="field">
           <label htmlFor="station">{t('set.station')}</label>

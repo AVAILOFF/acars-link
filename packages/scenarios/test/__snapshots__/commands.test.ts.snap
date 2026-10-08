@@ -32,8 +32,8 @@ WX AS OF OFP RELEASE",
 WX KJFK
 ------------------------
 NO WX AVBL FOR KJFK
-WX ONLY FOR ORIG DEST
-ALTN",
+CHECK ICAO CODE OR RETRY
+LATER",
   "2026-10-08T07:11:04.000Z cmd_eta_ground
 ETA RJBB
 ------------------------

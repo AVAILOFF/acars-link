@@ -7,6 +7,7 @@
 export const CORE_PACKAGE = '@acars/core';
 
 export * from './core.js';
+export * from './ext/data.js';
 export * from './format/formatter.js';
 export * from './format/profile.js';
 export * from './geo/geo.js';

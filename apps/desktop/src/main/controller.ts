@@ -5,6 +5,7 @@ import {
   stationCallsign,
   type TelemetrySnapshot,
 } from '@acars/core';
+import { type DataCache, ExternalDataService } from '@acars/data-sources';
 import { loadScenarios, ScenarioLoadError } from '@acars/scenarios';
 import type { HttpClient, Transport } from '@acars/transport';
 import type {
@@ -53,7 +54,12 @@ export interface AppControllerOptions {
   readonly revealRecordings: () => Promise<void>;
   /** Called when the state may have changed (debounce/compare on the caller side). */
   readonly onChange: () => void;
+  /** Cache of the external data (T13); default in memory. */
+  readonly dataCache?: DataCache;
 }
+
+/** Identifies the app to aviationweather.gov, VATSIM, NASA and Overpass (they ask for it). */
+export const DATA_USER_AGENT = 'ACARS-Sim/0.1 (flight simulator ACARS; personal use)';
 
 /** Hoppie logon codes: printable ASCII without spaces (they go into a URL/form field). */
 const LOGON_RE = /^[\x21-\x7e]{4,64}$/;
@@ -70,8 +76,15 @@ export class AppController {
   private session: FlightSession | null = null;
   /** `per_session` cooldowns live as long as the app (docs/05). */
   private sessionFired: readonly string[] = [];
+  /** External data (T13): prefetches for the loaded OFP, feeds the running flight. */
+  private readonly data: ExternalDataService;
 
   constructor(private readonly o: AppControllerOptions) {
+    this.data = new ExternalDataService({
+      http: o.http,
+      userAgent: DATA_USER_AGENT,
+      ...(o.dataCache === undefined ? {} : { cache: o.dataCache }),
+    });
     this.bridge = new BridgeClient({
       port: 0,
       createSocket: o.createSocket,
@@ -97,12 +110,14 @@ export class AppController {
 
   dispose(): void {
     this.bridge.stop();
+    this.data.stopFlight();
     this.session?.stop(this.o.now());
     this.session = null;
   }
 
   /** Main loop, ~1 Hz. */
   tick(now: number): void {
+    this.data.tick(now, this.session?.phase ?? null);
     this.session?.tick(now);
     this.o.onChange();
   }
@@ -129,7 +144,10 @@ export class AppController {
   async updateSettings(patch: SettingsPatch): Promise<Settings> {
     const s = await this.o.settings.update(patch);
     this.bridge.setPort(s.bridgePort);
-    if (this.ofp !== null && this.session === null) this.flight = this.summary(this.ofp, s);
+    if (this.ofp !== null && this.session === null) {
+      this.flight = this.summary(this.ofp, s);
+      this.prefetch(this.ofp, s);
+    }
     this.o.onChange();
     return s;
   }
@@ -197,8 +215,15 @@ export class AppController {
     const summary = this.summary(ofp, await this.o.settings.get());
     this.ofp = ofp;
     this.flight = summary;
+    this.prefetch(ofp, await this.o.settings.get());
     this.o.onChange();
     return summary;
+  }
+
+  /** Starts fetching the live data of an OFP before the flight starts (T13), if enabled. */
+  private prefetch(ofp: Ofp, settings: Settings): void {
+    if (settings.liveData) this.data.startFlight(ofp, this.o.now());
+    else this.data.stopFlight();
   }
 
   async startFlight(): Promise<null> {
@@ -220,6 +245,7 @@ export class AppController {
       (c) => settings.scenarios[c.id] ?? c.def.enabled_by_default,
     );
     const now = this.o.now();
+    this.prefetch(ofp, settings);
     let recording: RecordingSink | null = null;
     if (settings.recordFlights && this.o.openRecording !== null) {
       try {
@@ -240,6 +266,7 @@ export class AppController {
       sessionFired: this.sessionFired,
       now,
       recording,
+      data: settings.liveData ? this.data : null,
     });
     this.flight = flight;
     this.o.onChange();
@@ -250,6 +277,7 @@ export class AppController {
     const s = this.session;
     if (s === null) throw new AppFailure('bad_state', 'no flight running');
     s.stop(this.o.now());
+    this.data.stopFlight();
     this.sessionFired = s.sessionFired;
     this.session = null;
     this.o.onChange();

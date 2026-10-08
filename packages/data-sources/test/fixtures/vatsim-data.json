@@ -1,0 +1,185 @@
+{
+  "general": {
+    "version": 3,
+    "update_timestamp": "2026-10-08T14:09:12.2620528Z"
+  },
+  "pilots": [],
+  "controllers": [
+    {
+      "callsign": "EGLL_N_APP",
+      "frequency": "119.730",
+      "facility": 5,
+      "visual_range": 100,
+      "text_atis": [
+        "Heathrow Director - PDC [EGLL]",
+        "INITIAL CLIMB ALTITUDE 6000 FEET",
+        "Submit feedback at vatsim.uk/atcfb?cid=1424497 | Pilot brief at vats.im/EGLL-brief"
+      ]
+    },
+    {
+      "callsign": "MUM_OBS",
+      "frequency": "199.998",
+      "facility": 0,
+      "visual_range": 50,
+      "text_atis": [
+        "Select an appropriate Callsign from the dropdown before connecting.",
+        "*** DO NOT CONNECT WITH THIS SELECTION!***"
+      ]
+    },
+    {
+      "callsign": "BA552",
+      "frequency": "199.998",
+      "facility": 0,
+      "visual_range": 40,
+      "text_atis": null
+    },
+    {
+      "callsign": "ENBD_E_CTR",
+      "frequency": "126.705",
+      "facility": 6,
+      "visual_range": 310,
+      "text_atis": [
+        "Polaris Control - Sector 26",
+        "Check where I cover at vats.im/ENOR",
+        "Feedback welcome at vatsca.org/feedback"
+      ]
+    },
+    {
+      "callsign": "EDDF_TWR",
+      "frequency": "119.905",
+      "facility": 4,
+      "visual_range": 50,
+      "text_atis": ["SYNTHETIC TEST STATION"]
+    },
+    {
+      "callsign": "EDDF_N_APP",
+      "frequency": "120.805",
+      "facility": 5,
+      "visual_range": 50,
+      "text_atis": ["SYNTHETIC TEST STATION"]
+    },
+    {
+      "callsign": "EDDF_DEL",
+      "frequency": "121.905",
+      "facility": 2,
+      "visual_range": 50,
+      "text_atis": ["SYNTHETIC TEST STATION"]
+    },
+    {
+      "callsign": "JFK_TWR",
+      "frequency": "119.100",
+      "facility": 4,
+      "visual_range": 50,
+      "text_atis": ["SYNTHETIC TEST STATION"]
+    },
+    {
+      "callsign": "KJFK_GND",
+      "frequency": "121.905",
+      "facility": 3,
+      "visual_range": 50,
+      "text_atis": ["SYNTHETIC TEST STATION"]
+    },
+    {
+      "callsign": "RJBB_TWR",
+      "frequency": "118.200",
+      "facility": 4,
+      "visual_range": 50,
+      "text_atis": ["SYNTHETIC TEST STATION"]
+    },
+    {
+      "callsign": "KIX_APP",
+      "frequency": "120.250",
+      "facility": 5,
+      "visual_range": 50,
+      "text_atis": ["SYNTHETIC TEST STATION"]
+    },
+    {
+      "callsign": "EDDF_X_SUP",
+      "frequency": "199.998",
+      "facility": 4,
+      "visual_range": 50,
+      "text_atis": ["SYNTHETIC TEST STATION"]
+    }
+  ],
+  "atis": [
+    {
+      "callsign": "OIIE_ATIS",
+      "frequency": "127.200",
+      "facility": 4,
+      "visual_range": 50,
+      "atis_code": "R",
+      "text_atis": [
+        "OIIE, INFO R, 1330Z,",
+        "EXPECT ILS APPROACH RUNWAY 29R,",
+        "RUNWAY 29R FOR ARRIVAL AND DEPARTURE,",
+        "TRANSITION LEVEL 110,",
+        "34010KT 9000 VCTS FEW035 SCT040 BKN100 30/04 Q1023,",
+        "INTERNATIONAL FLIGHTS ONLY. NO DOMESTIC TRAFFIC.",
+        "CAUTION BIRD ACTIVITY ON THE RUNWAY.",
+        "NOTAMS... DVOR IKA FREQ 114.300 MHZ U/S AND SUBSEQUENTLY REQUIRED FLTCK. ALSO ALL SID, STAR AND IAP BASE ON MENTIONED SYSTEM TEMPORARILY SUSPENDED.",
+        "ACKNOWLEDGE INFORMATION R"
+      ]
+    },
+    {
+      "callsign": "ENAT_ATIS",
+      "frequency": "118.180",
+      "facility": 4,
+      "visual_range": 0,
+      "atis_code": "K",
+      "text_atis": [
+        "THIS IS ALTA INFORMATION KILO .. TIME 1350 .. EXPECT ILS",
+        "APPROACH RUNWAY 11 CIRCLING RUNWAY 29 .. RUNWAY IN USE 29 ..",
+        "TRANSITION LEVEL 85 .. FOR CLEARANCE AND START UP, CONTACT",
+        "POLARIS CONTROL 126.705 .. WIND 330 DEGREES 9 KNOTS ..",
+        "VISIBILITY 10 KILOMETERS OR MORE .. CLOUDS SCT 2600 FT BKN 3700",
+        "FT .. TMP 5 DP 1 .. QNH 1004 .. REMARK WIND 700FT 310 DEGREES 8",
+        "KNOTS."
+      ]
+    },
+    {
+      "callsign": "EDDF_ATIS",
+      "frequency": "118.025",
+      "facility": 4,
+      "atis_code": "k",
+      "text_atis": ["SYNTHETIC"]
+    }
+  ],
+  "facilities": [
+    {
+      "id": 0,
+      "short": "OBS",
+      "long": "Observer"
+    },
+    {
+      "id": 1,
+      "short": "FSS",
+      "long": "Flight Service Station"
+    },
+    {
+      "id": 2,
+      "short": "DEL",
+      "long": "Clearance Delivery"
+    },
+    {
+      "id": 3,
+      "short": "GND",
+      "long": "Ground"
+    },
+    {
+      "id": 4,
+      "short": "TWR",
+      "long": "Tower"
+    },
+    {
+      "id": 5,
+      "short": "APP",
+      "long": "Approach/Departure"
+    },
+    {
+      "id": 6,
+      "short": "CTR",
+      "long": "Enroute"
+    }
+  ],
+  "_note": "Trimmed and anonymized VATSIM data feed v3 (2026-10-08): no names/CIDs; *_TWR/APP/DEL/GND of EDDF, KJFK, RJBB are synthetic."
+}

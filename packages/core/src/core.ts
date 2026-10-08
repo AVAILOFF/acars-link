@@ -1,3 +1,4 @@
+import type { ExtDataUpdate, ExtState } from './ext/data.js';
 import type { DisplayProfile } from './format/profile.js';
 import type { Ofp } from './ofp/types.js';
 import {
@@ -30,6 +31,8 @@ export interface CoreInput {
   readonly telemetry: TelemetrySnapshot | null;
   /** Messages from the aircraft since the last tick, oldest first (T12). */
   readonly inbound?: readonly PilotMessage[];
+  /** External data fetched since the last tick (T13, `ext/data.ts`). */
+  readonly data?: ExtDataUpdate;
 }
 
 export interface CoreOutput {
@@ -47,6 +50,8 @@ export interface CoreOptions {
   readonly station?: string;
   readonly sessionFired?: readonly string[];
   readonly phaseConfig?: Partial<PhaseConfig>;
+  /** `REQ WX` wait for fetched weather, ms (T13); 0 = no live data source. */
+  readonly dataWaitMs?: number;
 }
 
 export interface CoreState {
@@ -90,6 +95,11 @@ export class AcarsCore {
     return this.engine.delayMs;
   }
 
+  /** External data the core holds (T13). */
+  get ext(): ExtState {
+    return this.engine.ext;
+  }
+
   getState(): CoreState {
     return { v: 1, phase: this.fsm.getState(), engine: this.engine.getState() };
   }
@@ -115,6 +125,7 @@ export class AcarsCore {
         ...this.fsm.tick(input.now),
       ],
       input.inbound ?? [],
+      input.data,
     );
   }
 
@@ -122,6 +133,7 @@ export class AcarsCore {
     now: number,
     phaseEvents: readonly PhaseEvent[],
     inbound: readonly PilotMessage[] = [],
+    data?: ExtDataUpdate,
   ): CoreOutput {
     const out = this.engine.tick({
       now,
@@ -132,6 +144,7 @@ export class AcarsCore {
       flightTimeMs: this.fsm.flightTimeMs,
       telemetryLost: this.fsm.telemetryLost,
       inbound,
+      ...(data === undefined ? {} : { data }),
     });
     return {
       outbound: out.outbound,
@@ -149,5 +162,6 @@ function engineOptions(o: CoreOptions) {
     ...(o.profile === undefined ? {} : { profile: o.profile }),
     ...(o.station === undefined ? {} : { station: o.station }),
     ...(o.sessionFired === undefined ? {} : { sessionFired: o.sessionFired }),
+    ...(o.dataWaitMs === undefined ? {} : { dataWaitMs: o.dataWaitMs }),
   };
 }

@@ -51,14 +51,26 @@
 
 | Источник | Для чего | Ключ | Заметки |
 |---|---|---|---|
-| aviationweather.gov Data API | METAR/TAF | нет | `[ПРОВЕРИТЬ]` текущие endpoints |
-| VATSIM data feed v3 / `api.vatsim.net/v2/atc/online` | онлайн ATC | нет | |
+| aviationweather.gov Data API | METAR/TAF | нет | сверено 2026-10-08 (T13), ниже |
+| VATSIM data feed v3 | онлайн ATC | нет | сверено 2026-10-08 (T13), ниже |
 | IVAO whazzup | онлайн ATC | `[ПРОВЕРИТЬ]` | |
-| NASA EONET v3 | стихийные события | нет | оригинал фильтрует severeStorms, earthquakes, manmade, volcanoes, wildfires |
+| NASA EONET v3 | стихийные события | нет | сверено 2026-10-08 (T13), ниже |
 | TheSpaceDevs LL 2.2.0 | пуски ракет | нет, жёсткий rate limit | кэшировать |
-| Overpass API (OSM) | стоянки и гейты аэропорта (`aeroway=parking_position/gate`) | нет | кэшировать, уважать лимиты |
+| Overpass API (OSM) | стоянки и гейты аэропорта (`aeroway=parking_position/gate`) | нет | T13, ниже; живой ответ `[ПРОВЕРИТЬ]` |
 | FAA NOTAM API | NOTAM | да | только через бэкенд |
 | AeroDataBox (RapidAPI) | реальное расписание прилётов | да, платно | только через бэкенд, опционально |
 | OpenAI / Anthropic | оживление текста | да | только через бэкенд, см. CLAUDE.md инвариант 8 |
 
 Все адаптеры: таймаут, кэш, graceful degradation (сценарий, которому не хватило данных, пропускается или использует фолбэк-шаблон).
+
+### Реализация (T13)
+
+Пакет `packages/data-sources` (`@acars/data-sources`): парсеры, `ExternalDataService` (расписание, кэш, деградация), без Node API (HTTP — через `HttpClient` той же формы, что у транспорта). Ответы проверены запросами 2026-10-08; урезанные фикстуры — `packages/data-sources/test/fixtures/` (VATSIM — без имён и CID, станции EDDF/KJFK/RJBB синтетические).
+
+- **aviationweather.gov**: `GET https://aviationweather.gov/api/data/metar?ids=A,B&format=json` → `[{icaoId, obsTime (epoch с), rawOb, …}]`; `…/taf?…` → `[{icaoId, rawTAF, mostRecent, …}]`; **204** — данных нет. Лимит **100 запросов/мин**, просят свой User-Agent; METAR обычно раз в час, TAF раз в несколько часов. Из `rawOb` убираем `METAR `/`SPECI ` и флаг `$` (форматтер превратил бы его в `USD`).
+- **VATSIM**: URL фида — из `https://status.vatsim.net/status.json` → `https://data.vatsim.net/v3/vatsim-data.json` (~1,5 МБ, обновляется раз в 15 с). `controllers[]`/`atis[]`: `callsign`, `frequency`, `facility` (0 OBS, 1 FSS, 2 DEL, 3 GND, 4 TWR, 5 APP, 6 CTR), `atis_code`. Берём DEL/GND/TWR/APP/ATIS на частотах 118–137 МГц (199.998 — «без частоты»); имена и CID не сохраняются. Аэропорт станции — по префиксу позывного: ICAO, IATA, для `K…` ICAO без `K` (`MCI_TWR`) `[ПРОВЕРИТЬ]` другие местные соглашения. `_` в позывных форматтер показывает как `-`.
+- **EONET**: `GET https://eonet.gsfc.nasa.gov/api/v3/events?status=open&days=N&category=a,b` (категории через запятую — ИЛИ). Без `days` «открытых» событий тысячи (старые пожары), поэтому два запроса: `severeStorms,wildfires,earthquakes,manmade` за 30 дней и `volcanoes` за 365. Позиция — последняя геометрия; `Point` — `[lon, lat]`, `Polygon` — центр вершин.
+- **Overpass**: `POST https://overpass-api.de/api/interpreter`, `data=[out:json][timeout:25];nw["aeroway"~"^(gate|parking_position)$"](around:4000,LAT,LON);out tags;`, берётся тег `ref` (`A12;A13` → два, `Gate 5` → `5`). Правила: < 10 000 запросов и < 1 ГБ в сутки. Во время T13 публичный сервер и зеркала отвечали 504/500 — **формат живого ответа `[ПРОВЕРИТЬ]`**, фикстура синтетическая.
+- **Расписание** (`ExternalDataService` тикает от главного цикла приложения, своих таймеров нет): погода аэропортов OFP — при загрузке OFP и каждые 10 мин (+ аэропорт из `REQ WX` сразу); VATSIM — при старте и каждые 5 мин от набора до захода; EONET — при старте и раз в час; стоянки — один раз. Кэш: погода 5 мин, VATSIM 1 мин, EONET 30 мин, стоянки 30 дней; в приложении — файлы в `<userData>/cache` (значения проверяются при чтении). После сбоя — повтор через 2/2/15/10 мин, стоянки — не более 3 попыток за рейс. Один запрос на источник одновременно. Сбой источника — одна запись в ленте (`data_failed`), восстановление — `data_restored`; сообщения при этом идут по OFP.
+- User-Agent: `ACARS-Sim/0.1 (flight simulator ACARS; personal use)`. Настройка «Живые данные» (по умолчанию включена); выключено — в сеть ходят только SimBrief и Hoppie.
+- Не сделано в T13: TheSpaceDevs (пуски), IVAO, FAA NOTAM, AeroDataBox.

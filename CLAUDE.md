@@ -56,6 +56,8 @@ pnpm bridge:test      # dotnet test bridge/msfs — при изменениях 
 
 `apps/desktop` — Electron 44 + electron-vite 5 (Vite 7: electron-vite не поддерживает Vite 8) + React 19 + Zustand. Main-процесс собирает пакеты воркспейса в один бандл; preload — один CJS-файл (sandbox). Renderer не импортирует Node/Electron/транспорт (правило Biome) и общается с main только через `window.acars`. Логика без Electron — `src/main/controller.ts`, тесты в `apps/desktop/test`. Бинарник Electron скачивается при первом запуске.
 
+`packages/data-sources` (`@acars/data-sources`) — адаптеры внешних данных (T13): METAR/TAF, VATSIM, EONET, стоянки OSM; без Node API, HTTP через инъекцию. Ядро получает данные только как вход `CoreInput.data` (пишется в запись полёта). Сценарии на живых данных — `packages/scenarios/external/`.
+
 `tools/replay` (`@acars/replay`) — формат записи полёта (JSONL: заголовок с OFP и опциями ядра, затем входы ядра по порядку), прогон через ядро, CLI. Приложение пишет запись каждого полёта в `<userData>/recordings` (настройка «Записывать полёты», хранятся последние 20).
 
 Пакеты воркспейса импортируют друг друга из исходников: условие экспорта `source` (`customConditions` в `tsconfig.base.json`, `resolve.conditions` в `vitest.config.ts`), сборка для тестов не нужна. `pnpm -F <pkg> test` запускает корневой конфиг Vitest с `--project`.

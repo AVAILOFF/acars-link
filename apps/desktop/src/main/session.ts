@@ -10,6 +10,7 @@ import {
   stationCallsign,
   type TelemetrySnapshot,
 } from '@acars/core';
+import type { DataSourceKind, ExternalDataService } from '@acars/data-sources';
 import { encodeLine, type RecordingEvent, recordingHeader } from '@acars/replay';
 import type { Transport, TransportStatus } from '@acars/transport';
 import type { TelemetryView, TransportView } from '../shared/api.js';
@@ -25,6 +26,9 @@ import type { RecordingSink } from './recording.js';
  * `pnpm replay` plays back through the core in the same order.
  * Pilot telexes (T12) — received by the transport or typed in the app — go to the core with the
  * next tick; a scenario waiting for an answer makes the transport poll faster for a while.
+ * External data (T13) fetched by the data service goes to the core with the first tick of a
+ * batch, into the recording too; the core's `DATA_REQUEST` (`REQ WX` of an unknown airport)
+ * asks the service to fetch it.
  */
 
 export interface FlightSessionOptions {
@@ -38,7 +42,20 @@ export interface FlightSessionOptions {
   readonly sessionFired: readonly string[];
   readonly now: number;
   readonly recording?: RecordingSink | null;
+  /** Live data (T13); null when the user turned it off. Ticked by the controller. */
+  readonly data?: ExternalDataService | null;
 }
+
+/** Names of the data sources in the feed (proper names, the same in every language). */
+const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
+  wx: 'METAR/TAF (aviationweather.gov)',
+  vatsim: 'VATSIM',
+  eonet: 'NASA EONET',
+  stands: 'OSM stands (Overpass)',
+};
+
+/** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */
+export const DATA_WAIT_MS = 60_000;
 
 /** Snapshots kept while the main loop is late; older ones are dropped. */
 const MAX_QUEUE = 120;
@@ -61,6 +78,7 @@ export class FlightSession {
   private stopped = false;
   private delayReported = false;
   private recording: RecordingSink | null;
+  private readonly data: ExternalDataService | null;
 
   constructor(o: FlightSessionOptions) {
     this.core = AcarsCore.create({
@@ -69,7 +87,9 @@ export class FlightSession {
       profile: o.profile,
       station: o.stationTemplate,
       sessionFired: o.sessionFired,
+      ...(o.data == null ? {} : { dataWaitMs: DATA_WAIT_MS }),
     });
+    this.data = o.data ?? null;
     this.callsign = o.ofp.callsign;
     this.station = stationCallsign(o.stationTemplate, o.ofp);
     this.transport = o.transport;
@@ -85,6 +105,7 @@ export class FlightSession {
         profile: o.profile,
         scenarios: o.scenarios.map((c) => c.id),
         sessionFired: o.sessionFired,
+        ...(o.data == null ? {} : { dataWaitMs: DATA_WAIT_MS }),
       }),
     );
     this.core.startFlight();
@@ -153,11 +174,21 @@ export class FlightSession {
     if (this.stopped) return;
     const batch: (TelemetrySnapshot | null)[] = this.queue.splice(0);
     if (batch.length === 0) batch.push(null);
+    const fetched = this.data?.take(now) ?? { update: null, notes: [] };
+    for (const n of fetched.notes) {
+      const source = DATA_SOURCE_NAMES[n.source];
+      if (n.ok) this.feed.system(n.t, 'data_restored', { source });
+      else this.feed.system(n.t, 'data_failed', { source, error: n.error ?? '' });
+    }
     batch.forEach((s, i) => {
       if (s !== null) this.last = s;
-      // Pilot telexes go with the first tick of the batch.
+      // Pilot telexes and fetched data go with the first tick of the batch.
       const inbound = i === 0 ? this.inbound.splice(0) : [];
-      const more = inbound.length > 0 ? { inbound } : {};
+      const data = i === 0 ? fetched.update : null;
+      const more = {
+        ...(inbound.length > 0 ? { inbound } : {}),
+        ...(data === null ? {} : { data }),
+      };
       this.record({ type: 'tick', now, telemetry: s, ...more });
       this.apply(this.core.tick({ now, telemetry: s, ...more }), now);
     });
@@ -245,6 +276,9 @@ export class FlightSession {
         case 'REPLY_EXPECTED':
           // The transport caps this itself (Hoppie: 3 min of faster polling).
           this.transport.expectReply(e.timeoutMs);
+          break;
+        case 'DATA_REQUEST':
+          this.data?.requestWx(e.icao);
           break;
         case 'REPLY_TIMEOUT':
           this.feed.system(e.t, 'reply_timeout', { id: e.id, option: e.option });

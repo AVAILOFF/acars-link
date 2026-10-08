@@ -1,4 +1,4 @@
-# Departure data from the OFP. No V-speeds: the OFP has none, numbers are never invented.
+# Departure data from the OFP; weather live when the app has it (T13), else the OFP METAR. No V-speeds: the OFP has none, numbers are never invented.
 id: takeoff_data
 version: 1
 category: docs
@@ -21,5 +21,5 @@ steps:
         TOW {ofp.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
         TOF {ofp.fuel_takeoff_kg|kg1}
         CRZ FL{ofp.cruise_fl} CI {ofp.cost_index}
-        WX {ofp.orig_metar}
+        WX {wx.orig_metar}
       footer: VERIFY PERF ON EFB

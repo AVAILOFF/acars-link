@@ -1,0 +1,24 @@
+# Destination and alternate weather before TOD from live METAR/TAF (T13, aviationweather.gov).
+# Without live data for the destination the base `dest_weather` (OFP METAR) goes instead.
+id: dest_weather_live
+version: 1
+category: ops
+title: Destination weather before TOD (live)
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 200 }
+conditions:
+  - "flight.divert == null"
+  - "phase in ['CLIMB','CRUISE']"
+  - "wx.dest_live"
+priority: 3
+steps:
+  - send:
+      header: DEST WX {ofp.dest}
+      body: |
+        {wx.dest_metar}
+        {wx.dest_taf|or:NO TAF AVBL}
+        ---
+        ALTN {ofp.altn}
+        {wx.altn_metar|or:NO METAR AVBL}

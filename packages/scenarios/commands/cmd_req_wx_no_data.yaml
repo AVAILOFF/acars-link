@@ -1,4 +1,5 @@
-# REQ WX for an airport that is not in the OFP (no live weather before T13).
+# REQ WX for an airport without weather: not in the OFP and no live report (T13 data off,
+# the API had none, or the fetch failed).
 id: cmd_req_wx_no_data
 version: 1
 category: ops
@@ -14,4 +15,4 @@ steps:
       header: WX {cmd.icao}
       body: |
         NO WX AVBL FOR {cmd.icao}
-        WX ONLY FOR ORIG DEST ALTN
+        CHECK ICAO CODE OR RETRY LATER

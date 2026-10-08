@@ -380,3 +380,46 @@ describe('pilot telexes in a recording (T12)', () => {
     ).toThrow(/inbound/);
   });
 });
+
+describe('external data in a recording (T13)', () => {
+  it('tick lines carry data; replay passes it to the core; bad data is rejected', () => {
+    const gateMsg = {
+      file: 'gate.yaml',
+      source: [
+        'id: gate_now',
+        'version: 1',
+        'category: ops',
+        'title: gate',
+        'enabled_by_default: true',
+        'trigger: { on: phase_enter, phase: CRUISE }',
+        'steps: [{ send: { body: "GATE {ops.arr_gate} {wx.dest_live}" } }]',
+      ].join('\n'),
+    };
+    const scenarios = pickScenarios({
+      base: [gateMsg],
+      extra: [],
+      recorded: ['gate_now'],
+    }).scenarios;
+    const t = (normal.events[5] as { now: number }).now;
+    const data = {
+      t,
+      wx: { RJBB: { metar: 'RJBB 080600Z 03008KT Q1018', taf: null, obsTime: t } },
+      stands: { icao: 'RJBB', list: [{ ref: 'K7', kind: 'stand' as const }] },
+    };
+    const events = normal.events.map((e, i) => (i === 5 && e.type === 'tick' ? { ...e, data } : e));
+    const rec: Recording = { ...normal, header: { ...normal.header, dataWaitMs: 60_000 }, events };
+    const parsed = parseJsonl(encodeRecording(rec));
+    if (parsed.kind !== 'recording') throw new Error('not a recording');
+    expect(parsed.recording.header.dataWaitMs).toBe(60_000);
+    const r = replay(parsed.recording, { scenarios });
+    expect(r.outbound.map((m) => m.message.text)).toEqual(['GATE K7 TRUE']);
+    const line = (x: object) => [encodeLine(normal.header).trim(), JSON.stringify(x)].join('\n');
+    expect(() =>
+      parseJsonl(line({ type: 'tick', now: 1, telemetry: null, data: { t: 1, wx: 3 } })),
+    ).toThrow(/line 2: data update: wx/);
+    const [h] = encodeRecording(normal).split('\n');
+    expect(() =>
+      parseJsonl(JSON.stringify({ ...JSON.parse(h as string), dataWaitMs: -1 })),
+    ).toThrow(/dataWaitMs/);
+  });
+});

@@ -184,6 +184,9 @@ importers:
       '@acars/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@acars/data-sources':
+        specifier: workspace:*
+        version: link:../../packages/data-sources
       '@acars/replay':
         specifier: workspace:*
         version: link:../../tools/replay
@@ -222,6 +225,12 @@ importers:
         version: 5.0.15(@types/react@19.3.0)(react@19.3.0)
 
   packages/core: {}
+
+  packages/data-sources:
+    dependencies:
+      '@acars/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/scenarios:
     dependencies:

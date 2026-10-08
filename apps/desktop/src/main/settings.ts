@@ -23,6 +23,7 @@ export function defaultSettings(locale: string): Settings {
     stationTemplate: DEFAULT_STATION,
     bridgePort: DEFAULT_BRIDGE_PORT,
     recordFlights: true,
+    liveData: true,
     scenarios: {},
   };
 }
@@ -59,8 +60,9 @@ export function validatePatch(patch: unknown): SettingsPatch {
         out.bridgePort = value as number;
         break;
       case 'recordFlights':
+      case 'liveData':
         if (typeof value !== 'boolean') throw bad(key, 'true or false');
-        out.recordFlights = value;
+        out[key] = value;
         break;
       default:
         throw bad(key, 'unknown setting');
@@ -74,7 +76,14 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
   if (typeof raw !== 'object' || raw === null) return defaults;
   const r = raw as Record<string, unknown>;
   let s = defaults;
-  const keys = ['language', 'transport', 'stationTemplate', 'bridgePort', 'recordFlights'] as const;
+  const keys = [
+    'language',
+    'transport',
+    'stationTemplate',
+    'bridgePort',
+    'recordFlights',
+    'liveData',
+  ] as const;
   for (const key of keys) {
     if (!(key in r)) continue;
     try {

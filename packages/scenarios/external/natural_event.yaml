@@ -1,0 +1,26 @@
+# A natural event (NASA EONET) near the route ahead: storm, wildfire smoke, volcanic ash.
+# Distances are route distances from the core (T13); one advisory per flight.
+id: natural_event
+version: 1
+category: external
+title: Natural event near the route
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.event_ahead_nm != null"
+  - "ext.event_ahead_nm <= 250"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 15"
+priority: 0
+steps:
+  - send:
+      header: OPS ADVISORY
+      body: |
+        {ext.event_category} REPORTED
+        {ext.event_title}
+        APPROX {ext.event_ahead_nm} NM AHEAD
+        {ext.event_off_nm} NM FROM ROUTE
+        CHECK WX RADAR AND SIGMET
+        DEVIATE AS REQUIRED
+      footer: SOURCE NASA EONET

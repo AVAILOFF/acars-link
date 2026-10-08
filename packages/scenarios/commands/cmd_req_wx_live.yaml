@@ -1,0 +1,18 @@
+# REQ WX <ICAO> with live weather (T13): METAR and TAF from aviationweather.gov. The app
+# fetches any airport the pilot asks for; the core waits up to a minute for it.
+id: cmd_req_wx_live
+version: 1
+category: ops
+title: "Pilot command: REQ WX (live)"
+enabled_by_default: true
+trigger:
+  on: command
+  command: REQ_WX
+conditions:
+  - "cmd.wx_live"
+steps:
+  - send:
+      header: WX {cmd.icao}
+      body: |
+        {cmd.metar}
+        {cmd.taf|or:NO TAF AVBL}

@@ -57,6 +57,7 @@ describe('settings', () => {
       stationTemplate: 'OPS{flight}',
       bridgePort: 47830,
       recordFlights: true,
+      liveData: true,
       scenarios: {},
     });
     expect(defaultSettings('ru-RU').language).toBe('ru');

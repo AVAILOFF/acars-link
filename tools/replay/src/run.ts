@@ -65,6 +65,7 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
     station: o.station ?? h.station,
     sessionFired: h.sessionFired,
     ...(seed === null ? {} : { seed }),
+    ...(h.dataWaitMs === undefined ? {} : { dataWaitMs: h.dataWaitMs }),
     ...(o.phaseConfig === undefined ? {} : { phaseConfig: o.phaseConfig }),
   });
   const timeline: TimelineEntry[] = [];
@@ -119,6 +120,7 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
             now: e.now,
             telemetry: e.telemetry,
             ...(inbound.length > 0 ? { inbound } : {}),
+            ...(e.data === undefined ? {} : { data: e.data }),
           }),
         );
         break;

@@ -15,6 +15,7 @@ import { MESSAGES } from '../src/renderer/src/i18n.js';
 import type { FeedEntry } from '../src/shared/api.js';
 import {
   FakeCipher,
+  FakeHttp,
   FakeTimers,
   OFP_FIXTURE,
   simbriefOk,
@@ -27,7 +28,7 @@ const ofp = parseSimbriefOfp(JSON.parse(await readFile(OFP_FIXTURE, 'utf8')));
 const flight = generateSyntheticFlight({ ofp });
 const T0 = flight.snapshots[0]?.t ?? 0;
 
-async function setup(o: { openRecording?: OpenRecording | null } = {}) {
+async function setup(o: { openRecording?: OpenRecording | null; http?: FakeHttp } = {}) {
   const dir = await tempDir();
   const recordings = join(dir, 'recordings');
   let revealed = 0;
@@ -39,7 +40,7 @@ async function setup(o: { openRecording?: OpenRecording | null } = {}) {
     secrets: new SecretStore(secretsFile, new FakeCipher()),
     settings: new SettingsStore(join(dir, 'settings.json'), defaultSettings('en')),
     scenarioSources: BASE_SCENARIOS,
-    http: await simbriefOk(),
+    http: o.http ?? (await simbriefOk()),
     // The mock stands in for Hoppie too; the test checks which logon it was given.
     createTransport: (choice) => {
       const t = new MockTransport(clock);
@@ -67,6 +68,15 @@ function fly(s: Awaited<ReturnType<typeof setup>>, from = 0, to = flight.snapsho
     socket.frame({ type: 'telemetry', data: snap });
     s.app.tick(s.clock.now());
   }
+}
+
+async function readRecording(dir: string): Promise<Recording> {
+  const files = await readdir(dir);
+  expect(files).toHaveLength(1);
+  const parsed = parseJsonl(await readFile(join(dir, files[0] as string), 'utf8'));
+  if (parsed.kind !== 'recording') throw new Error('not a recording');
+  expect(parsed.warnings).toEqual([]);
+  return parsed.recording;
 }
 
 const outbound = (feed: readonly FeedEntry[]) =>
@@ -178,7 +188,7 @@ describe('AppController', () => {
     await app.updateSettings({ transport: 'offline' });
     await app.loadOfp();
     const list = await app.listScenarios();
-    expect(list).toHaveLength(26); // 15 base + 11 pilot command handlers (T12)
+    expect(list).toHaveLength(31); // 15 base + 12 pilot command handlers (T12) + 4 live-data (T13)
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -261,15 +271,6 @@ describe('flight recording (T11)', () => {
     await s.app.loadOfp();
     s.sockets.last().hello();
     await s.app.startFlight();
-  }
-
-  async function readRecording(dir: string): Promise<Recording> {
-    const files = await readdir(dir);
-    expect(files).toHaveLength(1);
-    const parsed = parseJsonl(await readFile(join(dir, files[0] as string), 'utf8'));
-    if (parsed.kind !== 'recording') throw new Error('not a recording');
-    expect(parsed.warnings).toEqual([]);
-    return parsed.recording;
   }
 
   it('records the core inputs; the replay reproduces the live telexes exactly', async () => {
@@ -427,5 +428,123 @@ describe('i18n', () => {
     for (const k of Object.keys(en) as (keyof typeof en)[]) {
       expect(holes(ru[k]), k).toEqual(holes(en[k]));
     }
+  });
+});
+
+describe('live data (T13)', () => {
+  const fixtures = join(import.meta.dirname, '../../../packages/data-sources/test/fixtures');
+  const fx = (name: string) => readFile(join(fixtures, name), 'utf8');
+
+  async function dataHttp(): Promise<FakeHttp> {
+    const files = {
+      simbrief: await readFile(OFP_FIXTURE, 'utf8'),
+      metar: await fx('metar.json'),
+      taf: await fx('taf.json'),
+      vatsim: await fx('vatsim-data.json'),
+      eonet: await fx('eonet.json'),
+      overpass: await fx('overpass-stands.json'),
+    };
+    return new FakeHttp((req) => {
+      const key = (Object.keys(files) as (keyof typeof files)[]).find((k) => req.url.includes(k));
+      return key === undefined ? { status: 404, body: '' } : { status: 200, body: files[key] };
+    });
+  }
+
+  /** Like `fly`, but lets the data service's requests settle every 60 ticks. */
+  async function flyAsync(s: Awaited<ReturnType<typeof setup>>): Promise<void> {
+    const socket = s.sockets.last();
+    for (const [i, snap] of flight.snapshots.entries()) {
+      s.clock.set(Math.max(s.clock.now(), snap.t));
+      socket.frame({ type: 'telemetry', data: snap });
+      s.app.tick(s.clock.now());
+      if (i % 60 === 0) await new Promise((r) => setTimeout(r, 0));
+    }
+  }
+
+  it('fetches after the OFP loads, feeds the core, is recorded and replays the same', async () => {
+    const http = await dataHttp();
+    const s = await setup({ http });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline' });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    await flyAsync(s);
+    await s.app.endFlight('DONE');
+    await s.app.stopFlight();
+
+    const urls = http.requests.map((r) => r.url);
+    expect(
+      urls.some((u) => u.includes('aviationweather.gov/api/data/metar?ids=RCTP,RJBB,RJGG')),
+    ).toBe(true);
+    expect(urls.some((u) => u.startsWith('https://data.vatsim.net/'))).toBe(true);
+    expect(urls.some((u) => u.startsWith('https://eonet.gsfc.nasa.gov/'))).toBe(true);
+    expect(urls.some((u) => u.startsWith('https://overpass-api.de/'))).toBe(true);
+    expect(
+      http.requests
+        .filter((r) => !r.url.includes('simbrief'))
+        .every((r) => r.headers?.['User-Agent']?.startsWith('ACARS-Sim/')),
+    ).toBe(true);
+
+    const feed = s.app.state().feed;
+    const out = outbound(feed);
+    const text = (id: string) => out.find((m) => m.scenarioId === id)?.text ?? '';
+    // The fixtures' RJBB METAR (live) instead of the OFP one.
+    expect(text('dest_weather_live')).toMatch(/RJBB \d{6}Z/);
+    expect(out.some((m) => m.scenarioId === 'dest_weather')).toBe(false);
+    // A gate from the OSM fixture (refs 2, 5, 11, 12, 13, 41).
+    const gate = /EXPECTED GATE (\w+)/.exec(text('gate_assignment'))?.[1];
+    expect(['2', '5', '11', '12', '13', '41']).toContain(gate);
+    expect(feed.some((e) => e.kind === 'system' && e.code === 'data_failed')).toBe(false);
+
+    const rec = await readRecording(s.recordings);
+    expect(rec.header.dataWaitMs).toBe(60_000);
+    const data = rec.events.flatMap((e) =>
+      e.type === 'tick' && e.data !== undefined ? [e.data] : [],
+    );
+    expect(data.some((d) => d.stands?.icao === 'RJBB')).toBe(true);
+    expect(data.some((d) => d.wx?.['RJBB'] != null)).toBe(true);
+    const r = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+  });
+
+  it('a failing source is one note in the feed, the flight goes on with the OFP', async () => {
+    const ok = await dataHttp();
+    const http = new FakeHttp((req) =>
+      req.url.includes('aviationweather')
+        ? { status: 503, body: '' }
+        : (ok.respond(req) as { status: number; body: string }),
+    );
+    const s = await setup({ http });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline' });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    await flyAsync(s);
+    const feed = s.app.state().feed;
+    const notes = feed.filter((e) => e.kind === 'system' && e.code === 'data_failed');
+    expect(notes).toEqual([
+      expect.objectContaining({
+        params: { source: 'METAR/TAF (aviationweather.gov)', error: 'METAR: HTTP 503' },
+      }),
+    ]);
+    expect(outbound(feed).some((m) => m.scenarioId === 'dest_weather')).toBe(true);
+  });
+
+  it('switched off: nothing but SimBrief is asked', async () => {
+    const http = await dataHttp();
+    const s = await setup({ http });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    await flyAsync(s);
+    expect(http.requests.every((r) => r.url.includes('simbrief'))).toBe(true);
+    const rec = await readRecording(s.recordings);
+    expect(rec.header.dataWaitMs).toBeUndefined();
   });
 });

@@ -1,5 +1,5 @@
-# Destination and alternate weather before TOD. Until METAR fetching (T13) this is the
-# METAR SimBrief put into the OFP, and the message says so.
+# Destination and alternate weather before TOD from the METAR SimBrief put into the OFP, and
+# the message says so. With live weather (T13) `external/dest_weather_live` goes instead.
 id: dest_weather
 version: 1
 category: ops
@@ -11,6 +11,7 @@ trigger:
 conditions:
   - "flight.divert == null"
   - "phase in ['CLIMB','CRUISE']"
+  - "!wx.dest_live"
 priority: 3
 steps:
   - send:
