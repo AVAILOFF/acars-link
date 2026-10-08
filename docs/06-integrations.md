@@ -20,9 +20,16 @@
 
 ## SimBrief
 
-- `https://www.simbrief.com/api/xml.fetcher.php?username=<user>&json=v2:1` (или `userid=`).
-- Используемые поля оригиналом: `atc.callsign`, `general.flight_number`, `origin/destination.icao_code`, `origin.plan_rwy`, `origin.trans_alt`, `origin.atis.letter`, `aircraft.icao_code`, `weights.pax_weight/bag_weight`, `params.units`, `fuel.plan_ramp`, `times.sched_out/sched_in/est_out/est_in/taxi_out` (unix-секунды), `navlog.fix[]` (`ident`, `via_airway`, `pos_lat`, `pos_long`, `altitude_feet`…) `[ПРОВЕРИТЬ]` точные имена.
-- Нормализовать в собственный тип `Ofp` с unit-тестами на сохранённых примерах JSON. Примеры не коммитить с реальными именами пилота.
+- `https://www.simbrief.com/api/xml.fetcher.php?userid=<pilot id>&json=v2` (или `username=`). **Формат — `json=v2`** (решение 2026-10-08, рекомендация Navigraph для новых проектов). Оригинал использовал `json=v2:1`; он не поддерживается.
+- Проверено на реальном OFP (2026-10-08). Особенности `json=v2`:
+  - все значения — **строки**, в т.ч. числа (`"182664"`, `".84"`); пустое значение — `""`;
+  - времена — ISO UTC (`"2026-10-08T07:45:00Z"`), длительности — `"HH:MM:SS"`;
+  - списки — всегда массивы: `alternate[]`, `navlog[]` (без обёртки `fix`), `origin.atis[]`;
+  - `params.units` — `"kgs"` или `"lbs"`; веса и топливо в этих единицах, количества (`pax_count`) — нет;
+  - `navlog[].distance` — длина плеча (сумма = `general.route_distance`); TOC/TOD — `ident: "TOC"/"TOD"`, `type: "ltlg"`; `stage` — `CLB/CRZ/DSC`;
+  - `aircraft.equip_category` — категория турбулентности следа (`H` и т. п.).
+- Поля и их маппинг — `packages/core/src/ofp/` (тип `Ofp`, `parseSimbriefOfp`). Ошибки формата — `OfpParseError` с путём поля.
+- Тестовые примеры делаются `tools/anonymize-ofp.mjs` из сырых OFP в `reference/ofp/raw/` (в `.gitignore`). Сырые OFP не коммитить: в них id пилота и имена.
 
 ## MSFS / SimConnect
 

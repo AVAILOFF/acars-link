@@ -18,3 +18,6 @@ src_out/
 Thumbs.db
 .vscode/
 .idea/
+
+# real SimBrief OFPs (personal data) — only anonymized fixtures are committed
+reference/ofp/raw/

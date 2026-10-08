@@ -5,3 +5,5 @@
  * Time and randomness are injected via Clock and Rng (invariant 4).
  */
 export const CORE_PACKAGE = '@acars/core';
+
+export * from './ofp/index.js';
