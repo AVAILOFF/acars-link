@@ -5,6 +5,7 @@
     "lib": ["es2023"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
+    "customConditions": ["source"],
     "types": [],
 
     "strict": true,

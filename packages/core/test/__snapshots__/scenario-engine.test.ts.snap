@@ -1,0 +1,16 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`triggers > every message is formatted for the profile, from the station to the aircraft 1`] = `
+[
+  "2026-10-08T07:20:00.000Z PRELIMINARY LOADSHEET
+------------------------
+SJX822 RCTP-RJBB 08OCT
+ZFW 182.7
+........................
+OPS",
+  "2026-10-08T08:11:16.000Z OUT 0745 OFF 0810",
+  "2026-10-08T08:27:33.000Z CRUISE-HELLO CRUISE",
+  "2026-10-08T09:32:49.000Z TOD IN 150 NM",
+  "2026-10-08T10:16:27.000Z ARR10 APPROACH",
+]
+`;

@@ -1,0 +1,21 @@
+id: tod_wx_reminder
+version: 1
+category: ops
+title: Arrival reminder before TOD
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 150 }
+conditions:
+  - "phase == 'CRUISE'"
+probability: 1
+priority: 2
+steps:
+  - send:
+      header: OPS MSG
+      body: |
+        ARRIVAL {ofp.dest} PLANNED RWY {ofp.dest_rwy}
+        TOD IN {flight.dist_to_tod_nm|int} NM
+  - wait: { phase: LANDED }
+  - send:
+      body: WELCOME TO {ofp.dest}. REPORT ON BLOCK

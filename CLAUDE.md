@@ -47,6 +47,8 @@ pnpm build            # tsc → packages/*/dist
 pnpm -F @acars/core test   # тесты одного пакета
 ```
 
+Пакеты воркспейса импортируют друг друга из исходников: условие экспорта `source` (`customConditions` в `tsconfig.base.json`, `resolve.conditions` в `vitest.config.ts`), сборка для тестов не нужна. `pnpm -F <pkg> test` запускает корневой конфиг Vitest с `--project`.
+
 Чистота `packages/core` (инварианты 3–4) проверяется трижды: tsconfig без Node/DOM типов, правила Biome в `biome.json` (overrides), тест `packages/core/test/purity.test.ts`.
 (Обновляй этот раздел, если меняешь скрипты.)
 - SimConnect, Hoppie, SimBrief, MSFS SDK меняются. Если не уверен в имени SimVar, единицах, параметре API — открой официальную документацию. Не угадывай. Места, помеченные в документах `[ПРОВЕРИТЬ]`, проверь перед использованием.

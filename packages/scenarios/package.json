@@ -15,6 +15,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
-    "test": "vitest run"
+    "test": "vitest run --root ../.. --project @acars/scenarios"
+  },
+  "dependencies": {
+    "@acars/core": "workspace:*",
+    "ajv": "^8.20.0",
+    "yaml": "^2.9.1"
   }
 }

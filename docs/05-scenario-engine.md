@@ -65,3 +65,13 @@ steps:                     # последовательность
 
 - JSON Schema + тест, который прогоняет каждый сценарий на 3 синтетических полётах и проверяет: шаблоны раскрываются, строки ≤ ширины профиля, нет запрещённых символов.
 - LLM (опц.): шаг `send` может иметь `llm_flavor: true`. Тогда бэкенд перефразирует **только** свободный текст. Результат проходит те же проверки, при провале используется исходный шаблон.
+
+## Реализация v0 (T06)
+
+- Код: `packages/core/src/scenario/` (типы, условия, шаблоны, контекст, движок), `packages/core/src/core.ts` (`AcarsCore`: FSM + движок по контракту из `03`), `packages/scenarios/src/` (YAML 1.2 → JSON Schema → `compileScenario`).
+- Триггеры: `phase_enter`, `phase`, `event` (события FSM, кроме `TELEMETRY_LOST`), `time` (`rel`: `sched_*`, `est_*`, фактические `out/off/on/in`), `distance` (`to: dest | tod | orig`, `lte_nm` / `gte_nm`). Шаги: `send`, `wait: { minutes }`, `wait: { phase }`. `reply`, `branch`, `set` — T12/T14; загрузчик отклоняет их с понятной ошибкой.
+- Кандидат = триггер **и** условия стали истинны на этом тике (фронт). Затем cooldown, `excludes` (в обе стороны), бросок `probability`; старт по `priority` (убыв.), затем по `id`.
+- У каждого сценария свой Rng с seed `<seed>/<id>`: добавление сценария не меняет броски других.
+- `wait.minutes` считает «время полёта» FSM (× `simRate`, без пауз); `time`-триггеры — по `Clock`. Пока телеметрия потеряна, движок стоит.
+- Переменные — `CONTEXT_VARIABLES` в `scenario/context.ts` (`ofp.*`, `aircraft.*`, `tm.*`, `flight.*`, `phase`); неизвестная переменная — ошибка загрузки. Отсутствующее значение печатается как `----`.
+- Форматтеры: `kg1`, `hhmm`, `ddmmm`, `pad:N`, `lpad:N`, `int`, `upper`. `qnh` — с METAR (T13). Генераторы: `rand`, `pick`, `seat`; `name:*` — T07.

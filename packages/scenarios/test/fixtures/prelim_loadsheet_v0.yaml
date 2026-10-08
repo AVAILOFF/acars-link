@@ -1,0 +1,24 @@
+# reference/scenarios/prelim_loadsheet.yaml reduced to v0 (no `set`, no {name:…})
+id: prelim_loadsheet
+version: 1
+category: docs
+title: Preliminary loadsheet
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -25 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 1
+cooldown: per_flight
+steps:
+  - send:
+      header: "PRELIMINARY LOADSHEET"
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
+        A/C {ofp.ac_reg} {ofp.ac_icao}
+        ZFW   {ofp.zfw_kg|kg1}  MAX {ofp.max_zfw_kg|kg1}
+        TOF   {ofp.fuel_takeoff_kg|kg1}
+        TOW   {ofp.tow_kg|kg1}  MAX {ofp.max_tow_kg|kg1}
+        PAX   {ofp.pax}
+      footer: "PREPARED BY OPS"

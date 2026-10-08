@@ -1,0 +1,26 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`fixtures on a synthetic flight > load, run end to end, every message fits the profile 1`] = `
+[
+  "2026-10-08T07:20:00.000Z prelim_loadsheet
+PRELIMINARY LOADSHEET
+------------------------
+SJX822 RCTP-RJBB 08OCT
+A/C G-KXWB A35K
+ZFW   182.7  MAX 223.0
+TOF   22.1
+TOW   204.7  MAX 247.9
+PAX   266
+........................
+PREPARED BY OPS",
+  "2026-10-08T09:32:49.000Z tod_wx_reminder
+OPS MSG
+------------------------
+ARRIVAL RJBB PLANNED RWY
+06L
+TOD IN 150 NM",
+  "2026-10-08T10:20:03.000Z tod_wx_reminder
+WELCOME TO RJBB. REPORT
+ON BLOCK",
+]
+`;

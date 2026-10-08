@@ -259,6 +259,10 @@ export class PhaseMachine {
     return this.st.telemetryLost;
   }
 
+  get lastSnapshot(): TelemetrySnapshot | null {
+    return this.st.last;
+  }
+
   get flightTimeMs(): number {
     return this.st.flightTimeMs;
   }
