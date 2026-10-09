@@ -44,6 +44,49 @@ export interface NaturalEvent {
   readonly date: number;
 }
 
+/**
+ * Status of a space launch (TheSpaceDevs Launch Library 2.3.0 `status.id`, T28): `go` — the
+ * T-0 is confirmed (1, Go for Launch); the rest have happened — `in_flight` (6), `success`
+ * (3), `deployed` (9, payload deployed), `failure` (4), `partial_failure` (7). Launches with
+ * other statuses (TBD, TBC, Hold) are not passed in (approved 2026-10-09).
+ */
+export type LaunchStatus =
+  | 'go'
+  | 'in_flight'
+  | 'success'
+  | 'deployed'
+  | 'failure'
+  | 'partial_failure';
+
+export const LAUNCH_STATUSES: readonly LaunchStatus[] = [
+  'go',
+  'in_flight',
+  'success',
+  'deployed',
+  'failure',
+  'partial_failure',
+];
+
+/** A space launch (T28), position = the pad. Texts are upper-case ASCII, safe for a telex. */
+export interface SpaceLaunch {
+  /** LL2 launch UUID. */
+  readonly id: string;
+  /** Rocket, `FALCON 9 BLOCK 5`. */
+  readonly rocket: string;
+  /** Mission, `SDA TRANCHE 1 TRANSPORT LAYER A`; null when unknown. */
+  readonly mission: string | null;
+  /** Pad and site, `SLC-4E VANDENBERG SFB, CA, USA`. */
+  readonly pad: string;
+  readonly lat: number;
+  readonly lon: number;
+  /** T-0 (NET), epoch ms UTC. */
+  readonly net: number;
+  /** Launch window, epoch ms UTC; null when not given. */
+  readonly windowStart: number | null;
+  readonly windowEnd: number | null;
+  readonly status: LaunchStatus;
+}
+
 /** A parking position or gate of an airport (OSM `aeroway=parking_position|gate`). */
 export interface ParkingStand {
   /** `A12`, `V105` — upper-case A–Z0–9. */
@@ -113,6 +156,8 @@ export interface ExtDataUpdate {
   readonly airports?: Readonly<Record<string, AirportInfo>>;
   /** Frequencies of the departure airport (T24). */
   readonly freqs?: { readonly icao: string; readonly list: readonly AirportFrequency[] };
+  /** Space launches in the time window of the flight (T28); replaces the list. */
+  readonly launches?: readonly SpaceLaunch[];
 }
 
 /** A natural event placed against the planned route (once, when it arrives). */
@@ -120,6 +165,14 @@ export interface RoutedEvent extends NaturalEvent {
   /** Route distance from the origin to the route point nearest the event, NM. */
   readonly alongNm: number;
   /** Distance from that route point to the event, NM. */
+  readonly offNm: number;
+}
+
+/** A space launch placed against the planned route (once, when it arrives; T28). */
+export interface RoutedLaunch extends SpaceLaunch {
+  /** Route distance from the origin to the route point nearest the pad, NM. */
+  readonly alongNm: number;
+  /** Distance from that route point to the pad, NM. */
   readonly offNm: number;
 }
 
@@ -138,6 +191,8 @@ export interface ExtState {
   /** T24; absent in states saved before T24. */
   readonly airports?: Readonly<Record<string, AirportInfo>> | null;
   readonly freqs?: { readonly icao: string; readonly list: readonly AirportFrequency[] } | null;
+  /** T28; absent in states saved before T28. */
+  readonly launches?: readonly RoutedLaunch[];
 }
 
 export const EMPTY_EXT: ExtState = {
@@ -155,6 +210,8 @@ export const WX_MAX_AGE_MS = 3 * 3_600_000;
 export const ATC_MAX_AGE_MS = 20 * 60_000;
 /** Events farther than this from the route are ignored. */
 export const EVENT_CORRIDOR_NM = 150;
+/** Launch pads farther than this from the route are ignored (docs/07 T28). */
+export const LAUNCH_CORRIDOR_NM = 300;
 
 const ICAO = /^[A-Z0-9]{3,4}$/;
 const REF = /^[A-Z0-9]{1,6}$/;
@@ -175,7 +232,7 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
     throw new ExtDataError(`data update: ${why}`);
   };
   if (!isObj(x) || !isNum(x['t'])) return bad('t');
-  const { wx, atc, events, stands, firs, centers, airports, freqs } = x;
+  const { wx, atc, events, stands, firs, centers, airports, freqs, launches } = x;
   if (wx !== undefined) {
     if (!isObj(wx)) bad('wx');
     for (const [icao, r] of Object.entries(wx as object)) {
@@ -275,6 +332,28 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
       }
     }
   }
+  if (launches !== undefined) {
+    if (!Array.isArray(launches)) bad('launches');
+    const numOrNull = (v: unknown) => v === null || isNum(v);
+    for (const l of launches as unknown[]) {
+      if (
+        !isObj(l) ||
+        typeof l['id'] !== 'string' ||
+        typeof l['rocket'] !== 'string' ||
+        !strOrNull(l['mission']) ||
+        typeof l['pad'] !== 'string' ||
+        !isNum(l['lat']) ||
+        !isNum(l['lon']) ||
+        Math.abs(l['lat'] as number) > 90 ||
+        Math.abs(l['lon'] as number) > 180 ||
+        !isNum(l['net']) ||
+        !numOrNull(l['windowStart']) ||
+        !numOrNull(l['windowEnd']) ||
+        !LAUNCH_STATUSES.includes(l['status'] as LaunchStatus)
+      )
+        bad('launches item');
+    }
+  }
   return x as unknown as ExtDataUpdate;
 }
 
@@ -320,6 +399,13 @@ export function applyExtData(
       .filter((e) => e.offNm <= EVENT_CORRIDOR_NM)
       .sort((a, b) => a.alongNm - b.alongNm || (a.id < b.id ? -1 : 1));
     next = { ...next, events };
+  }
+  if (u.launches !== undefined) {
+    const launches = u.launches
+      .map((l) => ({ ...l, ...route.locate(l) }))
+      .filter((l) => l.offNm <= LAUNCH_CORRIDOR_NM)
+      .sort((a, b) => a.alongNm - b.alongNm || (a.id < b.id ? -1 : 1));
+    next = { ...next, launches };
   }
   if (u.firs !== undefined) next = { ...next, firs: [...u.firs] };
   if (u.centers !== undefined) next = { ...next, centers: [...u.centers], centersT: u.t };

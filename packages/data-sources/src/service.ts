@@ -10,10 +10,12 @@ import {
   type NaturalEvent,
   type Ofp,
   type ParkingStand,
+  type SpaceLaunch,
   type WxReport,
 } from '@acars/core';
 import { DataSourceError, type FetchContext, type HttpClient, ICAO_RE } from './common.js';
 import { fetchEonetEvents } from './eonet.js';
+import { fetchLaunches } from './launches.js';
 import { fetchAirportFrequencies } from './ourairports.js';
 import { fetchStands } from './stands.js';
 import { fetchVatsim, stationsFor, type VatsimStation } from './vatsim.js';
@@ -40,10 +42,13 @@ import { fetchWx } from './wx.js';
  * once (cached 30 days). With the ROPS station (T23, `startFlight(…, { firs: true })`): the
  * VATSpy FIR boundaries once (cached 7 days) — the FIRs along the route go to the core, and
  * with every VATSIM fetch the online centres covering them; FIR and country of the origin and
- * destination and the origin's frequencies from OurAirports (T24, cached 30 days).
+ * destination and the origin's frequencies from OurAirports (T24, cached 30 days). Space
+ * launches (T28) at start and every hour, cached 30 min: Launch Library allows 15 requests an
+ * hour without a key. The window is from an hour before the flight started to an hour after
+ * now + the OFP block time (the remaining time is not known here; more is harmless).
  */
 
-export type DataSourceKind = 'wx' | 'vatsim' | 'eonet' | 'stands' | 'firs' | 'freqs';
+export type DataSourceKind = 'wx' | 'vatsim' | 'eonet' | 'stands' | 'firs' | 'freqs' | 'launches';
 export const DATA_SOURCES: readonly DataSourceKind[] = [
   'wx',
   'vatsim',
@@ -51,6 +56,7 @@ export const DATA_SOURCES: readonly DataSourceKind[] = [
   'stands',
   'firs',
   'freqs',
+  'launches',
 ];
 /** Sources of the ROPS station only (`startFlight(…, { firs: true })`). */
 const ROPS_SOURCES: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs']);
@@ -97,6 +103,7 @@ interface Policy {
 }
 
 const MIN = 60_000;
+const HOUR = 60 * MIN;
 export const DATA_POLICY: Readonly<Record<DataSourceKind, Policy>> = {
   wx: { refreshMs: 10 * MIN, cacheMs: 5 * MIN, retryMs: 2 * MIN, maxTries: null },
   vatsim: { refreshMs: 5 * MIN, cacheMs: MIN, retryMs: 2 * MIN, maxTries: null },
@@ -104,6 +111,7 @@ export const DATA_POLICY: Readonly<Record<DataSourceKind, Policy>> = {
   stands: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   firs: { refreshMs: null, cacheMs: 7 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   freqs: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
+  launches: { refreshMs: 60 * MIN, cacheMs: 30 * MIN, retryMs: 15 * MIN, maxTries: null },
 };
 
 /** VATSIM refreshes only here (the first fetch at start goes in any phase). */
@@ -138,6 +146,8 @@ interface Flight {
   readonly airports: readonly string[];
   /** FIR boundaries and centres for the ROPS station (T23). */
   readonly firs: boolean;
+  /** When the flight started (`startFlight`), epoch ms. */
+  readonly startedAt: number;
 }
 
 export class ExternalDataService {
@@ -159,6 +169,7 @@ export class ExternalDataService {
     centers: CenterStation[] | null;
     airports: Record<string, AirportInfo> | null;
     freqs: { icao: string; list: AirportFrequency[] } | null;
+    launches: SpaceLaunch[] | null;
   } = empty();
   /** VATSpy data of the flight (T23) and the ids of the route's FIRs. */
   private vatspy: { data: VatspyData; route: ReadonlySet<string> } | null = null;
@@ -186,7 +197,12 @@ export class ExternalDataService {
     if (this.flight?.ofp === ofp && this.flight.firs === firs) return;
     this.generation++;
     const airports = [ofp.origin.icao, ofp.destination.icao, ...ofp.alternates.map((a) => a.icao)];
-    this.flight = { ofp, airports: [...new Set(airports)].filter((i) => ICAO_RE.test(i)), firs };
+    this.flight = {
+      ofp,
+      airports: [...new Set(airports)].filter((i) => ICAO_RE.test(i)),
+      firs,
+      startedAt: now,
+    };
     this.src = new Map(
       DATA_SOURCES.filter((k) => this.enabled.has(k) && (!ROPS_SOURCES.has(k) || firs)).map((k) => [
         k,
@@ -250,7 +266,8 @@ export class ExternalDataService {
       p.firs !== null ||
       p.centers !== null ||
       p.airports !== null ||
-      p.freqs !== null;
+      p.freqs !== null ||
+      p.launches !== null;
     if (!has) return { update: null, notes };
     return {
       update: {
@@ -263,6 +280,7 @@ export class ExternalDataService {
         ...(p.centers === null ? {} : { centers: p.centers }),
         ...(p.airports === null ? {} : { airports: p.airports }),
         ...(p.freqs === null ? {} : { freqs: p.freqs }),
+        ...(p.launches === null ? {} : { launches: p.launches }),
       },
       notes,
     };
@@ -407,6 +425,21 @@ export class ExternalDataService {
           this.pending.events = list;
         };
       }
+      case 'launches': {
+        let launches = (await this.cached('launches', now, kind, (v) =>
+          checkExtDataUpdate({ t: 0, launches: v }),
+        )) as SpaceLaunch[] | undefined;
+        if (launches === undefined) {
+          const t = flight.ofp.times;
+          const blockMs = (t.schedBlockSec ?? t.estTimeEnrouteSec) * 1000;
+          launches = await fetchLaunches(this.ctx, flight.startedAt - HOUR, now + blockMs + HOUR);
+          await this.store('launches', now, launches);
+        }
+        const list = launches;
+        return () => {
+          this.pending.launches = list;
+        };
+      }
       case 'stands': {
         const icao = flight.ofp.destination.icao;
         let list = (await this.cached(`stands:${icao}`, now, kind, (v) =>
@@ -468,6 +501,7 @@ function empty() {
     centers: null,
     airports: null,
     freqs: null,
+    launches: null,
   };
 }
 

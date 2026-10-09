@@ -185,7 +185,7 @@ const en = {
   'set.soundHint': 'A short sound when a message from the airline appears in the feed.',
   'set.liveData': 'Live data',
   'set.liveDataHint':
-    'Free sources, no keys: METAR/TAF (aviationweather.gov), VATSIM ATC, NASA EONET events, gates from OpenStreetMap. Off: messages use the OFP only.',
+    'Free sources, no keys: METAR/TAF (aviationweather.gov), VATSIM ATC, NASA EONET events, space launches (TheSpaceDevs), gates from OpenStreetMap. Off: messages use the OFP only.',
 
   'err.invalid_input': 'Invalid value: {detail}',
   'err.no_username': 'Set your SimBrief username in Settings first.',
@@ -402,7 +402,7 @@ const ru: Record<MessageKey, string> = {
   'set.soundHint': 'Короткий звук, когда в ленте появляется сообщение от авиакомпании.',
   'set.liveData': 'Живые данные',
   'set.liveDataHint':
-    'Бесплатные источники без ключей: METAR/TAF (aviationweather.gov), диспетчеры VATSIM, события NASA EONET, гейты из OpenStreetMap. Выключено — сообщения только по OFP.',
+    'Бесплатные источники без ключей: METAR/TAF (aviationweather.gov), диспетчеры VATSIM, события NASA EONET, пуски ракет (TheSpaceDevs), гейты из OpenStreetMap. Выключено — сообщения только по OFP.',
 
   'err.invalid_input': 'Неверное значение: {detail}',
   'err.no_username': 'Сначала укажите имя пользователя SimBrief в настройках.',

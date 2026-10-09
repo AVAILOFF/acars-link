@@ -66,6 +66,7 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
   stands: 'OSM stands (Overpass)',
   firs: 'VATSpy (FIR boundaries)',
   freqs: 'OurAirports (frequencies)',
+  launches: 'TheSpaceDevs (launches)',
 };
 
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */

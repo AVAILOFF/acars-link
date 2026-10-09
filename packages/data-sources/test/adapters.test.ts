@@ -10,6 +10,7 @@ import {
   type HttpClient,
   MemoryCache,
   parseEonet,
+  parseLaunches,
   parseMetar,
   parseOverpassStands,
   parseTaf,
@@ -67,6 +68,7 @@ const live: Route = (url) => {
   if (url.includes('vatsim-data.json')) return { status: 200, body: fixture('vatsim-data.json') };
   if (url.includes('eonet')) return { status: 200, body: fixture('eonet.json') };
   if (url.includes('overpass')) return { status: 200, body: fixture('overpass-stands.json') };
+  if (url.includes('thespacedevs')) return { status: 200, body: fixture('launches.json') };
   return { status: 404, body: '' };
 };
 
@@ -243,6 +245,77 @@ describe('NASA EONET v3', () => {
   });
 });
 
+describe('TheSpaceDevs Launch Library 2.3.0 (T28)', () => {
+  it('keeps Go launches and launches that happened, pad position, telex-safe names', () => {
+    const list = parseLaunches(JSON.parse(fixture('launches.json')));
+    expect(list).toEqual([
+      {
+        id: expect.any(String),
+        rocket: 'KSLV-2 NURI',
+        mission: 'NEONSAT-2 TO 6',
+        pad: 'LC-2, NARO SPACE CENTER, KOR',
+        lat: 34.431867,
+        lon: 127.535069,
+        net: Date.UTC(2026, 9, 7, 3, 25),
+        windowStart: expect.any(Number),
+        windowEnd: expect.any(Number),
+        status: 'success',
+      },
+      {
+        id: 'a1bb0984-19d4-4b47-9bba-706d225573e2',
+        rocket: 'LONG MARCH 12',
+        // "Unknown Payload" says nothing: no mission line.
+        mission: null,
+        pad: 'COMMERCIAL LC-2, WENCHANG SPACE LAUNCH SITE, CHN',
+        lat: 19.59755,
+        lon: 110.936481,
+        net: Date.UTC(2026, 9, 9, 19, 25),
+        windowStart: Date.UTC(2026, 9, 9, 19, 20),
+        windowEnd: Date.UTC(2026, 9, 9, 19, 49),
+        status: 'go',
+      },
+      {
+        id: expect.any(String),
+        rocket: 'FALCON 9 BLOCK 5',
+        mission: 'SDA TRANCHE 1 TRANSPORT LAYER A',
+        pad: 'SPACE LAUNCH COMPLEX 4E, VANDENBERG SFB, USA',
+        lat: 34.632,
+        lon: -120.611,
+        net: Date.UTC(2026, 9, 10, 7, 29),
+        windowStart: Date.UTC(2026, 9, 10, 7, 29),
+        windowEnd: Date.UTC(2026, 9, 10, 7, 29),
+        status: 'go',
+      },
+    ]);
+  });
+
+  it('drops TBD/TBC/Hold, Go with a vague time, and launches without a pad', () => {
+    const base = JSON.parse(fixture('launches.json')).results[1];
+    const variant = (patch: Record<string, unknown>) => ({ ...base, ...patch });
+    const list = parseLaunches({
+      results: [
+        variant({ id: 'tbd', status: { id: 2 } }),
+        variant({ id: 'tbc', status: { id: 8 } }),
+        variant({ id: 'hold', status: { id: 5 } }),
+        variant({ id: 'day', net_precision: { id: 5 } }),
+        variant({ id: 'nopad', pad: null }),
+        variant({ id: 'fail', status: { id: 4 }, net_precision: { id: 7 } }),
+        variant({ id: 'partial', status: { id: 7 } }),
+        variant({ id: 'flying', status: { id: 6 } }),
+        variant({ id: 'deployed', status: { id: 9 } }),
+      ],
+    });
+    // A launch that happened keeps its status whatever the precision.
+    expect(list.map((l) => [l.id, l.status])).toEqual([
+      ['deployed', 'deployed'],
+      ['fail', 'failure'],
+      ['flying', 'in_flight'],
+      ['partial', 'partial_failure'],
+    ]);
+    expect(() => parseLaunches({ detail: 'Request was throttled.' })).toThrow(DataSourceError);
+  });
+});
+
 describe('Overpass stands', () => {
   it('parses refs of gates and parking positions, dedups, drops the rest', () => {
     expect(parseOverpassStands(JSON.parse(fixture('overpass-stands.json')))).toEqual([
@@ -296,6 +369,18 @@ describe('ExternalDataService', () => {
     expect(update?.atc?.['RJBB']?.map((s) => s.callsign).sort()).toEqual(['KIX_APP', 'RJBB_TWR']);
     expect(update?.events?.length).toBeGreaterThan(0);
     expect(update?.stands).toEqual({ icao: 'RJBB', list: expect.any(Array) });
+    expect(update?.launches?.map((l) => l.rocket)).toEqual([
+      'KSLV-2 NURI',
+      'LONG MARCH 12',
+      'FALCON 9 BLOCK 5',
+    ]);
+    // One query: from an hour before the start to an hour after now + the OFP block time.
+    const block = ofp.times.schedBlockSec ?? ofp.times.estTimeEnrouteSec;
+    const iso = (t: number) => new Date(t).toISOString().replace('.000Z', 'Z');
+    expect(calls.filter((c) => c.url.includes('thespacedevs')).map((c) => c.url)).toEqual([
+      'https://ll.thespacedevs.com/2.3.0/launches/?mode=normal&ordering=net&limit=100' +
+        `&net__gte=${iso(T0 - 60 * MIN)}&net__lte=${iso(T0 + block * 1000 + 60 * MIN)}`,
+    ]);
     // EONET is two queries (recent events, volcanoes of the year); Overpass a POST.
     expect(calls.filter((c) => c.url.includes('eonet')).map((c) => c.url)).toEqual([
       'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&days=30&category=severeStorms,wildfires,earthquakes,manmade',
@@ -324,6 +409,10 @@ describe('ExternalDataService', () => {
     expect([count('metar'), count('vatsim'), count('eonet'), count('overpass')]).toEqual([
       3, 3, 4, 1,
     ]);
+    // Launch Library: 15 requests an hour without a key — once an hour.
+    expect(count('thespacedevs')).toBe(2);
+    await step(svc, T0 + 100 * MIN, 'CRUISE');
+    expect(count('thespacedevs')).toBe(2);
   });
 
   it('uses the cache: a second flight to the same airports asks nothing fresh', async () => {
@@ -365,6 +454,27 @@ describe('ExternalDataService', () => {
     const again = await step(svc, T0 + 10 * MIN, 'PREFLIGHT');
     expect(again.notes).toEqual([{ t: T0 + 10 * MIN, source: 'stands', ok: true, error: null }]);
     expect(again.update?.stands?.icao).toBe('RJBB');
+  });
+
+  it('Launch Library rate limit (429): one note, no launches, retry after 15 min', async () => {
+    let limited = true;
+    const { http, calls } = fakeHttp((url, body) =>
+      limited && url.includes('thespacedevs')
+        ? { status: 429, body: '{"detail":"Request was throttled."}' }
+        : live(url, body),
+    );
+    const svc = new ExternalDataService({ http, userAgent: 't', cache: noCache() });
+    svc.startFlight(ofp, T0);
+    const first = await step(svc, T0, 'PREFLIGHT');
+    expect(first.update?.launches).toBeUndefined();
+    expect(first.notes).toEqual([
+      { t: T0, source: 'launches', ok: false, error: 'Launch Library: rate limited (429)' },
+    ]);
+    await step(svc, T0 + 10 * MIN, 'PREFLIGHT');
+    expect(calls.filter((c) => c.url.includes('thespacedevs')).length).toBe(1);
+    limited = false;
+    const again = await step(svc, T0 + 15 * MIN, 'PREFLIGHT');
+    expect(again.update?.launches?.length).toBe(3);
   });
 
   it('gives up on stands after 3 failures', async () => {

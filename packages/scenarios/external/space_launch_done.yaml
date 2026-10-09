@@ -1,0 +1,31 @@
+# A space launch that happened since take-off (TheSpaceDevs Launch Library: in flight,
+# successful, payload deployed, failure, partial failure) near the route ahead (T28). The pad
+# is within 300 NM of the route. Our template, as `space_launch` (approved 2026-10-09,
+# docs/07 T28). One launch message per flight.
+id: space_launch_done
+version: 1
+category: external
+title: Space launch near the route (launched)
+title_ru: Пуск ракеты рядом с маршрутом (состоялся)
+description_ru: Пуск, состоявшийся после взлёта (TheSpaceDevs), в пределах 300 NM от маршрута впереди.
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.launch_id != null"
+  - "ext.launch_done"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 15"
+excludes: [space_launch]
+priority: 0
+steps:
+  - send:
+      header: OPS ADVISORY
+      body: |
+        SPACE LAUNCH NEAR ROUTE
+        {ext.launch_rocket} / {ext.launch_mission|or:UNKNOWN PAYLOAD}
+        {ext.launch_pad}
+        LAUNCHED {ext.launch_net|hhmm}Z {ext.launch_status}
+        {ext.launch_ahead_nm} NM AHEAD / {ext.launch_off_nm} NM FROM ROUTE
+        EXPECT AIRSPACE RESTRICTIONS CHECK NOTAM
+      footer: SOURCE THESPACEDEVS

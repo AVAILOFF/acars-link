@@ -1,6 +1,7 @@
 import {
   ATC_MAX_AGE_MS,
   type ExtState,
+  type LaunchStatus,
   liveWx,
   type RoutePolyline,
   sortStations,
@@ -162,6 +163,19 @@ export const CONTEXT_VARIABLES = [
   'ext.event_category',
   'ext.event_ahead_nm',
   'ext.event_off_nm',
+  // the next space launch (TheSpaceDevs, T28) ahead on the route, pad within 300 NM of it,
+  // in the time window of the flight: `go` from now to the ETA, happened since take-off
+  'ext.launch_id',
+  'ext.launch_rocket',
+  'ext.launch_mission',
+  'ext.launch_pad',
+  'ext.launch_net',
+  'ext.launch_window_start',
+  'ext.launch_window_end',
+  'ext.launch_status',
+  'ext.launch_done',
+  'ext.launch_ahead_nm',
+  'ext.launch_off_nm',
   // final load (ops-data.ts)
   'load.pax',
   'load.pax_lmc',
@@ -443,6 +457,16 @@ const EVENT_CATEGORY: Readonly<Record<string, string>> = {
   floods: 'FLOOD',
 };
 
+/** `ext.launch_status` texts. */
+const LAUNCH_STATUS_TEXT: Readonly<Record<LaunchStatus, string>> = {
+  go: 'GO FOR LAUNCH',
+  in_flight: 'IN FLIGHT',
+  success: 'SUCCESSFUL',
+  deployed: 'SUCCESSFUL',
+  failure: 'FAILURE',
+  partial_failure: 'PARTIAL FAILURE',
+};
+
 type ExtVariable = Extract<ContextVariable, `wx.${string}` | `ext.${string}`>;
 
 /** `wx.*` and `ext.*` from the external data (T13); null where there is none. */
@@ -490,6 +514,27 @@ function extVariables(input: ContextInput): Record<ExtVariable, Value> {
     }
   }
 
+  // The first launch ahead in the time window of the flight (T28, docs/07): a `go` launch
+  // whose window has not closed and whose T-0 is before the ETA; a launch that has happened
+  // since take-off (since now before it). Before take-off the whole route is ahead.
+  let ln: (NonNullable<ExtState['launches']>[number] & { ahead: number }) | null = null;
+  if (ext?.launches !== undefined && ext.launches.length > 0 && input.polyline !== undefined) {
+    const flown = tm === null ? 0 : input.polyline.locate(tm).alongNm;
+    const toDest = tm === null ? null : input.route.remainingNm(tm);
+    const gs = tm !== null && tm.gsKt >= 60 ? tm.gsKt : null;
+    const eta =
+      toDest !== null && gs !== null
+        ? now + (toDest / gs) * 3_600_000
+        : (input.oooi.OFF ?? now) + ofp.times.estTimeEnrouteSec * 1000;
+    const since = input.oooi.OFF ?? now;
+    const next = ext.launches.find((l) => {
+      if (l.alongNm < flown) return false;
+      if (l.status === 'go') return (l.windowEnd ?? l.net) >= now && l.net <= eta;
+      return l.net >= since && l.net <= now;
+    });
+    if (next !== undefined) ln = { ...next, ahead: next.alongNm - flown };
+  }
+
   return {
     'wx.orig_metar': o.metar,
     'wx.orig_taf': o.taf,
@@ -515,6 +560,17 @@ function extVariables(input: ContextInput): Record<ExtVariable, Value> {
     'ext.event_category': ev?.category ?? null,
     'ext.event_ahead_nm': ev?.ahead ?? null,
     'ext.event_off_nm': ev?.off ?? null,
+    'ext.launch_id': ln?.id ?? null,
+    'ext.launch_rocket': ln?.rocket ?? null,
+    'ext.launch_mission': ln?.mission ?? null,
+    'ext.launch_pad': ln?.pad ?? null,
+    'ext.launch_net': ln?.net ?? null,
+    'ext.launch_window_start': ln?.windowStart ?? null,
+    'ext.launch_window_end': ln?.windowEnd ?? null,
+    'ext.launch_status': ln === null ? null : LAUNCH_STATUS_TEXT[ln.status],
+    'ext.launch_done': ln === null ? null : ln.status !== 'go',
+    'ext.launch_ahead_nm': ln?.ahead ?? null,
+    'ext.launch_off_nm': ln?.offNm ?? null,
   };
 }
 

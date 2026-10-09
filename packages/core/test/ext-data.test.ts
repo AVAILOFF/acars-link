@@ -20,6 +20,7 @@ import {
   pickStand,
   RoutePolyline,
   type ScenarioDef,
+  type SpaceLaunch,
 } from '../src/index.js';
 
 /** T13: external data in the core — `wx.*`, `ext.*`, OSM gate, `REQ WX` waiting for data. */
@@ -276,6 +277,112 @@ describe('natural events along the route', () => {
     expect(texts(fly([after], { data: new Map([[3, { ...events, t: tAt(3) }]]) }))).toEqual([
       'NEXT NONE',
     ]);
+  });
+});
+
+describe('space launches along the route (T28)', () => {
+  const at = (f: number) =>
+    ofp.navlog[Math.floor(ofp.navlog.length * f)] as { lat: number; lon: number };
+  const launch = (
+    id: string,
+    f: number,
+    dLat: number,
+    net: number,
+    status: SpaceLaunch['status'],
+    windowEnd: number | null = null,
+  ): SpaceLaunch => ({
+    id,
+    rocket: `ROCKET ${id.toUpperCase()}`,
+    mission: null,
+    pad: 'PAD',
+    lat: at(f).lat + dLat,
+    lon: at(f).lon,
+    net,
+    windowStart: null,
+    windowEnd,
+    status,
+  });
+  const probe = def({
+    id: 'probe',
+    trigger: { on: 'phase_enter', phase: 'CRUISE' },
+    steps: [
+      {
+        send: {
+          body: '{ext.launch_id|or:NONE} {ext.launch_status|or:-} {ext.launch_done|or:-}',
+        },
+      },
+    ],
+  });
+  const run = (list: readonly SpaceLaunch[]) =>
+    texts(fly([probe], { data: new Map([[3, { t: tAt(3), launches: list }]]) }), 'probe');
+  const OFF = flight.snapshots.findIndex((s) => !s.onGround);
+  const END = tAt(flight.snapshots.length - 1);
+
+  it('checks the shape and keeps only pads within 300 NM of the route', () => {
+    const ok = { t: 1, launches: [launch('a', 0.5, 1, 0, 'go')] };
+    expect(checkExtDataUpdate(ok)).toBe(ok);
+    for (const bad of [
+      { t: 1, launches: {} },
+      { t: 1, launches: [{ ...launch('a', 0.5, 1, 0, 'go'), status: 'tbd' }] },
+      { t: 1, launches: [{ ...launch('a', 0.5, 1, 0, 'go'), lat: 91 }] },
+      { t: 1, launches: [{ ...launch('a', 0.5, 1, 0, 'go'), windowEnd: 'soon' }] },
+    ]) {
+      expect(() => checkExtDataUpdate(bad)).toThrow(ExtDataError);
+    }
+    const st = applyExtData(
+      EMPTY_EXT,
+      {
+        t: 0,
+        launches: [
+          { ...launch('near', 0.5, 0, 0, 'go'), lat: 30.4, lon: 131.0 },
+          { ...launch('far', 0.5, 0, 0, 'go'), lat: 27.0, lon: 136.0 },
+        ],
+      },
+      ofp,
+      new RoutePolyline(ofp),
+    );
+    // Tanegashima (30.4N 131.0E) is near RCTP–RJBB; a pad far out in the Pacific is not.
+    expect(st.launches?.map((l) => [l.id, l.offNm])).toEqual([['near', expect.any(Number)]]);
+    expect(st.launches?.[0]?.offNm).toBeLessThanOrEqual(300);
+    const far = new RoutePolyline(ofp).locate({ lat: 27.0, lon: 136.0 });
+    expect(far.offNm).toBeGreaterThan(300);
+  });
+
+  it('Go: T-0 before the ETA and the window still open', () => {
+    const cruise = tAt(CRUISE);
+    expect(run([launch('go', 0.6, 1, cruise + 30 * MIN, 'go')])).toEqual([
+      'GO GO FOR LAUNCH FALSE',
+    ]);
+    // After the arrival: not in the flight's window.
+    expect(run([launch('late', 0.6, 1, END + 3 * 60 * MIN, 'go')])).toEqual(['NONE - -']);
+    // T-0 passed, window closed (the data is stale: the launch is not "go" any more).
+    expect(run([launch('old', 0.6, 1, cruise - 60 * MIN, 'go', cruise - 30 * MIN)])).toEqual([
+      'NONE - -',
+    ]);
+    // T-0 passed but the window is still open: still a Go launch.
+    expect(run([launch('open', 0.6, 1, cruise - 5 * MIN, 'go', cruise + 30 * MIN)])).toEqual([
+      'OPEN GO FOR LAUNCH FALSE',
+    ]);
+  });
+
+  it('happened: since take-off up to now, with its status', () => {
+    const off = tAt(OFF);
+    expect(run([launch('ok', 0.6, 1, off + MIN, 'success')])).toEqual(['OK SUCCESSFUL TRUE']);
+    expect(run([launch('bad', 0.6, 1, off + MIN, 'partial_failure')])).toEqual([
+      'BAD PARTIAL FAILURE TRUE',
+    ]);
+    // Before take-off: not "during the flight".
+    expect(run([launch('before', 0.6, 1, off - 10 * MIN, 'success')])).toEqual(['NONE - -']);
+  });
+
+  it('the first one ahead wins; launches behind the aircraft are skipped', () => {
+    const cruise = tAt(CRUISE);
+    const list = [
+      launch('behind', 0.02, 1, cruise + 30 * MIN, 'go'),
+      launch('second', 0.8, 1, cruise + 40 * MIN, 'go'),
+      launch('first', 0.5, 1, cruise + 50 * MIN, 'go'),
+    ];
+    expect(run(list)).toEqual(['FIRST GO FOR LAUNCH FALSE']);
   });
 });
 

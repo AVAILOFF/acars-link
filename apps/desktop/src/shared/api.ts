@@ -22,7 +22,7 @@ export interface Settings {
   /** Write every flight to a JSONL recording (T11) in the user-data folder. */
   readonly recordFlights: boolean;
   /**
-   * Fetch free external data (T13): METAR/TAF, VATSIM ATC, NASA EONET, OSM stands. Off: the
+   * Fetch free external data (T13): METAR/TAF, VATSIM ATC, NASA EONET, OSM stands, launches. Off: the
    * messages use the OFP only and nothing but SimBrief and Hoppie is contacted.
    */
   readonly liveData: boolean;

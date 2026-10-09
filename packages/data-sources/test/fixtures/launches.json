@@ -1,0 +1,187 @@
+{
+  "count": 3,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": "e0741415-6c63-4236-9736-24a6c04485bc",
+      "url": "https://ll.thespacedevs.com/2.3.0/launches/e0741415-6c63-4236-9736-24a6c04485bc/",
+      "name": "Nuri | NeonSat-2 to 6",
+      "response_mode": "normal",
+      "slug": "nuri-neonsat-2-to-6",
+      "launch_designator": "2026-229",
+      "status": {
+        "id": 3,
+        "name": "Launch Successful",
+        "abbrev": "Success",
+        "description": "The launch vehicle successfully inserted its payload(s) into the target orbit(s)."
+      },
+      "last_updated": "2026-10-09T01:02:13Z",
+      "net": "2026-10-07T03:25:00Z",
+      "net_precision": {
+        "id": 0,
+        "name": "Second",
+        "abbrev": "SEC",
+        "description": "The T-0 is accurate to the second."
+      },
+      "window_end": "2026-10-07T04:23:00Z",
+      "window_start": "2026-10-07T03:23:00Z",
+      "probability": null,
+      "launch_service_provider": {
+        "id": 41,
+        "name": "Korea Aerospace Research Institute",
+        "abbrev": "KARI"
+      },
+      "rocket": {
+        "id": 8848,
+        "configuration": {
+          "id": 117,
+          "name": "Nuri",
+          "full_name": "KSLV-2 Nuri",
+          "variant": "2"
+        }
+      },
+      "mission": {
+        "id": 7439,
+        "name": "NeonSat-2 to 6",
+        "type": "Earth Science"
+      },
+      "pad": {
+        "id": 192,
+        "name": "LC-2",
+        "latitude": 34.431867,
+        "longitude": 127.535069,
+        "map_url": "https://www.google.com/maps?q=34.431867,127.535069",
+        "country": {
+          "name": "South Korea",
+          "alpha_3_code": "KOR"
+        },
+        "location": {
+          "id": 9,
+          "name": "Naro Space Center, South Korea",
+          "timezone_name": "Asia/Seoul"
+        }
+      }
+    },
+    {
+      "id": "a1bb0984-19d4-4b47-9bba-706d225573e2",
+      "url": "https://ll.thespacedevs.com/2.3.0/launches/a1bb0984-19d4-4b47-9bba-706d225573e2/",
+      "name": "Long March 12 | Unknown Payload",
+      "response_mode": "normal",
+      "slug": "long-march-12-unknown-payload",
+      "launch_designator": null,
+      "status": {
+        "id": 1,
+        "name": "Go for Launch",
+        "abbrev": "Go",
+        "description": "Current T-0 confirmed by official or reliable sources."
+      },
+      "last_updated": "2026-09-30T02:25:58Z",
+      "net": "2026-10-09T19:25:00Z",
+      "net_precision": {
+        "id": 2,
+        "name": "Hour",
+        "abbrev": "HR",
+        "description": "The T-0 is accurate to the hour."
+      },
+      "window_end": "2026-10-09T19:49:00Z",
+      "window_start": "2026-10-09T19:20:00Z",
+      "probability": null,
+      "launch_service_provider": {
+        "id": 88,
+        "name": "China Aerospace Science and Technology Corporation",
+        "abbrev": "CASC"
+      },
+      "rocket": {
+        "id": 9160,
+        "configuration": {
+          "id": 517,
+          "name": "Long March 12",
+          "full_name": "Long March 12",
+          "variant": ""
+        }
+      },
+      "mission": {
+        "id": 7759,
+        "name": "Unknown Payload",
+        "type": "Unknown"
+      },
+      "pad": {
+        "id": 219,
+        "name": "Commercial LC-2",
+        "latitude": 19.59755,
+        "longitude": 110.936481,
+        "map_url": "https://www.google.com/maps?q=19.59755,110.936481",
+        "country": {
+          "name": "China",
+          "alpha_3_code": "CHN"
+        },
+        "location": {
+          "id": 8,
+          "name": "Wenchang Space Launch Site, People's Republic of China",
+          "timezone_name": "Asia/Shanghai"
+        }
+      }
+    },
+    {
+      "id": "da43dc2c-00af-4cc1-8ef1-90a60b2eb9e5",
+      "url": "https://ll.thespacedevs.com/2.3.0/launches/da43dc2c-00af-4cc1-8ef1-90a60b2eb9e5/",
+      "name": "Falcon 9 Block 5 | SDA Tranche 1 Transport Layer A",
+      "response_mode": "normal",
+      "slug": "falcon-9-block-5-sda-tranche-1-transport-layer-a",
+      "launch_designator": null,
+      "status": {
+        "id": 1,
+        "name": "Go for Launch",
+        "abbrev": "Go",
+        "description": "Current T-0 confirmed by official or reliable sources."
+      },
+      "last_updated": "2026-10-08T00:12:34Z",
+      "net": "2026-10-10T07:29:00Z",
+      "net_precision": {
+        "id": 1,
+        "name": "Minute",
+        "abbrev": "MIN",
+        "description": "The T-0 is accurate to the minute."
+      },
+      "window_end": "2026-10-10T07:29:00Z",
+      "window_start": "2026-10-10T07:29:00Z",
+      "probability": null,
+      "launch_service_provider": {
+        "id": 121,
+        "name": "SpaceX",
+        "abbrev": "SpX"
+      },
+      "rocket": {
+        "id": 7589,
+        "configuration": {
+          "id": 164,
+          "name": "Falcon 9",
+          "full_name": "Falcon 9 Block 5",
+          "variant": "Block 5"
+        }
+      },
+      "mission": {
+        "id": 6031,
+        "name": "SDA Tranche 1 Transport Layer A",
+        "type": "Government/Top Secret"
+      },
+      "pad": {
+        "id": 16,
+        "name": "Space Launch Complex 4E",
+        "latitude": 34.632,
+        "longitude": -120.611,
+        "map_url": "https://www.google.com/maps?q=34.632,-120.611",
+        "country": {
+          "name": "United States of America",
+          "alpha_3_code": "USA"
+        },
+        "location": {
+          "id": 11,
+          "name": "Vandenberg SFB, CA, USA",
+          "timezone_name": "America/Los_Angeles"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+# A confirmed space launch (TheSpaceDevs Launch Library, status Go) near the route ahead,
+# T-0 before the ETA (T28). The pad is within 300 NM of the route; distances are route
+# distances from the core. No real airline format for this advisory exists: the layout is
+# our template (approved 2026-10-09, docs/07 T28). One launch message per flight.
+id: space_launch
+version: 1
+category: external
+title: Space launch near the route
+title_ru: Пуск ракеты рядом с маршрутом
+description_ru: Подтверждённый пуск (TheSpaceDevs, статус Go) в пределах 300 NM от маршрута впереди, до прилёта.
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.launch_id != null"
+  - "!ext.launch_done"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 15"
+excludes: [space_launch_done]
+priority: 0
+steps:
+  - send:
+      header: OPS ADVISORY
+      body: |
+        SPACE LAUNCH NEAR ROUTE
+        {ext.launch_rocket} / {ext.launch_mission|or:UNKNOWN PAYLOAD}
+        {ext.launch_pad}
+        NET {ext.launch_net|hhmm}Z WINDOW {ext.launch_window_start|hhmm}-{ext.launch_window_end|hhmm}Z
+        {ext.launch_ahead_nm} NM AHEAD / {ext.launch_off_nm} NM FROM ROUTE
+        EXPECT AIRSPACE RESTRICTIONS CHECK NOTAM
+      footer: SOURCE THESPACEDEVS

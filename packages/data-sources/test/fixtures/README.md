@@ -9,6 +9,8 @@ Trimmed real responses of the data sources (docs/06 "Внешние данные
   (https://creativecommons.org/licenses/by-sa/4.0/), © VATSIM / VATSpy Data Project
   contributors; these two files are shared under the same licence.
 
+- `launches.json` — TheSpaceDevs Launch Library 2.3.0 `GET /2.3.0/launches/?mode=normal&ordering=net&limit=100&net__gte=2026-10-06T00:00:00Z&net__lte=2026-10-10T12:00:00Z`, taken 2026-10-09: all 3 launches (Nuri — Success, Long March 12 and Falcon 9 — Go), trimmed to the fields the adapter reads plus a few identifying ones (images, descriptions, agency details dropped). Licence of the data is not stated by The Space Devs (`[ПРОВЕРИТЬ]`, docs/06).
+
 - `ourairports-frequencies.csv` — the header and the EDDF, EFHK and KMSP rows of OurAirports
   `airport-frequencies.csv` (https://davidmegginson.github.io/ourairports-data/), taken
   2026-10-09. Public domain ("All data is released to the Public Domain").

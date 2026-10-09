@@ -258,7 +258,9 @@ describe('AppController', () => {
     await app.updateSettings({ transport: 'offline' });
     await app.loadOfp();
     const list = await app.listScenarios();
-    expect(list).toHaveLength(54); // 15 base + 12 commands (T12) + 4 live-data (T13) + 22 irregular (T14) + 1 sim (T22)
+    // 15 base + 12 commands (T12) + 4 live-data (T13) + 2 launches (T28) + 22 irregular (T14)
+    // + 1 sim (T22)
+    expect(list).toHaveLength(56);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -517,6 +519,7 @@ describe('live data (T13)', () => {
       vatsim: await fx('vatsim-data.json'),
       eonet: await fx('eonet.json'),
       overpass: await fx('overpass-stands.json'),
+      thespacedevs: await fx('launches.json'),
     };
     return new FakeHttp((req) => {
       const key = (Object.keys(files) as (keyof typeof files)[]).find((k) => req.url.includes(k));
@@ -554,6 +557,9 @@ describe('live data (T13)', () => {
     expect(urls.some((u) => u.startsWith('https://data.vatsim.net/'))).toBe(true);
     expect(urls.some((u) => u.startsWith('https://eonet.gsfc.nasa.gov/'))).toBe(true);
     expect(urls.some((u) => u.startsWith('https://overpass-api.de/'))).toBe(true);
+    expect(urls.some((u) => u.startsWith('https://ll.thespacedevs.com/2.3.0/launches/'))).toBe(
+      true,
+    );
     expect(
       http.requests
         .filter((r) => !r.url.includes('simbrief'))
@@ -578,6 +584,7 @@ describe('live data (T13)', () => {
     );
     expect(data.some((d) => d.stands?.icao === 'RJBB')).toBe(true);
     expect(data.some((d) => d.wx?.['RJBB'] != null)).toBe(true);
+    expect(data.some((d) => (d.launches?.length ?? 0) > 0)).toBe(true);
     const r = replay(rec, {
       scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
     });
