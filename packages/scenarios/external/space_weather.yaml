@@ -1,0 +1,27 @@
+# Space weather at NOAA scale R3+, S2+ (route above 60 deg latitude) or G3+ (now or forecast
+# today/tomorrow). A safety advisory: outside the one-special-event-per-flight limit.
+# T29 (docs/07): our template (no real airline format for such news exists), signed OPS, the
+# source as the last line. In cruise, not later than 30 min before TOD.
+id: space_weather
+version: 1
+category: external
+title: Space weather advisory
+title_ru: Космическая погода
+description_ru: "Шкала NOAA R3+, S2+ (маршрут выше 60° широты) или G3+ (сейчас или в прогнозе на сутки)."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.swx_alert == true"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 30"
+priority: 1
+steps:
+  - send:
+      header: OPS ADVISORY
+      body: |
+        SPACE WEATHER ADVISORY
+        {ext.swx_lines}
+        CHECK HF/SATCOM AND GNSS
+        SOURCE NOAA SWPC
+      footer: OPS

@@ -1,0 +1,28 @@
+# Air show within 50 km of the destination on the local arrival date (own list, official sites).
+# T29 (docs/07): our template (no real airline format for such news exists), signed OPS, the
+# source as the last line. In cruise, not later than 30 min before TOD.
+id: airshow_dest
+version: 1
+category: external
+title: Air show at the destination
+title_ru: Авиашоу в пункте назначения
+description_ru: "Авиашоу в пределах 50 км от аэропорта назначения в день прилёта (справочник с официальных сайтов)."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.airshow_name != null"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 30"
+excludes: [aurora_on_route, solar_eclipse, aviation_history, f1_result, nhl_results, holiday_dest, earthquake_dest]
+priority: 0
+steps:
+  - send:
+      header: OPS INFO
+      body: |
+        {ext.airshow_name}
+        {ext.airshow_site} {ext.airshow_dates}
+        EXPECT DISPLAY RESTRICTIONS AND BUSY TRAFFIC
+        CHECK NOTAM
+        SOURCE {ext.airshow_source}
+      footer: OPS

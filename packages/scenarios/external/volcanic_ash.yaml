@@ -1,0 +1,30 @@
+# Volcanic ash: a SIGMET VA valid now within 300 NM of the route ahead (the closest cloud).
+# A safety advisory: outside the one-per-flight limit, independent of natural_event.
+# T29 (docs/07): our template (no real airline format for such news exists), signed OPS, the
+# source as the last line. In cruise, not later than 30 min before TOD.
+id: volcanic_ash
+version: 1
+category: external
+title: Volcanic ash near the route
+title_ru: Вулканический пепел у маршрута
+description_ru: "Действующий SIGMET VA в пределах 300 NM от маршрута впереди."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.ash_volcano != null"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 30"
+priority: 1
+steps:
+  - send:
+      header: OPS ADVISORY
+      body: |
+        VOLCANIC ASH SIGMET {ext.ash_fir}
+        VOLCANO {ext.ash_volcano}
+        ASH CLOUD {ext.ash_levels}
+        {ext.ash_ahead_nm} NM AHEAD / {ext.ash_off_nm} NM FROM ROUTE
+        VALID UNTIL {ext.ash_valid_to|hhmm}Z
+        AVOID ASH AREA CHECK SIGMET
+        SOURCE SIGMET VIA AVIATIONWEATHER.GOV
+      footer: OPS

@@ -1,24 +1,39 @@
 import {
   type AirportFrequency,
   type AirportInfo,
+  type AshSigmet,
   type AtcStation,
+  type AuroraForecast,
   type CenterStation,
   checkExtDataUpdate,
+  type Earthquake,
   type ExtDataUpdate,
+  type F1Race,
   type FirArea,
   type FlightPhase,
+  type Holidays,
+  hashSeed,
   type NatTrack,
   type NaturalEvent,
+  type NhlGame,
   type Ofp,
   type ParkingStand,
+  type PublicHoliday,
+  RoutePolyline,
   type SpaceLaunch,
+  type SpaceWeather,
   type WxReport,
 } from '@acars/core';
 import { DataSourceError, type FetchContext, type HttpClient, ICAO_RE } from './common.js';
 import { fetchEonetEvents } from './eonet.js';
+import { fetchAirportCountries, fetchHolidays } from './holidays.js';
 import { fetchLaunches } from './launches.js';
 import { fetchNatTracks } from './nattrak.js';
 import { fetchAirportFrequencies } from './ourairports.js';
+import { fetchQuakes } from './quakes.js';
+import { fetchAshSigmets } from './sigmet.js';
+import { fetchAurora, fetchSpaceWeather } from './spacewx.js';
+import { fetchF1, fetchNhl } from './sport.js';
 import { fetchStands } from './stands.js';
 import { fetchVatsim, stationsFor, type VatsimStation } from './vatsim.js';
 import {
@@ -49,6 +64,12 @@ import { fetchWx } from './wx.js';
  * hour without a key. The window is from an hour before the flight started to an hour after
  * now + the OFP block time (the remaining time is not known here; more is harmless). With the
  * ROPS station: the active NAT tracks from natTrak (T27) at start and every hour, cached 30 min.
+ *
+ * Special events (T29, `startFlight(…, { special })`, per group, approved 2026-10-09): aviation —
+ * NOAA scales and the OVATION aurora every 30 min, volcanic ash SIGMETs every 15 min; other —
+ * USGS earthquakes every 30 min, the destination's country (OurAirports, cached 30 days) and its
+ * public holidays (Nager.Date, cached 30 days) once; sport — the last F1 result every 30 min, NHL
+ * scores of the current days every 15 min.
  */
 
 export type DataSourceKind =
@@ -59,7 +80,14 @@ export type DataSourceKind =
   | 'firs'
   | 'freqs'
   | 'launches'
-  | 'nattracks';
+  | 'nattracks'
+  | 'spacewx'
+  | 'aurora'
+  | 'ash'
+  | 'quakes'
+  | 'holidays'
+  | 'f1'
+  | 'nhl';
 export const DATA_SOURCES: readonly DataSourceKind[] = [
   'wx',
   'vatsim',
@@ -69,11 +97,29 @@ export const DATA_SOURCES: readonly DataSourceKind[] = [
   'freqs',
   'launches',
   'nattracks',
+  'spacewx',
+  'aurora',
+  'ash',
+  'quakes',
+  'holidays',
+  'f1',
+  'nhl',
 ];
+
+/** Groups of the special events (T29); each is switched on in the app's settings. */
+export type SpecialGroup = 'sport' | 'aviation' | 'other';
+export const SPECIAL_GROUPS: Readonly<Record<SpecialGroup, readonly DataSourceKind[]>> = {
+  aviation: ['spacewx', 'aurora', 'ash'],
+  other: ['quakes', 'holidays'],
+  sport: ['f1', 'nhl'],
+};
+const SPECIAL_SOURCES: ReadonlySet<DataSourceKind> = new Set(Object.values(SPECIAL_GROUPS).flat());
 /** Sources of the ROPS station only (`startFlight(…, { firs: true })`). */
 const ROPS_SOURCES: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs', 'nattracks']);
 /** ROPS sources fetched once per flight (the others refresh on their schedule). */
 const ROPS_ONCE: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs']);
+/** Fetched once per flight. */
+const ONCE: ReadonlySet<DataSourceKind> = new Set(['stands', 'firs', 'freqs', 'holidays']);
 
 export interface CacheEntry {
   /** When the value was fetched, epoch ms. */
@@ -127,6 +173,13 @@ export const DATA_POLICY: Readonly<Record<DataSourceKind, Policy>> = {
   freqs: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   launches: { refreshMs: 60 * MIN, cacheMs: 30 * MIN, retryMs: 15 * MIN, maxTries: null },
   nattracks: { refreshMs: 60 * MIN, cacheMs: 30 * MIN, retryMs: 15 * MIN, maxTries: null },
+  spacewx: { refreshMs: 30 * MIN, cacheMs: 15 * MIN, retryMs: 15 * MIN, maxTries: null },
+  aurora: { refreshMs: 30 * MIN, cacheMs: 15 * MIN, retryMs: 15 * MIN, maxTries: null },
+  ash: { refreshMs: 15 * MIN, cacheMs: 10 * MIN, retryMs: 5 * MIN, maxTries: null },
+  quakes: { refreshMs: 30 * MIN, cacheMs: 15 * MIN, retryMs: 15 * MIN, maxTries: null },
+  holidays: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
+  f1: { refreshMs: 30 * MIN, cacheMs: 15 * MIN, retryMs: 15 * MIN, maxTries: null },
+  nhl: { refreshMs: 15 * MIN, cacheMs: 10 * MIN, retryMs: 10 * MIN, maxTries: null },
 };
 
 /** VATSIM refreshes only here (the first fetch at start goes in any phase). */
@@ -161,6 +214,8 @@ interface Flight {
   readonly airports: readonly string[];
   /** FIR boundaries and centres for the ROPS station (T23). */
   readonly firs: boolean;
+  /** Special-event sources of the flight, sorted, comma-joined (T29). */
+  readonly special: string;
   /** When the flight started (`startFlight`), epoch ms. */
   readonly startedAt: number;
 }
@@ -186,6 +241,13 @@ export class ExternalDataService {
     freqs: { icao: string; list: AirportFrequency[] } | null;
     launches: SpaceLaunch[] | null;
     natTracks: NatTrack[] | null;
+    spaceWx: SpaceWeather | null;
+    aurora: AuroraForecast | null;
+    ash: AshSigmet[] | null;
+    quakes: Earthquake[] | null;
+    holidays: Holidays | null;
+    f1: F1Race | null | undefined;
+    nhl: NhlGame[] | null;
   } = empty();
   /** VATSpy data of the flight (T23) and the ids of the route's FIRs. */
   private vatspy: { data: VatspyData; route: ReadonlySet<string> } | null = null;
@@ -206,24 +268,35 @@ export class ExternalDataService {
 
   /**
    * A new flight (also right after the OFP is loaded, to prefetch). Fetching starts on tick.
-   * `firs`: also the FIR boundaries and centres for the ROPS station (T23).
+   * `firs`: also the FIR boundaries and centres for the ROPS station (T23). `special`: the
+   * groups of special events whose sources to use (T29; none by default).
    */
-  startFlight(ofp: Ofp, now: number, opts: { readonly firs?: boolean } = {}): void {
+  startFlight(
+    ofp: Ofp,
+    now: number,
+    opts: { readonly firs?: boolean; readonly special?: readonly SpecialGroup[] } = {},
+  ): void {
     const firs = opts.firs === true;
-    if (this.flight?.ofp === ofp && this.flight.firs === firs) return;
+    const special = new Set((opts.special ?? []).flatMap((g) => SPECIAL_GROUPS[g]));
+    const key = [...special].sort().join(',');
+    if (this.flight?.ofp === ofp && this.flight.firs === firs && this.flight.special === key)
+      return;
     this.generation++;
     const airports = [ofp.origin.icao, ofp.destination.icao, ...ofp.alternates.map((a) => a.icao)];
     this.flight = {
       ofp,
       airports: [...new Set(airports)].filter((i) => ICAO_RE.test(i)),
       firs,
+      special: key,
       startedAt: now,
     };
     this.src = new Map(
-      DATA_SOURCES.filter((k) => this.enabled.has(k) && (!ROPS_SOURCES.has(k) || firs)).map((k) => [
-        k,
-        { inFlight: false, nextAt: now, fails: 0, fetched: false, failing: false },
-      ]),
+      DATA_SOURCES.filter(
+        (k) =>
+          this.enabled.has(k) &&
+          (!ROPS_SOURCES.has(k) || firs) &&
+          (!SPECIAL_SOURCES.has(k) || special.has(k)),
+      ).map((k) => [k, { inFlight: false, nextAt: now, fails: 0, fetched: false, failing: false }]),
     );
     this.wxExtra.clear();
     this.pending = empty();
@@ -259,7 +332,7 @@ export class ExternalDataService {
       if (s.inFlight || (now < s.nextAt && !asked)) continue;
       const p = DATA_POLICY[kind];
       if (p.maxTries !== null && s.fails >= p.maxTries) continue;
-      if ((kind === 'stands' || ROPS_ONCE.has(kind)) && s.fetched) continue;
+      if ((ONCE.has(kind) || ROPS_ONCE.has(kind)) && s.fetched) continue;
       if (kind === 'vatsim' && s.fetched && (phase === null || !VATSIM_PHASES.has(phase))) {
         s.nextAt = now + (p.refreshMs ?? 0);
         continue;
@@ -284,7 +357,14 @@ export class ExternalDataService {
       p.airports !== null ||
       p.freqs !== null ||
       p.launches !== null ||
-      p.natTracks !== null;
+      p.natTracks !== null ||
+      p.spaceWx !== null ||
+      p.aurora !== null ||
+      p.ash !== null ||
+      p.quakes !== null ||
+      p.holidays !== null ||
+      p.f1 !== undefined ||
+      p.nhl !== null;
     if (!has) return { update: null, notes };
     return {
       update: {
@@ -299,6 +379,13 @@ export class ExternalDataService {
         ...(p.freqs === null ? {} : { freqs: p.freqs }),
         ...(p.launches === null ? {} : { launches: p.launches }),
         ...(p.natTracks === null ? {} : { natTracks: p.natTracks }),
+        ...(p.spaceWx === null ? {} : { spaceWx: p.spaceWx }),
+        ...(p.aurora === null ? {} : { aurora: p.aurora }),
+        ...(p.ash === null ? {} : { ash: p.ash }),
+        ...(p.quakes === null ? {} : { quakes: p.quakes }),
+        ...(p.holidays === null ? {} : { holidays: p.holidays }),
+        ...(p.f1 === undefined ? {} : { f1: p.f1 }),
+        ...(p.nhl === null ? {} : { nhl: p.nhl }),
       },
       notes,
     };
@@ -471,6 +558,88 @@ export class ExternalDataService {
           this.pending.natTracks = list;
         };
       }
+      case 'spacewx': {
+        const v = await this.cachedOr('spacewx', now, kind, 'spaceWx', () =>
+          fetchSpaceWeather(this.ctx),
+        );
+        return () => {
+          this.pending.spaceWx = v as SpaceWeather;
+        };
+      }
+      case 'aurora': {
+        const o = flight.ofp;
+        const key = `aurora:${o.origin.icao}-${o.destination.icao}-${hashSeed(o.route ?? '')}`;
+        const v = await this.cachedOr(key, now, kind, 'aurora', () =>
+          fetchAurora(this.ctx, new RoutePolyline(o).points),
+        );
+        return () => {
+          this.pending.aurora = v as AuroraForecast;
+        };
+      }
+      case 'ash': {
+        const v = await this.cachedOr('ash', now, kind, 'ash', () => fetchAshSigmets(this.ctx));
+        return () => {
+          this.pending.ash = v as AshSigmet[];
+        };
+      }
+      case 'quakes': {
+        const v = await this.cachedOr('quakes', now, kind, 'quakes', () => fetchQuakes(this.ctx));
+        return () => {
+          this.pending.quakes = v as Earthquake[];
+        };
+      }
+      case 'f1': {
+        const v = await this.cachedOr('f1', now, kind, 'f1', () => fetchF1(this.ctx));
+        return () => {
+          this.pending.f1 = v as F1Race | null;
+        };
+      }
+      case 'nhl': {
+        // NHL dates are North American game days: the UTC dates of 12 h ago and of now.
+        const day = (t: number) => new Date(t).toISOString().slice(0, 10);
+        const dates = [...new Set([day(now - 12 * HOUR), day(now)])];
+        const v = await this.cachedOr(`nhl:${dates.join(',')}`, now, kind, 'nhl', () =>
+          fetchNhl(this.ctx, dates),
+        );
+        return () => {
+          this.pending.nhl = v as NhlGame[];
+        };
+      }
+      case 'holidays': {
+        const icao = flight.ofp.destination.icao;
+        let map = (await this.cached('airport-countries', now, kind, checkCountries)) as
+          | Record<string, string>
+          | undefined;
+        if (map === undefined) {
+          map = await fetchAirportCountries(this.ctx);
+          await this.store('airport-countries', now, map);
+        }
+        const country = map[icao];
+        if (country === undefined) return () => {};
+        // Years of now and of the latest possible arrival (a day after now + block time).
+        const t = flight.ofp.times;
+        const blockMs = (t.schedBlockSec ?? t.estTimeEnrouteSec) * 1000;
+        const years = new Set([
+          new Date(now).getUTCFullYear(),
+          new Date(now + blockMs + 24 * HOUR).getUTCFullYear(),
+        ]);
+        const list: PublicHoliday[] = [];
+        for (const year of years) {
+          const k = `holidays:${country}:${year}`;
+          let got = (await this.cached(k, now, kind, (v) =>
+            checkExtDataUpdate({ t: 0, holidays: { country, list: v } }),
+          )) as PublicHoliday[] | undefined;
+          if (got === undefined) {
+            got = await fetchHolidays(this.ctx, country, year);
+            await this.store(k, now, got);
+          }
+          list.push(...got);
+        }
+        const holidays = { country, list };
+        return () => {
+          this.pending.holidays = holidays;
+        };
+      }
       case 'stands': {
         const icao = flight.ofp.destination.icao;
         let list = (await this.cached(`stands:${icao}`, now, kind, (v) =>
@@ -493,6 +662,21 @@ export class ExternalDataService {
   private mapCenters(): void {
     if (this.vatspy === null || this.rawCenters === null) return;
     this.pending.centers = centersFor(this.rawCenters, this.vatspy.data, this.vatspy.route);
+  }
+
+  /** A fresh cached value of an update field, else fetched and stored. */
+  private async cachedOr(
+    key: string,
+    now: number,
+    kind: DataSourceKind,
+    field: keyof ExtDataUpdate,
+    fetch: () => Promise<unknown>,
+  ): Promise<unknown> {
+    const c = await this.cached(key, now, kind, (v) => checkExtDataUpdate({ t: 0, [field]: v }));
+    if (c !== undefined) return c;
+    const v = await fetch();
+    await this.store(key, now, v);
+    return v;
   }
 
   /** A fresh cached value (checked), or undefined. Cache errors count as a miss. */
@@ -534,7 +718,22 @@ function empty() {
     freqs: null,
     launches: null,
     natTracks: null,
+    spaceWx: null,
+    aurora: null,
+    ash: null,
+    quakes: null,
+    holidays: null,
+    f1: undefined,
+    nhl: null,
   };
+}
+
+function checkCountries(v: unknown): void {
+  const ok =
+    typeof v === 'object' &&
+    v !== null &&
+    Object.values(v).every((c) => typeof c === 'string' && /^[A-Z]{2}$/.test(c));
+  if (!ok) throw new DataSourceError('bad cached airport countries');
 }
 
 function checkVatsim(v: unknown): void {

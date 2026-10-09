@@ -42,6 +42,14 @@ export interface Settings {
   readonly ropsStandAside: boolean;
   /** ROPS sends up to 3 random Direct To per flight (T26). Default on. */
   readonly ropsRandomDirects: boolean;
+  /**
+   * Special events (T29) by group; a group that is off has its scenarios off and its sources not
+   * asked. Default on. Sport: F1, NHL. Aviation: space weather, aurora, eclipse, volcanic ash,
+   * air shows, aviation history. Other: public holiday, earthquake at the destination.
+   */
+  readonly specialSport: boolean;
+  readonly specialAviation: boolean;
+  readonly specialOther: boolean;
   /** Scenario id → enabled; absent ids use `enabled_by_default`. */
   readonly scenarios: Readonly<Record<string, boolean>>;
   /** Irregular scenario id → chance in percent (0–100); absent ids use the YAML `probability`. */

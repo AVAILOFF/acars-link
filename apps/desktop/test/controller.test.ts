@@ -13,6 +13,7 @@ import { fileRecordings, type OpenRecording } from '../src/main/recording.js';
 import { BASE_SCENARIOS } from '../src/main/scenario-sources.js';
 import { SecretStore } from '../src/main/secrets.js';
 import { defaultSettings, SettingsStore } from '../src/main/settings.js';
+import { SPECIAL_SCENARIOS } from '../src/main/special.js';
 import { VDGS_FILE } from '../src/main/vdgs.js';
 import { MESSAGES } from '../src/renderer/src/i18n.js';
 import type { FeedEntry } from '../src/shared/api.js';
@@ -259,8 +260,8 @@ describe('AppController', () => {
     await app.loadOfp();
     const list = await app.listScenarios();
     // 15 base + 12 commands (T12) + 4 live-data (T13) + 2 launches (T28) + 22 irregular (T14)
-    // + 1 sim (T22)
-    expect(list).toHaveLength(56);
+    // + 1 sim (T22) + 10 special events (T29)
+    expect(list).toHaveLength(66);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -520,6 +521,15 @@ describe('live data (T13)', () => {
       eonet: await fx('eonet.json'),
       overpass: await fx('overpass-stands.json'),
       thespacedevs: await fx('launches.json'),
+      // T29
+      'noaa-scales': await fx('noaa-scales.json'),
+      ovation: await fx('ovation-aurora.json'),
+      isigmet: await fx('isigmet-va.json'),
+      'earthquake.usgs': await fx('usgs-4.5-day.geojson'),
+      'airports.csv': await fx('ourairports-airports.csv'),
+      'date.nager.at': await fx('nager-2026-de.json'),
+      'jolpi.ca': await fx('jolpica-f1-last.json'),
+      'nhle.com': await fx('nhl-score.json'),
     };
     return new FakeHttp((req) => {
       const key = (Object.keys(files) as (keyof typeof files)[]).find((k) => req.url.includes(k));
@@ -560,6 +570,21 @@ describe('live data (T13)', () => {
     expect(urls.some((u) => u.startsWith('https://ll.thespacedevs.com/2.3.0/launches/'))).toBe(
       true,
     );
+    // T29: all three groups are on by default.
+    for (const host of [
+      'services.swpc.noaa.gov',
+      'aviationweather.gov/api/data/isigmet',
+      'earthquake.usgs.gov',
+      'ourairports-data/airports.csv',
+      'date.nager.at/api/v3/PublicHolidays/2026/JP',
+      'api.jolpi.ca',
+      'api-web.nhle.com/v1/score/',
+    ]) {
+      expect(
+        urls.some((u) => u.includes(host)),
+        host,
+      ).toBe(true);
+    }
     expect(
       http.requests
         .filter((r) => !r.url.includes('simbrief'))
@@ -594,7 +619,8 @@ describe('live data (T13)', () => {
   it('a failing source is one note in the feed, the flight goes on with the OFP', async () => {
     const ok = await dataHttp();
     const http = new FakeHttp((req) =>
-      req.url.includes('aviationweather')
+      req.url.includes('aviationweather.gov/api/data/metar') ||
+      req.url.includes('aviationweather.gov/api/data/taf')
         ? { status: 503, body: '' }
         : (ok.respond(req) as { status: number; body: string }),
     );
@@ -613,6 +639,43 @@ describe('live data (T13)', () => {
       }),
     ]);
     expect(outbound(feed).some((m) => m.scenarioId === 'dest_weather')).toBe(true);
+  });
+
+  it('special-event groups off (T29): their sources are not asked, their scenarios not run', async () => {
+    const http = await dataHttp();
+    const s = await setup({ http });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({
+      transport: 'offline',
+      specialSport: false,
+      specialAviation: false,
+      specialOther: false,
+    });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    await flyAsync(s);
+    await s.app.endFlight('DONE');
+    await s.app.stopFlight();
+    const urls = http.requests.map((r) => r.url);
+    for (const host of [
+      'swpc.noaa.gov',
+      'isigmet',
+      'usgs',
+      'airports.csv',
+      'nager',
+      'jolpi',
+      'nhle',
+    ]) {
+      expect(
+        urls.some((u) => u.includes(host)),
+        host,
+      ).toBe(false);
+    }
+    const rec = await readRecording(s.recordings);
+    for (const id of SPECIAL_SCENARIOS.aviation) expect(rec.header.scenarios).not.toContain(id);
+    expect(rec.header.scenarios).not.toContain('f1_result');
+    expect(rec.header.scenarios).not.toContain('holiday_dest');
   });
 
   it('switched off: nothing but SimBrief is asked', async () => {

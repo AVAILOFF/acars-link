@@ -1,5 +1,18 @@
 import { distanceNm, interpolate, type LatLon } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';
+import {
+  type AshSigmet,
+  type AuroraForecast,
+  type Earthquake,
+  type F1Race,
+  type Holidays,
+  insidePolygon,
+  isNhlFinal,
+  NHL_STATES,
+  type NhlGame,
+  type NhlState,
+  type SpaceWeather,
+} from './special.js';
 
 /**
  * External data (T13, docs/06 "Внешние данные") as the core sees it. The core never fetches:
@@ -179,6 +192,20 @@ export interface ExtDataUpdate {
   readonly launches?: readonly SpaceLaunch[];
   /** Active NAT tracks (T27); replaces the list. */
   readonly natTracks?: readonly NatTrack[];
+  /** NOAA space weather scales (T29). */
+  readonly spaceWx?: SpaceWeather;
+  /** OVATION aurora cells along the route (T29). */
+  readonly aurora?: AuroraForecast;
+  /** Volcanic ash SIGMETs (T29); replaces the list. */
+  readonly ash?: readonly AshSigmet[];
+  /** Earthquakes of the last day (USGS, T29); replaces the list. */
+  readonly quakes?: readonly Earthquake[];
+  /** Public holidays of the destination country (T29). */
+  readonly holidays?: Holidays;
+  /** The latest F1 race result (T29); null = none in the season yet. */
+  readonly f1?: F1Race | null;
+  /** NHL games of the current days (T29); merged per game id. */
+  readonly nhl?: readonly NhlGame[];
 }
 
 /** A natural event placed against the planned route (once, when it arrives). */
@@ -195,6 +222,29 @@ export interface RoutedLaunch extends SpaceLaunch {
   readonly alongNm: number;
   /** Distance from that route point to the pad, NM. */
   readonly offNm: number;
+}
+
+/** An ash SIGMET placed against the route (T29): the route points within 300 NM of the cloud. */
+export interface RoutedAsh extends AshSigmet {
+  /** Route distance of each such point and its distance to the cloud (0 inside), NM. */
+  readonly near: readonly (readonly [alongNm: number, offNm: number])[];
+}
+
+/** An aurora cell placed against the route (T29). */
+export interface RoutedAurora {
+  readonly lat: number;
+  readonly lon: number;
+  readonly prob: number;
+  readonly alongNm: number;
+}
+
+/** An NHL game as seen in this flight's updates (T29). */
+export interface SeenNhlGame {
+  readonly game: NhlGame;
+  /** Last update time it was not final; null = never seen so. */
+  readonly openT: number | null;
+  /** First update time it was final; null = not final yet. */
+  readonly finalT: number | null;
 }
 
 export interface ExtState {
@@ -216,6 +266,14 @@ export interface ExtState {
   readonly launches?: readonly RoutedLaunch[];
   /** T27; absent in states saved before T27. */
   readonly natTracks?: readonly NatTrack[];
+  /** T29; absent in states saved before T29. */
+  readonly spaceWx?: SpaceWeather | null;
+  readonly aurora?: { readonly forecastTime: number; readonly cells: readonly RoutedAurora[] };
+  readonly ash?: readonly RoutedAsh[];
+  readonly quakes?: readonly Earthquake[];
+  readonly holidays?: Holidays | null;
+  readonly f1?: F1Race | null;
+  readonly nhl?: Readonly<Record<string, SeenNhlGame>>;
 }
 
 export const EMPTY_EXT: ExtState = {
@@ -235,6 +293,10 @@ export const ATC_MAX_AGE_MS = 20 * 60_000;
 export const EVENT_CORRIDOR_NM = 150;
 /** Launch pads farther than this from the route are ignored (docs/07 T28). */
 export const LAUNCH_CORRIDOR_NM = 300;
+/** Ash clouds farther than this from the route are ignored (docs/07 T29). */
+export const ASH_CORRIDOR_NM = 300;
+/** Aurora cells farther than this from the route are ignored (one 1° cell ≈ 60 NM). */
+export const AURORA_CORRIDOR_NM = 60;
 
 const ICAO = /^[A-Z0-9]{3,4}$/;
 const REF = /^[A-Z0-9]{1,6}$/;
@@ -256,6 +318,7 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
   };
   if (!isObj(x) || !isNum(x['t'])) return bad('t');
   const { wx, atc, events, stands, firs, centers, airports, freqs, launches, natTracks } = x;
+  checkSpecial(x, bad);
   if (wx !== undefined) {
     if (!isObj(wx)) bad('wx');
     for (const [icao, r] of Object.entries(wx as object)) {
@@ -357,7 +420,6 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
   }
   if (launches !== undefined) {
     if (!Array.isArray(launches)) bad('launches');
-    const numOrNull = (v: unknown) => v === null || isNum(v);
     for (const l of launches as unknown[]) {
       if (
         !isObj(l) ||
@@ -395,6 +457,156 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
     }
   }
   return x as unknown as ExtDataUpdate;
+}
+
+const isLatLon = (p: unknown): boolean =>
+  isObj(p) &&
+  isNum(p['lat']) &&
+  isNum(p['lon']) &&
+  Math.abs(p['lat']) <= 90 &&
+  Math.abs(p['lon']) <= 180;
+const isStr = (v: unknown): v is string => typeof v === 'string';
+const numOrNull = (v: unknown) => v === null || isNum(v);
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const level = (v: unknown) => isNum(v) && Number.isInteger(v) && v >= 0 && v <= 5;
+
+/** T29 fields of an update. */
+function checkSpecial(x: Record<string, unknown>, bad: (why: string) => never): void {
+  const { spaceWx, aurora, ash, quakes, holidays, f1, nhl } = x;
+  if (spaceWx !== undefined) {
+    if (!isObj(spaceWx) || !isNum(spaceWx['issued'])) bad('spaceWx');
+    const s = spaceWx as Record<string, unknown>;
+    const c = s['current'];
+    if (!isObj(c) || !level(c['r']) || !level(c['s']) || !level(c['g'])) bad('spaceWx.current');
+    const f = s['gForecast'];
+    if (
+      !Array.isArray(f) ||
+      !f.every((d: unknown) => isObj(d) && DATE.test(String(d['date'])) && level(d['g']))
+    )
+      bad('spaceWx.gForecast');
+  }
+  if (aurora !== undefined) {
+    if (!isObj(aurora) || !isNum(aurora['forecastTime']) || !Array.isArray(aurora['cells']))
+      bad('aurora');
+    for (const c of (aurora as { cells: unknown[] }).cells) {
+      if (!isLatLon(c) || !isNum((c as Record<string, unknown>)['prob'])) bad('aurora cell');
+    }
+  }
+  if (ash !== undefined) {
+    if (!Array.isArray(ash)) bad('ash');
+    for (const a of ash as unknown[]) {
+      if (
+        !isObj(a) ||
+        !isStr(a['id']) ||
+        !isStr(a['fir']) ||
+        !isStr(a['volcano']) ||
+        !numOrNull(a['baseFt']) ||
+        !numOrNull(a['topFt']) ||
+        !isNum(a['validFrom']) ||
+        !isNum(a['validTo']) ||
+        !Array.isArray(a['areas']) ||
+        !(a['areas'] as unknown[]).every(
+          (r) => Array.isArray(r) && r.length >= 3 && r.every(isLatLon),
+        )
+      )
+        bad('ash item');
+    }
+  }
+  if (quakes !== undefined) {
+    if (!Array.isArray(quakes)) bad('quakes');
+    for (const q of quakes as unknown[]) {
+      const r = q as Record<string, unknown>;
+      if (
+        !isLatLon(q) ||
+        !isStr(r['id']) ||
+        !isNum(r['mag']) ||
+        !isStr(r['place']) ||
+        !isNum(r['time']) ||
+        !isNum(r['depthKm'])
+      )
+        bad('quakes item');
+    }
+  }
+  if (holidays !== undefined) {
+    if (!isObj(holidays) || !/^[A-Z]{2}$/.test(String(holidays['country']))) bad('holidays');
+    const list = (holidays as Record<string, unknown>)['list'];
+    if (
+      !Array.isArray(list) ||
+      !list.every(
+        (h: unknown) =>
+          isObj(h) && DATE.test(String(h['date'])) && isStr(h['name']) && isStr(h['localName']),
+      )
+    )
+      bad('holidays.list');
+  }
+  if (f1 !== undefined && f1 !== null) {
+    if (
+      !isObj(f1) ||
+      !isStr(f1['season']) ||
+      !isStr(f1['round']) ||
+      !isStr(f1['name']) ||
+      !isNum(f1['start']) ||
+      !isNum(f1['finish']) ||
+      !Array.isArray(f1['podium']) ||
+      !(f1['podium'] as unknown[]).every(
+        (p) => isObj(p) && isNum(p['pos']) && isStr(p['code']) && isStr(p['team']),
+      )
+    )
+      bad('f1');
+  }
+  if (nhl !== undefined) {
+    if (!Array.isArray(nhl)) bad('nhl');
+    for (const g of nhl as unknown[]) {
+      if (
+        !isObj(g) ||
+        !isNum(g['id']) ||
+        !isNum(g['start']) ||
+        !NHL_STATES.includes(g['state'] as NhlState) ||
+        !isStr(g['away']) ||
+        !isStr(g['home']) ||
+        !numOrNull(g['awayScore']) ||
+        !numOrNull(g['homeScore']) ||
+        !(g['lastPeriod'] === null || isStr(g['lastPeriod']))
+      )
+        bad('nhl item');
+    }
+  }
+}
+
+/** T29 fields of an update. */
+function applySpecial(state: ExtState, u: ExtDataUpdate, route: RoutePolyline): ExtState {
+  let next = state;
+  if (u.spaceWx !== undefined) next = { ...next, spaceWx: u.spaceWx };
+  if (u.aurora !== undefined) {
+    const cells = u.aurora.cells
+      .map((c) => ({ c, at: route.locate(c) }))
+      .filter((x) => x.at.offNm <= AURORA_CORRIDOR_NM)
+      .map((x) => ({ lat: x.c.lat, lon: x.c.lon, prob: x.c.prob, alongNm: x.at.alongNm }))
+      .sort((a, b) => a.alongNm - b.alongNm || a.lat - b.lat || a.lon - b.lon);
+    next = { ...next, aurora: { forecastTime: u.aurora.forecastTime, cells } };
+  }
+  if (u.ash !== undefined) {
+    const ash: RoutedAsh[] = [];
+    for (const a of u.ash) {
+      const near = route.near(a.areas, ASH_CORRIDOR_NM);
+      if (near.length > 0) ash.push({ ...a, near });
+    }
+    next = { ...next, ash };
+  }
+  if (u.quakes !== undefined) next = { ...next, quakes: [...u.quakes] };
+  if (u.holidays !== undefined) next = { ...next, holidays: u.holidays };
+  if (u.f1 !== undefined) next = { ...next, f1: u.f1 };
+  if (u.nhl !== undefined) {
+    const seen: Record<string, SeenNhlGame> = { ...(next.nhl ?? {}) };
+    for (const g of u.nhl) {
+      const prev = seen[String(g.id)];
+      seen[String(g.id)] = isNhlFinal(g.state)
+        ? { game: g, openT: prev?.openT ?? null, finalT: prev?.finalT ?? u.t }
+        : { game: g, openT: u.t, finalT: null };
+    }
+    next = { ...next, nhl: seen };
+  }
+  return next;
 }
 
 /** A point of a NAT track: a named fix or `63/20`, `6330/20`. */
@@ -451,6 +663,7 @@ export function applyExtData(
     next = { ...next, launches };
   }
   if (u.natTracks !== undefined) next = { ...next, natTracks: [...u.natTracks] };
+  next = applySpecial(next, u, route);
   if (u.firs !== undefined) next = { ...next, firs: [...u.firs] };
   if (u.centers !== undefined) next = { ...next, centers: [...u.centers], centersT: u.t };
   if (u.airports !== undefined) next = { ...next, airports: { ...u.airports } };
@@ -514,6 +727,37 @@ export class RoutePolyline {
       }
     }
     this.pts = pts;
+  }
+
+  /** The sampled route points (≤ 10 NM apart) with their route distance from the origin. */
+  get points(): readonly (LatLon & { readonly along: number })[] {
+    return this.pts;
+  }
+
+  /**
+   * Route points within `maxNm` of any of the polygons (0 inside one): `[alongNm, offNm]`,
+   * rounded, in route order (T29 ash clouds).
+   */
+  near(areas: readonly (readonly LatLon[])[], maxNm: number): [number, number][] {
+    const edges: LatLon[] = [];
+    for (const ring of areas) {
+      for (let i = 0; i < ring.length; i++) {
+        const a = ring[i] as LatLon;
+        const b = ring[(i + 1) % ring.length] as LatLon;
+        const n = Math.max(1, Math.ceil(distanceNm(a, b) / 10));
+        for (let k = 0; k < n; k++) edges.push(interpolate(a, b, k / n));
+      }
+    }
+    const out: [number, number][] = [];
+    for (const q of this.pts) {
+      let d = areas.some((r) => insidePolygon(q, r)) ? 0 : Number.POSITIVE_INFINITY;
+      for (const e of edges) {
+        if (d === 0) break;
+        d = Math.min(d, distanceNm(q, e));
+      }
+      if (d <= maxNm) out.push([Math.round(q.along), Math.round(d)]);
+    }
+    return out;
   }
 
   /** Nearest sampled route point to `p`: its route distance and the offset. */

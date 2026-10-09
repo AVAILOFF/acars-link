@@ -26,6 +26,7 @@ import type { SecretStore } from './secrets.js';
 import { FlightSession } from './session.js';
 import type { SettingsStore } from './settings.js';
 import { fetchOfp, normalizeSimbriefUsername } from './simbrief.js';
+import { specialGroupOn, specialGroups } from './special.js';
 import { VdgsWriter } from './vdgs.js';
 
 /**
@@ -309,8 +310,12 @@ export class AppController {
 
   /** Starts fetching the live data of an OFP before the flight starts (T13), if enabled. */
   private prefetch(ofp: Ofp, settings: Settings): void {
-    if (settings.liveData) this.data.startFlight(ofp, this.o.now(), { firs: settings.rops });
-    else this.data.stopFlight();
+    if (settings.liveData) {
+      this.data.startFlight(ofp, this.o.now(), {
+        firs: settings.rops,
+        special: specialGroups(settings),
+      });
+    } else this.data.stopFlight();
   }
 
   async startFlight(): Promise<null> {
@@ -329,6 +334,7 @@ export class AppController {
       transport = this.o.createTransport({ kind: 'offline' });
     }
     const enabled = this.scenarios
+      .filter((c) => specialGroupOn(c.id, settings))
       .filter((c) => settings.scenarios[c.id] ?? c.def.enabled_by_default)
       .map((c) => {
         const pct = isIrregularEvent(c) ? settings.chances[c.id] : undefined;

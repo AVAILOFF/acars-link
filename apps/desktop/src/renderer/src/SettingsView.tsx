@@ -239,6 +239,21 @@ function NetworkForm() {
         <p className="hint">{t('set.ropsRandomDirectsHint')}</p>
       </div>
       <div className="field">
+        <span>{t('set.special')}</span>
+        {(['specialSport', 'specialAviation', 'specialOther'] as const).map((key) => (
+          <label className="check" key={key}>
+            <input
+              type="checkbox"
+              checked={settings[key]}
+              disabled={busy !== null}
+              onChange={(e) => void update({ [key]: e.currentTarget.checked })}
+            />
+            {t(`set.${key}`)}
+          </label>
+        ))}
+        <p className="hint">{t('set.specialHint')}</p>
+      </div>
+      <div className="field">
         <label htmlFor="gap">{t('set.gap')}</label>
         <select
           id="gap"

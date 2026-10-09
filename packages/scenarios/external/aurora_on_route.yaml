@@ -1,0 +1,28 @@
+# Aurora: OVATION probability of 30 % or more at a route point reached within 60 min, in darkness.
+# T29 (docs/07): our template (no real airline format for such news exists), signed OPS, the
+# source as the last line. In cruise, not later than 30 min before TOD.
+id: aurora_on_route
+version: 1
+category: external
+title: Aurora on the route
+title_ru: Северное сияние на маршруте
+description_ru: "Вероятность сияния ≥ 30 % в точке маршрута в ближайший час, ночью (NOAA OVATION)."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.aurora_prob != null"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 30"
+excludes: [solar_eclipse, airshow_dest, aviation_history, f1_result, nhl_results, holiday_dest, earthquake_dest]
+priority: 0
+steps:
+  - send:
+      header: OPS INFO
+      body: |
+        AURORA FORECAST ON YOUR ROUTE
+        PROBABILITY {ext.aurora_prob} PCT NEAR {ext.aurora_pos}
+        IN ABOUT {ext.aurora_min} MIN / {ext.aurora_ahead_nm} NM AHEAD
+        CABIN CREW MAY INFORM PASSENGERS
+        SOURCE NOAA SWPC OVATION
+      footer: OPS

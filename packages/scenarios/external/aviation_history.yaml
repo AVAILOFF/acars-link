@@ -1,0 +1,26 @@
+# On this day in aviation history (own list with sources), today's UTC date.
+# T29 (docs/07): our template (no real airline format for such news exists), signed OPS, the
+# source as the last line. In cruise, not later than 30 min before TOD.
+id: aviation_history
+version: 1
+category: external
+title: On this day in aviation history
+title_ru: В этот день в истории авиации
+description_ru: "Факт из истории авиации с сегодняшней датой (справочник с источниками)."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.history_text != null"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 30"
+excludes: [aurora_on_route, solar_eclipse, airshow_dest, f1_result, nhl_results, holiday_dest, earthquake_dest]
+priority: 0
+steps:
+  - send:
+      header: OPS INFO
+      body: |
+        ON THIS DAY IN {ext.history_year}
+        {ext.history_text}
+        SOURCE {ext.history_source}
+      footer: OPS

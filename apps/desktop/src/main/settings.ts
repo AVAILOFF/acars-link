@@ -29,6 +29,9 @@ export function defaultSettings(locale: string): Settings {
     rops: false,
     ropsStandAside: true,
     ropsRandomDirects: true,
+    specialSport: true,
+    specialAviation: true,
+    specialOther: true,
     scenarios: {},
     chances: {},
   };
@@ -77,6 +80,9 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'rops':
       case 'ropsStandAside':
       case 'ropsRandomDirects':
+      case 'specialSport':
+      case 'specialAviation':
+      case 'specialOther':
         if (typeof value !== 'boolean') throw bad(key, 'true or false');
         out[key] = value;
         break;
@@ -104,6 +110,9 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'rops',
     'ropsStandAside',
     'ropsRandomDirects',
+    'specialSport',
+    'specialAviation',
+    'specialOther',
   ] as const;
   for (const key of keys) {
     if (!(key in r)) continue;

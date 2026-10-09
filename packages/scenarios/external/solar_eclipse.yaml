@@ -1,0 +1,30 @@
+# Solar eclipse: a route point ahead in the partial (magnitude 0.5+) or total/annular zone at the
+# time the aircraft passes it, sun above the horizon (NASA Besselian elements).
+# T29 (docs/07): our template (no real airline format for such news exists), signed OPS, the
+# source as the last line. In cruise, not later than 30 min before TOD.
+id: solar_eclipse
+version: 1
+category: external
+title: Solar eclipse on the route
+title_ru: Солнечное затмение на маршруте
+description_ru: "Точка маршрута впереди в полосе затмения (фаза ≥ 0,5) в момент пролёта, солнце над горизонтом (NASA)."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.eclipse_kind != null"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 30"
+excludes: [aurora_on_route, airshow_dest, aviation_history, f1_result, nhl_results, holiday_dest, earthquake_dest]
+priority: 0
+steps:
+  - send:
+      header: OPS INFO
+      body: |
+        SOLAR ECLIPSE ON YOUR ROUTE
+        {ext.eclipse_kind} MAGNITUDE {ext.eclipse_mag}
+        AT {ext.eclipse_time|hhmm}Z NEAR {ext.eclipse_pos}
+        {ext.eclipse_ahead_nm} NM AHEAD SUN {ext.eclipse_sun_alt} DEG HIGH
+        DO NOT LOOK AT THE SUN WITHOUT PROTECTION
+        SOURCE NASA ECLIPSE WEB SITE (ESPENAK, MEEUS)
+      footer: OPS

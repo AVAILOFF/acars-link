@@ -63,6 +63,9 @@ describe('settings', () => {
       rops: false,
       ropsStandAside: true,
       ropsRandomDirects: true,
+      specialSport: true,
+      specialAviation: true,
+      specialOther: true,
       scenarios: {},
       chances: {},
     });

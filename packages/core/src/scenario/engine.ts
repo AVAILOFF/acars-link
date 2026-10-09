@@ -564,6 +564,7 @@ export class ScenarioEngine {
       sent: Object.keys(this.st.sent),
       ext: this.st.ext,
       polyline: this.polyline,
+      seed: this.seed,
       irr: { ...this.irr, newGate: this.newGate },
     });
   }

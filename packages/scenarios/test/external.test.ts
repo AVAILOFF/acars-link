@@ -41,7 +41,20 @@ const read = (name: string) =>
     .sort()
     .map((file) => ({ file, source: readFileSync(join(dir(name), file), 'utf8') }));
 const all = loadScenarios([...read('base'), ...read('commands'), ...read('external')]);
-const external = loadScenarios(read('external'));
+/** Special events (T29): their own test, `special.test.ts`. */
+const SPECIAL_IDS = new Set([
+  'space_weather',
+  'volcanic_ash',
+  'aurora_on_route',
+  'solar_eclipse',
+  'airshow_dest',
+  'aviation_history',
+  'f1_result',
+  'nhl_results',
+  'holiday_dest',
+  'earthquake_dest',
+]);
+const external = loadScenarios(read('external')).filter((s) => !SPECIAL_IDS.has(s.id));
 const byId = (id: string) => all.find((s) => s.id === id) as CompiledScenario;
 
 const OFPS = join(import.meta.dirname, '../../core/test/fixtures/ofp');

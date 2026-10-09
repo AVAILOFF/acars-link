@@ -46,7 +46,7 @@ export function parseAirportFrequencies(csv: string, icao: string): AirportFrequ
 }
 
 /** One CSV line: commas, double-quoted fields with `""` escapes. */
-function splitCsv(line: string): string[] {
+export function splitCsv(line: string): string[] {
   const out: string[] = [];
   let cur = '';
   let quoted = false;

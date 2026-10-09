@@ -1,0 +1,26 @@
+# NHL: regular-season and playoff games that went final during the flight (api-web.nhle.com).
+# T29 (docs/07): our template (no real airline format for such news exists), signed OPS, the
+# source as the last line. In cruise, not later than 30 min before TOD.
+id: nhl_results
+version: 1
+category: external
+title: NHL results
+title_ru: Результаты NHL
+description_ru: "Матчи NHL, завершившиеся во время полёта (регулярный сезон и плей-офф)."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.nhl_count != null"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 30"
+excludes: [aurora_on_route, solar_eclipse, airshow_dest, aviation_history, f1_result, holiday_dest, earthquake_dest]
+priority: 0
+steps:
+  - send:
+      header: OPS INFO
+      body: |
+        NHL FINAL SCORES
+        {ext.nhl_lines}
+        SOURCE NHL.COM
+      footer: OPS

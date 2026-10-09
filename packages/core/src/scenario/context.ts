@@ -13,6 +13,7 @@ import type { TelemetrySnapshot } from '../telemetry/types.js';
 import type { Value } from './expr.js';
 import type { IrregularData } from './irregular-data.js';
 import type { FlightData } from './ops-data.js';
+import { SPECIAL_VARIABLES, type SpecialVariable, specialVariables } from './special-vars.js';
 
 /**
  * Variables visible to scenario conditions and templates (docs/05: `ofp.*`, `tm.*`,
@@ -176,6 +177,8 @@ export const CONTEXT_VARIABLES = [
   'ext.launch_done',
   'ext.launch_ahead_nm',
   'ext.launch_off_nm',
+  // special events (T29): `special-vars.ts`
+  ...SPECIAL_VARIABLES,
   // final load (ops-data.ts)
   'load.pax',
   'load.pax_lmc',
@@ -280,6 +283,8 @@ export interface ContextInput {
   /** Irregular-scenario data and the gate a reassignment would move to (T14). */
   readonly irr?: IrregularData & { readonly newGate: string };
   readonly polyline?: RoutePolyline;
+  /** Flight seed (T29: the "on this day" fact of several). */
+  readonly seed?: number | string;
 }
 
 /** Per-run variables (`reply.*`, `cmd.*`): null in the shared context, set by the engine. */
@@ -424,6 +429,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
     'cmd.wx_live': null,
     'cmd.wx_obs': null,
     ...extVariables(input),
+    ...specialVariables(input),
     ...irrVariables(input),
     'load.pax': load.pax,
     'load.pax_lmc': load.paxLmc,
@@ -467,7 +473,10 @@ const LAUNCH_STATUS_TEXT: Readonly<Record<LaunchStatus, string>> = {
   partial_failure: 'PARTIAL FAILURE',
 };
 
-type ExtVariable = Extract<ContextVariable, `wx.${string}` | `ext.${string}`>;
+type ExtVariable = Exclude<
+  Extract<ContextVariable, `wx.${string}` | `ext.${string}`>,
+  SpecialVariable
+>;
 
 /** `wx.*` and `ext.*` from the external data (T13); null where there is none. */
 function extVariables(input: ContextInput): Record<ExtVariable, Value> {

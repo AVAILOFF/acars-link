@@ -68,6 +68,13 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
   freqs: 'OurAirports (frequencies)',
   launches: 'TheSpaceDevs (launches)',
   nattracks: 'natTrak (NAT tracks)',
+  spacewx: 'NOAA SWPC (space weather)',
+  aurora: 'NOAA SWPC (aurora)',
+  ash: 'SIGMET VA (aviationweather.gov)',
+  quakes: 'USGS (earthquakes)',
+  holidays: 'Nager.Date (public holidays)',
+  f1: 'Jolpica (F1)',
+  nhl: 'NHL',
 };
 
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */

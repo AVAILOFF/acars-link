@@ -1,0 +1,28 @@
+# Nationwide public holiday in the destination country on the local arrival date (Nager.Date).
+# T29 (docs/07): our template (no real airline format for such news exists), signed OPS, the
+# source as the last line. In cruise, not later than 30 min before TOD.
+id: holiday_dest
+version: 1
+category: external
+title: Public holiday at the destination
+title_ru: Праздник в стране назначения
+description_ru: "Общенациональный праздник в стране назначения в день прилёта по местному времени (Nager.Date)."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.holiday_name != null"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 30"
+excludes: [aurora_on_route, solar_eclipse, airshow_dest, aviation_history, f1_result, nhl_results, earthquake_dest]
+priority: 0
+steps:
+  - send:
+      header: OPS INFO
+      body: |
+        PUBLIC HOLIDAY AT DESTINATION
+        {ext.holiday_name}
+        ({ext.holiday_local}, {ext.holiday_country})
+        EXPECT HOLIDAY SCHEDULES AT {ofp.dest}
+        SOURCE NAGER.DATE
+      footer: OPS

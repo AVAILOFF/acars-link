@@ -1,0 +1,30 @@
+# Earthquake M5.0+ within 100 km of the destination in the last 24 h (USGS). Independent of
+# natural_event: both may come.
+# T29 (docs/07): our template (no real airline format for such news exists), signed OPS, the
+# source as the last line. In cruise, not later than 30 min before TOD.
+id: earthquake_dest
+version: 1
+category: external
+title: Earthquake near the destination
+title_ru: Землетрясение у аэропорта назначения
+description_ru: "Землетрясение M ≥ 5,0 в пределах 100 км от аэропорта назначения за последние сутки (USGS)."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "ext.quake_mag != null"
+  - "flight.minutes_to_tod == null || flight.minutes_to_tod > 30"
+excludes: [aurora_on_route, solar_eclipse, airshow_dest, aviation_history, f1_result, nhl_results, holiday_dest]
+priority: 0
+steps:
+  - send:
+      header: OPS INFO
+      body: |
+        EARTHQUAKE NEAR {ofp.dest}
+        M{ext.quake_mag} AT {ext.quake_time|hhmm}Z {ext.quake_time|ddmmm}
+        {ext.quake_place}
+        {ext.quake_dist_km} KM FROM AIRPORT DEPTH {ext.quake_depth_km} KM
+        CHECK NOTAM FOR AIRPORT STATUS
+        SOURCE USGS
+      footer: OPS

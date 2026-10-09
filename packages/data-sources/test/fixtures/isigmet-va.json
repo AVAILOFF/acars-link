@@ -1,0 +1,170 @@
+[
+  {
+    "icaoId": "WAAA",
+    "firId": "WAAF",
+    "firName": "WAAF UJUNG PANDANG",
+    "receiptTime": "2026-10-09T09:53:17.723Z",
+    "validTimeFrom": 1791539400,
+    "validTimeTo": 1791561000,
+    "seriesId": "06",
+    "hazard": "VA",
+    "qualifier": "ERUPTION MT DUKONO",
+    "base": 0,
+    "top": 7000,
+    "geom": "AREA",
+    "coords": [
+      {
+        "lon": 127.833,
+        "lat": 1.633
+      },
+      {
+        "lon": 127.817,
+        "lat": 1.75
+      },
+      {
+        "lon": 128.717,
+        "lat": 2.367
+      },
+      {
+        "lon": 129.167,
+        "lat": 1.95
+      },
+      {
+        "lon": 128.933,
+        "lat": 1.45
+      },
+      {
+        "lon": 127.833,
+        "lat": 1.633
+      }
+    ],
+    "dir": "NE",
+    "spd": "10",
+    "chng": "NC",
+    "rawSigmet": "WVID21 WAAA 090950\nWAAF SIGMET 06 VALID 090950/091550 WAAA-\nWAAF UJUNG PANDANG  FIR VA\nERUPTION MT DUKONO PSN N0142 E12754 VA CLD OBS AT 0930Z WI N0138\nE12750 - N0145 E12749 - N0222 E12843 - N0157 E12910 - N0127 E12856 -\nN0138 E12750 SFC/FL070 MOV NE 10KT NC="
+  },
+  {
+    "icaoId": "WAAA",
+    "firId": "WAAF",
+    "firName": "WAAF UJUNG PANDANG",
+    "receiptTime": "2026-10-09T12:17:41.143Z",
+    "validTimeFrom": 1791548400,
+    "validTimeTo": 1791570000,
+    "seriesId": "09",
+    "hazard": "VA",
+    "qualifier": "ERUPTION MT SEMERU",
+    "base": 0,
+    "top": 15000,
+    "geom": "AREA",
+    "coords": [
+      {
+        "lon": 112.867,
+        "lat": -8.133
+      },
+      {
+        "lon": 112.883,
+        "lat": -8.05
+      },
+      {
+        "lon": 113.267,
+        "lat": -7.933
+      },
+      {
+        "lon": 113.4,
+        "lat": -8.133
+      },
+      {
+        "lon": 113.25,
+        "lat": -8.35
+      },
+      {
+        "lon": 112.867,
+        "lat": -8.133
+      }
+    ],
+    "dir": "E",
+    "spd": "10",
+    "chng": "NC",
+    "rawSigmet": "WVID21 WAAA 091220\nWAAF SIGMET 09 VALID 091220/091820 WAAA- WAAF UJUNG PANDANG FIR VA\nERUPTION MT SEMERU PSN S0806 E11255 VA CLD OBS AT 1200Z WI S0808\nE11252 - S0803 E11253 - S0756 E11316 - S0808 E11324 - S0821 E11315 -\nS0808 E11252 SFC/FL150 MOV E 10KT NC="
+  },
+  {
+    "icaoId": "MHTG",
+    "firId": "MHTG",
+    "firName": "MHCC CENTRAL AMERICAN",
+    "receiptTime": "2026-10-09T13:03:38.706Z",
+    "validTimeFrom": 1791550980,
+    "validTimeTo": 1791572580,
+    "seriesId": "A3",
+    "hazard": "VA",
+    "qualifier": "FUEGO",
+    "base": 0,
+    "top": 14000,
+    "geom": "AREA",
+    "coords": [
+      {
+        "lon": -90.867,
+        "lat": 14.483
+      },
+      {
+        "lon": -90.8,
+        "lat": 14.367
+      },
+      {
+        "lon": -90.917,
+        "lat": 14.333
+      },
+      {
+        "lon": -90.883,
+        "lat": 14.467
+      },
+      {
+        "lon": -90.867,
+        "lat": 14.483
+      }
+    ],
+    "dir": "S",
+    "spd": "5",
+    "chng": null,
+    "rawSigmet": "WVHO31 MHTG 091303\nMHTG SIGMET A3 VALID 091303/091903 MHTG-\nMHCC CENTRAL AMERICAN FIR VA FUEGO PSN N1428 W09052\nVA CLD OBS AT 1230Z SFC/FL140 N1429 W09052 - N1422 W09048\n- N1420 W09055 - N1428 W09053 - N1429 W09052 MOV S 5KT \nFCST 1830Z VA CLD SFC/FL140 N1437 W09052\n- N1431 W09042 - N1426 W09052 - N1428 W09054 - N1437 W09052="
+  },
+  {
+    "icaoId": "MHTG",
+    "firId": "MHTG",
+    "firName": "MHCC CENTRAL AMERICAN",
+    "receiptTime": "2026-10-09T13:03:38.711Z",
+    "validTimeFrom": 1791550980,
+    "validTimeTo": 1791572580,
+    "seriesId": "A3F",
+    "hazard": "VA",
+    "qualifier": "FUEGO",
+    "base": 0,
+    "top": 14000,
+    "geom": "AREA",
+    "coords": [
+      {
+        "lon": -90.867,
+        "lat": 14.617
+      },
+      {
+        "lon": -90.7,
+        "lat": 14.517
+      },
+      {
+        "lon": -90.867,
+        "lat": 14.433
+      },
+      {
+        "lon": -90.9,
+        "lat": 14.467
+      },
+      {
+        "lon": -90.867,
+        "lat": 14.617
+      }
+    ],
+    "dir": "S",
+    "spd": "5",
+    "chng": null,
+    "rawSigmet": "WVHO31 MHTG 091303\nMHTG SIGMET A3 VALID 091303/091903 MHTG-\nMHCC CENTRAL AMERICAN FIR VA FUEGO PSN N1428 W09052\nVA CLD OBS AT 1230Z SFC/FL140 N1429 W09052 - N1422 W09048\n- N1420 W09055 - N1428 W09053 - N1429 W09052 MOV S 5KT \nFCST 1830Z VA CLD SFC/FL140 N1437 W09052\n- N1431 W09042 - N1426 W09052 - N1428 W09054 - N1437 W09052="
+  }
+]

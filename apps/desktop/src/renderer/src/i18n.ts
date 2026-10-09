@@ -125,6 +125,13 @@ const en = {
   'set.ropsRandomDirects': 'Random Direct To',
   'set.ropsRandomDirectsHint':
     'Up to 3 times per flight in cruise the station clears you direct to a fix ahead on your route. Applies to the next flight.',
+  'set.special': 'Special events',
+  'set.specialSport': 'Sport (F1, NHL)',
+  'set.specialAviation':
+    'Aviation (space weather, aurora, eclipse, volcanic ash, air shows, history)',
+  'set.specialOther': 'Other (public holiday, earthquake at the destination)',
+  'set.specialHint':
+    'Real events from free sources, at most one message per flight in cruise (space weather and volcanic ash come separately). Needs live data. Applies to the next flight.',
   'set.ropsStandAsideHint':
     'Where a VATSIM centre covering the FIR is online, the station logs you off and names the controller.',
 
@@ -347,6 +354,13 @@ const ru: Record<MessageKey, string> = {
   'set.ropsRandomDirects': 'Случайные Direct To',
   'set.ropsRandomDirectsHint':
     'До 3 раз за полёт в крейсере станция даёт прямо на точку впереди по маршруту. Действует со следующего рейса.',
+  'set.special': 'Особые события',
+  'set.specialSport': 'Спорт (Формула-1, NHL)',
+  'set.specialAviation':
+    'Авиация (космическая погода, сияние, затмение, вулканический пепел, авиашоу, история)',
+  'set.specialOther': 'Другое (праздник, землетрясение у аэропорта назначения)',
+  'set.specialHint':
+    'Реальные события из бесплатных источников, не больше одного сообщения за рейс, в крейсере (космическая погода и пепел — отдельно). Нужны живые данные. Действует со следующего рейса.',
   'set.ropsStandAsideHint':
     'Если онлайн центр VATSIM этой FIR, станция завершает связь (logoff) и сообщает позывной диспетчера.',
 
