@@ -26,8 +26,16 @@ export const STEP_LEAD_MIN = 2;
 export const STEP_LATE_NM = 20;
 export const DESCENT_BEFORE_TOD_NM = 20;
 const MORA_MARGIN_FT = 1000;
-/** Used when the OFP has neither a transition level nor altitude (`[ПРОВЕРИТЬ]` per airport). */
-const DEFAULT_TRANSITION_FT = 18_000;
+/**
+ * When the OFP has neither a transition level nor altitude (decision 2026-10-09, option б):
+ * 18 000 ft in the US and Canada (destination ICAO K…, PA…, PH…, C…), elsewhere always a
+ * flight level.
+ */
+const NORTH_AMERICA_TRANSITION_FT = 18_000;
+
+function defaultTransitionFt(icao: string): number {
+  return /^(K|PA|PH|C)/.test(icao) ? NORTH_AMERICA_TRANSITION_FT : 0;
+}
 
 function cumOf(ofp: Ofp, ident: string): number | null {
   return ofp.navlog.find((f) => f.ident === ident && f.type === 'ltlg')?.cumDistNm ?? null;
@@ -126,6 +134,6 @@ export function descentLevel(ofp: Ofp, route: RoutePosition): DescentLevel | nul
   if (raw <= 0) return null;
   const levelFt = Math.ceil(raw / 1000) * 1000;
   const d = ofp.destination;
-  const tl = d.transLevelFt ?? d.transAltFt ?? DEFAULT_TRANSITION_FT;
+  const tl = d.transLevelFt ?? d.transAltFt ?? defaultTransitionFt(d.icao);
   return { levelFt, text: levelText(levelFt, levelFt >= tl) };
 }

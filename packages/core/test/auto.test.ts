@@ -131,6 +131,23 @@ describe('descent clearance level', () => {
     // Max MORA after BB651: 6200 ft → 7200 → 8000 ft.
     expect(descentLevel(noStar, onRoute('BB651'))).toEqual({ levelFt: 8000, text: '8000FT' });
   });
+
+  it('without transition data: 18 000 ft in the US and Canada, elsewhere a flight level', () => {
+    const noStar: Ofp = { ...ofp, navlog: ofp.navlog.map((f) => ({ ...f, isSidStar: false })) };
+    const noTl = (icao: string): Ofp => ({
+      ...noStar,
+      destination: { ...noStar.destination, icao, transLevelFt: null, transAltFt: null },
+    });
+    expect(descentLevel(noTl('RJBB'), onRoute('BB651'))?.text).toBe('FL080');
+    expect(descentLevel(noTl('KJFK'), onRoute('BB651'))?.text).toBe('8000FT');
+    expect(descentLevel(noTl('PHNL'), onRoute('BB651'))?.text).toBe('8000FT');
+    expect(descentLevel(noTl('CYYZ'), onRoute('BB651'))?.text).toBe('8000FT');
+    const withStar: Ofp = {
+      ...ofp,
+      destination: { ...ofp.destination, icao: 'KJFK', transLevelFt: null, transAltFt: null },
+    };
+    expect(descentLevel(withStar, onRoute('UPGEB'))?.text).toBe('FL250');
+  });
 });
 
 describe('ROPS station sends clearances on its own (T26)', () => {
