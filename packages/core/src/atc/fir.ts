@@ -7,12 +7,15 @@ import type { LatLon } from '../geo/geo.js';
  * already split at the antimeridian, so a planar even-odd test on lon/lat is enough.
  *
  * Approved assumption (docs/07 T23, 2026-10-09): FIRs only — no UIRs or sectors. VATSpy also
- * has a few 4-letter areas inside a FIR (London TMA `EGTL` inside `EGTT`); where areas
- * overlap, the largest one wins, which is the FIR.
+ * has 4-letter areas over or inside a FIR: overlays without airports (`EGVV` Swanwick
+ * Military, `EDXX` FIS only) and sub-areas (London TMA `EGTL` inside `EGTT`). Where areas
+ * overlap, areas that are some airport's FIR come first, then the largest one wins.
  */
 
 interface Indexed {
   readonly area: FirArea;
+  /** Some airport has this FIR (absent flag = yes: older data had no overlays marked). */
+  readonly primary: boolean;
   /** Planar area in square degrees (outer rings minus holes), for overlaps. */
   readonly size: number;
   readonly boxes: readonly (readonly [number, number, number, number])[];
@@ -24,6 +27,7 @@ export class FirMap {
   constructor(areas: readonly FirArea[]) {
     this.list = areas.map((area) => ({
       area,
+      primary: area.airports !== false,
       size: area.polygons.reduce(
         (sum, rings) => sum + rings.reduce((s, r, i) => s + (i === 0 ? 1 : -1) * ringArea(r), 0),
         0,
@@ -51,8 +55,9 @@ export class FirMap {
       if (!contains(x, p)) continue;
       if (
         best === null ||
-        x.size > best.size ||
-        (x.size === best.size && x.area.id < best.area.id)
+        (x.primary && !best.primary) ||
+        (x.primary === best.primary &&
+          (x.size > best.size || (x.size === best.size && x.area.id < best.area.id)))
       ) {
         best = x;
       }
@@ -115,13 +120,15 @@ export function ropsStation(firId: string): string {
 
 /**
  * Unit name for `CURRENT ATC UNIT`: the VATSpy name without parts in brackets, the text after
- * ` - ` and words like ACC/RADAR, plus `CTL` (control) or `OCA` (oceanic) — the forms seen in
- * packets of real Hoppie stations ("LANGEN CTL", "REYKJAVIK OCA", docs/06).
+ * ` - `, frequencies (Australian sector names: "Melbourne (Gundagai) 133.15") and words like
+ * ACC/RADAR, plus `CTL` (control) or `OCA` (oceanic) — the forms seen in packets of real
+ * Hoppie stations ("LANGEN CTL", "REYKJAVIK OCA", docs/06).
  */
 export function atcUnitName(area: Pick<FirArea, 'name' | 'oceanic'>): string {
   const oceanic = area.oceanic || /\boceanic\b/i.test(area.name);
   const base = (area.name.split(' - ')[0] as string)
     .replace(/\([^)]*\)/g, ' ')
+    .replace(/\S*\d\S*/g, ' ')
     .replace(/\b(ACC|FIR|UIR|CENTER|CENTRE|CONTROL|RADAR|OCEANIC|OCA|CTA)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();

@@ -28,8 +28,11 @@ import {
  *   `region`, `division`. Polygons are split at the antimeridian. Some ids appear twice
  *   (`KZNY` land and oceanic): merged. Only 4-letter ids are FIRs (approved: no sectors).
  * - `VATSpy.dat` (~0.9 MB, text): `[FIRs]` lines `ICAO|NAME|CALLSIGN PREFIX|FIR BOUNDARY`
- *   (empty prefix = the ICAO code), `[UIRs]` lines `ID|NAME|FIR,FIR,…`. Used for the unit
- *   names and to find which FIR an online VATSIM centre covers.
+ *   (empty prefix = the ICAO code), `[UIRs]` lines `ID|NAME|FIR,FIR,…`, `[Airports]` lines
+ *   `ICAO|NAME|LAT|LON|IATA/LID|FIR|IsPseudo`. Used for the unit names, to find which FIR an
+ *   online VATSIM centre covers and which areas are FIRs of airports: VATSpy also has overlay
+ *   areas without airports (`EGVV` Swanwick Military over the UK, `EDXX` FIS only over
+ *   Germany) that must not win over the FIR (`FirArea.airports`, `FirMap`).
  */
 
 const BASE = 'https://raw.githubusercontent.com/vatsimnetwork/vatspy-data-project/master';
@@ -42,6 +45,8 @@ export interface VatspyData {
   readonly firs: readonly FirArea[];
   /** VATSIM callsign prefix (`EDGG`, `EDGG_DKB`, `LON`) → FIR ids it covers. */
   readonly prefixes: Readonly<Record<string, readonly string[]>>;
+  /** Airport ICAO → its FIR (`[Airports]`, pseudo entries left out). */
+  readonly airports: Readonly<Record<string, string>>;
 }
 
 /** Coordinates are kept to 5 decimals (~1 m): smaller cache and recordings. */
@@ -57,12 +62,19 @@ export async function fetchVatspy(ctx: FetchContext): Promise<VatspyData> {
 
 export function buildVatspy(geojson: unknown, dat: string): VatspyData {
   const areas = parseBoundaries(geojson);
-  const { names, prefixes } = parseVatspyDat(dat);
+  const { names, prefixes, airports } = parseVatspyDat(dat);
+  const withAirports = new Set(Object.values(airports));
   const firs = [...areas.entries()]
     .sort(([a], [b]) => (a < b ? -1 : 1))
-    .map(([id, a]) => ({ id, name: names[id] ?? id, oceanic: a.oceanic, polygons: a.polygons }));
+    .map(([id, a]) => ({
+      id,
+      name: names[id] ?? id,
+      oceanic: a.oceanic,
+      airports: withAirports.has(id),
+      polygons: a.polygons,
+    }));
   if (firs.length === 0) throw new DataSourceError('VATSpy: no FIR boundaries');
-  return { firs, prefixes };
+  return { firs, prefixes, airports };
 }
 
 type Polygons = FirArea['polygons'];
@@ -120,8 +132,10 @@ function toPolygons(x: unknown): Polygons {
 export function parseVatspyDat(text: string): {
   names: Record<string, string>;
   prefixes: Record<string, string[]>;
+  airports: Record<string, string>;
 } {
   const names: Record<string, string> = {};
+  const airports: Record<string, string> = {};
   const exact: Record<string, string> = {};
   const prefixes: Record<string, string[]> = {};
   const add = (prefix: string, firs: readonly string[]) => {
@@ -139,7 +153,13 @@ export function parseVatspyDat(text: string): {
       continue;
     }
     const cols = line.split('|');
-    if (section === 'FIRs' && cols.length >= 4) {
+    if (section === 'Airports' && cols.length >= 7) {
+      const icao = (cols[0] as string).trim().toUpperCase();
+      const fir = (cols[5] as string).trim().toUpperCase();
+      if ((cols[6] as string).trim() === '0' && ICAO_RE.test(icao) && ICAO_RE.test(fir)) {
+        airports[icao] ??= fir;
+      }
+    } else if (section === 'FIRs' && cols.length >= 4) {
       const [icao, name, prefix, boundary] = cols.map((c) => c.trim()) as [
         string,
         string,
@@ -165,7 +185,7 @@ export function parseVatspyDat(text: string): {
       if (id !== '' && firs.length > 0) add(id.replaceAll('-', '_'), firs);
     }
   }
-  return { names: { ...names, ...exact }, prefixes };
+  return { names: { ...names, ...exact }, prefixes, airports };
 }
 
 /**

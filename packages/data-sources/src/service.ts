@@ -439,12 +439,21 @@ function checkVatsim(v: unknown): void {
 
 function checkVatspy(v: unknown): void {
   if (typeof v !== 'object' || v === null) throw new DataSourceError('bad cached VATSpy data');
-  const { firs, prefixes } = v as { firs?: unknown; prefixes?: unknown };
+  const { firs, prefixes, airports } = v as {
+    firs?: unknown;
+    prefixes?: unknown;
+    airports?: unknown;
+  };
   checkExtDataUpdate({ t: 0, firs });
   const ok =
     typeof prefixes === 'object' &&
     prefixes !== null &&
-    Object.values(prefixes).every((l) => Array.isArray(l) && l.every((f) => typeof f === 'string'));
+    Object.values(prefixes).every(
+      (l) => Array.isArray(l) && l.every((f) => typeof f === 'string'),
+    ) &&
+    typeof airports === 'object' &&
+    airports !== null &&
+    Object.values(airports).every((f) => typeof f === 'string');
   if (!ok) throw new DataSourceError('bad cached VATSpy data');
 }
 

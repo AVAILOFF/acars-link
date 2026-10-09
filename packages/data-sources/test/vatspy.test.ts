@@ -45,17 +45,20 @@ const eddfEddm: Ofp = {
 };
 
 describe('VATSpy data', () => {
-  it('keeps the 4-letter FIRs with their names, drops sectors (EDGG-N)', () => {
-    expect(data.firs.map((f) => [f.id, f.name, f.oceanic])).toEqual([
-      ['EDGG', 'Langen', false],
-      ['EDMM', 'Muenchen', false],
-      ['EGTL', 'London TMA (Up to FL195) - London', false],
-      ['EGTT', 'London', false],
+  it('keeps the 4-letter FIRs with their names, drops sectors (EDGG-N), marks airport FIRs', () => {
+    expect(data.firs.map((f) => [f.id, f.name, f.oceanic, f.airports])).toEqual([
+      ['EDGG', 'Langen', false, true],
+      ['EDMM', 'Muenchen', false, true],
+      ['EDXX', 'Langen Information - FIS only', false, false],
+      ['EGTL', 'London TMA (Up to FL195) - London', false, false],
+      ['EGTT', 'London', false, true],
     ]);
+    expect(data.airports).toEqual({ EDDF: 'EDGG', EDDM: 'EDMM', EGKK: 'EGTT', EGLL: 'EGTT' });
   });
 
-  it('locates real airports in their FIRs; London TMA (EGTL) loses to the London FIR', () => {
+  it('locates real airports in their FIRs; overlays (EDXX FIS only) and EGTL lose', () => {
     const map = new FirMap(data.firs);
+    // EDXX covers Frankfurt and is larger than EDGG, but no airport has it as its FIR.
     expect(map.locate({ lat: 50.0333, lon: 8.5706 })?.id).toBe('EDGG'); // EDDF
     expect(map.locate({ lat: 48.3538, lon: 11.7861 })?.id).toBe('EDMM'); // EDDM
     expect(map.locate({ lat: 51.4706, lon: -0.4619 })?.id).toBe('EGTT'); // EGLL, inside EGTL too

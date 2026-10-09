@@ -126,6 +126,16 @@ describe('FIR lookup', () => {
     expect(map.locate({ lat: 20, lon: 5 })).toBeNull();
   });
 
+  it('prefers airport FIRs over larger overlays without airports (EGVV/EDXX in VATSpy)', () => {
+    const map = new FirMap([
+      square('EDGG', [5, 48, 10, 51], { airports: true }),
+      square('EDXX', [0, 45, 20, 56], { airports: false }),
+    ]);
+    expect(map.locate({ lat: 50, lon: 8 })?.id).toBe('EDGG');
+    // Outside every airport FIR the overlay is still found (oceanic FIRs have no airports).
+    expect(map.locate({ lat: 46, lon: 15 })?.id).toBe('EDXX');
+  });
+
   it('treats a hole as outside', () => {
     const holed: FirArea = {
       ...square('HOLE', [0, 0, 10, 10]),
@@ -170,6 +180,9 @@ describe('FIR lookup', () => {
       'MOUNT PLEASANT CTL',
     );
     expect(atcUnitName({ name: 'Shannon ACC - Shannon', oceanic: false })).toBe('SHANNON CTL');
+    expect(atcUnitName({ name: 'Melbourne (Gundagai) 133.15', oceanic: false })).toBe(
+      'MELBOURNE CTL',
+    );
   });
 });
 

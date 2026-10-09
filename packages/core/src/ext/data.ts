@@ -61,6 +61,11 @@ export interface FirArea {
   /** VATSpy name, e.g. `Langen`, `Shanwick Oceanic`. */
   readonly name: string;
   readonly oceanic: boolean;
+  /**
+   * Some airport has this FIR (VATSpy `[Airports]`). False for overlay areas (military, FIS
+   * only) that must not win over a FIR; absent in recordings made before the field.
+   */
+  readonly airports?: boolean;
   /** GeoJSON MultiPolygon coordinates: polygons → rings (outer first) → `[lon, lat]`. */
   readonly polygons: readonly (readonly (readonly (readonly [number, number])[])[])[];
 }
@@ -211,6 +216,7 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
         !FIR.test(String(f['id'])) ||
         typeof f['name'] !== 'string' ||
         typeof f['oceanic'] !== 'boolean' ||
+        !(f['airports'] === undefined || typeof f['airports'] === 'boolean') ||
         !isPolygons(f['polygons'])
       )
         bad('firs item');

@@ -1,10 +1,20 @@
 ; Excerpt of VATSpy.dat (VATSpy Data Project v2610.1, CC BY-SA 4.0), see README.md
+[Countries]
+Germany|ED|Radar
+United Kingdom|EG|Control
+[Airports]
+;ICAO|Airport Name|Latitude Decimal|Longitude Decimal|IATA/LID|FIR|IsPseudo
+EDDF|Frankfurt|50.033333|8.570556||EDGG|0
+EDDM|Munich|48.353889|11.786111||EDMM|0
+EGKK|London Gatwick|51.148056|-0.190278||EGTT|0
+EGLL|London Heathrow|51.4775|-0.461389|LHR|EGTT|0
 [FIRs]
 ;ICAO|NAME|CALLSIGN PREFIX|FIR BOUNDARY
 EDGG|Langen||EDGG
 EDGG-N|Langen Radar (North) - Langen|EDGG_N|EDGG-N
 EDGG-N|Langen Radar (North) - Langen|EDGG_NH|EDGG-N
 EDMM|Muenchen||EDMM
+EDXX|Langen Information - FIS only|EDXX_FIS|EDXX
 EGTL|London TMA (Up to FL195) - London|LTC|EGTL
 EGTT|London|LON|EGTT
 [UIRs]
