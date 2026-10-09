@@ -185,7 +185,13 @@ export type SystemCode =
   | 'atc_dcl_clearance'
   | 'atc_dcl_confirmed'
   | 'atc_dcl_unable'
-  | 'atc_dcl_rejected';
+  | 'atc_dcl_rejected'
+  | 'atc_ocl_received'
+  | 'atc_ocl_not_required'
+  | 'atc_ocl_rejected'
+  | 'atc_ocl_clearance'
+  | 'atc_ocl_confirmed'
+  | 'atc_ocl_cancelled';
 
 export type FeedEntry =
   | {

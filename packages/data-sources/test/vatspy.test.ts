@@ -9,8 +9,10 @@ import {
   DataSourceError,
   ExternalDataService,
   type HttpClient,
+  NATTRAK_TRACKS_URL,
   OURAIRPORTS_FREQS_URL,
   parseAirportFrequencies,
+  parseNatTracks,
   parseVatsimCenters,
   routeFirs,
   VATSPY_BOUNDARIES_URL,
@@ -221,5 +223,63 @@ describe('T24: airport facts and frequencies', () => {
       type: 'GND',
       mhz: '121.805',
     });
+  });
+});
+
+describe('T27: NAT tracks from natTrak', () => {
+  it('parses the active tracks (trimmed real answer of 2026-10-09)', () => {
+    const tracks = parseNatTracks(JSON.parse(fixture('nattrak-tracks.json')));
+    expect(tracks.map((k) => k.ident)).toEqual(['A', 'B', 'C', 'D', 'E']);
+    expect(tracks[4]).toEqual({
+      ident: 'E',
+      route: ['SUNOT', '58/20', '60/30', '60/40', '59/50', 'AVUTI'],
+      validFrom: Date.UTC(2026, 9, 9, 11, 30),
+      validTo: Date.UTC(2026, 9, 9, 19, 0),
+      levelsFt: [34000, 35000, 36000, 37000, 38000, 39000, 40000],
+    });
+  });
+
+  it('drops inactive and Concorde tracks and bad routes; a non-list is an error', () => {
+    const base = JSON.parse(fixture('nattrak-tracks.json'))[0];
+    const list = parseNatTracks([
+      { ...base, identifier: 'X', active: false },
+      { ...base, identifier: 'SM', concorde: 1 },
+      { ...base, identifier: 'Y', last_routeing: 'RATSU 63/20 ???' },
+      { ...base, identifier: 'Z' },
+    ]);
+    expect(list.map((k) => k.ident)).toEqual(['Z']);
+    expect(() => parseNatTracks({ message: 'Server Error' })).toThrow(DataSourceError);
+  });
+
+  it('the service fetches them with the ROPS station only, hourly', async () => {
+    const calls: string[] = [];
+    const http: HttpClient = {
+      async request(req) {
+        calls.push(req.url);
+        if (req.url === NATTRAK_TRACKS_URL) {
+          return { status: 200, body: fixture('nattrak-tracks.json') };
+        }
+        return { status: 404, body: '' };
+      },
+    };
+    const T0 = Date.UTC(2026, 9, 9, 12, 0);
+    const svc = new ExternalDataService({ http, userAgent: 't', sources: ['nattracks'] });
+    svc.startFlight(eddfEddm, T0);
+    svc.tick(T0, 'PREFLIGHT');
+    await svc.settle();
+    expect(svc.take(T0).update).toBeNull();
+    expect(calls).toEqual([]);
+
+    const rops = new ExternalDataService({ http, userAgent: 't', sources: ['nattracks'] });
+    rops.startFlight(eddfEddm, T0, { firs: true });
+    const step = async (t: number) => {
+      rops.tick(t, 'CRUISE');
+      await rops.settle();
+      return rops.take(t).update;
+    };
+    expect((await step(T0))?.natTracks?.length).toBe(5);
+    expect(await step(T0 + 30 * 60_000)).toBeNull();
+    expect((await step(T0 + 61 * 60_000))?.natTracks?.length).toBe(5);
+    expect(calls).toEqual([NATTRAK_TRACKS_URL, NATTRAK_TRACKS_URL]);
   });
 });

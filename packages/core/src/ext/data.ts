@@ -87,6 +87,25 @@ export interface SpaceLaunch {
   readonly status: LaunchStatus;
 }
 
+/**
+ * A North Atlantic organised track (T27): the current NAT track message as natTrak
+ * (`nattrak.vatsim.net/api/tracks`) parses it from the NAT NOTAMs.
+ */
+export interface NatTrack {
+  /** Track letter, `A`. */
+  readonly ident: string;
+  /**
+   * Points as in the track message: named fixes (`RATSU`) and lat/long `63/20` (63N 020W)
+   * or `6330/20` (63°30'N 020W).
+   */
+  readonly route: readonly string[];
+  /** Validity, epoch ms UTC. */
+  readonly validFrom: number;
+  readonly validTo: number;
+  /** Flight levels of the track, feet. */
+  readonly levelsFt: readonly number[];
+}
+
 /** A parking position or gate of an airport (OSM `aeroway=parking_position|gate`). */
 export interface ParkingStand {
   /** `A12`, `V105` — upper-case A–Z0–9. */
@@ -158,6 +177,8 @@ export interface ExtDataUpdate {
   readonly freqs?: { readonly icao: string; readonly list: readonly AirportFrequency[] };
   /** Space launches in the time window of the flight (T28); replaces the list. */
   readonly launches?: readonly SpaceLaunch[];
+  /** Active NAT tracks (T27); replaces the list. */
+  readonly natTracks?: readonly NatTrack[];
 }
 
 /** A natural event placed against the planned route (once, when it arrives). */
@@ -193,6 +214,8 @@ export interface ExtState {
   readonly freqs?: { readonly icao: string; readonly list: readonly AirportFrequency[] } | null;
   /** T28; absent in states saved before T28. */
   readonly launches?: readonly RoutedLaunch[];
+  /** T27; absent in states saved before T27. */
+  readonly natTracks?: readonly NatTrack[];
 }
 
 export const EMPTY_EXT: ExtState = {
@@ -232,7 +255,7 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
     throw new ExtDataError(`data update: ${why}`);
   };
   if (!isObj(x) || !isNum(x['t'])) return bad('t');
-  const { wx, atc, events, stands, firs, centers, airports, freqs, launches } = x;
+  const { wx, atc, events, stands, firs, centers, airports, freqs, launches, natTracks } = x;
   if (wx !== undefined) {
     if (!isObj(wx)) bad('wx');
     for (const [icao, r] of Object.entries(wx as object)) {
@@ -354,8 +377,28 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
         bad('launches item');
     }
   }
+  if (natTracks !== undefined) {
+    if (!Array.isArray(natTracks)) bad('natTracks');
+    for (const k of natTracks as unknown[]) {
+      if (
+        !isObj(k) ||
+        typeof k['ident'] !== 'string' ||
+        !/^[A-Z]{1,2}$/.test(k['ident']) ||
+        !Array.isArray(k['route']) ||
+        !(k['route'] as unknown[]).every((p) => typeof p === 'string' && NAT_POINT.test(p)) ||
+        !isNum(k['validFrom']) ||
+        !isNum(k['validTo']) ||
+        !Array.isArray(k['levelsFt']) ||
+        !(k['levelsFt'] as unknown[]).every(isNum)
+      )
+        bad('natTracks item');
+    }
+  }
   return x as unknown as ExtDataUpdate;
 }
+
+/** A point of a NAT track: a named fix or `63/20`, `6330/20`. */
+export const NAT_POINT = /^(?:[A-Z]{2,5}|\d{2}(?:\d{2})?\/\d{2,3})$/;
 
 const isPolygons = (x: unknown): boolean =>
   Array.isArray(x) &&
@@ -407,6 +450,7 @@ export function applyExtData(
       .sort((a, b) => a.alongNm - b.alongNm || (a.id < b.id ? -1 : 1));
     next = { ...next, launches };
   }
+  if (u.natTracks !== undefined) next = { ...next, natTracks: [...u.natTracks] };
   if (u.firs !== undefined) next = { ...next, firs: [...u.firs] };
   if (u.centers !== undefined) next = { ...next, centers: [...u.centers], centersT: u.t };
   if (u.airports !== undefined) next = { ...next, airports: { ...u.airports } };

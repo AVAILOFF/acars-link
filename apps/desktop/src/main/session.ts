@@ -67,6 +67,7 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
   firs: 'VATSpy (FIR boundaries)',
   freqs: 'OurAirports (frequencies)',
   launches: 'TheSpaceDevs (launches)',
+  nattracks: 'natTrak (NAT tracks)',
 };
 
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */
@@ -400,6 +401,16 @@ export class FlightSession {
             reason: e.reason,
             detail: e.detail ?? '',
           });
+          break;
+        case 'ATC_OCL':
+          this.feed.system(e.t, `atc_ocl_${e.what}`, {
+            station: e.station,
+            oca: e.oca,
+            detail: e.detail ?? '',
+          });
+          // RCL received by Shanwick: the CLX follows within 10 min; a CLX waits for ROGER.
+          if (e.what === 'clearance' || (e.what === 'received' && e.oca === 'EGGX'))
+            this.transport.expectReply(180_000);
           break;
         default:
           break;

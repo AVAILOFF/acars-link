@@ -119,6 +119,11 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
             'DCL',
             `${ev.station}: rejected (${ev.reason}${ev.detail === null ? '' : ` ${ev.detail}`})`,
           ];
+        case 'ATC_OCL':
+          return [
+            'OCL',
+            `${ev.station} (${ev.oca}): ${ev.what}${ev.detail === null ? '' : ` ${ev.detail}`}`,
+          ];
       }
     }
   }

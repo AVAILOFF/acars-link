@@ -20,6 +20,7 @@ import { type CpdlcHeader, type CpdlcResponse, formatCpdlc, parseCpdlc } from '.
 import { type DclContext, type DclEvent, DclService, type DclState } from './dcl.js';
 import { atcUnitName, FirMap, ropsStation } from './fir.js';
 import { levelText } from './levels.js';
+import { type OclContext, type OclEvent, OclService, type OclState, parseRcl } from './oceanic.js';
 import { type AtcRequest, decide, parseRequest, type RefusalReason } from './requests.js';
 import { routePosition } from './route.js';
 
@@ -71,6 +72,7 @@ export interface RopsOptions {
 
 export type AtcEvent =
   | DclEvent
+  | OclEvent
   /** The station the aircraft should log on to changed (a new FIR). */
   | {
       readonly type: 'ATC_STATION';
@@ -155,6 +157,8 @@ export interface RopsState {
   readonly req?: RequestState;
   /** Clearances sent on the station's own (T26); absent in states saved before it. */
   readonly auto?: AutoState;
+  /** Oceanic clearance (T27); absent in states saved before it. */
+  readonly ocl?: OclState;
 }
 
 export interface AutoState {
@@ -252,6 +256,7 @@ export class RopsStation {
     };
   };
   private readonly dcl: DclService;
+  private readonly ocl: OclService;
   private map: FirMap | null = null;
   private mapOf: readonly FirArea[] | null = null;
   private readonly standAside: boolean;
@@ -293,10 +298,13 @@ export class RopsStation {
       },
     };
     this.dcl = new DclService(ofp, deps.seed, deps.profile ?? DEFAULT_PROFILE, copy.dcl);
+    this.ocl = new OclService(ofp, deps.seed, deps.profile ?? DEFAULT_PROFILE, copy.ocl);
   }
 
   getState(): RopsState {
-    return JSON.parse(JSON.stringify({ v: 1, ...this.st, dcl: this.dcl.getState() })) as RopsState;
+    return JSON.parse(
+      JSON.stringify({ v: 1, ...this.st, dcl: this.dcl.getState(), ocl: this.ocl.getState() }),
+    ) as RopsState;
   }
 
   /** Departure clearance station while it is open (T24), or null. */
@@ -383,6 +391,14 @@ export class RopsStation {
     this.st.phase = input.phase;
 
     const map = this.firMap(input.ext);
+    const ocl: OclContext = {
+      now,
+      telemetry: input.telemetry,
+      natTracks: input.ext.natTracks ?? [],
+      firAt: (p) => map?.locate(p)?.id ?? null,
+      sendTelex,
+      events,
+    };
     if (this.st.handover !== null && now >= this.st.handover.until) this.st.handover = null;
 
     // 0. Replies to requests whose delay is over (T25).
@@ -391,9 +407,10 @@ export class RopsStation {
     // 1. The aircraft's messages, in order (to the DCL station or the FIR stations).
     for (const m of input.inbound) {
       if (m.to === this.dcl.station && before.includes(m.to)) this.dcl.receive(m, dcl);
-      else this.receive(m, input, map, send, events);
+      else this.receive(m, input, map, send, events, ocl);
     }
     this.dcl.tick(dcl);
+    this.ocl.tick(ocl);
 
     // 2. Position → FIR; a boundary crossed hands over or steps aside.
     if (map !== null) {
@@ -470,6 +487,7 @@ export class RopsStation {
     map: FirMap | null,
     send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => void,
     events: AtcEvent[],
+    ocl: OclContext,
   ): void {
     const to = m.to ?? '';
     if (m.from.toUpperCase() !== this.ofp.callsign.toUpperCase()) return;
@@ -519,6 +537,15 @@ export class RopsStation {
       events.push({ type: 'ATC_LOGOFF', t: now, station: to, by: 'pilot' });
       return;
     }
+    // T27: the pilot's acknowledgement of an oceanic clearance (CLA), and an RCL. FlyByWire
+    // shows our telex CLX as a free-text uplink that expects ROGER (its `mrn` is not one of
+    // ours); no other uplink of the station expects a ROGER.
+    if (this.ocl.awaitingCla && /^ROGER\b/.test(p.text)) {
+      this.ocl.acknowledge(ocl);
+      return;
+    }
+    const rcl = parseRcl(p.text);
+    if (rcl !== null && this.ocl.receive(rcl, to, ocl)) return;
     // Answers to our messages need nothing (no open dialogues in T23).
     if (p.mrn !== null && /^(WILCO|UNABLE|ROGER|STANDBY|AFFIRM|NEGATIVE)\b/.test(p.text)) return;
     // T25: requests to the station the aircraft is logged on to.

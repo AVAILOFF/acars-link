@@ -41,6 +41,20 @@
 - США: PDC идёт через хост авиакомпании, ответа пилота нет (TopSky 1.4; FAA JO 7110.113F, 2017-10-02: поля SID, Transition, Climb Out, CLIMB VIA, Maintain, Expected Altitude, Departure Frequency, Contact, Local Info; «Cleared as filed» в полях УВД не используется). Раскладка — реальный PDC Delta DAL2699 KMSP–KRDU от 2025-12-29 (`plane-watch/acars-parser`).
 - `[ПРОВЕРИТЬ]` человеком: какие самолёты принимают DCL/PDC (FBW — страница DEPART REQ; PMDG, Fenix, iniBuilds), показ WU-кнопок у CLD.
 
+## Океанический клиренс NAT (T27)
+
+Сверено 2026-10-09.
+- **Статус в NAT.** NAT OPS Bulletin 2023_001 rev 6 (ICAO EUR/NAT, 25 Feb 2026): клиренсы отменены (Oceanic Clearance Removal) везде, кроме **Shanwick** — он выдаёт клиренс после RCL «until further notice» (дата перехода — по NOTAM). RCL отправляют в Bodø, Gander, Santa Maria, Shanwick; New York East и Reykjavik его не требуют (Reykjavik отвечает, что RCL не нужен). Ответ районов без клиренса — `RCL RECEIVED BY [ANSP]` (точное слово после BY известно только из комментария на ops.group: «RCL received by Santa Maria»). Окна RCL до точки входа: Gander 90–60 мин, Shanwick 90–30, Santa Maria ≥ 40, Bodø ≥ 20. В RCL: OEP, ETO, Мах, эшелон, `MAX FL` свободным текстом (без MAX — запрошенный считается наибольшим).
+- **Формат CLX и ошибки.** NAT OPS Bulletin 2020_001 rev 01 (14 Jun 2022), §4–12: `CLX hhmm yymmdd EGGX CLRNCE nnn` / `<позывной> CLRD TO <назн.> VIA <OEP>` / `NAT <буква>` или `RANDOM ROUTE` / точки / `FM <OEP>/<ETO> MNTN F<эшелон> M<мах>` / `ATC/ …` (LEVEL CHANGE, MACH CHANGE, ENTRY POINT CHANGE, ROUTE CHANGE, RECLEARANCE n) / `END OF MESSAGE`. Пример Shanwick в §12: маршрут без повторения OEP, до точки выхода. Сообщения: `RCL RECEIVED` + `IF NO CLEARANCE WITHIN 15 MINUTES CONTACT SHANWICK BY VOICE`; `RCL REJECTED` + `RCL SENT TOO EARLY` / `RCL RECEIVED TOO LATE REVERT TO VOICE PROCEDURES` / `REQUEST BEING PROCESSED AWAIT TRANSACTION COMPLETION` / `FLIGHT PLAN NOT HELD` / `INVALID <…> RESUBMIT YOUR REQUEST`; `RCL/CLA RECEIVED NEGOTIATION REQUIRED CONTACT SHANWICK BY VOICE`; `CLA RECEIVED CLEARANCE CONFIRMED END OF MESSAGE`; без CLA 10 мин — `CLEARANCE CANCELLED REVERT TO VOICE PROCEDURES` (§7.1, Shanwick). Эшелон в CLX — не разрешение на набор (§5.3). Координаты — как в FPL (Doc 4444, прил. 2, поле 15): `57N020W`, с минутами `5530N02000W`.
+- **Hoppie.** FlyByWire `OclMessage.ts` (GPL-3.0, только формат): RCL — пакет `cpdlc` `/data2/<min>//N/OCEANIC REQUEST
+<позывной> 
+ENTRY POINT:<OEP>
+AT:<hhmm>Z 
+REQ:M.<мах> FL<эшелон>[
+<свободный текст>]` станции, на которую самолёт залогинен (`atsu.currentStation()`). `ATS623.ts`: ответ принимается от той же станции, telex превращается в свободный текст UM169 с ожиданием ROGER; ответ с `TO <назначение>` закрывает обмен. Какие ещё самолёты шлют RCL через Hoppie — `[ПРОВЕРИТЬ]` человеком.
+- **Треки.** natTrak (VATSIM, `https://nattrak.vatsim.net/api/tracks`): `[{identifier, active, last_routeing: "SUNOT 58/20 60/30 60/40 59/50 AVUTI", valid_from, valid_to, concorde, flight_levels: [34000, …], direction}]`, данные — из настоящих NOTAM с треками NAT (`TracksService.php`). Только активные треки. Лицензия кода и условия API не опубликованы — `[ПРОВЕРИТЬ]` до публичного релиза. FAA `notams.faa.gov/common/nat.html` из сети не открылся (403), FlightPlanDatabase `/nav/NATS` отдал пустой список. В OFP SimBrief есть поле `tracks` (у RCTP–RJBB пустое) — формат на трансатлантическом OFP `[ПРОВЕРИТЬ]`.
+- **Районы.** Первый океанический район после OEP — по `fir` SimBrief первой точки-координаты, иначе по VATSpy: EGGX, CZQX/CZQO (Gander), BIRD, ENOB, LPPO, KZWY/KZNY. Флаг `oceanic` VATSpy ненадёжен (у EGGX и CZQO он `0`). Коды `fir` SimBrief у океанических точек `[ПРОВЕРИТЬ]` на реальном OFP.
+
 ## Таблицы сквоков (T24)
 
 Таблицы — `packages/core/src/atc/squawk/`, сгенерированы из источников (не править вручную).
@@ -106,6 +120,7 @@
 | VATSIM data feed v3 | онлайн ATC | нет | сверено 2026-10-08 (T13), ниже |
 | IVAO whazzup | онлайн ATC | `[ПРОВЕРИТЬ]` | |
 | NASA EONET v3 | стихийные события | нет | сверено 2026-10-08 (T13), ниже |
+| natTrak (VATSIM) | треки NAT (T27) | нет | сверено 2026-10-09, выше; условия `[ПРОВЕРИТЬ]` |
 | TheSpaceDevs Launch Library 2.3.0 | пуски ракет (T28) | нет | 15 запросов/ч на IP, сверено 2026-10-09, ниже; лицензия данных `[ПРОВЕРИТЬ]` |
 | Overpass API (OSM) | стоянки и гейты аэропорта (`aeroway=parking_position/gate`) | нет | T13, ниже; живой ответ `[ПРОВЕРИТЬ]` |
 | VATSpy Data Project | границы FIR, префиксы позывных центров (ROPS, T23); FIR и страна аэропортов (T24) | нет | CC BY-SA 4.0, сверено 2026-10-09, ниже |

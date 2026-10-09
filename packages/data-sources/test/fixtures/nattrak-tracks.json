@@ -1,0 +1,62 @@
+[
+  {
+    "identifier": "A",
+    "active": true,
+    "last_routeing": "RATSU 63\/20 64\/30 64\/40 63\/50 MAXAR",
+    "valid_from": "2026-10-09T11:30:00.000000Z",
+    "valid_to": "2026-10-09T19:00:00.000000Z",
+    "last_active": "2026-10-09T11:38:03.000000Z",
+    "concorde": 0,
+    "flight_levels": [35000, 36000, 37000, 40000],
+    "direction": "west",
+    "odd_or_even": "mixed"
+  },
+  {
+    "identifier": "B",
+    "active": true,
+    "last_routeing": "ATSIX 62\/20 63\/30 63\/40 62\/50 PIDSO",
+    "valid_from": "2026-10-09T11:30:00.000000Z",
+    "valid_to": "2026-10-09T19:00:00.000000Z",
+    "last_active": "2026-10-09T11:38:03.000000Z",
+    "concorde": 0,
+    "flight_levels": [35000, 36000, 37000, 40000],
+    "direction": "west",
+    "odd_or_even": "mixed"
+  },
+  {
+    "identifier": "C",
+    "active": true,
+    "last_routeing": "BALIX 61\/20 62\/30 62\/40 61\/50 SAVRY",
+    "valid_from": "2026-10-09T11:30:00.000000Z",
+    "valid_to": "2026-10-09T19:00:00.000000Z",
+    "last_active": "2026-10-09T11:38:03.000000Z",
+    "concorde": 0,
+    "flight_levels": [35000, 36000, 37000, 40000],
+    "direction": "west",
+    "odd_or_even": "mixed"
+  },
+  {
+    "identifier": "D",
+    "active": true,
+    "last_routeing": "GOMUP 59\/20 61\/30 61\/40 60\/50 URTAK",
+    "valid_from": "2026-10-09T11:30:00.000000Z",
+    "valid_to": "2026-10-09T19:00:00.000000Z",
+    "last_active": "2026-10-09T11:38:03.000000Z",
+    "concorde": 0,
+    "flight_levels": [35000, 36000, 37000, 38000, 39000, 40000],
+    "direction": "west",
+    "odd_or_even": "mixed"
+  },
+  {
+    "identifier": "E",
+    "active": true,
+    "last_routeing": "SUNOT 58\/20 60\/30 60\/40 59\/50 AVUTI",
+    "valid_from": "2026-10-09T11:30:00.000000Z",
+    "valid_to": "2026-10-09T19:00:00.000000Z",
+    "last_active": "2026-10-09T11:38:03.000000Z",
+    "concorde": 0,
+    "flight_levels": [34000, 35000, 36000, 37000, 38000, 39000, 40000],
+    "direction": "west",
+    "odd_or_even": "even"
+  }
+]

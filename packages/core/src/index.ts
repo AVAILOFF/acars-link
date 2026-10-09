@@ -11,6 +11,7 @@ export * from './atc/cpdlc.js';
 export * from './atc/dcl.js';
 export * from './atc/fir.js';
 export * from './atc/levels.js';
+export * from './atc/oceanic.js';
 export * from './atc/performance.js';
 export * from './atc/requests.js';
 export * from './atc/rops.js';

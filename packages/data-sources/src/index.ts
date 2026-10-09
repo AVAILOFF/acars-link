@@ -10,6 +10,7 @@ export const DATA_SOURCES_PACKAGE = '@acars/data-sources';
 export * from './common.js';
 export * from './eonet.js';
 export * from './launches.js';
+export * from './nattrak.js';
 export * from './ourairports.js';
 export * from './service.js';
 export * from './stands.js';

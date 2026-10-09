@@ -7,6 +7,7 @@ import {
   type ExtDataUpdate,
   type FirArea,
   type FlightPhase,
+  type NatTrack,
   type NaturalEvent,
   type Ofp,
   type ParkingStand,
@@ -16,6 +17,7 @@ import {
 import { DataSourceError, type FetchContext, type HttpClient, ICAO_RE } from './common.js';
 import { fetchEonetEvents } from './eonet.js';
 import { fetchLaunches } from './launches.js';
+import { fetchNatTracks } from './nattrak.js';
 import { fetchAirportFrequencies } from './ourairports.js';
 import { fetchStands } from './stands.js';
 import { fetchVatsim, stationsFor, type VatsimStation } from './vatsim.js';
@@ -45,10 +47,19 @@ import { fetchWx } from './wx.js';
  * destination and the origin's frequencies from OurAirports (T24, cached 30 days). Space
  * launches (T28) at start and every hour, cached 30 min: Launch Library allows 15 requests an
  * hour without a key. The window is from an hour before the flight started to an hour after
- * now + the OFP block time (the remaining time is not known here; more is harmless).
+ * now + the OFP block time (the remaining time is not known here; more is harmless). With the
+ * ROPS station: the active NAT tracks from natTrak (T27) at start and every hour, cached 30 min.
  */
 
-export type DataSourceKind = 'wx' | 'vatsim' | 'eonet' | 'stands' | 'firs' | 'freqs' | 'launches';
+export type DataSourceKind =
+  | 'wx'
+  | 'vatsim'
+  | 'eonet'
+  | 'stands'
+  | 'firs'
+  | 'freqs'
+  | 'launches'
+  | 'nattracks';
 export const DATA_SOURCES: readonly DataSourceKind[] = [
   'wx',
   'vatsim',
@@ -57,9 +68,12 @@ export const DATA_SOURCES: readonly DataSourceKind[] = [
   'firs',
   'freqs',
   'launches',
+  'nattracks',
 ];
 /** Sources of the ROPS station only (`startFlight(…, { firs: true })`). */
-const ROPS_SOURCES: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs']);
+const ROPS_SOURCES: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs', 'nattracks']);
+/** ROPS sources fetched once per flight (the others refresh on their schedule). */
+const ROPS_ONCE: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs']);
 
 export interface CacheEntry {
   /** When the value was fetched, epoch ms. */
@@ -112,6 +126,7 @@ export const DATA_POLICY: Readonly<Record<DataSourceKind, Policy>> = {
   firs: { refreshMs: null, cacheMs: 7 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   freqs: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   launches: { refreshMs: 60 * MIN, cacheMs: 30 * MIN, retryMs: 15 * MIN, maxTries: null },
+  nattracks: { refreshMs: 60 * MIN, cacheMs: 30 * MIN, retryMs: 15 * MIN, maxTries: null },
 };
 
 /** VATSIM refreshes only here (the first fetch at start goes in any phase). */
@@ -170,6 +185,7 @@ export class ExternalDataService {
     airports: Record<string, AirportInfo> | null;
     freqs: { icao: string; list: AirportFrequency[] } | null;
     launches: SpaceLaunch[] | null;
+    natTracks: NatTrack[] | null;
   } = empty();
   /** VATSpy data of the flight (T23) and the ids of the route's FIRs. */
   private vatspy: { data: VatspyData; route: ReadonlySet<string> } | null = null;
@@ -243,7 +259,7 @@ export class ExternalDataService {
       if (s.inFlight || (now < s.nextAt && !asked)) continue;
       const p = DATA_POLICY[kind];
       if (p.maxTries !== null && s.fails >= p.maxTries) continue;
-      if ((kind === 'stands' || ROPS_SOURCES.has(kind)) && s.fetched) continue;
+      if ((kind === 'stands' || ROPS_ONCE.has(kind)) && s.fetched) continue;
       if (kind === 'vatsim' && s.fetched && (phase === null || !VATSIM_PHASES.has(phase))) {
         s.nextAt = now + (p.refreshMs ?? 0);
         continue;
@@ -267,7 +283,8 @@ export class ExternalDataService {
       p.centers !== null ||
       p.airports !== null ||
       p.freqs !== null ||
-      p.launches !== null;
+      p.launches !== null ||
+      p.natTracks !== null;
     if (!has) return { update: null, notes };
     return {
       update: {
@@ -281,6 +298,7 @@ export class ExternalDataService {
         ...(p.airports === null ? {} : { airports: p.airports }),
         ...(p.freqs === null ? {} : { freqs: p.freqs }),
         ...(p.launches === null ? {} : { launches: p.launches }),
+        ...(p.natTracks === null ? {} : { natTracks: p.natTracks }),
       },
       notes,
     };
@@ -440,6 +458,19 @@ export class ExternalDataService {
           this.pending.launches = list;
         };
       }
+      case 'nattracks': {
+        let tracks = (await this.cached('nattracks', now, kind, (v) =>
+          checkExtDataUpdate({ t: 0, natTracks: v }),
+        )) as NatTrack[] | undefined;
+        if (tracks === undefined) {
+          tracks = await fetchNatTracks(this.ctx);
+          await this.store('nattracks', now, tracks);
+        }
+        const list = tracks;
+        return () => {
+          this.pending.natTracks = list;
+        };
+      }
       case 'stands': {
         const icao = flight.ofp.destination.icao;
         let list = (await this.cached(`stands:${icao}`, now, kind, (v) =>
@@ -502,6 +533,7 @@ function empty() {
     airports: null,
     freqs: null,
     launches: null,
+    natTracks: null,
   };
 }
 
