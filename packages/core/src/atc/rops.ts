@@ -65,6 +65,8 @@ export interface RopsOptions {
   readonly enabled: boolean;
   /** Step aside where a live VATSIM centre covers the FIR (default true). */
   readonly standAside?: boolean;
+  /** Random Direct To on the station's own (T26; default true). */
+  readonly randomDirects?: boolean;
 }
 
 export type AtcEvent =
@@ -253,6 +255,7 @@ export class RopsStation {
   private map: FirMap | null = null;
   private mapOf: readonly FirArea[] | null = null;
   private readonly standAside: boolean;
+  private readonly randomDirects: boolean;
   private readonly seed: string | number;
 
   constructor(
@@ -262,6 +265,7 @@ export class RopsStation {
     state: RopsState = EMPTY_ROPS,
   ) {
     this.standAside = options.standAside ?? true;
+    this.randomDirects = options.randomDirects ?? true;
     this.seed = deps.seed;
     const copy = JSON.parse(JSON.stringify(state)) as RopsState;
     if (copy.v !== 1) throw new Error(`unsupported RopsState version ${String(copy.v)}`);
@@ -637,8 +641,9 @@ export class RopsStation {
       }
     }
 
-    // Random Direct To at the planned route distances; points long passed (a flight
-    // started mid-way) are dropped, not sent one after another.
+    // Random Direct To at the planned route distances (unless turned off); points long
+    // passed (a flight started mid-way) are dropped, not sent one after another.
+    if (!this.randomDirects) return;
     while (a.directs.length > 0 && route.alongNm - (a.directs[0] as number) > DIRECT_STALE_NM) {
       a.directs.shift();
     }

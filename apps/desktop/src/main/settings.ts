@@ -28,6 +28,7 @@ export function defaultSettings(locale: string): Settings {
     messageGapSec: 60,
     rops: false,
     ropsStandAside: true,
+    ropsRandomDirects: true,
     scenarios: {},
     chances: {},
   };
@@ -75,6 +76,7 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'soundOnMessage':
       case 'rops':
       case 'ropsStandAside':
+      case 'ropsRandomDirects':
         if (typeof value !== 'boolean') throw bad(key, 'true or false');
         out[key] = value;
         break;
@@ -101,6 +103,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'messageGapSec',
     'rops',
     'ropsStandAside',
+    'ropsRandomDirects',
   ] as const;
   for (const key of keys) {
     if (!(key in r)) continue;

@@ -211,7 +211,8 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     !(
       isObj(r) &&
       typeof r['enabled'] === 'boolean' &&
-      (r['standAside'] === undefined || typeof r['standAside'] === 'boolean')
+      (r['standAside'] === undefined || typeof r['standAside'] === 'boolean') &&
+      (r['randomDirects'] === undefined || typeof r['randomDirects'] === 'boolean')
     )
   )
     throw bad('rops');

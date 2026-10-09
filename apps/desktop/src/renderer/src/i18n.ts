@@ -116,6 +116,9 @@ const en = {
   'set.ropsHint':
     'A simulated CPDLC station per FIR for your aircraft on Hoppie: log on to X + the FIR code (EDGG → XDGG); at FIR boundaries it hands you over. On the ground, the departure clearance (PDC/DCL) comes from X + the airport code (EDDF → XDDF). Needs live data (FIR boundaries from VATSpy). Applies to the next flight.',
   'set.ropsStandAside': 'Step aside for live VATSIM controllers',
+  'set.ropsRandomDirects': 'Random Direct To',
+  'set.ropsRandomDirectsHint':
+    'Up to 3 times per flight in cruise the station clears you direct to a fix ahead on your route. Applies to the next flight.',
   'set.ropsStandAsideHint':
     'Where a VATSIM centre covering the FIR is online, the station logs you off and names the controller.',
 
@@ -329,6 +332,9 @@ const ru: Record<MessageKey, string> = {
   'set.ropsHint':
     'Имитация станции CPDLC для вашего самолёта на Hoppie, своя в каждой FIR: логон на X + код FIR (EDGG → XDGG), на границе FIR — передача следующей. На земле разрешение на вылет (PDC/DCL) выдаёт станция X + код аэропорта (EDDF → XDDF). Нужны живые данные (границы FIR из VATSpy). Действует со следующего рейса.',
   'set.ropsStandAside': 'Уступать живым диспетчерам VATSIM',
+  'set.ropsRandomDirects': 'Случайные Direct To',
+  'set.ropsRandomDirectsHint':
+    'До 3 раз за полёт в крейсере станция даёт прямо на точку впереди по маршруту. Действует со следующего рейса.',
   'set.ropsStandAsideHint':
     'Если онлайн центр VATSIM этой FIR, станция завершает связь (logoff) и сообщает позывной диспетчера.',
 

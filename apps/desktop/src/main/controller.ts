@@ -361,7 +361,15 @@ export class AppController {
       flags,
       minGapMs: settings.messageGapSec * 1000,
       simCommands: (c) => this.sendSimCommand(c),
-      ...(settings.rops ? { rops: { enabled: true, standAside: settings.ropsStandAside } } : {}),
+      ...(settings.rops
+        ? {
+            rops: {
+              enabled: true,
+              standAside: settings.ropsStandAside,
+              randomDirects: settings.ropsRandomDirects,
+            },
+          }
+        : {}),
     });
     // The station needs the FIR boundaries (live data).
     if (settings.rops && !settings.liveData) this.feed.system(now, 'atc_needs_data');

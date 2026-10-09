@@ -40,6 +40,8 @@ export interface Settings {
   readonly rops: boolean;
   /** ROPS steps aside where a live VATSIM centre covers the FIR. Default on. */
   readonly ropsStandAside: boolean;
+  /** ROPS sends up to 3 random Direct To per flight (T26). Default on. */
+  readonly ropsRandomDirects: boolean;
   /** Scenario id → enabled; absent ids use `enabled_by_default`. */
   readonly scenarios: Readonly<Record<string, boolean>>;
   /** Irregular scenario id → chance in percent (0–100); absent ids use the YAML `probability`. */

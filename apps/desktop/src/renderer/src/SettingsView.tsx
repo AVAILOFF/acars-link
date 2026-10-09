@@ -227,6 +227,16 @@ function NetworkForm() {
           {t('set.ropsStandAside')}
         </label>
         <p className="hint">{t('set.ropsStandAsideHint')}</p>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={settings.ropsRandomDirects}
+            disabled={busy !== null || !settings.rops}
+            onChange={(e) => void update({ ropsRandomDirects: e.currentTarget.checked })}
+          />
+          {t('set.ropsRandomDirects')}
+        </label>
+        <p className="hint">{t('set.ropsRandomDirectsHint')}</p>
       </div>
       <div className="field">
         <label htmlFor="gap">{t('set.gap')}</label>

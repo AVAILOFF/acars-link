@@ -62,6 +62,7 @@ describe('settings', () => {
       messageGapSec: 60,
       rops: false,
       ropsStandAside: true,
+      ropsRandomDirects: true,
       scenarios: {},
       chances: {},
     });
@@ -84,6 +85,7 @@ describe('settings', () => {
       { recordFlights: 'yes' },
       { rops: 1 },
       { ropsStandAside: 'no' },
+      { ropsRandomDirects: 'off' },
       { messageGapSec: -1 },
       { messageGapSec: 1.5 },
       { messageGapSec: 601 },

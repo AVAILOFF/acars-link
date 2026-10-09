@@ -897,7 +897,7 @@ describe('ROPS ATC station (T23)', () => {
       expect(codes).toContain(c);
 
     const rec = await readRecording(s.recordings);
-    expect(rec.header.rops).toEqual({ enabled: true, standAside: true });
+    expect(rec.header.rops).toEqual({ enabled: true, standAside: true, randomDirects: true });
     const out = rec.events.flatMap((e) =>
       e.type === 'out' && e.packet !== undefined ? [e.packet] : [],
     );

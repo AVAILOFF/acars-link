@@ -167,9 +167,15 @@ describe('ROPS station sends clearances on its own (T26)', () => {
     ],
   };
 
-  function fly(o: Ofp, seed: string, say: (i: number, s: { lon: number }) => PilotMessage[]) {
+  function fly(
+    o: Ofp,
+    seed: string,
+    say: (i: number, s: { lon: number }) => PilotMessage[],
+    randomDirects?: boolean,
+  ) {
     const flight = generateSyntheticFlight({ ofp: o });
-    const core = AcarsCore.create({ ofp: o, scenarios: [], seed, rops: { enabled: true } });
+    const rops = { enabled: true, ...(randomDirects === undefined ? {} : { randomDirects }) };
+    const core = AcarsCore.create({ ofp: o, scenarios: [], seed, rops });
     core.startFlight();
     const out: OutboundMessage[] = [];
     const events: CoreEvent[] = [];
@@ -218,6 +224,16 @@ describe('ROPS station sends clearances on its own (T26)', () => {
     }
     // Deterministic.
     expect(autos(fly(o, 'a', () => []))).toEqual(autos(fly(o, 'a', () => [])));
+  });
+
+  it('random Direct To can be turned off; step climb and descent stay', () => {
+    const o = withSteps('RCTP/0390 MADOG/0410');
+    // Seed "atc" gives a random Direct To with the option on (atc.test.ts).
+    expect(autos(fly(o, 'atc', () => [])).some((t) => t?.startsWith('PROCEED DIRECT TO'))).toBe(
+      true,
+    );
+    const off = autos(fly(o, 'atc', () => [], false));
+    expect(off).toEqual(['CLIMB TO @FL410@', 'DESCEND TO @FL250@']);
   });
 
   it('no step climb when the pilot already asked for that level', () => {
