@@ -65,6 +65,7 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
   eonet: 'NASA EONET',
   stands: 'OSM stands (Overpass)',
   firs: 'VATSpy (FIR boundaries)',
+  freqs: 'OurAirports (frequencies)',
 };
 
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */
@@ -365,6 +366,26 @@ export class FlightSession {
           break;
         case 'ATC_UNSUPPORTED':
           this.feed.system(e.t, 'atc_unsupported', { station: e.station, text: e.text });
+          break;
+        case 'ATC_DCL':
+          this.feed.system(e.t, `atc_dcl_${e.what}`, { station: e.station });
+          if (e.what === 'request') this.transport.expectReply(180_000);
+          break;
+        case 'ATC_DCL_CLEARANCE':
+          this.feed.system(e.t, 'atc_dcl_clearance', {
+            station: e.station,
+            squawk: e.squawk,
+            source: e.squawkSource,
+          });
+          // An ARINC 623 clearance waits for the pilot's WILCO.
+          if (e.format === 'arinc623') this.transport.expectReply(180_000);
+          break;
+        case 'ATC_DCL_REJECTED':
+          this.feed.system(e.t, 'atc_dcl_rejected', {
+            station: e.station,
+            reason: e.reason,
+            detail: e.detail ?? '',
+          });
           break;
         default:
           break;

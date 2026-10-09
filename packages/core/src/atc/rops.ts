@@ -1,4 +1,6 @@
 import { ATC_MAX_AGE_MS, type CenterStation, type ExtState, type FirArea } from '../ext/data.js';
+import type { FormattedMessage } from '../format/formatter.js';
+import { DEFAULT_PROFILE, type DisplayProfile } from '../format/profile.js';
 import type { LatLon } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';
 import type { FlightPhase } from '../phase/fsm.js';
@@ -6,6 +8,7 @@ import type { OutboundMessage } from '../scenario/engine.js';
 import type { PilotMessage } from '../scenario/pilot.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import { type CpdlcHeader, type CpdlcResponse, formatCpdlc, parseCpdlc } from './cpdlc.js';
+import { type DclContext, type DclEvent, DclService, type DclState } from './dcl.js';
 import { atcUnitName, FirMap, ropsStation } from './fir.js';
 
 /**
@@ -20,8 +23,10 @@ import { atcUnitName, FirMap, ropsStation } from './fir.js';
  * aside — a notice and LOGOFF to a connected aircraft, `UNABLE` to a logon — until the next
  * FIR or until the controller leaves.
  *
+ * The departure clearance (T24, `dcl.ts`) runs on its own station, `X` + origin, on the ground.
+ *
  * Deterministic: input = position, phase, the aircraft's messages to our stations and the
- * external data; no randomness. Other CPDLC requests are T25: until then they get
+ * external data; randomness only from the seed (squawk, DCL timing). Other CPDLC requests are T25: until then they get
  * `MESSAGE NOT SUPPORTED BY THIS ATS UNIT` (a phrase of real Hoppie stations).
  */
 
@@ -37,6 +42,7 @@ export interface RopsOptions {
 }
 
 export type AtcEvent =
+  | DclEvent
   /** The station the aircraft should log on to changed (a new FIR). */
   | {
       readonly type: 'ATC_STATION';
@@ -95,6 +101,16 @@ export interface RopsState {
   readonly aside: string | null;
   /** The flight is on block: no more listening. */
   readonly ended: boolean;
+  /** Phase of the last tick (T24: the DCL station listens on the ground only). */
+  readonly phase?: FlightPhase;
+  /** Departure clearance (T24); absent in states saved before it. */
+  readonly dcl?: DclState;
+}
+
+/** What the station needs besides the OFP (T24: squawk/DCL seed, the telex display profile). */
+export interface RopsDeps {
+  readonly seed: string | number;
+  readonly profile?: DisplayProfile;
 }
 
 export interface RopsTickInput {
@@ -133,7 +149,9 @@ export class RopsStation {
     min: Record<string, number>;
     aside: string | null;
     ended: boolean;
+    phase: FlightPhase;
   };
+  private readonly dcl: DclService;
   private map: FirMap | null = null;
   private mapOf: readonly FirArea[] | null = null;
   private readonly standAside: boolean;
@@ -141,6 +159,7 @@ export class RopsStation {
   constructor(
     private readonly ofp: Ofp,
     options: RopsOptions,
+    deps: RopsDeps,
     state: RopsState = EMPTY_ROPS,
   ) {
     this.standAside = options.standAside ?? true;
@@ -153,11 +172,18 @@ export class RopsStation {
       min: { ...copy.min },
       aside: copy.aside,
       ended: copy.ended,
+      phase: copy.phase ?? 'PREFLIGHT',
     };
+    this.dcl = new DclService(ofp, deps.seed, deps.profile ?? DEFAULT_PROFILE, copy.dcl);
   }
 
   getState(): RopsState {
-    return JSON.parse(JSON.stringify({ v: 1, ...this.st })) as RopsState;
+    return JSON.parse(JSON.stringify({ v: 1, ...this.st, dcl: this.dcl.getState() })) as RopsState;
+  }
+
+  /** Departure clearance station while it is open (T24), or null. */
+  get dclStation(): string | null {
+    return !this.st.ended && this.dcl.active(this.st.phase) ? this.dcl.station : null;
   }
 
   /** Station the aircraft should log on to now (the FIR's), or null. */
@@ -180,6 +206,8 @@ export class RopsStation {
     if (this.station !== null) out.add(this.station);
     if (this.st.connected !== null) out.add(this.st.connected);
     if (this.st.handover !== null) out.add(this.st.handover.from);
+    const dcl = this.dclStation;
+    if (dcl !== null) out.add(dcl);
     return [...out].sort();
   }
 
@@ -187,12 +215,18 @@ export class RopsStation {
     const outbound: OutboundMessage[] = [];
     const events: AtcEvent[] = [];
     const now = input.now;
-    const send = (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => {
+    const send = (
+      from: string,
+      ra: CpdlcResponse,
+      mrn: number | null,
+      text: string,
+      scenarioId = ROPS_ID,
+    ): number => {
       const min = (this.st.min[from] ?? 0) + 1;
       this.st.min[from] = min;
       const cpdlc: CpdlcHeader = { min, mrn, ra };
       outbound.push({
-        scenarioId: ROPS_ID,
+        scenarioId,
         from,
         to: this.ofp.callsign,
         kind: 'cpdlc',
@@ -201,16 +235,44 @@ export class RopsStation {
         t: now,
         toPilot: true,
       });
+      return min;
+    };
+    const sendTelex = (from: string, message: FormattedMessage, scenarioId: string) => {
+      outbound.push({
+        scenarioId,
+        from,
+        to: this.ofp.callsign,
+        kind: 'telex',
+        message,
+        t: now,
+        toPilot: true,
+      });
+    };
+    const dcl: DclContext = {
+      now,
+      phase: input.phase,
+      ext: input.ext,
+      standAside: this.standAside,
+      sendCpdlc: send,
+      sendTelex,
+      events,
     };
 
     // The flight is over: messages to the stations are not answered.
     if (this.st.ended) return { outbound, events };
+    // The DCL station listens from the phase of the tick on.
+    const before = this.listen;
+    this.st.phase = input.phase;
 
     const map = this.firMap(input.ext);
     if (this.st.handover !== null && now >= this.st.handover.until) this.st.handover = null;
 
-    // 1. The aircraft's messages, in order.
-    for (const m of input.inbound) this.receive(m, input, map, send, events);
+    // 1. The aircraft's messages, in order (to the DCL station or the FIR stations).
+    for (const m of input.inbound) {
+      if (m.to === this.dcl.station && before.includes(m.to)) this.dcl.receive(m, dcl);
+      else this.receive(m, input, map, send, events);
+    }
+    this.dcl.tick(dcl);
 
     // 2. Position → FIR; a boundary crossed hands over or steps aside.
     if (map !== null) {

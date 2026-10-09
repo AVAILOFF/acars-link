@@ -272,11 +272,11 @@ function StatusCard({ app }: { app: AppState }) {
   const atcText =
     atc === null
       ? null
-      : atc.connected !== null
-        ? t('atc.connected', { station: atc.connected })
-        : atc.station !== null
-          ? t('atc.logon', { station: atc.station })
-          : t('atc.wait');
+      : (atc.connected !== null
+          ? t('atc.connected', { station: atc.connected })
+          : atc.station !== null
+            ? t('atc.logon', { station: atc.station })
+            : t('atc.wait')) + (atc.dcl === null ? '' : ` · ${t('atc.dcl', { station: atc.dcl })}`);
 
   const tm = app.telemetry;
   return (

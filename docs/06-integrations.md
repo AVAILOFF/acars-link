@@ -33,6 +33,27 @@
 - Опрос: по tech.html ждать первого сообщения должны клиенты самолётов; станция УВД ждёт логона, поэтому опрашивается с начала (те же 45–75 с, после HANDOVER — 20 с не дольше 3 мин).
 - `[ПРОВЕРИТЬ]` человеком: показ в PMDG 777/737, Fenix, iniBuilds; автологон после HANDOVER у не-FBW самолётов.
 
+## DCL/PDC через Hoppie (T24)
+
+Сверено 2026-10-09. Реализация — `packages/core/src/atc/dcl.ts`, решения и допущения — `07`, T24.
+- Запрос (RCD) — telex от самолёта: `REQUEST PREDEP CLEARANCE` / `<позывной> <тип> TO <назн.>` / `AT <вылет> STAND <x>` / `ATIS <буква>` (FBW `DclMessage.ts`, GPL-3.0, только формат; пример TopSky «ATIS PAPA» — буква словом).
+- ARINC 623 DCL. Источники формата: AIP Singapore eSUP 2018/013 (`aim-sg.caas.gov.sg`), AIP Malaysia SUP 02/25 (`aip.caam.gov.my`): RCD, FSM (`FSM hhmm yymmdd WSSS` / `SIA123 RCD RECEIVED` / `REQUEST BEING PROCESSED` / `STANDBY`; `RCD REJECTED` / `REVERT TO VOICE PROCEDURES`; `CDA RECEIVED` / `CLEARANCE CONFIRMED`), CLD (`CLD hhmm yymmdd WSSS PDC 001` / `SIA123 CLRD TO WMKK OFF 02C VIA MASBO2A` / `SQUAWK 2201` / `NEXT FREQ 121.65 ATIS B`), CDA, тайминги (CLD в течение 5 мин, ответ пилота в течение 5 мин, запрос не раньше 20 мин до TOBT). Реальные CLD из эфира ACARS — образцы тестов `plane-watch/acars-parser` (`internal/parsers/pdc/*_test.go`, лицензия не указана, взят только формат) и `airframesio/acars-message-documentation` (`research/A3.md`): EDDF, EFHK, EGLL, EPWA, LSZH, VHHH, WSSS, VTBS, RKSI. На проводе Hoppie — как у TopSky (руководство «Data Link Functions» v2.2 и перехваченные пакеты сети): `/data2/n//NE/FSM … @CS@ RCD RECEIVED @REQUEST BEING PROCESSED @STANDBY`, `/data2/n//WU/CLD … PDC nnn @CS@ CLRD TO @DEST@ OFF @RWY@ VIA @SID@ SQUAWK @XXXX@ …`, ответ пилота `/data2/m/n/N/WILCO`.
+- США: PDC идёт через хост авиакомпании, ответа пилота нет (TopSky 1.4; FAA JO 7110.113F, 2017-10-02: поля SID, Transition, Climb Out, CLIMB VIA, Maintain, Expected Altitude, Departure Frequency, Contact, Local Info; «Cleared as filed» в полях УВД не используется). Раскладка — реальный PDC Delta DAL2699 KMSP–KRDU от 2025-12-29 (`plane-watch/acars-parser`).
+- `[ПРОВЕРИТЬ]` человеком: какие самолёты принимают DCL/PDC (FBW — страница DEPART REQ; PMDG, Fenix, iniBuilds), показ WU-кнопок у CLD.
+
+## Таблицы сквоков (T24)
+
+Таблицы — `packages/core/src/atc/squawk/`, сгенерированы из источников (не править вручную).
+- **EUROCONTROL CAL** (SSR Code Allocation List for the ICAO EUR Region), приложение к ICAO EUR Doc 023, версия 4.13 от 2026-03-04, `eurocontrol-icao-eur-cal-v4-13.xls` со страницы публикации; столбцы Series, From, To, PA, Unit, CIV/MIL, APP, Unit which assigned, A/R, Destination, Via, Protection, Remarks; лист PAs (участвующие области, CCAMS). Берутся строки `A`, CIV, ENR (557 строк). Условия повторного использования на сайте не указаны — `[ПРОВЕРИТЬ]` до публичного релиза.
+- **FAA JO 7110.66H** NBCAP от 2024-05-06, TBL A-1 (зарезервированные коды) и TBL B-3 (блоки 23 ARTCC; `2600` = 2601–2677, базовый код обычно не выдаётся, 0000 — никогда). Public domain.
+- **ICAO APAC eANP** Vol II, Part IV, Table ATM II-APAC-2 (стр. IV-28…IV-31, поправки до APAC-II 24/04, февраль 2026; документ июля 2026). Ячейки сняты программно по координатам текста PDF и сверены с изображениями страниц. Пункт 3.6: A1000 — conspicuity-код Mode S. © ICAO — `[ПРОВЕРИТЬ]` до публичного релиза.
+- Специальные коды (не выдаются): 7500/7600/7700 и 2000/7000 — SERA.13005; 7501–7577, 7601–7607, 7701–7707, 1200, 0000, 7400, 7777 — NBCAP TBL A-1; 1000 — APAC 3.6 (решение пользователя: пока не выдавать).
+
+## OurAirports (T24)
+
+- `https://davidmegginson.github.io/ourairports-data/airport-frequencies.csv` (~1,3 МБ, обновляется ночью). Лицензия (ourairports.com/data, сверено 2026-10-09): «All data is released to the Public Domain, and comes with no guarantee of accuracy or fitness for use». Столбцы `id, airport_ref, airport_ident, type, description, frequency_mhz`; типы `DEL`, `CLD`, `GND`, `TWR`, `APP`, `DEP`, `ATIS` и др.
+- Только частоты аэропорта вылета, при включённой станции ROPS; кэш 30 дней, после сбоя — через 10 мин, не более 3 попыток. Используются, когда у VATSIM нет живого диспетчера (NEXT FREQ / DPFRQ). Реализация — `packages/data-sources/src/ourairports.ts`.
+
 ## SayIntentions ACARS
 
 - Endpoint: `https://acars.sayintentions.ai/acars/system/connect.html` (Hoppie-совместимый). Логон — SI-код пользователя.
@@ -78,7 +99,8 @@
 | NASA EONET v3 | стихийные события | нет | сверено 2026-10-08 (T13), ниже |
 | TheSpaceDevs LL 2.2.0 | пуски ракет | нет, жёсткий rate limit | кэшировать |
 | Overpass API (OSM) | стоянки и гейты аэропорта (`aeroway=parking_position/gate`) | нет | T13, ниже; живой ответ `[ПРОВЕРИТЬ]` |
-| VATSpy Data Project | границы FIR, префиксы позывных центров (ROPS, T23) | нет | CC BY-SA 4.0, сверено 2026-10-09, ниже |
+| VATSpy Data Project | границы FIR, префиксы позывных центров (ROPS, T23); FIR и страна аэропортов (T24) | нет | CC BY-SA 4.0, сверено 2026-10-09, ниже |
+| OurAirports | частоты аэропорта вылета (DCL/PDC, T24) | нет | public domain, сверено 2026-10-09, выше |
 | FAA NOTAM API | NOTAM | да | только через бэкенд |
 | AeroDataBox (RapidAPI) | реальное расписание прилётов | да, платно | только через бэкенд, опционально |
 | OpenAI / Anthropic | оживление текста | да | только через бэкенд, см. CLAUDE.md инвариант 8 |

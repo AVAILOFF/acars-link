@@ -866,8 +866,8 @@ describe('ROPS ATC station (T23)', () => {
     };
     await step(0, 2);
     await step(2, 5);
-    expect(s.app.state().atc).toEqual({ station: 'XCAA', connected: null });
-    expect(mock.listening).toEqual(['XCAA']);
+    expect(s.app.state().atc).toEqual({ station: 'XCAA', connected: null, dcl: 'XCTP' });
+    expect(mock.listening).toEqual(['XCAA', 'XCTP']);
 
     mock.deliver({
       from: ofp.callsign,
@@ -876,7 +876,7 @@ describe('ROPS ATC station (T23)', () => {
       packet: '/data2/0//Y/REQUEST LOGON',
     });
     await step(5, 8);
-    expect(s.app.state().atc).toEqual({ station: 'XCAA', connected: 'XCAA' });
+    expect(s.app.state().atc).toEqual({ station: 'XCAA', connected: 'XCAA', dcl: 'XCTP' });
     const sent = mock.sent.filter((m) => m.telex.cpdlc !== undefined);
     expect(sent.map((m) => [m.telex.from, m.telex.cpdlc, m.telex.message.text])).toEqual([
       ['XCAA', { min: 1, mrn: 0, ra: 'NE' }, 'LOGON ACCEPTED'],
@@ -908,7 +908,60 @@ describe('ROPS ATC station (T23)', () => {
     expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
   });
 
-  it('without live data: one note in the feed, no listening', async () => {
+  it('PDC (T24): request telex to X+origin, FSM and CLD by CPDLC, WILCO confirms; replayed', async () => {
+    const http = await ropsHttp();
+    const s = await setup({ http });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', rops: true });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    const mock = s.transports[0]?.t as MockTransport;
+    const socket = s.sockets.last();
+    const step = async (from: number, to: number) => {
+      for (const [i, snap] of flight.snapshots.slice(from, to).entries()) {
+        s.clock.set(Math.max(s.clock.now(), snap.t));
+        socket.frame({ type: 'telemetry', data: snap });
+        s.app.tick(s.clock.now());
+        if (i % 60 === 0) await new Promise((r) => setTimeout(r, 0));
+      }
+    };
+    await step(0, 3);
+    mock.deliver({
+      from: ofp.callsign,
+      to: 'XCTP',
+      type: 'telex',
+      packet: `REQUEST PREDEP CLEARANCE ${ofp.callsign} ${ofp.aircraft.icao} TO RJBB AT RCTP STAND 5 ATIS A`,
+    });
+    await step(3, 200);
+    const dcl = mock.sent.filter((m) => m.telex.from === 'XCTP');
+    expect(dcl.map((m) => m.telex.cpdlc?.ra)).toEqual(['NE', 'WU']);
+    expect(dcl[1]?.telex.message.lines.join(' ')).toMatch(
+      /^CLD \d{4} \d{6} RCTP PDC \d{3} @SJX822@ CLRD TO @RJBB@ OFF @05R@ VIA @MOLK1A@ SQUAWK @[0-7]{4}@ ATIS @A@$/,
+    );
+    mock.deliver({
+      from: ofp.callsign,
+      to: 'XCTP',
+      type: 'cpdlc',
+      packet: `/data2/9/${dcl[1]?.telex.cpdlc?.min}/N/WILCO`,
+    });
+    await step(200, 205);
+    expect(mock.sent.at(-1)?.telex.message.text).toMatch(/CDA RECEIVED @CLEARANCE CONFIRMED$/);
+    fly(s, 205);
+    await s.app.endFlight('DONE');
+    await s.app.stopFlight();
+    const codes = s.app.state().feed.flatMap((e) => (e.kind === 'system' ? [e.code] : []));
+    for (const c of ['atc_dcl_request', 'atc_dcl_clearance', 'atc_dcl_confirmed'] as const) {
+      expect(codes).toContain(c);
+    }
+    const rec = await readRecording(s.recordings);
+    const r = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+  });
+
+  it('without live data: one note in the feed, no FIR station', async () => {
     const s = await setup({ http: await ropsHttp() });
     await s.app.setSimbriefUsername('pilot42');
     await s.app.updateSettings({ transport: 'offline', rops: true, liveData: false });
@@ -917,8 +970,9 @@ describe('ROPS ATC station (T23)', () => {
     await s.app.startFlight();
     fly(s, 0, 10);
     const mock = s.transports[0]?.t as MockTransport;
-    expect(mock.listening).toEqual([]);
-    expect(s.app.state().atc).toEqual({ station: null, connected: null });
+    // Without FIR data only the DCL station of the origin listens.
+    expect(mock.listening).toEqual(['XCTP']);
+    expect(s.app.state().atc).toEqual({ station: null, connected: null, dcl: 'XCTP' });
     expect(s.app.state().feed.some((e) => e.kind === 'system' && e.code === 'atc_needs_data')).toBe(
       true,
     );

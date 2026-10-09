@@ -304,12 +304,13 @@ describe('ROPS station', () => {
       'ATC_LOGON',
       'ATC_LOGOFF',
     ]);
-    // Polled: the FIR's station; during the handover also the old one; nothing on block.
-    expect(r.listen[0]).toEqual(['XCAA']);
+    // Polled: the FIR's station (and the DCL station on the ground, T24); during the handover
+    // also the old one; nothing on block.
+    expect(r.listen[0]).toEqual(['XCAA', 'XCTP']);
     expect(r.listen[crossing]).toEqual(['XCAA', 'XJJJ']);
     expect(r.listen[crossing + 5]).toEqual(['XJJJ']);
     expect(r.listen.at(-1)).toEqual([]);
-    expect(r.core.atc).toEqual({ station: null, connected: null });
+    expect(r.core.atc).toEqual({ station: null, connected: null, dcl: null });
   });
 
   it('ignores unpolled stations, refuses a logon to the old station, "not supported" for the rest', () => {
@@ -411,8 +412,9 @@ describe('ROPS station', () => {
 
   it('does nothing without FIR data and before the origin is in a known FIR', () => {
     const r = fly(new Map(), { firs: [FUKUOKA] });
-    // The origin is outside every known FIR: no station until the aircraft enters RJJJ.
-    expect(r.listen[0]).toEqual([]);
+    // The origin is outside every known FIR: no FIR station until the aircraft enters RJJJ
+    // (the DCL station of the origin listens on the ground anyway).
+    expect(r.listen[0]).toEqual(['XCTP']);
     expect(r.listen[crossing]).toEqual(['XJJJ']);
     expect(r.out).toEqual([]);
   });

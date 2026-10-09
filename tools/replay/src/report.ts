@@ -103,6 +103,15 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
           return ['ATC', `${ev.fir}: live ${ev.callsign} ${ev.frequency}, station steps aside`];
         case 'ATC_UNSUPPORTED':
           return ['ATC', `${ev.station}: not supported "${ev.text}"`];
+        case 'ATC_DCL':
+          return ['DCL', `${ev.station}: ${ev.what}`];
+        case 'ATC_DCL_CLEARANCE':
+          return ['DCL', `${ev.station}: ${ev.format} squawk ${ev.squawk} (${ev.squawkSource})`];
+        case 'ATC_DCL_REJECTED':
+          return [
+            'DCL',
+            `${ev.station}: rejected (${ev.reason}${ev.detail === null ? '' : ` ${ev.detail}`})`,
+          ];
       }
     }
   }

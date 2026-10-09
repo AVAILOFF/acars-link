@@ -1,4 +1,5 @@
 import {
+  type AirportInfo,
   type CenterStation,
   distanceNm,
   type FirArea,
@@ -47,6 +48,8 @@ export interface VatspyData {
   readonly prefixes: Readonly<Record<string, readonly string[]>>;
   /** Airport ICAO → its FIR (`[Airports]`, pseudo entries left out). */
   readonly airports: Readonly<Record<string, string>>;
+  /** ICAO prefix → country name (`[Countries]`, T24: domestic or international). */
+  readonly countries: Readonly<Record<string, string>>;
 }
 
 /** Coordinates are kept to 5 decimals (~1 m): smaller cache and recordings. */
@@ -62,7 +65,7 @@ export async function fetchVatspy(ctx: FetchContext): Promise<VatspyData> {
 
 export function buildVatspy(geojson: unknown, dat: string): VatspyData {
   const areas = parseBoundaries(geojson);
-  const { names, prefixes, airports } = parseVatspyDat(dat);
+  const { names, prefixes, airports, countries } = parseVatspyDat(dat);
   const withAirports = new Set(Object.values(airports));
   const firs = [...areas.entries()]
     .sort(([a], [b]) => (a < b ? -1 : 1))
@@ -74,7 +77,7 @@ export function buildVatspy(geojson: unknown, dat: string): VatspyData {
       polygons: a.polygons,
     }));
   if (firs.length === 0) throw new DataSourceError('VATSpy: no FIR boundaries');
-  return { firs, prefixes, airports };
+  return { firs, prefixes, airports, countries };
 }
 
 type Polygons = FirArea['polygons'];
@@ -133,9 +136,11 @@ export function parseVatspyDat(text: string): {
   names: Record<string, string>;
   prefixes: Record<string, string[]>;
   airports: Record<string, string>;
+  countries: Record<string, string>;
 } {
   const names: Record<string, string> = {};
   const airports: Record<string, string> = {};
+  const countries: Record<string, string> = {};
   const exact: Record<string, string> = {};
   const prefixes: Record<string, string[]> = {};
   const add = (prefix: string, firs: readonly string[]) => {
@@ -153,7 +158,11 @@ export function parseVatspyDat(text: string): {
       continue;
     }
     const cols = line.split('|');
-    if (section === 'Airports' && cols.length >= 7) {
+    if (section === 'Countries' && cols.length >= 2) {
+      const name = (cols[0] as string).trim();
+      const prefix = (cols[1] as string).trim().toUpperCase();
+      if (name !== '' && /^[A-Z]{1,2}$/.test(prefix)) countries[prefix] ??= name;
+    } else if (section === 'Airports' && cols.length >= 7) {
       const icao = (cols[0] as string).trim().toUpperCase();
       const fir = (cols[5] as string).trim().toUpperCase();
       if ((cols[6] as string).trim() === '0' && ICAO_RE.test(icao) && ICAO_RE.test(fir)) {
@@ -185,7 +194,7 @@ export function parseVatspyDat(text: string): {
       if (id !== '' && firs.length > 0) add(id.replaceAll('-', '_'), firs);
     }
   }
-  return { names: { ...names, ...exact }, prefixes, airports };
+  return { names: { ...names, ...exact }, prefixes, airports, countries };
 }
 
 /**
@@ -213,6 +222,14 @@ export function routeFirs(data: VatspyData, ofp: Ofp): FirArea[] {
     for (let k = 1; k < n; k++) visit(interpolate(a, b, k / n));
   }
   return out;
+}
+
+/** FIR and country of an airport (T24): `[Airports]`, `[Countries]` (2-letter prefix, then 1). */
+export function airportInfo(data: VatspyData, icao: string): AirportInfo {
+  return {
+    fir: data.airports[icao] ?? null,
+    country: data.countries[icao.slice(0, 2)] ?? data.countries[icao.slice(0, 1)] ?? null,
+  };
 }
 
 /** A VATSIM centre (CTR) or FSS of the feed. */

@@ -140,6 +140,8 @@ export interface AtcView {
   readonly station: string | null;
   /** Station the aircraft is logged on to. */
   readonly connected: string | null;
+  /** Departure clearance station (T24) while it is open (on the ground), else null. */
+  readonly dcl: string | null;
 }
 
 export type Delivery = 'queued' | 'sent' | 'retry' | 'failed' | 'dropped';
@@ -174,7 +176,12 @@ export type SystemCode =
   | 'atc_logoff'
   | 'atc_live'
   | 'atc_unsupported'
-  | 'atc_needs_data';
+  | 'atc_needs_data'
+  | 'atc_dcl_request'
+  | 'atc_dcl_clearance'
+  | 'atc_dcl_confirmed'
+  | 'atc_dcl_unable'
+  | 'atc_dcl_rejected';
 
 export type FeedEntry =
   | {

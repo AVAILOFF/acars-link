@@ -79,6 +79,20 @@ export interface CenterStation {
   readonly firs: readonly string[];
 }
 
+/** FIR and country of an airport of the flight (T24; VATSpy `[Airports]`, `[Countries]`). */
+export interface AirportInfo {
+  readonly fir: string | null;
+  readonly country: string | null;
+}
+
+/** A frequency of an airport (T24; OurAirports `airport-frequencies.csv`, public domain). */
+export interface AirportFrequency {
+  /** OurAirports type: `DEL`, `CLD`, `GND`, `TWR`, `APP`, `DEP`, `ATIS` … */
+  readonly type: string;
+  /** MHz as given, e.g. `121.8`. */
+  readonly mhz: string;
+}
+
 /**
  * One data update, passed with a tick. Each field replaces what the core knew of it:
  * `wx` per airport (null = fetched, no report), `atc` per airport of the flight, `events`
@@ -95,6 +109,10 @@ export interface ExtDataUpdate {
   readonly firs?: readonly FirArea[];
   /** Online VATSIM centres (T23); replaces the list. */
   readonly centers?: readonly CenterStation[];
+  /** FIR and country of the origin and destination (T24). */
+  readonly airports?: Readonly<Record<string, AirportInfo>>;
+  /** Frequencies of the departure airport (T24). */
+  readonly freqs?: { readonly icao: string; readonly list: readonly AirportFrequency[] };
 }
 
 /** A natural event placed against the planned route (once, when it arrives). */
@@ -117,6 +135,9 @@ export interface ExtState {
   readonly firs?: readonly FirArea[] | null;
   readonly centers?: readonly CenterStation[] | null;
   readonly centersT?: number | null;
+  /** T24; absent in states saved before T24. */
+  readonly airports?: Readonly<Record<string, AirportInfo>> | null;
+  readonly freqs?: { readonly icao: string; readonly list: readonly AirportFrequency[] } | null;
 }
 
 export const EMPTY_EXT: ExtState = {
@@ -154,7 +175,7 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
     throw new ExtDataError(`data update: ${why}`);
   };
   if (!isObj(x) || !isNum(x['t'])) return bad('t');
-  const { wx, atc, events, stands, firs, centers } = x;
+  const { wx, atc, events, stands, firs, centers, airports, freqs } = x;
   if (wx !== undefined) {
     if (!isObj(wx)) bad('wx');
     for (const [icao, r] of Object.entries(wx as object)) {
@@ -235,6 +256,25 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
         bad('centers item');
     }
   }
+  if (airports !== undefined) {
+    if (!isObj(airports)) bad('airports');
+    for (const [icao, a] of Object.entries(airports as object)) {
+      if (!ICAO.test(icao) || !isObj(a)) bad(`airports.${icao}`);
+      const r = a as Record<string, unknown>;
+      if (!(r['fir'] === null || FIR.test(String(r['fir']))) || !strOrNull(r['country'])) {
+        bad(`airports.${icao}`);
+      }
+    }
+  }
+  if (freqs !== undefined) {
+    if (!isObj(freqs) || typeof freqs['icao'] !== 'string' || !Array.isArray(freqs['list']))
+      bad('freqs');
+    for (const f of (freqs as { list: unknown[] }).list) {
+      if (!isObj(f) || typeof f['type'] !== 'string' || typeof f['mhz'] !== 'string') {
+        bad('freqs item');
+      }
+    }
+  }
   return x as unknown as ExtDataUpdate;
 }
 
@@ -283,6 +323,9 @@ export function applyExtData(
   }
   if (u.firs !== undefined) next = { ...next, firs: [...u.firs] };
   if (u.centers !== undefined) next = { ...next, centers: [...u.centers], centersT: u.t };
+  if (u.airports !== undefined) next = { ...next, airports: { ...u.airports } };
+  if (u.freqs !== undefined)
+    next = { ...next, freqs: { icao: u.freqs.icao, list: [...u.freqs.list] } };
   if (
     u.stands !== undefined &&
     u.stands.icao === ofp.destination.icao &&

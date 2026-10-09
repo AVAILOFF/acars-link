@@ -3,11 +3,14 @@ import { join } from 'node:path';
 import { FirMap, type Ofp, parseSimbriefOfp } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import {
+  airportInfo,
   buildVatspy,
   centersFor,
   DataSourceError,
   ExternalDataService,
   type HttpClient,
+  OURAIRPORTS_FREQS_URL,
+  parseAirportFrequencies,
   parseVatsimCenters,
   routeFirs,
   VATSPY_BOUNDARIES_URL,
@@ -161,5 +164,62 @@ describe('ExternalDataService with the ROPS station', () => {
     expect(update?.firs).toBeUndefined();
     expect(update?.centers).toBeUndefined();
     expect(calls.some((u) => u.includes('vatspy'))).toBe(false);
+  });
+});
+
+describe('T24: airport facts and frequencies', () => {
+  it('airport FIR and country from VATSpy [Airports] / [Countries]', () => {
+    expect(airportInfo(data, 'EDDF')).toEqual({ fir: 'EDGG', country: 'Germany' });
+    expect(airportInfo(data, 'EGLL')).toEqual({ fir: 'EGTT', country: 'United Kingdom' });
+    expect(airportInfo(data, 'LFPG')).toEqual({ fir: null, country: null });
+  });
+
+  it('OurAirports frequencies of one airport (trimmed real file, air band only)', () => {
+    const csv = fixture('ourairports-frequencies.csv');
+    expect(parseAirportFrequencies(csv, 'KMSP')).toEqual([
+      { type: 'APP', mhz: '118.72' },
+      { type: 'ATIS', mhz: '120.8' },
+      { type: 'CLD', mhz: '133.2' },
+      { type: 'DEP', mhz: '132.975' },
+      { type: 'GND', mhz: '121.8' },
+      { type: 'RDO', mhz: '122.3' },
+      { type: 'TWR', mhz: '123.675' },
+      { type: 'UNIC', mhz: '122.95' },
+    ]);
+    expect(parseAirportFrequencies(csv, 'EFHK').filter((f) => f.type === 'GND')).toEqual([
+      { type: 'GND', mhz: '121.8' },
+    ]);
+    expect(parseAirportFrequencies(csv, 'ZZZZ')).toEqual([]);
+    expect(() => parseAirportFrequencies('a,b\n1,2', 'KMSP')).toThrow(DataSourceError);
+  });
+
+  it('the service passes origin/destination facts and the origin frequencies with ROPS', async () => {
+    const http: HttpClient = {
+      async request(req) {
+        if (req.url === VATSPY_BOUNDARIES_URL) {
+          return { status: 200, body: fixture('vatspy-boundaries.json') };
+        }
+        if (req.url === VATSPY_DAT_URL) return { status: 200, body: fixture('vatspy.dat') };
+        if (req.url === OURAIRPORTS_FREQS_URL) {
+          return { status: 200, body: fixture('ourairports-frequencies.csv') };
+        }
+        return { status: 404, body: '' };
+      },
+    };
+    const svc = new ExternalDataService({ http, userAgent: 't', sources: ['firs', 'freqs'] });
+    const T0 = Date.UTC(2026, 9, 9, 8, 0);
+    svc.startFlight(eddfEddm, T0, { firs: true });
+    svc.tick(T0, 'PREFLIGHT');
+    await svc.settle();
+    const { update } = svc.take(T0);
+    expect(update?.airports).toEqual({
+      EDDF: { fir: 'EDGG', country: 'Germany' },
+      EDDM: { fir: 'EDMM', country: 'Germany' },
+    });
+    expect(update?.freqs?.icao).toBe('EDDF');
+    expect(update?.freqs?.list.find((f) => f.type === 'GND')).toEqual({
+      type: 'GND',
+      mhz: '121.805',
+    });
   });
 });

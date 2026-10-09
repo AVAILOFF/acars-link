@@ -1,4 +1,6 @@
 import {
+  type AirportFrequency,
+  type AirportInfo,
   type AtcStation,
   type CenterStation,
   checkExtDataUpdate,
@@ -12,9 +14,11 @@ import {
 } from '@acars/core';
 import { DataSourceError, type FetchContext, type HttpClient, ICAO_RE } from './common.js';
 import { fetchEonetEvents } from './eonet.js';
+import { fetchAirportFrequencies } from './ourairports.js';
 import { fetchStands } from './stands.js';
 import { fetchVatsim, stationsFor, type VatsimStation } from './vatsim.js';
 import {
+  airportInfo,
   centersFor,
   fetchVatspy,
   routeFirs,
@@ -35,11 +39,21 @@ import { fetchWx } from './wx.js';
  * from the climb to the approach; EONET at start and every hour; the destination's stands
  * once (cached 30 days). With the ROPS station (T23, `startFlight(…, { firs: true })`): the
  * VATSpy FIR boundaries once (cached 7 days) — the FIRs along the route go to the core, and
- * with every VATSIM fetch the online centres covering them.
+ * with every VATSIM fetch the online centres covering them; FIR and country of the origin and
+ * destination and the origin's frequencies from OurAirports (T24, cached 30 days).
  */
 
-export type DataSourceKind = 'wx' | 'vatsim' | 'eonet' | 'stands' | 'firs';
-export const DATA_SOURCES: readonly DataSourceKind[] = ['wx', 'vatsim', 'eonet', 'stands', 'firs'];
+export type DataSourceKind = 'wx' | 'vatsim' | 'eonet' | 'stands' | 'firs' | 'freqs';
+export const DATA_SOURCES: readonly DataSourceKind[] = [
+  'wx',
+  'vatsim',
+  'eonet',
+  'stands',
+  'firs',
+  'freqs',
+];
+/** Sources of the ROPS station only (`startFlight(…, { firs: true })`). */
+const ROPS_SOURCES: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs']);
 
 export interface CacheEntry {
   /** When the value was fetched, epoch ms. */
@@ -89,6 +103,7 @@ export const DATA_POLICY: Readonly<Record<DataSourceKind, Policy>> = {
   eonet: { refreshMs: 60 * MIN, cacheMs: 30 * MIN, retryMs: 15 * MIN, maxTries: null },
   stands: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   firs: { refreshMs: null, cacheMs: 7 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
+  freqs: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
 };
 
 /** VATSIM refreshes only here (the first fetch at start goes in any phase). */
@@ -142,6 +157,8 @@ export class ExternalDataService {
     stands: { icao: string; list: ParkingStand[] } | null;
     firs: FirArea[] | null;
     centers: CenterStation[] | null;
+    airports: Record<string, AirportInfo> | null;
+    freqs: { icao: string; list: AirportFrequency[] } | null;
   } = empty();
   /** VATSpy data of the flight (T23) and the ids of the route's FIRs. */
   private vatspy: { data: VatspyData; route: ReadonlySet<string> } | null = null;
@@ -171,7 +188,7 @@ export class ExternalDataService {
     const airports = [ofp.origin.icao, ofp.destination.icao, ...ofp.alternates.map((a) => a.icao)];
     this.flight = { ofp, airports: [...new Set(airports)].filter((i) => ICAO_RE.test(i)), firs };
     this.src = new Map(
-      DATA_SOURCES.filter((k) => this.enabled.has(k) && (k !== 'firs' || firs)).map((k) => [
+      DATA_SOURCES.filter((k) => this.enabled.has(k) && (!ROPS_SOURCES.has(k) || firs)).map((k) => [
         k,
         { inFlight: false, nextAt: now, fails: 0, fetched: false, failing: false },
       ]),
@@ -210,7 +227,7 @@ export class ExternalDataService {
       if (s.inFlight || (now < s.nextAt && !asked)) continue;
       const p = DATA_POLICY[kind];
       if (p.maxTries !== null && s.fails >= p.maxTries) continue;
-      if ((kind === 'stands' || kind === 'firs') && s.fetched) continue;
+      if ((kind === 'stands' || ROPS_SOURCES.has(kind)) && s.fetched) continue;
       if (kind === 'vatsim' && s.fetched && (phase === null || !VATSIM_PHASES.has(phase))) {
         s.nextAt = now + (p.refreshMs ?? 0);
         continue;
@@ -231,7 +248,9 @@ export class ExternalDataService {
       p.events !== null ||
       p.stands !== null ||
       p.firs !== null ||
-      p.centers !== null;
+      p.centers !== null ||
+      p.airports !== null ||
+      p.freqs !== null;
     if (!has) return { update: null, notes };
     return {
       update: {
@@ -242,6 +261,8 @@ export class ExternalDataService {
         ...(p.stands === null ? {} : { stands: p.stands }),
         ...(p.firs === null ? {} : { firs: p.firs }),
         ...(p.centers === null ? {} : { centers: p.centers }),
+        ...(p.airports === null ? {} : { airports: p.airports }),
+        ...(p.freqs === null ? {} : { freqs: p.freqs }),
       },
       notes,
     };
@@ -347,10 +368,30 @@ export class ExternalDataService {
         }
         const route = routeFirs(data, flight.ofp);
         const vatspy = { data, route: new Set(route.map((f) => f.id)) };
+        const o = flight.ofp;
+        const airports = {
+          [o.origin.icao]: airportInfo(data, o.origin.icao),
+          [o.destination.icao]: airportInfo(data, o.destination.icao),
+        };
         return () => {
           this.vatspy = vatspy;
           this.pending.firs = route;
+          this.pending.airports = airports;
           this.mapCenters();
+        };
+      }
+      case 'freqs': {
+        const icao = flight.ofp.origin.icao;
+        let list = (await this.cached(`freqs:${icao}`, now, kind, (v) =>
+          checkExtDataUpdate({ t: 0, freqs: { icao, list: v } }),
+        )) as AirportFrequency[] | undefined;
+        if (list === undefined) {
+          list = await fetchAirportFrequencies(this.ctx, icao);
+          await this.store(`freqs:${icao}`, now, list);
+        }
+        const freqs = { icao, list };
+        return () => {
+          this.pending.freqs = freqs;
         };
       }
       case 'eonet': {
@@ -418,7 +459,16 @@ export class ExternalDataService {
 }
 
 function empty() {
-  return { wx: {}, atc: null, events: null, stands: null, firs: null, centers: null };
+  return {
+    wx: {},
+    atc: null,
+    events: null,
+    stands: null,
+    firs: null,
+    centers: null,
+    airports: null,
+    freqs: null,
+  };
 }
 
 function checkVatsim(v: unknown): void {
@@ -439,10 +489,11 @@ function checkVatsim(v: unknown): void {
 
 function checkVatspy(v: unknown): void {
   if (typeof v !== 'object' || v === null) throw new DataSourceError('bad cached VATSpy data');
-  const { firs, prefixes, airports } = v as {
+  const { firs, prefixes, airports, countries } = v as {
     firs?: unknown;
     prefixes?: unknown;
     airports?: unknown;
+    countries?: unknown;
   };
   checkExtDataUpdate({ t: 0, firs });
   const ok =
@@ -453,7 +504,10 @@ function checkVatspy(v: unknown): void {
     ) &&
     typeof airports === 'object' &&
     airports !== null &&
-    Object.values(airports).every((f) => typeof f === 'string');
+    Object.values(airports).every((f) => typeof f === 'string') &&
+    typeof countries === 'object' &&
+    countries !== null &&
+    Object.values(countries).every((c) => typeof c === 'string');
   if (!ok) throw new DataSourceError('bad cached VATSpy data');
 }
 

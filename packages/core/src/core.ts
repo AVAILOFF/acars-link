@@ -177,10 +177,14 @@ export class AcarsCore {
   }
 
   /** The ROPS station (T23): where to log on, where the aircraft is logged on; null = off. */
-  get atc(): { readonly station: string | null; readonly connected: string | null } | null {
+  get atc(): {
+    readonly station: string | null;
+    readonly connected: string | null;
+    readonly dcl: string | null;
+  } | null {
     return this.rops === null
       ? null
-      : { station: this.rops.station, connected: this.rops.connected };
+      : { station: this.rops.station, connected: this.rops.connected, dcl: this.rops.dclStation };
   }
 
   /** External data the core holds (T13). */
@@ -288,7 +292,14 @@ export class AcarsCore {
 }
 
 function ropsOf(o: CoreOptions, state: RopsState | undefined): RopsStation | null {
-  return o.rops?.enabled === true ? new RopsStation(o.ofp, o.rops, state) : null;
+  if (o.rops?.enabled !== true) return null;
+  const seed = o.seed ?? `${o.ofp.callsign}/${o.ofp.source.requestId}`;
+  return new RopsStation(
+    o.ofp,
+    o.rops,
+    { seed, ...(o.profile === undefined ? {} : { profile: o.profile }) },
+    state,
+  );
 }
 
 function engineOptions(o: CoreOptions) {
