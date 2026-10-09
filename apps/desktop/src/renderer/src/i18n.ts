@@ -100,6 +100,7 @@ const en = {
     'ROPS: live VATSIM ATC in {fir} — {callsign} {frequency}; the station steps aside',
   'sys.atc_unsupported': 'ROPS: {station} does not handle "{text}" yet',
   'sys.atc_request': 'ROPS: {station} — "{request}" → {reply}',
+  'sys.atc_auto': 'ROPS: {station} — {text}',
   'sys.atc_needs_data': 'ROPS needs live data (FIR boundaries): turn on "Live data" in Settings',
   'sys.atc_dcl_request': 'PDC: request received by {station}',
   'sys.atc_dcl_clearance': 'PDC: clearance sent by {station}, squawk {squawk} ({source})',
@@ -311,6 +312,7 @@ const ru: Record<MessageKey, string> = {
   'sys.atc_live': 'ROPS: в {fir} живой диспетчер VATSIM — {callsign} {frequency}; станция уступает',
   'sys.atc_unsupported': 'ROPS: {station} пока не обрабатывает «{text}»',
   'sys.atc_request': 'ROPS: {station} — «{request}» → {reply}',
+  'sys.atc_auto': 'ROPS: {station} — {text}',
   'sys.atc_needs_data':
     'Для ROPS нужны живые данные (границы FIR): включите «Живые данные» в настройках',
   'sys.atc_dcl_request': 'PDC: запрос принят станцией {station}',

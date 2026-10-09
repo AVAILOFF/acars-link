@@ -177,6 +177,7 @@ export type SystemCode =
   | 'atc_live'
   | 'atc_unsupported'
   | 'atc_request'
+  | 'atc_auto'
   | 'atc_needs_data'
   | 'atc_dcl_request'
   | 'atc_dcl_clearance'

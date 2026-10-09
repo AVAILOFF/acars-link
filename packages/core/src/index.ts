@@ -6,6 +6,7 @@
  */
 export const CORE_PACKAGE = '@acars/core';
 
+export * from './atc/auto.js';
 export * from './atc/cpdlc.js';
 export * from './atc/dcl.js';
 export * from './atc/fir.js';

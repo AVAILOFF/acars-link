@@ -289,7 +289,10 @@ describe('ROPS station', () => {
       'XCAA /data2/3//NE/HANDOVER @XJJJ',
       'XJJJ /data2/1/2/NE/LOGON ACCEPTED',
       'XJJJ /data2/2//NE/CURRENT ATC UNIT@_@XJJJ@_@FUKUOKA CTL',
-      'XJJJ /data2/3//NE/LOGOFF',
+      // T26: a random Direct To (seed "atc") and the descent clearance before TOD.
+      'XJJJ /data2/3//WU/PROCEED DIRECT TO @UPGEB@',
+      'XJJJ /data2/4//WU/DESCEND TO @FL250@',
+      'XJJJ /data2/5//NE/LOGOFF',
     ]);
     expect(r.out.every((m) => m.kind === 'cpdlc' && m.scenarioId === ROPS_ID && m.toPilot)).toBe(
       true,
@@ -302,6 +305,8 @@ describe('ROPS station', () => {
       'ATC_HANDOVER',
       'ATC_LOGOFF',
       'ATC_LOGON',
+      'ATC_AUTO',
+      'ATC_AUTO',
       'ATC_LOGOFF',
     ]);
     // Polled: the FIR's station (and the DCL station on the ground, T24); during the handover

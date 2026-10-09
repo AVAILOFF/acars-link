@@ -1260,6 +1260,7 @@ exports[`parseSimbriefOfp — real OFP planned in kg (A35K RCTP-RJBB) > is stabl
     "requestId": "0",
   },
   "star": "NIXOVB",
+  "stepClimbs": [],
   "times": {
     "estBlockSec": 9443,
     "estInMs": 1791454943000,

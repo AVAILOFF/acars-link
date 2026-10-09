@@ -8,9 +8,18 @@ import { createRng } from '../random/rng.js';
 import type { OutboundMessage } from '../scenario/engine.js';
 import type { PilotMessage } from '../scenario/pilot.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
+import {
+  cruiseSpan,
+  DESCENT_BEFORE_TOD_NM,
+  descentLevel,
+  directCandidate,
+  directTriggers,
+  stepStatus,
+} from './auto.js';
 import { type CpdlcHeader, type CpdlcResponse, formatCpdlc, parseCpdlc } from './cpdlc.js';
 import { type DclContext, type DclEvent, DclService, type DclState } from './dcl.js';
 import { atcUnitName, FirMap, ropsStation } from './fir.js';
+import { levelText } from './levels.js';
 import { type AtcRequest, decide, parseRequest, type RefusalReason } from './requests.js';
 import { routePosition } from './route.js';
 
@@ -49,6 +58,8 @@ export const REPLY_DELAY_S = [20, 60] as const;
 export const TRAFFIC_REFUSAL = 0.1;
 /** The same request within this time after a traffic refusal is refused again. */
 export const TRAFFIC_HOLD_MS = 5 * 60_000;
+/** A random Direct To point passed by more than this is dropped (T26). */
+export const DIRECT_STALE_NM = 30;
 
 export interface RopsOptions {
   readonly enabled: boolean;
@@ -104,6 +115,14 @@ export type AtcEvent =
       readonly reply: string;
       readonly why: RefusalReason | null;
     }
+  /** A clearance the station sent on its own (T26). */
+  | {
+      readonly type: 'ATC_AUTO';
+      readonly t: number;
+      readonly station: string;
+      readonly kind: 'direct' | 'step' | 'descent';
+      readonly text: string;
+    }
   /** A CPDLC message the station does not handle (answered "not supported"). */
   | {
       readonly type: 'ATC_UNSUPPORTED';
@@ -132,6 +151,22 @@ export interface RopsState {
   readonly dcl?: DclState;
   /** Pilot requests (T25); absent in states saved before it. */
   readonly req?: RequestState;
+  /** Clearances sent on the station's own (T26); absent in states saved before it. */
+  readonly auto?: AutoState;
+}
+
+export interface AutoState {
+  /** Route distances where random Direct To are still to be tried. */
+  readonly directs: readonly number[];
+  /** Random Direct To tried so far (seeds each one's pick). */
+  readonly tried: number;
+  /** Step climb fixes handled (sent or skipped). */
+  readonly steps: readonly string[];
+  readonly descent: boolean;
+  /** Levels the pilot asked for. */
+  readonly asked: readonly number[];
+  /** Last level cleared (pilot request or step climb). */
+  readonly cleared: number | null;
 }
 
 /** A reply waiting for its delay (T25). */
@@ -205,6 +240,14 @@ export class RopsStation {
       lastTraffic: boolean;
       traffic: { key: string; t: number } | null;
     };
+    auto: {
+      directs: number[];
+      tried: number;
+      steps: string[];
+      descent: boolean;
+      asked: number[];
+      cleared: number | null;
+    };
   };
   private readonly dcl: DclService;
   private map: FirMap | null = null;
@@ -235,6 +278,14 @@ export class RopsStation {
         pending: [...(copy.req?.pending ?? [])],
         lastTraffic: copy.req?.lastTraffic ?? false,
         traffic: copy.req?.traffic ?? null,
+      },
+      auto: {
+        directs: [...(copy.auto?.directs ?? directTriggers(ofp, deps.seed))],
+        tried: copy.auto?.tried ?? 0,
+        steps: [...(copy.auto?.steps ?? [])],
+        descent: copy.auto?.descent ?? false,
+        asked: [...(copy.auto?.asked ?? [])],
+        cleared: copy.auto?.cleared ?? null,
       },
     };
     this.dcl = new DclService(ofp, deps.seed, deps.profile ?? DEFAULT_PROFILE, copy.dcl);
@@ -391,6 +442,9 @@ export class RopsStation {
       }
     }
 
+    // T26: clearances on the station's own.
+    this.autoClearances(input, map, send, events);
+
     // 4. On block: the service ends.
     if (ENDED.has(input.phase)) {
       const connected = this.st.connected;
@@ -513,6 +567,10 @@ export class RopsStation {
         }
       }
       r.lastTraffic = traffic;
+      // T26: a step climb the pilot asked for is not sent again; a cleared level counts.
+      const a = this.st.auto;
+      if (!a.asked.includes(req.levelFt)) a.asked.push(req.levelFt);
+      if (reply.approved) a.cleared = req.levelFt;
     }
     r.pending.push({
       due,
@@ -524,6 +582,83 @@ export class RopsStation {
       ra: reply.ra,
       why: reply.why,
     });
+  }
+
+  /**
+   * Random Direct To, step climbs and the descent clearance (T26, `auto.ts`): only to a
+   * logged-on aircraft with telemetry, not while a live controller has the FIR.
+   */
+  private autoClearances(
+    input: RopsTickInput,
+    map: FirMap | null,
+    send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => number,
+    events: AtcEvent[],
+  ): void {
+    const station = this.st.connected;
+    const tm = input.telemetry;
+    const phase = input.phase;
+    if (station === null || tm === null || (phase !== 'CRUISE' && phase !== 'DESCENT')) return;
+    const a = this.st.auto;
+    const route = routePosition(this.ofp, tm);
+    const now = input.now;
+    const uplink = (kind: 'direct' | 'step' | 'descent', text: string) => {
+      send(station, 'WU', null, text);
+      events.push({ type: 'ATC_AUTO', t: now, station, kind, text });
+    };
+    const span = cruiseSpan(this.ofp);
+
+    // Descent: 20 NM before TOD, once, unless a lower level is already cleared.
+    if (!a.descent && span !== null && span.tod - route.alongNm <= DESCENT_BEFORE_TOD_NM) {
+      a.descent = true;
+      const level = descentLevel(this.ofp, route);
+      const below = a.cleared !== null && a.cleared < tm.altFt - 500;
+      if (level !== null && !below && level.levelFt < tm.altFt - 1000) {
+        uplink('descent', `DESCEND TO @${level.text}@`);
+        a.cleared = level.levelFt;
+      }
+      a.directs = [];
+      return;
+    }
+    if (phase !== 'CRUISE') return;
+
+    // Step climbs of the OFP.
+    for (const step of this.ofp.stepClimbs) {
+      if (a.steps.includes(step.ident)) continue;
+      const status = stepStatus(this.ofp, step, route, tm.gsKt, this.st.fir);
+      if (status === 'wait') continue;
+      a.steps.push(step.ident);
+      const done =
+        a.asked.includes(step.levelFt) ||
+        (a.cleared !== null && a.cleared >= step.levelFt) ||
+        tm.altFt >= step.levelFt - 200;
+      if (status === 'due' && !done) {
+        uplink('step', `CLIMB TO @${levelText(step.levelFt, true)}@`);
+        a.cleared = step.levelFt;
+      }
+    }
+
+    // Random Direct To at the planned route distances; points long passed (a flight
+    // started mid-way) are dropped, not sent one after another.
+    while (a.directs.length > 0 && route.alongNm - (a.directs[0] as number) > DIRECT_STALE_NM) {
+      a.directs.shift();
+    }
+    while (a.directs.length > 0 && route.alongNm >= (a.directs[0] as number)) {
+      a.directs.shift();
+      const rng = createRng(`${this.seed}/#direct/${a.tried}`);
+      a.tried += 1;
+      const fix = directCandidate(
+        this.ofp,
+        tm,
+        route,
+        this.st.fir,
+        (p) => map?.locate(p)?.id ?? null,
+        rng,
+      );
+      if (fix !== null) {
+        uplink('direct', `PROCEED DIRECT TO @${fix.ident}@`);
+        break;
+      }
+    }
   }
 
   /** Sends the replies whose delay is over, oldest first. */

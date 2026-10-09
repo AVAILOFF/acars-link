@@ -371,6 +371,12 @@ export class FlightSession {
             reply: e.reply.replaceAll('@_@', ' ').replaceAll('@', ''),
           });
           break;
+        case 'ATC_AUTO':
+          this.feed.system(e.t, 'atc_auto', {
+            station: e.station,
+            text: e.text.replaceAll('@', ''),
+          });
+          break;
         case 'ATC_UNSUPPORTED':
           this.feed.system(e.t, 'atc_unsupported', { station: e.station, text: e.text });
           break;

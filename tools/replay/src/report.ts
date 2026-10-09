@@ -106,6 +106,8 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
             'ATC',
             `${ev.station}: "${ev.request}" -> ${ev.reply}${ev.why === null ? '' : ` (${ev.why})`}`,
           ];
+        case 'ATC_AUTO':
+          return ['ATC', `${ev.station}: ${ev.kind} ${ev.text}`];
         case 'ATC_UNSUPPORTED':
           return ['ATC', `${ev.station}: not supported "${ev.text}"`];
         case 'ATC_DCL':

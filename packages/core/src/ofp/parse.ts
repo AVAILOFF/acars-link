@@ -7,6 +7,7 @@ import type {
   OfpFuel,
   OfpMassUnit,
   OfpStage,
+  OfpStepClimb,
   OfpTimes,
   OfpWeights,
 } from './types.js';
@@ -258,6 +259,20 @@ function parseNavlog(root: Reader): OfpFix[] {
   });
 }
 
+/**
+ * `stepclimb_string` pairs `IDENT/FFFF` (flight level in hundreds of feet, 4 digits). The
+ * first pair is the origin with the initial level; tokens of another shape are skipped.
+ */
+function stepClimbs(s: string | null): OfpStepClimb[] {
+  if (s === null) return [];
+  const steps: OfpStepClimb[] = [];
+  for (const token of s.toUpperCase().split(/\s+/)) {
+    const m = /^([A-Z0-9]{2,7})\/(\d{4})$/.exec(token);
+    if (m !== null) steps.push({ ident: m[1] as string, levelFt: Number(m[2]) * 100 });
+  }
+  return steps.slice(1);
+}
+
 /** Item 10a of `equip` (`H-SDE2E3…Y/LB1D1` → `SDE2E3…Y`). */
 function equipment(s: string | null): string | null {
   if (s === null) return null;
@@ -391,6 +406,7 @@ export function parseSimbriefOfp(json: unknown): Ofp {
     flightNumber: general.optStr('flight_number'),
     costIndex: general.optInt('costindex'),
     initialAltitudeFt: general.int('initial_altitude'),
+    stepClimbs: stepClimbs(general.optStr('stepclimb_string')),
     route: general.optStr('route') ?? '',
     sid: general.optStr('sid_ident'),
     star: general.optStr('star_ident'),
