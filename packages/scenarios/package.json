@@ -15,7 +15,8 @@
     "base",
     "commands",
     "external",
-    "irregular"
+    "irregular",
+    "sim"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",

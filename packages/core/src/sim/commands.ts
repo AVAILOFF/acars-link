@@ -1,27 +1,42 @@
 /**
- * Commands to the simulator (T21): the second kind of core output next to telexes. The app sends
- * them to the sim bridge (bridge/msfs/README.md, protocol v2), which runs only whitelisted names
- * and acknowledges each one. The whitelist and the argument rules here mirror the bridge's
- * `CommandCatalog`; both sides check.
+ * Commands to the simulator (T21): the second kind of core output next to telexes.
  *
- * `ping` (no arguments) asks whether the sim side is ready for commands. Scenario steps that
- * produce commands (T22 `vdgs:`, T34 effects) add their names here and in the bridge.
+ * - `ping` (no arguments) goes to the sim bridge (bridge/msfs/README.md, protocol v2), which
+ *   runs only whitelisted names ({@link SIM_COMMANDS}) and acknowledges each one. The argument
+ *   rules here mirror the bridge's `CommandCatalog`; both sides check.
+ * - `vdgs` (T22) is text for the GSX docking display (`sim/vdgs.ts`). The app writes it to
+ *   GSX's message folder itself; it never goes to the bridge.
  */
 
+import type { VdgsMessage } from './vdgs.js';
+
+/** Commands the sim bridge runs (its whitelist). */
 export const SIM_COMMANDS = ['ping'] as const;
 export type SimCommandName = (typeof SIM_COMMANDS)[number];
 
 export type SimCommandArg = string | number | boolean;
 export type SimCommandArgs = Readonly<Record<string, SimCommandArg>>;
 
-export interface SimCommand {
+interface CommandBase {
   /** Scenario that produced it. */
   readonly scenarioId: string;
   /** Clock time it was produced, epoch ms. */
   readonly t: number;
+}
+
+/** A command for the sim bridge. */
+export interface BridgeCommand extends CommandBase {
   readonly command: SimCommandName;
   readonly args: SimCommandArgs;
 }
+
+/** Text for the GSX VDGS of the arrival airport (T22). */
+export interface VdgsCommand extends CommandBase {
+  readonly command: 'vdgs';
+  readonly vdgs: VdgsMessage;
+}
+
+export type SimCommand = BridgeCommand | VdgsCommand;
 
 /** Limits shared with the bridge (`CommandCatalog`). */
 export const SIM_COMMAND_LIMITS = { maxArgs: 16, maxStringArg: 512 } as const;

@@ -49,6 +49,15 @@
 - Протокол v2 (T21): клиент просит `?protocol=2`. После этого он может слать `{type:"command",id,command,args}` из белого списка. Мост отвечает этому клиенту `{type:"ack",id,ok,error?,detail?}`. Клиент без запроса версии получает v1 без изменений. Подробно — `bridge/msfs/README.md`. Команды выдаёт ядро (`CoreOutput.commands`, `packages/core/src/sim/commands.ts`). Пока в белом списке только `ping`.
 - Список SimVar — `03-architecture.md`.
 
+## GSX VDGS (T22)
+
+- Источник: FSDreamTeam, «VGDS Custom Messages System — Developer Manual», 2025-07-29. Поставляется с GSX Pro: `<Addon Manager>\couatl\GSX\SDK\Samples\VGDS\vgds_developer_manual.pdf`, рядом примеры `*.json` и редактор `GSX\VGDSEditor`. Сверено 2026-10-09 по установке пользователя (стандартный файл GSX `parkingServices\vgds_standard_messages.json` от 2026-05-29). Используется только формат файла для совместимости, файлы FSDreamTeam в репозиторий не копируются. Установленную версию GSX по файлам определить не удалось. По списку изменений на форуме функция есть с 3.4.6 (апрель 2025) — это вторичный источник.
+- Механизм: GSX загружает все `*.json` из `%APPDATA%\Virtuali\GSX\VGDS\` в алфавитном порядке и перечитывает файл при изменении («на следующем цикле страниц»). Файл с ошибкой пропускается, на табло — «Custom ERROR».
+- Заголовок: `type: "vgds_messages"`, `version: "1.0"`, `enabled`, необязательные `auto_cleanup`, `source`. Сообщение: `id`, `duration` (мс), `valid_from`/`valid_until` (ISO 8601, время симулятора), `conditions` (`airports`, `gates`, `aircraft_types`), `display.<тип>.pages[].lines[]`. Строка: текст, `{"red": …}`, `{"alternate": […], "duration"}`, `{"function": "showOnChock" | "showConnections" | "showPaxCargo"}`.
+- Типы табло: small (SafeDock3) 4 символа, 5 строк, из них 2 видны на стоянке; narrow (SafeDock TS24) 6×6; wide (SafeDock TS42) 9×7; x (SafeDock X) 10×7. Собственные примеры руководства превышают эти лимиты; мы держимся таблицы.
+- Не описано или расходится с руководством `[ПРОВЕРИТЬ]` человеком в симуляторе: набор символов; когда показывается своё сообщение относительно стандартных GSX и указаний по парковке; что видит табло, если для его типа нет варианта. В примерах и стандартном файле есть тип `flex`, цвет `green`, поля `overrides` (подмена стандартного сообщения, например `chock_and_gate_display`) и `data_source` — в руководстве их нет, мы их не используем.
+- Реализация: ядро `packages/core/src/sim/vdgs.ts` (шаг `vdgs:`, команда `vdgs`), запись файла `apps/desktop/src/main/vdgs.ts`. Одобренные допущения — `07`, T22.
+
 ## Внешние данные
 
 | Источник | Для чего | Ключ | Заметки |

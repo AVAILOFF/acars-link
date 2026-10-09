@@ -1,4 +1,11 @@
 import { FLIGHT_PHASES, type FlightPhase } from '../phase/fsm.js';
+import {
+  checkVdgsLines,
+  VDGS_DISPLAY_NAMES,
+  VDGS_DISPLAYS,
+  VDGS_DURATION,
+  type VdgsDisplay,
+} from '../sim/vdgs.js';
 import { isContextVariable, isFlagVariable } from './context.js';
 import { type CompiledExpr, compileExpr, ExprError } from './expr.js';
 import { type CompiledTemplate, compileTemplate, TemplateError } from './template.js';
@@ -55,7 +62,17 @@ export type CompiledStep =
     }
   | { readonly kind: 'jump'; readonly to: number }
   | { readonly kind: 'resend'; readonly of: readonly string[] }
-  | { readonly kind: 'set'; readonly assigns: readonly CompiledAssign[] };
+  | { readonly kind: 'set'; readonly assigns: readonly CompiledAssign[] }
+  | {
+      readonly kind: 'vdgs';
+      readonly durationSec: number;
+      readonly displays: Readonly<Partial<Record<VdgsDisplay, readonly CompiledVdgsLine[]>>>;
+    };
+
+export interface CompiledVdgsLine {
+  readonly t: CompiledTemplate;
+  readonly red: boolean;
+}
 
 /** One `set` assignment: a literal, a variable's raw value, or a rendered template. */
 export interface CompiledAssign {
@@ -280,6 +297,35 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
           });
         }
         steps.push({ kind: 'set', assigns });
+        continue;
+      }
+      if ('vdgs' in s) {
+        const v = s.vdgs;
+        const durationSec = v.duration_sec ?? VDGS_DURATION.default;
+        if (!(durationSec >= VDGS_DURATION.min && durationSec <= VDGS_DURATION.max)) {
+          fail(`${path}.vdgs.duration_sec`, `must be ${VDGS_DURATION.min}..${VDGS_DURATION.max}`);
+        }
+        if (v.narrow === undefined) fail(`${path}.vdgs.narrow`, 'missing');
+        const displays: Partial<Record<VdgsDisplay, CompiledVdgsLine[]>> = {};
+        for (const d of VDGS_DISPLAY_NAMES) {
+          const list = v[d];
+          if (list === undefined) continue;
+          const at = `${path}.vdgs.${d}`;
+          if (list.length === 0 || list.length > VDGS_DISPLAYS[d].lines) {
+            fail(at, `needs 1..${VDGS_DISPLAYS[d].lines} lines`);
+          }
+          displays[d] = list.map((line, i) => {
+            const red = typeof line !== 'string';
+            const src = red ? line.red : line;
+            // A literal line is checked now; a template only when it is rendered.
+            if (!src.includes('{')) {
+              const why = checkVdgsLines(d, [{ text: src.trim().toUpperCase(), red }]);
+              if (why !== null) fail(`${at}[${i}]`, why);
+            }
+            return { t: template(`${at}[${i}]`, src) as CompiledTemplate, red };
+          });
+        }
+        steps.push({ kind: 'vdgs', durationSec, displays });
         continue;
       }
       fail(path, `unsupported step ${Object.keys(s).join(',')}`);

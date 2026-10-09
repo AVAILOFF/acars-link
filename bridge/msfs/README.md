@@ -80,7 +80,7 @@ accepts a v1 bridge: telemetry then works and commands end with `unavailable`.
 | `ping` | none | ok while a SimConnect session is open, else `unavailable` | ok |
 
 The fake source accepts every whitelisted command, confirms it, and logs it to the console.
-VDGS text (T22) and sim effects (T34) will be added to the whitelist when those tasks are done.
+Sim effects (T34) will be added to the whitelist. VDGS text (T22) does not use the bridge: GSX reads it from a file that the app writes (docs/06, "GSX VDGS").
 
 Access rules (CLAUDE.md, invariant 10): the bridge listens on `127.0.0.1` only. The `Host` header must be `127.0.0.1` or `localhost`.
 `Origin` must be absent, `file://`, `null`, or an http(s) loopback origin. Anything else gets 403, so web pages

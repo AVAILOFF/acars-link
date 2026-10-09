@@ -24,6 +24,8 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
       return ['DELAY', `late start: flight delayed ${e.delayMin} min`];
     case 'error':
       return ['ERROR', e.error];
+    case 'cmd':
+      return ['SIM', `${e.command.scenarioId}  ${e.command.command}`];
     case 'out': {
       const m = e.message;
       return ['TELEX', `${m.scenarioId}  ${m.from} → ${m.to}  (${m.message.lines.length} lines)`];

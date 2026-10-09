@@ -26,6 +26,7 @@ import type { SecretStore } from './secrets.js';
 import { FlightSession } from './session.js';
 import type { SettingsStore } from './settings.js';
 import { fetchOfp, normalizeSimbriefUsername } from './simbrief.js';
+import { VdgsWriter } from './vdgs.js';
 
 /**
  * Everything the app does, without Electron: credentials, settings, scenario selection, OFP,
@@ -58,6 +59,8 @@ export interface AppControllerOptions {
   readonly onChange: () => void;
   /** Cache of the external data (T13); default in memory. */
   readonly dataCache?: DataCache;
+  /** GSX VDGS message folder (T22, `gsxVdgsDir`); null or absent = no GSX. */
+  readonly vdgsDir?: string | null;
   /** Airline memory between flights (T14); default in memory only. */
   readonly flags?: FlagsStore;
 }
@@ -92,6 +95,7 @@ export class AppController {
   private readonly flagStore: FlagsStore | { get(): Promise<Flags>; set(f: Flags): Promise<Flags> };
   /** Names of the stored flags, for the UI. */
   private memory: readonly string[] = [];
+  private readonly vdgs: VdgsWriter;
 
   constructor(private readonly o: AppControllerOptions) {
     this.data = new ExternalDataService({
@@ -107,6 +111,7 @@ export class AppController {
         return f;
       },
     };
+    this.vdgs = new VdgsWriter(o.vdgsDir ?? null);
     this.bridge = new BridgeClient({
       port: 0,
       createSocket: o.createSocket,
@@ -129,6 +134,7 @@ export class AppController {
     const s = await this.o.settings.get();
     this.bridge.setPort(s.bridgePort);
     this.bridge.start();
+    this.vdgs.clear(); // left over from a crash
     this.memory = Object.keys(await this.flagStore.get()).sort();
   }
 
@@ -137,13 +143,28 @@ export class AppController {
     this.data.stopFlight();
     this.session?.stop(this.o.now());
     this.session = null;
+    this.vdgs.clear();
   }
 
   /**
-   * A command for the simulator (T21) goes to the bridge; only failures reach the feed (a sim
-   * without the add-on, a v1 bridge), so a working channel stays quiet.
+   * A command for the simulator (T21): VDGS text (T22) goes to GSX's message folder, the rest
+   * to the bridge. Only failures reach the feed (a v1 bridge, a write error), so a working
+   * channel stays quiet; without GSX the VDGS text is dropped silently. Returns the bridge
+   * command id, null for VDGS text.
    */
-  sendSimCommand(c: Pick<SimCommand, 'command' | 'args'>): string {
+  sendSimCommand(c: SimCommand): string | null {
+    if (c.command === 'vdgs') {
+      try {
+        this.vdgs.show(c);
+      } catch (e) {
+        this.feed.system(this.o.now(), 'sim_command_failed', {
+          command: 'vdgs',
+          error: 'failed',
+          detail: e instanceof Error ? e.message : String(e),
+        });
+      }
+      return null;
+    }
     return this.bridge.sendCommand(c.command, c.args);
   }
 
@@ -353,6 +374,7 @@ export class AppController {
     if (s === null) throw new AppFailure('bad_state', 'no flight running');
     s.stop(this.o.now());
     this.data.stopFlight();
+    this.vdgs.clear();
     await this.saveMemory(s);
     this.sessionFired = s.sessionFired;
     this.session = null;

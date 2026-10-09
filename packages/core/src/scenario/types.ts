@@ -8,7 +8,7 @@ import type { FlightPhase, PhaseEvent } from '../phase/fsm.js';
  * v0 (T06): triggers `phase_enter | phase | time | distance | event`, steps `send | wait`
  * (`minutes`, `phase`). T12: `wait: reply`, `branch`, `resend`, trigger `command` (pilot
  * commands, `scenario/pilot.ts`). T14: `set` (flags that outlive the flight, the run's
- * diversion and arrival gate).
+ * diversion and arrival gate). T22: `vdgs` (text for the GSX docking display).
  */
 
 export type ScenarioCategory = 'docs' | 'ops' | 'irregular' | 'external' | 'fun';
@@ -113,7 +113,26 @@ export interface SetStep {
 export const SET_TARGETS = ['flight.divert', 'ops.arr_gate'] as const;
 export type SetTarget = (typeof SET_TARGETS)[number];
 
-export type Step = SendStep | WaitStep | BranchStep | ResendStep | SetStep;
+/** A VDGS line: a template, or `{ red: template }` for a red line. */
+export type VdgsLineDef = string | { readonly red: string };
+
+/**
+ * Text for the GSX docking display at the arrival airport (T22, `sim/vdgs.ts`): lines per
+ * display type, `narrow` required; `wide` and `x` fall back to `narrow`. Templates are
+ * rendered when the step runs; a line that does not fit fails the scenario.
+ */
+export interface VdgsStep {
+  readonly vdgs: {
+    /** Page time, seconds (default 6). */
+    readonly duration_sec?: number;
+    readonly narrow: readonly VdgsLineDef[];
+    readonly small?: readonly VdgsLineDef[];
+    readonly wide?: readonly VdgsLineDef[];
+    readonly x?: readonly VdgsLineDef[];
+  };
+}
+
+export type Step = SendStep | WaitStep | BranchStep | ResendStep | SetStep | VdgsStep;
 
 export interface ScenarioDef {
   readonly id: string;

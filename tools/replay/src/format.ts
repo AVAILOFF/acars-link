@@ -22,6 +22,9 @@ import {
  *                                                                      + "force": [id] started by hand)
  * {"type":"end","now":…,"to":"DONE"}                                   user closed the flight
  * {"type":"out","t":…,"scenarioId":…,"from":…,"to":…,"text":…}        telex the core produced live
+ * {"type":"cmd","t":…,"scenarioId":…,"command":…,"data":{…}}         sim command produced live (T22:
+ *                                                                      "vdgs" + VdgsMessage, bridge
+ *                                                                      commands + their args)
  * {"type":"stop","now":…}                                              flight stopped
  * ```
  *
@@ -87,6 +90,13 @@ export type RecordingEvent =
       readonly from: string;
       readonly to: string;
       readonly text: string;
+    }
+  | {
+      readonly type: 'cmd';
+      readonly t: number;
+      readonly scenarioId: string;
+      readonly command: string;
+      readonly data: Readonly<Record<string, unknown>>;
     }
   | { readonly type: 'stop'; readonly now: number };
 
@@ -261,6 +271,11 @@ function checkEvent(x: unknown, no: number): RecordingEvent {
     case 'out':
       if (!isNum(x['t'])) throw bad('t');
       for (const k of ['scenarioId', 'from', 'to', 'text']) if (!isStr(x[k])) throw bad(k);
+      return x as unknown as RecordingEvent;
+    case 'cmd':
+      if (!isNum(x['t'])) throw bad('t');
+      for (const k of ['scenarioId', 'command']) if (!isStr(x[k])) throw bad(k);
+      if (!isObj(x['data'])) throw bad('data');
       return x as unknown as RecordingEvent;
     default:
       throw bad(`unknown type ${JSON.stringify(x['type'])}`);

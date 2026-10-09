@@ -25,6 +25,7 @@ export * from './scenario/pilot.js';
 export * from './scenario/template.js';
 export * from './scenario/types.js';
 export * from './sim/commands.js';
+export * from './sim/vdgs.js';
 export * from './synthetic/anomalies.js';
 export * from './synthetic/flight.js';
 export * from './telemetry/types.js';

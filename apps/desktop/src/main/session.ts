@@ -326,7 +326,10 @@ export class FlightSession {
           break;
       }
     }
-    for (const c of out.commands) this.simCommands(c);
+    for (const c of out.commands) {
+      this.record(cmdLine(c));
+      this.simCommands(c);
+    }
     for (const m of out.outbound) {
       this.record(outLine(m));
       const entry = {
@@ -407,6 +410,12 @@ function outLine(m: CoreOutput['outbound'][number]): RecordingEvent {
     to: m.to,
     text: m.message.text,
   };
+}
+
+function cmdLine(c: SimCommand): RecordingEvent {
+  const { scenarioId, t, command, ...rest } = c;
+  const data = 'vdgs' in rest ? rest.vdgs : rest.args;
+  return { type: 'cmd', t, scenarioId, command, data: JSON.parse(JSON.stringify(data)) };
 }
 
 /** Probabilities that differ from the scenario files (user's chances), for the recording. */

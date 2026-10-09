@@ -10,13 +10,25 @@ import {
  * JSON Schema (2020-12) of a scenario file (docs/05-scenario-engine.md; T06, T12: `wait: reply`,
  * `branch`, `resend`, `on: command`). Structure only; semantics (expressions, templates,
  * variables, branch keys, `set` targets) are checked by `compileScenario` in `@acars/core`.
- * `set` — T14.
+ * `set` — T14. `vdgs` — T22 (line widths are checked by `compileScenario`).
  */
 
 const phase = { enum: [...FLIGHT_PHASES] } as const;
 const text = { type: 'string', minLength: 1 } as const;
 const id = { type: 'string', pattern: '^[a-z][a-z0-9_]*$' } as const;
 const option = { type: 'string', pattern: '^[A-Z][A-Z0-9]*$' } as const;
+/** A VDGS line: a template, or `{ red: template }`. */
+const vdgsLines = {
+  type: 'array',
+  minItems: 1,
+  maxItems: 7,
+  items: {
+    oneOf: [
+      text,
+      { type: 'object', additionalProperties: false, required: ['red'], properties: { red: text } },
+    ],
+  },
+} as const;
 
 export const SCENARIO_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -186,6 +198,25 @@ export const SCENARIO_SCHEMA = {
                 additionalProperties: false,
                 required: ['of'],
                 properties: { of: { type: 'array', minItems: 1, items: id } },
+              },
+            },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            required: ['vdgs'],
+            properties: {
+              vdgs: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['narrow'],
+                properties: {
+                  duration_sec: { type: 'number', minimum: 1, maximum: 60 },
+                  narrow: vdgsLines,
+                  small: vdgsLines,
+                  wide: vdgsLines,
+                  x: vdgsLines,
+                },
               },
             },
           },

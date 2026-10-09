@@ -116,6 +116,13 @@ steps:                     # последовательность
 - **«Запустить сейчас»** (экран полёта, пока идёт рейс): вход ядра `CoreInput.force: [id]`. Сценарий стартует на этом тике без триггера, вероятности, кулдауна и `excludes`, но **только если выполнены его условия** (фаза, задержка, флаги — иначе сообщения были бы бессмысленны) и он не идёт сейчас. Итог — событие `FORCED {id, result: started | conditions | running | unknown, detail}` (для `conditions` — текст невыполненного условия), в ленте приложения — `forced_*`. Пока телеметрия потеряна, запрос ждёт в состоянии ядра (`forced`). Запись полёта: поле `force` строки `tick`, replay его воспроизводит.
 - Тесты: `core/test/flags.test.ts`, `scenarios/test/irregular.test.ts` (каждый сценарий на 3 полётах × 3 профиля **по каждому варианту ответа**, цепочки внутри рейса и между рейсами, детерминизм), `desktop/test/controller.test.ts` («airline memory»), `replay.test.ts`.
 
+## Табло VDGS (T22)
+
+- **`vdgs: { narrow: [строки], wide?, x?, small?, duration_sec? }`** — текст на табло VDGS от GSX в аэропорту прилёта (или диверсии). Строка — шаблон или `{ red: шаблон }`. Лимиты: small 4×2, narrow 6×6, wide 9×7, x 10×7 (`core/src/sim/vdgs.ts`, источник — `06`, «GSX VDGS»). `narrow` обязателен, `wide`/`x` без своих строк берут `narrow`, `small` — только если задан. Символы A–Z, 0–9, пробел, `- / . :`; нижний регистр переводится в верхний. Литерал, который не помещается, — ошибка загрузки; шаблон — `SCENARIO_ERROR` при выполнении, без сокращений. `duration_sec` 1–60, по умолчанию 6.
+- Выход ядра — команда `vdgs` в `CoreOutput.commands` (тип из T21), не телекс: не идёт через Hoppie и форматтер дисплея самолёта, не ждёт `minGapMs`. Приложение записывает её в файл GSX, по одному сообщению на сценарий (новое заменяет старое). В записи полёта — строка `cmd`.
+- Набор — `packages/scenarios/sim/`: `vdgs_arrival` (после посадки: авиакомпания, рейс, аэропорт вылета, гейт).
+- Тесты: `core/test/vdgs.test.ts`, `scenarios/test/sim.test.ts`, `apps/desktop/test/vdgs.test.ts`.
+
 ## Базовый набор (T07)
 
 - 15 сценариев MVP из `02` — `packages/scenarios/base/*.yaml` (имя файла = `id`): `crew_info`, `slot_ctot`, `prelim_loadsheet`, `takeoff_data`, `fuel_slip`, `final_loadsheet`, `departure_report`, `next_leg`, `aircraft_change`, `dest_weather`, `landing_data`, `gate_assignment`, `arrival_info`, `block_report`, `welcome_turnaround`.

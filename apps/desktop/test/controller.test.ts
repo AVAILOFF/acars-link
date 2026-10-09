@@ -1,3 +1,4 @@
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { generateSyntheticFlight, ManualClock, parseSimbriefOfp } from '@acars/core';
@@ -12,6 +13,7 @@ import { fileRecordings, type OpenRecording } from '../src/main/recording.js';
 import { BASE_SCENARIOS } from '../src/main/scenario-sources.js';
 import { SecretStore } from '../src/main/secrets.js';
 import { defaultSettings, SettingsStore } from '../src/main/settings.js';
+import { VDGS_FILE } from '../src/main/vdgs.js';
 import { MESSAGES } from '../src/renderer/src/i18n.js';
 import type { FeedEntry } from '../src/shared/api.js';
 import {
@@ -30,7 +32,12 @@ const flight = generateSyntheticFlight({ ofp });
 const T0 = flight.snapshots[0]?.t ?? 0;
 
 async function setup(
-  o: { openRecording?: OpenRecording | null; http?: FakeHttp; flags?: FlagsStore } = {},
+  o: {
+    openRecording?: OpenRecording | null;
+    http?: FakeHttp;
+    flags?: FlagsStore;
+    vdgsDir?: string;
+  } = {},
 ) {
   const dir = await tempDir();
   const recordings = join(dir, 'recordings');
@@ -59,6 +66,7 @@ async function setup(
     },
     onChange: () => {},
     ...(o.flags === undefined ? {} : { flags: o.flags }),
+    ...(o.vdgsDir === undefined ? {} : { vdgsDir: o.vdgsDir }),
   });
   await app.init();
   return { app, clock, sockets, transports, secretsFile, recordings, revealed: () => revealed };
@@ -91,12 +99,12 @@ describe('AppController', () => {
     const s = await setup();
     const socket = s.sockets.last();
     socket.hello(2, 1, ['ping']);
-    const id = s.app.sendSimCommand({ command: 'ping', args: {} });
+    const id = s.app.sendSimCommand({ command: 'ping', args: {}, scenarioId: 't', t: T0 });
     expect(socket.sent).toEqual([{ type: 'command', id, command: 'ping', args: {} }]);
     socket.frame({ type: 'ack', id, ok: true });
     expect(s.app.state().feed).toEqual([]);
 
-    const id2 = s.app.sendSimCommand({ command: 'ping', args: {} });
+    const id2 = s.app.sendSimCommand({ command: 'ping', args: {}, scenarioId: 't', t: T0 });
     socket.frame({ type: 'ack', id: id2, ok: false, error: 'unavailable', detail: 'no GSX' });
     expect(s.app.state().feed).toMatchObject([
       {
@@ -206,6 +214,43 @@ describe('AppController', () => {
     expect(end.feed.at(-1)).toMatchObject({ kind: 'system', code: 'flight_stopped' });
   });
 
+  it('GSX VDGS (T22): stale file removed at start, arrival text after landing, gone on stop', async () => {
+    const vdgsDir = join(await tempDir(), 'VGDS');
+    mkdirSync(vdgsDir, { recursive: true });
+    writeFileSync(join(vdgsDir, VDGS_FILE), '{"stale":true}');
+    writeFileSync(join(vdgsDir, 'other_addon.json'), '{}');
+    const s = await setup({ vdgsDir });
+    const { app } = s;
+    expect(existsSync(join(vdgsDir, VDGS_FILE))).toBe(false);
+    await app.setSimbriefUsername('pilot42');
+    await app.updateSettings({ transport: 'offline' });
+    await app.loadOfp();
+    s.sockets.last().hello();
+    await app.startFlight();
+    fly(s);
+    const file = JSON.parse(readFileSync(join(vdgsDir, VDGS_FILE), 'utf8'));
+    expect(file.messages).toMatchObject([
+      { id: 'acars_vdgs_arrival', conditions: { airports: ['RJBB'] } },
+    ]);
+    expect(
+      app.state().feed.some((e) => e.kind === 'system' && e.code === 'sim_command_failed'),
+    ).toBe(false);
+    await app.stopFlight();
+    expect(readdirSync(vdgsDir)).toEqual(['other_addon.json']);
+
+    // The command is in the recording, and a replay produces it again.
+    const rec = await readRecording(s.recordings);
+    const cmds = rec.events.filter((e) => e.type === 'cmd');
+    expect(cmds).toMatchObject([
+      { scenarioId: 'vdgs_arrival', command: 'vdgs', data: { airport: 'RJBB' } },
+    ]);
+    const again = replay(rec, { scenarios: BASE_SCENARIOS_COMPILED });
+    const replayed = again.timeline.flatMap((e) => (e.kind === 'cmd' ? [e.command] : []));
+    expect(replayed.map((c) => ('vdgs' in c ? c.vdgs : null))).toEqual(
+      cmds.map((c) => (c.type === 'cmd' ? c.data : null)),
+    );
+  });
+
   it('disabled scenarios do not run; per_session ids carry over to the next flight', async () => {
     const s = await setup();
     const { app } = s;
@@ -213,7 +258,7 @@ describe('AppController', () => {
     await app.updateSettings({ transport: 'offline' });
     await app.loadOfp();
     const list = await app.listScenarios();
-    expect(list).toHaveLength(53); // 15 base + 12 commands (T12) + 4 live-data (T13) + 22 irregular (T14)
+    expect(list).toHaveLength(54); // 15 base + 12 commands (T12) + 4 live-data (T13) + 22 irregular (T14) + 1 sim (T22)
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');

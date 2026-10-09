@@ -12,6 +12,8 @@ import { DEFAULT_PROFILE, type DisplayProfile } from '../format/profile.js';
 import type { Ofp } from '../ofp/types.js';
 import { FLIGHT_PHASES, type FlightPhase, type OooiKind, type PhaseEvent } from '../phase/fsm.js';
 import { createRng, type Rng, type RngState, rngFromState } from '../random/rng.js';
+import type { SimCommand } from '../sim/commands.js';
+import { buildVdgsMessage, type VdgsDisplay, VdgsError, type VdgsLine } from '../sim/vdgs.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import type { CompiledScenario } from './compile.js';
 import { buildContext, RouteGeometry, type RunVariable, type ScenarioContext } from './context.js';
@@ -175,6 +177,8 @@ export interface EngineTickInput {
 
 export interface EngineTickOutput {
   readonly outbound: readonly OutboundMessage[];
+  /** Commands to the simulator from `vdgs` steps (T22), in order. */
+  readonly commands: readonly SimCommand[];
   readonly events: readonly ScenarioEvent[];
 }
 
@@ -334,6 +338,8 @@ export class ScenarioEngine {
   /** Inside `receive`: messages are answers to the pilot. */
   private answering = false;
   private tickInput: EngineTickInput | null = null;
+  /** Commands of the tick in progress (`vdgs` steps). */
+  private commands: SimCommand[] = [];
 
   constructor(options: ScenarioEngineOptions) {
     this.ofp = options.ofp;
@@ -464,6 +470,8 @@ export class ScenarioEngine {
   tick(input: EngineTickInput): EngineTickOutput {
     const outbound: OutboundMessage[] = [];
     const events: ScenarioEvent[] = [];
+    const commands: SimCommand[] = [];
+    this.commands = commands;
     if (this.st.delayMs === null) {
       const late = input.now + this.leadMs - this.ofp.times.schedOutMs;
       this.setDelay(late > 0 ? Math.ceil(late / DELAY_STEP_MS) * DELAY_STEP_MS : 0);
@@ -478,7 +486,7 @@ export class ScenarioEngine {
     if (input.telemetryLost) {
       this.st.inbox = inbox;
       this.st.forced = forced;
-      return { outbound, events };
+      return { outbound, commands, events };
     }
     this.st.inbox = [];
     this.st.forced = [];
@@ -518,7 +526,7 @@ export class ScenarioEngine {
       this.ctx = null;
       this.tickInput = null;
     }
-    return { outbound, events };
+    return { outbound, commands, events };
   }
 
   private get context(): ScenarioContext {
@@ -986,6 +994,36 @@ export class ScenarioEngine {
           this.assign(sc.id, step, this.lookFor(run.vars), rng, input, events);
         } catch (e) {
           if (!(e instanceof TemplateError)) throw e;
+          fail(e.message);
+          return;
+        }
+        continue;
+      }
+      if (step.kind === 'vdgs') {
+        try {
+          const look = this.lookFor(run.vars);
+          const given: Partial<Record<VdgsDisplay, VdgsLine[]>> = {};
+          for (const [d, lines] of Object.entries(step.displays)) {
+            given[d as VdgsDisplay] = (lines ?? []).map((l) => ({
+              text: l.t.render(look, rng),
+              red: l.red,
+            }));
+          }
+          const airport = this.st.divert ?? this.ofp.destination.icao;
+          this.commands.push({
+            command: 'vdgs',
+            scenarioId: sc.id,
+            t: input.now,
+            vdgs: buildVdgsMessage(airport, step.durationSec, given),
+          });
+          const readsGate = Object.values(step.displays).some((ls) =>
+            (ls ?? []).some((l) => l.t.vars.includes('ops.arr_gate')),
+          );
+          if (!this.st.ext.gateLocked && readsGate) {
+            this.st.ext = { ...this.st.ext, gateLocked: true };
+          }
+        } catch (e) {
+          if (!(e instanceof TemplateError || e instanceof VdgsError)) throw e;
           fail(e.message);
           return;
         }

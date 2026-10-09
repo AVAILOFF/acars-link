@@ -7,6 +7,7 @@ import {
   type PhaseConfig,
   type PhaseEvent,
   type ScenarioEvent,
+  type SimCommand,
 } from '@acars/core';
 import type { RecordedOutbound, Recording } from './format.js';
 
@@ -34,6 +35,7 @@ export interface ReplayOptions {
 export type TimelineEntry =
   | { readonly kind: 'event'; readonly now: number; readonly event: PhaseEvent | ScenarioEvent }
   | { readonly kind: 'out'; readonly now: number; readonly message: OutboundMessage }
+  | { readonly kind: 'cmd'; readonly now: number; readonly command: SimCommand }
   | { readonly kind: 'late_start'; readonly now: number; readonly delayMin: number }
   | { readonly kind: 'error'; readonly now: number; readonly error: string };
 
@@ -100,10 +102,11 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
       timeline.push({ kind: 'out', now, message });
       outbound.push(message);
     }
+    for (const command of out.commands) timeline.push({ kind: 'cmd', now, command });
   };
 
   loop: for (const e of recording.events) {
-    if (e.type === 'out') continue;
+    if (e.type === 'out' || e.type === 'cmd') continue;
     firstNow ??= e.now;
     lastNow = e.now;
     switch (e.type) {

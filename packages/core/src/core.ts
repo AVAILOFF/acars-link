@@ -42,8 +42,8 @@ export interface CoreInput {
 export interface CoreOutput {
   readonly outbound: readonly OutboundMessage[];
   /**
-   * Commands to the simulator (T21, `sim/commands.ts`), in order; not paced by `minGapMs`. No
-   * scenario step produces them yet (T22 `vdgs:` will).
+   * Commands to the simulator (T21, `sim/commands.ts`), in order; not paced by `minGapMs`.
+   * Produced by `vdgs` steps (T22).
    */
   readonly commands: readonly SimCommand[];
   readonly phase: FlightPhase;
@@ -206,7 +206,7 @@ export class AcarsCore {
     });
     return {
       outbound: this.pace(now, out.outbound),
-      commands: [],
+      commands: out.commands,
       phase: this.fsm.phase,
       events: [...phaseEvents, ...out.events],
     };

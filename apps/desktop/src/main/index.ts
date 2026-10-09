@@ -22,6 +22,7 @@ import { fileRecordings } from './recording.js';
 import { BASE_SCENARIOS } from './scenario-sources.js';
 import { type Cipher, SecretStore } from './secrets.js';
 import { defaultSettings, SettingsStore } from './settings.js';
+import { gsxVdgsDir } from './vdgs.js';
 
 /**
  * Electron main process: window, security settings, IPC and the 1 Hz main loop that drives
@@ -134,6 +135,7 @@ async function main(): Promise<void> {
     onChange,
     dataCache: new FileDataCache(join(userData, 'cache')),
     flags: new FlagsStore(join(userData, 'airline-memory.json')),
+    vdgsDir: gsxVdgsDir(app.getPath('appData')),
   });
   const ctl = controller;
   registerIpc(ipcMain, ctl, isTrustedSender);
