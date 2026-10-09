@@ -325,7 +325,7 @@ describe('ROPS station', () => {
             {
               from: ofp.callsign,
               type: 'cpdlc',
-              text: '/data2/2//Y/REQUEST CLIMB TO FL410',
+              text: '/data2/2//Y/REQUEST VOICE CONTACT',
               to: 'XCAA',
             },
             // Answers and other senders need nothing.
@@ -345,7 +345,7 @@ describe('ROPS station', () => {
       'XCAA /data2/5/4/NE/UNABLE@_@LOGON TO @XJJJ@',
     ]);
     expect(atcEvents(r).find((e) => e.type === 'ATC_UNSUPPORTED')).toMatchObject({
-      text: 'REQUEST CLIMB TO FL410',
+      text: 'REQUEST VOICE CONTACT',
     });
     expect(atcEvents(r).find((e) => e.type === 'ATC_LOGON' && !e.accepted)).toMatchObject({
       station: 'XCAA',

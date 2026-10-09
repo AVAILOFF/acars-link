@@ -101,6 +101,11 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
           return ['ATC', `logoff ${ev.station} by ${ev.by}`];
         case 'ATC_LIVE':
           return ['ATC', `${ev.fir}: live ${ev.callsign} ${ev.frequency}, station steps aside`];
+        case 'ATC_REQUEST':
+          return [
+            'ATC',
+            `${ev.station}: "${ev.request}" -> ${ev.reply}${ev.why === null ? '' : ` (${ev.why})`}`,
+          ];
         case 'ATC_UNSUPPORTED':
           return ['ATC', `${ev.station}: not supported "${ev.text}"`];
         case 'ATC_DCL':

@@ -250,8 +250,30 @@ function parseNavlog(root: Reader): OfpFix[] {
       altitudeFt: f.num('altitude_feet'),
       legDistNm,
       cumDistNm: cum,
+      trackMag: f.optNum('track_mag'),
+      moraFt: f.optNum('mora'),
+      fir: f.optStr('fir'),
+      validLevelsFt: levels(f, 'fir_valid_levels'),
     };
   });
+}
+
+/** Item 10a of `equip` (`H-SDE2E3…Y/LB1D1` → `SDE2E3…Y`). */
+function equipment(s: string | null): string | null {
+  if (s === null) return null;
+  const m = /^(?:[A-Z]-)?([^/]*)/.exec(s.toUpperCase());
+  return m?.[1] ? m[1] : null;
+}
+
+/** Comma-separated feet (`1000,3000,5000`); null when empty. */
+function levels(r: Reader, key: string): number[] | null {
+  const s = r.optStr(key);
+  if (s === null) return null;
+  const out = s.split(',').map((x) => x.trim());
+  if (!out.every((x) => /^\d+$/.test(x))) {
+    throw new OfpParseError(join(r.path, key), `expected levels in feet, got ${describe(s)}`);
+  }
+  return out.map(Number);
 }
 
 function parseAircraft(r: Reader): OfpAircraft {
@@ -261,6 +283,7 @@ function parseAircraft(r: Reader): OfpAircraft {
     reg: r.optStr('reg'),
     engines: r.optStr('engines'),
     wakeCategory: r.optStr('equip_category'),
+    equip: equipment(r.optStr('equip')),
     maxPax: r.optInt('max_passengers'),
   };
 }

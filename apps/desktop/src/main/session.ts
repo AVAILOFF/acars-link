@@ -364,6 +364,13 @@ export class FlightSession {
             frequency: e.frequency,
           });
           break;
+        case 'ATC_REQUEST':
+          this.feed.system(e.t, 'atc_request', {
+            station: e.station,
+            request: e.request,
+            reply: e.reply.replaceAll('@_@', ' ').replaceAll('@', ''),
+          });
+          break;
         case 'ATC_UNSUPPORTED':
           this.feed.system(e.t, 'atc_unsupported', { station: e.station, text: e.text });
           break;

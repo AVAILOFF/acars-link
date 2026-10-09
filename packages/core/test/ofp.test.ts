@@ -49,6 +49,7 @@ describe('parseSimbriefOfp — real OFP planned in kg (A35K RCTP-RJBB)', () => {
       reg: 'G-KXWB',
       engines: 'TRENT XWB-97',
       wakeCategory: 'H',
+      equip: 'SDE2E3GHIJ3J4J5LM1ORWXY',
       maxPax: 367,
     });
   });
@@ -85,6 +86,16 @@ describe('parseSimbriefOfp — real OFP planned in kg (A35K RCTP-RJBB)', () => {
     expect(ofp.navlog.at(-1)?.ident).toBe('RJBB');
     expect(ofp.navlog.at(-1)?.cumDistNm).toBe(ofp.routeDistanceNm);
     expect(ofp.navlog[0]).toMatchObject({ viaAirway: 'MOLK1A', isSidStar: true, legDistNm: 4 });
+  });
+
+  it('maps per-leg magnetic track, MORA, FIR and SimBrief valid levels', () => {
+    const molka = ofp.navlog.find((f) => f.ident === 'MOLKA');
+    expect(molka).toMatchObject({ trackMag: 30, moraFt: 2000, fir: 'RCAA' });
+    // M750: FL270 and up, odd levels (track 030).
+    expect(molka?.validLevelsFt?.slice(0, 3)).toEqual([27000, 29000, 31000]);
+    const bb650 = ofp.navlog.find((f) => f.ident === 'BB650');
+    expect(bb650).toMatchObject({ trackMag: 343, fir: 'RJJJ' });
+    expect(bb650?.validLevelsFt?.slice(0, 2)).toEqual([2000, 4000]);
   });
 
   it('is stable (snapshot)', () => {

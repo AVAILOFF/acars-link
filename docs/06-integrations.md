@@ -49,6 +49,15 @@
 - **ICAO APAC eANP** Vol II, Part IV, Table ATM II-APAC-2 (стр. IV-28…IV-31, поправки до APAC-II 24/04, февраль 2026; документ июля 2026). Ячейки сняты программно по координатам текста PDF и сверены с изображениями страниц. Пункт 3.6: A1000 — conspicuity-код Mode S. © ICAO — `[ПРОВЕРИТЬ]` до публичного релиза.
 - Специальные коды (не выдаются): 7500/7600/7700 и 2000/7000 — SERA.13005; 7501–7577, 7601–7607, 7701–7707, 1200, 0000, 7400, 7777 — NBCAP TBL A-1; 1000 — APAC 3.6 (решение пользователя: пока не выдавать).
 
+## Запросы пилота и эшелоны (T25)
+
+Сверено 2026-10-09. Реализация — `packages/core/src/atc/` (`requests.ts`, `levels.ts`, `performance.ts`, `route.ts`), решения и допущения — `07`, T25.
+- Фразы: FBW A32NX `CpdlcMessageElements.ts`, `CpdlcMessage.ts`, `InputValidation*.ts` (GPL-3.0, только формат). В сети значения downlink без `@`: `REQUEST CLIMB TO FL390`, `REQUEST DESCEND TO 11000FT`, `REQUEST M.78` (FANS-A M.61–M.92), `REQUEST 280KT` (70–350 kt), `REQUEST DIRECT TO MADOG`. Ответы — FANS-A UM20/UM23/UM19/UM106/UM74 (WU), UM0 `UNABLE` (N) + причина свободным текстом (UM169): `DUE TO AIRSPACE RESTRICTION`, `DUE TO TRAFFIC` (тексты ATN B1 UM167/UM166, Doc 4444 Annex 5).
+- Таблица эшелонов: SERA, Appendix 3 (Рег. (ЕС) 923/2012, EUR-Lex, повторное использование разрешено) = ICAO Annex 2, App. 3. Исключения: AIP Spain ENR 1.7-3, AMDT 403/26 от 19-FEB-26 (`aip.enaire.es`); AIP Portugal ENR 1.7.5 от 01 OCT 2026 (`ais.nav.pt`); AIC France A 06/20 (`sia.aviation-civile.gouv.fr`, UTA с 21.05.2020; ENR 1.3.5 и граница UTA `[ПРОВЕРИТЬ]`); CAA NZ Part 91 amdt 12 (`aviation.govt.nz`). Италия (ENR 1.7) и метрические таблицы Китая/КНДР не получены — `[ПРОВЕРИТЬ]`.
+- SimBrief: `navlog[].track_mag`, `mora` (ft), `fir`, `fir_valid_levels` (футы через запятую, с учётом направления и ограничений трассы), `aircraft.equip` (поле 10a FPL, `W` = RVSM). Поля не описаны в публичной документации SimBrief — смысл установлен по реальному OFP RCTP–RJBB (2026-10-08).
+- Потолок и VMO/MMO: EASA TCDS (`easa.europa.eu/en/downloads/…`): A.064 iss. 62, A.004 iss. 69, A.151 iss. 33, IM.A.120 iss. 29, IM.A.003 iss. 20.0, IM.A.115 iss. 30, IM.A.196 iss. 19; A.110 (A380) iss. 17 — без чисел. Скорость 250 kt ниже FL100 — 14 CFR 91.117 (применяется везде, допущение).
+- `[ПРОВЕРИТЬ]` человеком: показ `UNABLE@_@DUE TO …` и WU-кнопок у ответов в FBW, PMDG, Fenix, iniBuilds.
+
 ## OurAirports (T24)
 
 - `https://davidmegginson.github.io/ourairports-data/airport-frequencies.csv` (~1,3 МБ, обновляется ночью). Лицензия (ourairports.com/data, сверено 2026-10-09): «All data is released to the Public Domain, and comes with no guarantee of accuracy or fitness for use». Столбцы `id, airport_ref, airport_ident, type, description, frequency_mhz`; типы `DEL`, `CLD`, `GND`, `TWR`, `APP`, `DEP`, `ATIS` и др.

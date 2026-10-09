@@ -54,6 +54,17 @@ export interface OfpFix {
   readonly legDistNm: number;
   /** Cumulative distance from departure. */
   readonly cumDistNm: number;
+  /** Magnetic track of the leg to this fix (`track_mag`), degrees. */
+  readonly trackMag: number | null;
+  /** Minimum off-route altitude of the leg (`mora`), feet. */
+  readonly moraFt: number | null;
+  /** FIR the fix is in (`fir`), e.g. `RJJJ`. */
+  readonly fir: string | null;
+  /**
+   * Levels SimBrief allows on the leg to this fix (`fir_valid_levels`), feet: direction of
+   * flight and airway limits applied (M750 in RJJJ: FL270 and up). Null when absent.
+   */
+  readonly validLevelsFt: readonly number[] | null;
 }
 
 export interface OfpAircraft {
@@ -63,6 +74,8 @@ export interface OfpAircraft {
   readonly engines: string | null;
   /** ICAO wake turbulence category from the FPL equipment string (L/M/H/J). */
   readonly wakeCategory: string | null;
+  /** FPL item 10a equipment and capabilities (`equip`, e.g. `SDE2E3GHIJ3J4J5LM1ORWXY`); `W` = RVSM. */
+  readonly equip: string | null;
   readonly maxPax: number | null;
 }
 

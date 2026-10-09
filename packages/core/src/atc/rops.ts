@@ -4,12 +4,15 @@ import { DEFAULT_PROFILE, type DisplayProfile } from '../format/profile.js';
 import type { LatLon } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';
 import type { FlightPhase } from '../phase/fsm.js';
+import { createRng } from '../random/rng.js';
 import type { OutboundMessage } from '../scenario/engine.js';
 import type { PilotMessage } from '../scenario/pilot.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import { type CpdlcHeader, type CpdlcResponse, formatCpdlc, parseCpdlc } from './cpdlc.js';
 import { type DclContext, type DclEvent, DclService, type DclState } from './dcl.js';
 import { atcUnitName, FirMap, ropsStation } from './fir.js';
+import { type AtcRequest, decide, parseRequest, type RefusalReason } from './requests.js';
+import { routePosition } from './route.js';
 
 /**
  * ROPS ATC station (T23, docs/07): a simulated CPDLC ground station for the own pilot only,
@@ -26,14 +29,26 @@ import { atcUnitName, FirMap, ropsStation } from './fir.js';
  * The departure clearance (T24, `dcl.ts`) runs on its own station, `X` + origin, on the ground.
  *
  * Deterministic: input = position, phase, the aircraft's messages to our stations and the
- * external data; randomness only from the seed (squawk, DCL timing). Other CPDLC requests are T25: until then they get
- * `MESSAGE NOT SUPPORTED BY THIS ATS UNIT` (a phrase of real Hoppie stations).
+ * external data; randomness only from the seed (squawk, DCL timing, reply delays).
+ *
+ * T25: the connected station answers level, speed and Direct To requests (`requests.ts`)
+ * after 20–60 s (seeded); 10 % of the level requests the rules allow are refused "due to
+ * traffic" (seeded, never twice in a row; the same request again within 5 min is refused
+ * again, later it is cleared). Other CPDLC messages get `MESSAGE NOT SUPPORTED BY THIS ATS
+ * UNIT` (a phrase of real Hoppie stations).
  */
 
 export const ROPS_ID = '#rops';
 
 /** How long the old station still listens after a HANDOVER (for the aircraft's LOGOFF). */
 export const HANDOVER_LISTEN_MS = 10 * 60_000;
+
+/** Reply delay to a pilot request, s (approved 2026-10-09, T25). */
+export const REPLY_DELAY_S = [20, 60] as const;
+/** Share of the allowed level requests refused due to traffic (approved 2026-10-09). */
+export const TRAFFIC_REFUSAL = 0.1;
+/** The same request within this time after a traffic refusal is refused again. */
+export const TRAFFIC_HOLD_MS = 5 * 60_000;
 
 export interface RopsOptions {
   readonly enabled: boolean;
@@ -79,6 +94,16 @@ export type AtcEvent =
       readonly callsign: string;
       readonly frequency: string;
     }
+  /** A pilot request answered (T25). */
+  | {
+      readonly type: 'ATC_REQUEST';
+      readonly t: number;
+      readonly station: string;
+      readonly request: string;
+      readonly approved: boolean;
+      readonly reply: string;
+      readonly why: RefusalReason | null;
+    }
   /** A CPDLC message the station does not handle (answered "not supported"). */
   | {
       readonly type: 'ATC_UNSUPPORTED';
@@ -105,6 +130,30 @@ export interface RopsState {
   readonly phase?: FlightPhase;
   /** Departure clearance (T24); absent in states saved before it. */
   readonly dcl?: DclState;
+  /** Pilot requests (T25); absent in states saved before it. */
+  readonly req?: RequestState;
+}
+
+/** A reply waiting for its delay (T25). */
+export interface PendingReply {
+  readonly due: number;
+  readonly station: string;
+  readonly mrn: number;
+  readonly ra: CpdlcResponse;
+  readonly text: string;
+  readonly request: string;
+  readonly approved: boolean;
+  readonly why: RefusalReason | null;
+}
+
+export interface RequestState {
+  /** Requests so far (seeds each one's delay and traffic roll). */
+  readonly n: number;
+  readonly pending: readonly PendingReply[];
+  /** The last level decision was a random traffic refusal. */
+  readonly lastTraffic: boolean;
+  /** Last traffic refusal: request key and time. */
+  readonly traffic: { readonly key: string; readonly t: number } | null;
 }
 
 /** What the station needs besides the OFP (T24: squawk/DCL seed, the telex display profile). */
@@ -150,11 +199,18 @@ export class RopsStation {
     aside: string | null;
     ended: boolean;
     phase: FlightPhase;
+    req: {
+      n: number;
+      pending: PendingReply[];
+      lastTraffic: boolean;
+      traffic: { key: string; t: number } | null;
+    };
   };
   private readonly dcl: DclService;
   private map: FirMap | null = null;
   private mapOf: readonly FirArea[] | null = null;
   private readonly standAside: boolean;
+  private readonly seed: string | number;
 
   constructor(
     private readonly ofp: Ofp,
@@ -163,6 +219,7 @@ export class RopsStation {
     state: RopsState = EMPTY_ROPS,
   ) {
     this.standAside = options.standAside ?? true;
+    this.seed = deps.seed;
     const copy = JSON.parse(JSON.stringify(state)) as RopsState;
     if (copy.v !== 1) throw new Error(`unsupported RopsState version ${String(copy.v)}`);
     this.st = {
@@ -173,6 +230,12 @@ export class RopsStation {
       aside: copy.aside,
       ended: copy.ended,
       phase: copy.phase ?? 'PREFLIGHT',
+      req: {
+        n: copy.req?.n ?? 0,
+        pending: [...(copy.req?.pending ?? [])],
+        lastTraffic: copy.req?.lastTraffic ?? false,
+        traffic: copy.req?.traffic ?? null,
+      },
     };
     this.dcl = new DclService(ofp, deps.seed, deps.profile ?? DEFAULT_PROFILE, copy.dcl);
   }
@@ -267,6 +330,9 @@ export class RopsStation {
     const map = this.firMap(input.ext);
     if (this.st.handover !== null && now >= this.st.handover.until) this.st.handover = null;
 
+    // 0. Replies to requests whose delay is over (T25).
+    this.flushReplies(now, send, events);
+
     // 1. The aircraft's messages, in order (to the DCL station or the FIR stations).
     for (const m of input.inbound) {
       if (m.to === this.dcl.station && before.includes(m.to)) this.dcl.receive(m, dcl);
@@ -335,6 +401,7 @@ export class RopsStation {
       this.st.connected = null;
       this.st.handover = null;
       this.st.ended = true;
+      this.st.req.pending = [];
     }
     return { outbound, events };
   }
@@ -396,8 +463,91 @@ export class RopsStation {
     }
     // Answers to our messages need nothing (no open dialogues in T23).
     if (p.mrn !== null && /^(WILCO|UNABLE|ROGER|STANDBY|AFFIRM|NEGATIVE)\b/.test(p.text)) return;
+    // T25: requests to the station the aircraft is logged on to.
+    const req = to === this.st.connected ? parseRequest(p.text) : null;
+    if (req !== null) {
+      this.request(req, p.text, p.min, to, input, map);
+      return;
+    }
     send(to, 'NE', p.min, 'MESSAGE NOT SUPPORTED BY THIS ATS UNIT');
     events.push({ type: 'ATC_UNSUPPORTED', t: now, station: to, text: p.text });
+  }
+
+  /** Decides a request now; the reply waits for its seeded delay (T25). */
+  private request(
+    req: AtcRequest,
+    text: string,
+    mrn: number,
+    station: string,
+    input: RopsTickInput,
+    map: FirMap | null,
+  ): void {
+    const tm = input.telemetry;
+    const decision = decide(req, {
+      ofp: this.ofp,
+      altFt: tm?.altFt ?? null,
+      route: tm === null ? null : routePosition(this.ofp, tm),
+      fir: this.st.fir,
+      firAt: (p) => map?.locate(p)?.id ?? null,
+    });
+    const r = this.st.req;
+    const rng = createRng(`${this.seed}/#req/${r.n}`);
+    r.n += 1;
+    const due = input.now + rng.int(REPLY_DELAY_S[0], REPLY_DELAY_S[1]) * 1000;
+    let reply: Pick<PendingReply, 'approved' | 'text' | 'ra' | 'why'> = decision;
+    if (req.kind === 'level') {
+      let traffic = false;
+      if (decision.approved) {
+        const key = `level:${req.levelFt}`;
+        const held = r.traffic?.key === key ? r.traffic : null;
+        if (held !== null) {
+          // The same request again: the traffic is still there for 5 min.
+          traffic = input.now - held.t < TRAFFIC_HOLD_MS;
+          if (!traffic) r.traffic = null;
+        } else if (!r.lastTraffic && rng.chance(TRAFFIC_REFUSAL)) {
+          traffic = true;
+          r.traffic = { key, t: input.now };
+        }
+        if (traffic) {
+          reply = { approved: false, text: 'UNABLE@_@DUE TO TRAFFIC', ra: 'N', why: 'traffic' };
+        }
+      }
+      r.lastTraffic = traffic;
+    }
+    r.pending.push({
+      due,
+      station,
+      mrn,
+      request: text,
+      approved: reply.approved,
+      text: reply.text,
+      ra: reply.ra,
+      why: reply.why,
+    });
+  }
+
+  /** Sends the replies whose delay is over, oldest first. */
+  private flushReplies(
+    now: number,
+    send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => void,
+    events: AtcEvent[],
+  ): void {
+    const r = this.st.req;
+    const due = r.pending.filter((x) => x.due <= now).sort((a, b) => a.due - b.due);
+    if (due.length === 0) return;
+    r.pending = r.pending.filter((x) => x.due > now);
+    for (const x of due) {
+      send(x.station, x.ra, x.mrn, x.text);
+      events.push({
+        type: 'ATC_REQUEST',
+        t: now,
+        station: x.station,
+        request: x.request,
+        approved: x.approved,
+        reply: x.text,
+        why: x.why,
+      });
+    }
   }
 
   /** Notice + LOGOFF from `station`; the FIR's live controller serves the aircraft. */
