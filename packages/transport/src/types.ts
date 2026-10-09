@@ -1,4 +1,4 @@
-import type { FormattedMessage } from '@acars/core';
+import type { CpdlcHeader, FormattedMessage } from '@acars/core';
 
 /**
  * Transport contract (CLAUDE.md, invariant 7): Hoppie, SayIntentions and the mock are
@@ -16,6 +16,11 @@ export interface OutgoingTelex {
   /** Aircraft callsign (recipient). */
   readonly to: string;
   readonly message: FormattedMessage;
+  /**
+   * Present for an ATC uplink (T23): sent as a Hoppie `cpdlc` packet `/data2/…` built from
+   * this header and the message (`cpdlcPacket`, CPDLC profile); absent = `telex`.
+   */
+  readonly cpdlc?: CpdlcHeader;
 }
 
 /** A message the network delivered to one of our station callsigns. */
@@ -67,6 +72,12 @@ export interface Transport {
   readonly pending: number;
   /** Queues a telex; returns its id (used in SENT / SEND_* events). */
   send(telex: OutgoingTelex): string;
+  /**
+   * ATC station callsigns to poll even before they sent anything (T23: a ground station waits
+   * for the aircraft's logon). Replaces the previous set; stations that sent a telex are
+   * polled anyway.
+   */
+  listen(callsigns: readonly string[]): void;
   /** Poll faster for a while, e.g. after a message that expects a pilot reply. */
   expectReply(durationMs: number): void;
   /** Lets the transport start at most one request if one is due. Never blocks. */

@@ -1,12 +1,11 @@
 import {
   AcarsCore,
   type CompiledScenario,
+  type CoreEvent,
   type DisplayProfile,
   type FlightPhase,
   type OutboundMessage,
   type PhaseConfig,
-  type PhaseEvent,
-  type ScenarioEvent,
   type SimCommand,
 } from '@acars/core';
 import type { RecordedOutbound, Recording } from './format.js';
@@ -33,7 +32,7 @@ export interface ReplayOptions {
 }
 
 export type TimelineEntry =
-  | { readonly kind: 'event'; readonly now: number; readonly event: PhaseEvent | ScenarioEvent }
+  | { readonly kind: 'event'; readonly now: number; readonly event: CoreEvent }
   | { readonly kind: 'out'; readonly now: number; readonly message: OutboundMessage }
   | { readonly kind: 'cmd'; readonly now: number; readonly command: SimCommand }
   | { readonly kind: 'late_start'; readonly now: number; readonly delayMin: number }
@@ -76,6 +75,7 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
     ...(h.dataWaitMs === undefined ? {} : { dataWaitMs: h.dataWaitMs }),
     ...(h.flags === undefined ? {} : { flags: h.flags }),
     ...(h.minGapMs === undefined ? {} : { minGapMs: h.minGapMs }),
+    ...(h.rops === undefined ? {} : { rops: h.rops }),
     ...(o.phaseConfig === undefined ? {} : { phaseConfig: o.phaseConfig }),
   });
   const timeline: TimelineEntry[] = [];

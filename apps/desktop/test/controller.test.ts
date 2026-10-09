@@ -808,3 +808,119 @@ async function readRecordingOrNull(s: Awaited<ReturnType<typeof setup>>) {
   await s.app.stopFlight();
   return readRecording(s.recordings);
 }
+
+describe('ROPS ATC station (T23)', () => {
+  // Two rectangular FIRs across the RCTP → RJBB route, in the VATSpy formats.
+  const box = (id: string, w: number, s: number, e: number, n: number) => ({
+    type: 'Feature',
+    properties: { id, oceanic: '0', label_lon: '0', label_lat: '0', region: 'APAC', division: 'X' },
+    geometry: {
+      type: 'MultiPolygon',
+      coordinates: [
+        [
+          [
+            [w, s],
+            [e, s],
+            [e, n],
+            [w, n],
+            [w, s],
+          ],
+        ],
+      ],
+    },
+  });
+  const geojson = JSON.stringify({
+    type: 'FeatureCollection',
+    features: [box('RCAA', 115, 18, 125.5, 30), box('RJJJ', 125.5, 20, 150, 45)],
+  });
+  const dat = '[FIRs]\nRCAA|Taipei||RCAA\nRJJJ|Fukuoka||RJJJ\n[UIRs]\n';
+
+  async function ropsHttp(): Promise<FakeHttp> {
+    const simbrief = await readFile(OFP_FIXTURE, 'utf8');
+    return new FakeHttp((req) => {
+      if (req.url.includes('simbrief')) return { status: 200, body: simbrief };
+      if (req.url.endsWith('Boundaries.geojson')) return { status: 200, body: geojson };
+      if (req.url.endsWith('VATSpy.dat')) return { status: 200, body: dat };
+      return { status: 404, body: '' };
+    });
+  }
+
+  it('polls the FIR station, answers the logon by CPDLC, hands over; recorded and replayed', async () => {
+    const http = await ropsHttp();
+    const s = await setup({ http });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', rops: true });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    const mock = s.transports[0]?.t as MockTransport;
+    const socket = s.sockets.last();
+    // Lets the data service's requests settle now and then.
+    const step = async (from: number, to: number) => {
+      for (const [i, snap] of flight.snapshots.slice(from, to).entries()) {
+        s.clock.set(Math.max(s.clock.now(), snap.t));
+        socket.frame({ type: 'telemetry', data: snap });
+        s.app.tick(s.clock.now());
+        if (i % 60 === 0) await new Promise((r) => setTimeout(r, 0));
+      }
+    };
+    await step(0, 2);
+    await step(2, 5);
+    expect(s.app.state().atc).toEqual({ station: 'XCAA', connected: null });
+    expect(mock.listening).toEqual(['XCAA']);
+
+    mock.deliver({
+      from: ofp.callsign,
+      to: 'XCAA',
+      type: 'cpdlc',
+      packet: '/data2/0//Y/REQUEST LOGON',
+    });
+    await step(5, 8);
+    expect(s.app.state().atc).toEqual({ station: 'XCAA', connected: 'XCAA' });
+    const sent = mock.sent.filter((m) => m.telex.cpdlc !== undefined);
+    expect(sent.map((m) => [m.telex.from, m.telex.cpdlc, m.telex.message.text])).toEqual([
+      ['XCAA', { min: 1, mrn: 0, ra: 'NE' }, 'LOGON ACCEPTED'],
+      ['XCAA', { min: 2, mrn: null, ra: 'NE' }, 'CURRENT ATC UNIT@_@XCAA@_@TAIPEI CTL'],
+    ]);
+
+    const crossing = flight.snapshots.findIndex((x) => x.lon >= 125.5);
+    await step(8, crossing + 2);
+    expect(mock.listening).toEqual(['XCAA', 'XJJJ']);
+    expect(mock.lastExpectReplyMs).toBe(180_000);
+    expect(mock.sent.at(-1)?.telex.message.text).toBe('HANDOVER @XJJJ');
+    fly(s, crossing + 2);
+    await s.app.endFlight('DONE');
+    await s.app.stopFlight();
+
+    const codes = s.app.state().feed.flatMap((e) => (e.kind === 'system' ? [e.code] : []));
+    for (const c of ['atc_station', 'atc_logon', 'atc_handover'] as const)
+      expect(codes).toContain(c);
+
+    const rec = await readRecording(s.recordings);
+    expect(rec.header.rops).toEqual({ enabled: true, standAside: true });
+    const out = rec.events.flatMap((e) =>
+      e.type === 'out' && e.packet !== undefined ? [e.packet] : [],
+    );
+    expect(out[0]).toBe('/data2/1/0/NE/LOGON ACCEPTED');
+    const r = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+  });
+
+  it('without live data: one note in the feed, no listening', async () => {
+    const s = await setup({ http: await ropsHttp() });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', rops: true, liveData: false });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    fly(s, 0, 10);
+    const mock = s.transports[0]?.t as MockTransport;
+    expect(mock.listening).toEqual([]);
+    expect(s.app.state().atc).toEqual({ station: null, connected: null });
+    expect(s.app.state().feed.some((e) => e.kind === 'system' && e.code === 'atc_needs_data')).toBe(
+      true,
+    );
+  });
+});

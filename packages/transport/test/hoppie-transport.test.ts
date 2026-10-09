@@ -1,4 +1,4 @@
-import { createRng, ManualClock } from '@acars/core';
+import { createRng, formatCpdlc, ManualClock } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import {
   HoppieTransport,
@@ -347,5 +347,75 @@ describe('HoppieTransport: determinism and etiquette over a long flight', () => 
     });
     t.tick();
     expect(t.status).toBe('idle');
+  });
+});
+
+describe('HoppieTransport: ATC stations (T23)', () => {
+  it('sends a CPDLC uplink as a cpdlc packet /data2/…', async () => {
+    const { server, transport, run } = setup();
+    transport.send({
+      from: 'XDGG',
+      to: 'DLH4',
+      message: formatCpdlc('CURRENT ATC UNIT@_@XDGG@_@LANGEN CTL'),
+      cpdlc: { min: 2, mrn: null, ra: 'NE' },
+    });
+    await run(1_000);
+    expect(server.seen[0]?.params).toMatchObject({
+      from: 'XDGG',
+      to: 'DLH4',
+      type: 'cpdlc',
+      packet: '/data2/2//NE/CURRENT ATC UNIT@_@XDGG@_@LANGEN CTL',
+    });
+  });
+
+  it('refuses a CPDLC header on text not formatted for CPDLC', () => {
+    const { transport } = setup();
+    expect(() =>
+      transport.send({ ...telex('X', 'XDGG'), cpdlc: { min: 1, mrn: null, ra: 'R' } }),
+    ).toThrow(TypeError);
+  });
+
+  it('polls a listened ATC station before it sent anything, and stops when dropped', async () => {
+    const { server, transport, events, run } = setup();
+    server.handler = (p) =>
+      p['type'] === 'poll' && p['from'] === 'XDGG'
+        ? 'ok {DLH4 cpdlc {/data2/0//Y/REQUEST LOGON}}'
+        : 'ok';
+    transport.listen(['XDGG']);
+    await run(3_000);
+    expect(server.ofType('poll').map((s) => s.params['from'])).toEqual(['XDGG']);
+    expect(ofType(events, 'INBOUND')[0]?.message).toEqual({
+      from: 'DLH4',
+      to: 'XDGG',
+      type: 'cpdlc',
+      packet: '/data2/0//Y/REQUEST LOGON',
+    });
+    // Normal interval afterwards (45–75 s), then nothing once the station is dropped.
+    await run(80_000);
+    const polls = server.ofType('poll').length;
+    expect(polls).toBe(2);
+    transport.listen([]);
+    await run(200_000);
+    expect(server.ofType('poll')).toHaveLength(polls);
+  });
+
+  it('keeps polling a station that sent a telex even when no longer listened to', async () => {
+    const { server, transport, run } = setup();
+    transport.listen(['XDGG']);
+    transport.send({
+      from: 'XDGG',
+      to: 'DLH4',
+      message: formatCpdlc('LOGON ACCEPTED'),
+      cpdlc: { min: 1, mrn: 0, ra: 'NE' },
+    });
+    await run(5_000);
+    transport.listen([]);
+    await run(200_000);
+    expect(server.ofType('poll').length).toBeGreaterThan(1);
+  });
+
+  it('checks the callsigns it is asked to listen to', () => {
+    const { transport } = setup();
+    expect(() => transport.listen(['bad cs'])).toThrow(TypeError);
   });
 });

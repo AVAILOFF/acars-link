@@ -3,10 +3,12 @@ import {
   AcarsCore,
   type CompiledScenario,
   type CoreOutput,
+  cpdlcPacket,
   type DisplayProfile,
   type FlightPhase,
   type Ofp,
   type PilotMessage,
+  type RopsOptions,
   type SimCommand,
   stationCallsign,
   type TelemetrySnapshot,
@@ -15,7 +17,7 @@ import {
 import type { DataSourceKind, ExternalDataService } from '@acars/data-sources';
 import { encodeLine, type RecordingEvent, recordingHeader } from '@acars/replay';
 import type { Transport, TransportStatus } from '@acars/transport';
-import type { ForceableScenario, TelemetryView, TransportView } from '../shared/api.js';
+import type { AtcView, ForceableScenario, TelemetryView, TransportView } from '../shared/api.js';
 import type { Feed } from './feed.js';
 import type { RecordingSink } from './recording.js';
 
@@ -52,6 +54,8 @@ export interface FlightSessionOptions {
   readonly minGapMs?: number;
   /** Commands to the simulator the core produced (T21), sent on by the controller. */
   readonly simCommands?: (c: SimCommand) => void;
+  /** ROPS ATC station (T23); absent = off. */
+  readonly rops?: RopsOptions;
 }
 
 /** Names of the data sources in the feed (proper names, the same in every language). */
@@ -60,6 +64,7 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
   vatsim: 'VATSIM',
   eonet: 'NASA EONET',
   stands: 'OSM stands (Overpass)',
+  firs: 'VATSpy (FIR boundaries)',
 };
 
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */
@@ -92,6 +97,8 @@ export class FlightSession {
   private recording: RecordingSink | null;
   private readonly data: ExternalDataService | null;
   private readonly simCommands: (c: SimCommand) => void;
+  /** ATC callsigns the transport polls (T23), as last told. */
+  private listening = '';
 
   constructor(o: FlightSessionOptions) {
     this.core = AcarsCore.create({
@@ -103,6 +110,7 @@ export class FlightSession {
       ...(o.data == null ? {} : { dataWaitMs: DATA_WAIT_MS }),
       ...(o.flags === undefined ? {} : { flags: o.flags }),
       ...(o.minGapMs === undefined ? {} : { minGapMs: o.minGapMs }),
+      ...(o.rops === undefined ? {} : { rops: o.rops }),
     });
     this.data = o.data ?? null;
     this.simCommands = o.simCommands ?? (() => {});
@@ -129,6 +137,7 @@ export class FlightSession {
         ...(o.flags === undefined || Object.keys(o.flags).length === 0 ? {} : { flags: o.flags }),
         ...probabilities(o.scenarios),
         ...(o.minGapMs === undefined || o.minGapMs === 0 ? {} : { minGapMs: o.minGapMs }),
+        ...(o.rops === undefined ? {} : { rops: o.rops }),
       }),
     );
     this.core.startFlight();
@@ -167,6 +176,11 @@ export class FlightSession {
       vsFpm: s.vsFpm,
       fuelKg: s.fuelKg,
     };
+  }
+
+  /** ROPS station (T23): where to log on and where the aircraft is logged on; null = off. */
+  get atc(): AtcView | null {
+    return this.core.atc;
   }
 
   get transportView(): TransportView {
@@ -322,6 +336,36 @@ export class FlightSession {
         case 'REPLY_TIMEOUT':
           this.feed.system(e.t, 'reply_timeout', { id: e.id, option: e.option });
           break;
+        case 'ATC_STATION':
+          this.feed.system(e.t, 'atc_station', { fir: e.fir, station: e.station, unit: e.unit });
+          break;
+        case 'ATC_LOGON':
+          if (e.accepted) this.feed.system(e.t, 'atc_logon', { station: e.station });
+          else {
+            this.feed.system(e.t, 'atc_logon_refused', {
+              station: e.station,
+              reason: e.reason ?? '',
+            });
+          }
+          break;
+        case 'ATC_HANDOVER':
+          // The aircraft should log on to the next station soon: poll faster for a while.
+          this.transport.expectReply(180_000);
+          this.feed.system(e.t, 'atc_handover', { from: e.from, to: e.to });
+          break;
+        case 'ATC_LOGOFF':
+          this.feed.system(e.t, 'atc_logoff', { station: e.station, by: e.by });
+          break;
+        case 'ATC_LIVE':
+          this.feed.system(e.t, 'atc_live', {
+            fir: e.fir,
+            callsign: e.callsign,
+            frequency: e.frequency,
+          });
+          break;
+        case 'ATC_UNSUPPORTED':
+          this.feed.system(e.t, 'atc_unsupported', { station: e.station, text: e.text });
+          break;
         default:
           break;
       }
@@ -329,6 +373,11 @@ export class FlightSession {
     for (const c of out.commands) {
       this.record(cmdLine(c));
       this.simCommands(c);
+    }
+    const listen = out.listen.join(' ');
+    if (listen !== this.listening) {
+      this.listening = listen;
+      this.transport.listen(out.listen);
     }
     for (const m of out.outbound) {
       this.record(outLine(m));
@@ -341,7 +390,12 @@ export class FlightSession {
         text: m.message.text,
       };
       try {
-        const id = this.transport.send({ from: m.from, to: m.to, message: m.message });
+        const id = this.transport.send({
+          from: m.from,
+          to: m.to,
+          message: m.message,
+          ...(m.cpdlc === undefined ? {} : { cpdlc: m.cpdlc }),
+        });
         this.outbound.set(id, this.feed.add({ ...entry, delivery: 'queued', detail: null }));
       } catch (e) {
         const detail = e instanceof Error ? e.message : String(e);
@@ -374,7 +428,12 @@ export class FlightSession {
           break;
         }
         case 'INBOUND':
-          this.inbound.push({ from: e.message.from, type: e.message.type, text: e.message.packet });
+          this.inbound.push({
+            from: e.message.from,
+            type: e.message.type,
+            text: e.message.packet,
+            to: e.message.to,
+          });
           this.feed.add({
             kind: 'inbound',
             t: e.t,
@@ -409,6 +468,7 @@ function outLine(m: CoreOutput['outbound'][number]): RecordingEvent {
     from: m.from,
     to: m.to,
     text: m.message.text,
+    ...(m.cpdlc === undefined ? {} : { packet: cpdlcPacket(m.cpdlc, m.message) }),
   };
 }
 

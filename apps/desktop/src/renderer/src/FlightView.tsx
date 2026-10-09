@@ -268,6 +268,16 @@ function StatusCard({ app }: { app: AppState }) {
     if (tr.outbox > 0) netText += ` · ${t('net.outbox', { n: tr.outbox })}`;
   }
 
+  const atc = app.atc;
+  const atcText =
+    atc === null
+      ? null
+      : atc.connected !== null
+        ? t('atc.connected', { station: atc.connected })
+        : atc.station !== null
+          ? t('atc.logon', { station: atc.station })
+          : t('atc.wait');
+
   const tm = app.telemetry;
   return (
     <section className="panel" aria-labelledby="status-title">
@@ -279,6 +289,13 @@ function StatusCard({ app }: { app: AppState }) {
         <StatusRow label={t('status.bridge')} tone={bridgeTone} text={bridgeText} />
         <StatusRow label={t('status.sim')} tone={simTone} text={simText} />
         <StatusRow label={t('status.network')} tone={netTone} text={netText} />
+        {atc !== null && atcText !== null && (
+          <StatusRow
+            label={t('status.atc')}
+            tone={atc.connected !== null ? 'ok' : atc.station !== null ? 'warn' : 'off'}
+            text={atcText}
+          />
+        )}
       </ul>
       {app.session === 'running' && (
         <p className="telemetry mono">

@@ -28,6 +28,7 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
       return ['SIM', `${e.command.scenarioId}  ${e.command.command}`];
     case 'out': {
       const m = e.message;
+      if (m.kind === 'cpdlc') return ['CPDLC', `${m.from} → ${m.to}  ${m.message.lines.join(' ')}`];
       return ['TELEX', `${m.scenarioId}  ${m.from} → ${m.to}  (${m.message.lines.length} lines)`];
     }
     case 'event': {
@@ -87,6 +88,21 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
           return o.verbose === true ? ['SIM', 'paused'] : null;
         case 'SIM_RESUMED':
           return o.verbose === true ? ['SIM', 'resumed'] : null;
+        case 'ATC_STATION':
+          return ['ATC', `${ev.fir}: log on to ${ev.station} (${ev.unit})`];
+        case 'ATC_LOGON':
+          return [
+            'ATC',
+            `logon to ${ev.station} ${ev.accepted ? 'accepted' : `refused (${ev.reason})`}`,
+          ];
+        case 'ATC_HANDOVER':
+          return ['ATC', `handover ${ev.from} → ${ev.to}`];
+        case 'ATC_LOGOFF':
+          return ['ATC', `logoff ${ev.station} by ${ev.by}`];
+        case 'ATC_LIVE':
+          return ['ATC', `${ev.fir}: live ${ev.callsign} ${ev.frequency}, station steps aside`];
+        case 'ATC_UNSUPPORTED':
+          return ['ATC', `${ev.station}: not supported "${ev.text}"`];
       }
     }
   }
@@ -99,7 +115,7 @@ export function formatReport(r: ReplayResult, o: ReportOptions = {}): string {
     const d = describe(e, o);
     if (d === null) continue;
     lines.push(`${hhmmss(e.now)}Z ${elapsed(e.now - t0)}  ${d[0].padEnd(9)}  ${d[1]}`);
-    if (e.kind === 'out' && o.brief !== true) {
+    if (e.kind === 'out' && e.message.kind === 'telex' && o.brief !== true) {
       for (const l of e.message.message.lines) lines.push(`${' '.repeat(22)}| ${l}`);
     }
   }

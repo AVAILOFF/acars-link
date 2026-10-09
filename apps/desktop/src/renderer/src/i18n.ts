@@ -91,6 +91,25 @@ const en = {
   'sys.data_failed': 'Live data unavailable: {source} ({error}); messages use the OFP',
   'sys.data_restored': 'Live data available again: {source}',
   'sys.memory': 'Airline memory from earlier flights: {names}',
+  'sys.atc_station': 'ROPS: {fir} — log on to {station} ({unit})',
+  'sys.atc_logon': 'ROPS: logon to {station} accepted',
+  'sys.atc_logon_refused': 'ROPS: logon to {station} refused ({reason})',
+  'sys.atc_handover': 'ROPS: handover {from} → {to}',
+  'sys.atc_logoff': 'ROPS: {station} logged off ({by})',
+  'sys.atc_live':
+    'ROPS: live VATSIM ATC in {fir} — {callsign} {frequency}; the station steps aside',
+  'sys.atc_unsupported': 'ROPS: {station} does not handle "{text}" yet',
+  'sys.atc_needs_data': 'ROPS needs live data (FIR boundaries): turn on "Live data" in Settings',
+  'status.atc': 'ROPS ATC',
+  'atc.logon': 'log on to {station}',
+  'atc.connected': 'connected to {station}',
+  'atc.wait': 'waiting for FIR data',
+  'set.rops': 'ROPS ATC station (CPDLC)',
+  'set.ropsHint':
+    'A simulated CPDLC station per FIR for your aircraft on Hoppie: log on to X + the FIR code (EDGG → XDGG); at FIR boundaries it hands you over. Needs live data (FIR boundaries from VATSpy). Applies to the next flight.',
+  'set.ropsStandAside': 'Step aside for live VATSIM controllers',
+  'set.ropsStandAsideHint':
+    'Where a VATSIM centre covering the FIR is online, the station logs you off and names the controller.',
 
   'scen.title': 'Scenarios',
   'scen.hint': 'Changes apply to the next flight.',
@@ -277,6 +296,25 @@ const ru: Record<MessageKey, string> = {
   'sys.data_failed': 'Живые данные недоступны: {source} ({error}); сообщения по OFP',
   'sys.data_restored': 'Живые данные снова доступны: {source}',
   'sys.memory': 'Память авиакомпании с прошлых рейсов: {names}',
+  'sys.atc_station': 'ROPS: {fir} — логон на {station} ({unit})',
+  'sys.atc_logon': 'ROPS: логон на {station} принят',
+  'sys.atc_logon_refused': 'ROPS: логон на {station} отклонён ({reason})',
+  'sys.atc_handover': 'ROPS: передача {from} → {to}',
+  'sys.atc_logoff': 'ROPS: {station} — logoff ({by})',
+  'sys.atc_live': 'ROPS: в {fir} живой диспетчер VATSIM — {callsign} {frequency}; станция уступает',
+  'sys.atc_unsupported': 'ROPS: {station} пока не обрабатывает «{text}»',
+  'sys.atc_needs_data':
+    'Для ROPS нужны живые данные (границы FIR): включите «Живые данные» в настройках',
+  'status.atc': 'ROPS УВД',
+  'atc.logon': 'логон на {station}',
+  'atc.connected': 'связь с {station}',
+  'atc.wait': 'ждём данные FIR',
+  'set.rops': 'Станция УВД ROPS (CPDLC)',
+  'set.ropsHint':
+    'Имитация станции CPDLC для вашего самолёта на Hoppie, своя в каждой FIR: логон на X + код FIR (EDGG → XDGG), на границе FIR — передача следующей. Нужны живые данные (границы FIR из VATSpy). Действует со следующего рейса.',
+  'set.ropsStandAside': 'Уступать живым диспетчерам VATSIM',
+  'set.ropsStandAsideHint':
+    'Если онлайн центр VATSIM этой FIR, станция завершает связь (logoff) и сообщает позывной диспетчера.',
 
   'scen.title': 'Сценарии',
   'scen.hint': 'Изменения действуют со следующего полёта.',

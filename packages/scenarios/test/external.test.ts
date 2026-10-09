@@ -5,6 +5,7 @@ import {
   B77X_PROFILE,
   B78X_PROFILE,
   type CompiledScenario,
+  type CoreEvent,
   checkText,
   DEFAULT_PROFILE,
   type DisplayProfile,
@@ -13,11 +14,9 @@ import {
   MISSING,
   type Ofp,
   type OutboundMessage,
-  type PhaseEvent,
   type PilotMessage,
   parseSimbriefOfp,
   pickStand,
-  type ScenarioEvent,
   type SyntheticFlight,
   stageIndex,
   withGap,
@@ -129,7 +128,7 @@ function liveData(ofp: Ofp, t: number, first: boolean, atc = true): ExtDataUpdat
 
 interface Run {
   readonly out: OutboundMessage[];
-  readonly events: (PhaseEvent | ScenarioEvent)[];
+  readonly events: CoreEvent[];
 }
 
 function fly(
@@ -151,7 +150,7 @@ function fly(
   });
   core.startFlight();
   const out: OutboundMessage[] = [];
-  const events: (PhaseEvent | ScenarioEvent)[] = [];
+  const events: CoreEvent[] = [];
   c.flight.snapshots.forEach((s, i) => {
     const data =
       o.data === true && i % 600 === 0 ? liveData(c.ofp, s.t, i === 0, o.atc ?? true) : undefined;

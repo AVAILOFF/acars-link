@@ -194,6 +194,7 @@ export class AppController {
       bridge: this.bridge.view,
       telemetry: s?.telemetry ?? null,
       transport: s?.transportView ?? null,
+      atc: s?.atc ?? null,
       feed: this.feed.entries,
       memory: this.memory,
       irregular: s?.irregular ?? [],
@@ -308,7 +309,7 @@ export class AppController {
 
   /** Starts fetching the live data of an OFP before the flight starts (T13), if enabled. */
   private prefetch(ofp: Ofp, settings: Settings): void {
-    if (settings.liveData) this.data.startFlight(ofp, this.o.now());
+    if (settings.liveData) this.data.startFlight(ofp, this.o.now(), { firs: settings.rops });
     else this.data.stopFlight();
   }
 
@@ -360,7 +361,10 @@ export class AppController {
       flags,
       minGapMs: settings.messageGapSec * 1000,
       simCommands: (c) => this.sendSimCommand(c),
+      ...(settings.rops ? { rops: { enabled: true, standAside: settings.ropsStandAside } } : {}),
     });
+    // The station needs the FIR boundaries (live data).
+    if (settings.rops && !settings.liveData) this.feed.system(now, 'atc_needs_data');
     if (Object.keys(flags).length > 0) {
       this.feed.system(now, 'memory', { names: Object.keys(flags).sort().join(', ') });
     }

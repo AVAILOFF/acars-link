@@ -11,9 +11,15 @@ import type { PilotCommand } from './types.js';
 export interface PilotMessage {
   /** Sender callsign. Only the flight's own callsign counts as the pilot. */
   readonly from: string;
-  /** Hoppie message type (`telex`, `cpdlc`, …); only `telex` is read. */
+  /** Hoppie message type (`telex`, `cpdlc`, …); the airline reads only `telex`. */
   readonly type: string;
   readonly text: string;
+  /**
+   * Our callsign the message was addressed to (T23). Messages to a ROPS ATC station go to
+   * the station, the rest to the airline; absent (older recordings, typed in the app) = the
+   * airline.
+   */
+  readonly to?: string;
 }
 
 export function normalizePilotText(text: string): string {

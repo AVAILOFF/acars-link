@@ -1,3 +1,4 @@
+import type { CpdlcHeader } from '../atc/cpdlc.js';
 import {
   applyExtData,
   EMPTY_EXT,
@@ -79,7 +80,10 @@ export interface OutboundMessage {
   readonly from: string;
   /** Aircraft callsign (recipient). */
   readonly to: string;
-  readonly kind: 'telex';
+  /** `cpdlc`: an ATC uplink of the ROPS station (T23), sent as a Hoppie `cpdlc` packet. */
+  readonly kind: 'telex' | 'cpdlc';
+  /** Packet header of a `cpdlc` message (`atc/cpdlc.ts`). */
+  readonly cpdlc?: CpdlcHeader;
   readonly message: FormattedMessage;
   readonly t: number;
   /** Sent while handling a pilot message (an answer, a command reply): goes first in the outbox. */

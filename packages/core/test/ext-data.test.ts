@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AcarsCore,
   applyExtData,
+  type CoreEvent,
   checkExtDataUpdate,
   compileScenario,
   compileTemplate,
@@ -14,13 +15,11 @@ import {
   generateSyntheticFlight,
   metarQnh,
   type OutboundMessage,
-  type PhaseEvent,
   type PilotMessage,
   parseSimbriefOfp,
   pickStand,
   RoutePolyline,
   type ScenarioDef,
-  type ScenarioEvent,
 } from '../src/index.js';
 
 /** T13: external data in the core — `wx.*`, `ext.*`, OSM gate, `REQ WX` waiting for data. */
@@ -58,7 +57,7 @@ const wxUpdate = (t: number, obs = t - 10 * MIN): ExtDataUpdate => ({
 interface Run {
   readonly core: AcarsCore;
   readonly out: OutboundMessage[];
-  readonly events: (PhaseEvent | ScenarioEvent)[];
+  readonly events: CoreEvent[];
 }
 
 /** Flies the synthetic flight; `data`/`say` by snapshot index; optional state round trip. */
@@ -82,7 +81,7 @@ function fly(
   let core = AcarsCore.create(options);
   core.startFlight();
   const out: OutboundMessage[] = [];
-  const events: (PhaseEvent | ScenarioEvent)[] = [];
+  const events: CoreEvent[] = [];
   const end = opts.until ?? flight.snapshots.length;
   for (let i = 0; i < end; i++) {
     const s = flight.snapshots[i] as (typeof flight.snapshots)[number];

@@ -17,7 +17,7 @@ export const MAX_GET_URL_LENGTH = 256;
 /** `to` for server-directed types (poll, ping): ignored but required. */
 export const SERVER_CALLSIGN = 'SERVER';
 
-export type HoppieType = 'ping' | 'telex' | 'poll';
+export type HoppieType = 'ping' | 'telex' | 'poll' | 'cpdlc';
 
 export interface HoppieParams {
   readonly logon: string;

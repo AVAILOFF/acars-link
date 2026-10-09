@@ -1,3 +1,10 @@
+import {
+  type AtcEvent,
+  ROPS_CALLSIGN,
+  type RopsOptions,
+  type RopsState,
+  RopsStation,
+} from './atc/rops.js';
 import type { ExtDataUpdate, ExtState } from './ext/data.js';
 import type { DisplayProfile } from './format/profile.js';
 import type { Ofp } from './ofp/types.js';
@@ -10,10 +17,12 @@ import {
 } from './phase/fsm.js';
 import type { CompiledScenario } from './scenario/compile.js';
 import {
+  DEFAULT_STATION,
   type OutboundMessage,
   ScenarioEngine,
   type ScenarioEngineState,
   type ScenarioEvent,
+  stationCallsign,
 } from './scenario/engine.js';
 import type { Value } from './scenario/expr.js';
 import type { PilotMessage } from './scenario/pilot.js';
@@ -39,6 +48,9 @@ export interface CoreInput {
   readonly force?: readonly string[];
 }
 
+/** Everything a tick reports: phase, scenario and ATC (T23) events. */
+export type CoreEvent = PhaseEvent | ScenarioEvent | AtcEvent;
+
 export interface CoreOutput {
   readonly outbound: readonly OutboundMessage[];
   /**
@@ -47,7 +59,12 @@ export interface CoreOutput {
    */
   readonly commands: readonly SimCommand[];
   readonly phase: FlightPhase;
-  readonly events: readonly (PhaseEvent | ScenarioEvent)[];
+  readonly events: readonly CoreEvent[];
+  /**
+   * ATC station callsigns the transport should poll now (T23 ROPS): an ATC station waits for
+   * the aircraft's logon, so it is polled before it sent anything. Empty without ROPS.
+   */
+  readonly listen: readonly string[];
 }
 
 export interface CoreOptions {
@@ -69,6 +86,8 @@ export interface CoreOptions {
    * in the outbox; answers to the pilot go first.
    */
   readonly minGapMs?: number;
+  /** ROPS ATC station (T23); absent = off. */
+  readonly rops?: RopsOptions;
 }
 
 export interface CoreState {
@@ -77,6 +96,8 @@ export interface CoreState {
   readonly engine: ScenarioEngineState;
   /** Telexes waiting for the gap (`minGapMs`); absent in states saved before it. */
   readonly outbox?: OutboxState;
+  /** ROPS station (T23); absent in states saved before it or without ROPS. */
+  readonly rops?: RopsState;
 }
 
 export interface OutboxState {
@@ -89,14 +110,18 @@ export class AcarsCore {
   private queue: OutboundMessage[] = [];
   private lastAt: number | null = null;
   private readonly gapMs: number;
+  /** The airline's station callsign: messages to it go to the scenarios. */
+  private readonly airline: string;
 
   private constructor(
     private readonly fsm: PhaseMachine,
     private readonly engine: ScenarioEngine,
     options: CoreOptions,
+    private readonly rops: RopsStation | null,
   ) {
     this.gapMs = options.minGapMs ?? 0;
     if (!(this.gapMs >= 0)) throw new RangeError('minGapMs must be >= 0');
+    this.airline = stationCallsign(options.station ?? DEFAULT_STATION, options.ofp);
   }
 
   static create(options: CoreOptions): AcarsCore {
@@ -104,7 +129,12 @@ export class AcarsCore {
       ofp: options.ofp,
       ...(options.phaseConfig === undefined ? {} : { config: options.phaseConfig }),
     });
-    return new AcarsCore(fsm, new ScenarioEngine(engineOptions(options)), options);
+    return new AcarsCore(
+      fsm,
+      new ScenarioEngine(engineOptions(options)),
+      options,
+      ropsOf(options, undefined),
+    );
   }
 
   /** Telexes waiting for the gap between messages. */
@@ -118,6 +148,7 @@ export class AcarsCore {
       PhaseMachine.fromState(state.phase, options.phaseConfig),
       ScenarioEngine.fromState(state.engine, engineOptions(options)),
       options,
+      ropsOf(options, state.rops),
     );
     if (state.outbox !== undefined) {
       const copy = JSON.parse(JSON.stringify(state.outbox)) as OutboxState;
@@ -145,6 +176,13 @@ export class AcarsCore {
     return this.engine.flags;
   }
 
+  /** The ROPS station (T23): where to log on, where the aircraft is logged on; null = off. */
+  get atc(): { readonly station: string | null; readonly connected: string | null } | null {
+    return this.rops === null
+      ? null
+      : { station: this.rops.station, connected: this.rops.connected };
+  }
+
   /** External data the core holds (T13). */
   get ext(): ExtState {
     return this.engine.ext;
@@ -156,6 +194,7 @@ export class AcarsCore {
       phase: this.fsm.getState(),
       engine: this.engine.getState(),
       outbox: JSON.parse(JSON.stringify({ queue: this.queue, lastAt: this.lastAt })) as OutboxState,
+      ...(this.rops === null ? {} : { rops: this.rops.getState() }),
     };
   }
 
@@ -192,6 +231,9 @@ export class AcarsCore {
     data?: ExtDataUpdate,
     force?: readonly string[],
   ): CoreOutput {
+    // Messages to a ROPS station go to it, the rest to the airline (T23).
+    const toAtc = (m: PilotMessage) =>
+      this.rops !== null && m.to !== undefined && m.to !== this.airline && ROPS_CALLSIGN.test(m.to);
     const out = this.engine.tick({
       now,
       phase: this.fsm.phase,
@@ -200,15 +242,24 @@ export class AcarsCore {
       oooi: this.fsm.oooi,
       flightTimeMs: this.fsm.flightTimeMs,
       telemetryLost: this.fsm.telemetryLost,
-      inbound,
+      inbound: inbound.filter((m) => !toAtc(m)),
       ...(data === undefined ? {} : { data }),
       ...(force === undefined || force.length === 0 ? {} : { force }),
     });
+    // ATC uplinks are not airline telexes: they skip the outbox gap.
+    const atc = this.rops?.tick({
+      now,
+      phase: this.fsm.phase,
+      telemetry: this.fsm.lastSnapshot,
+      inbound: inbound.filter(toAtc),
+      ext: this.engine.ext,
+    }) ?? { outbound: [], events: [] };
     return {
-      outbound: this.pace(now, out.outbound),
+      outbound: [...atc.outbound, ...this.pace(now, out.outbound)],
       commands: out.commands,
       phase: this.fsm.phase,
-      events: [...phaseEvents, ...out.events],
+      events: [...phaseEvents, ...out.events, ...atc.events] as CoreEvent[],
+      listen: this.rops?.listen ?? [],
     };
   }
 
@@ -234,6 +285,10 @@ export class AcarsCore {
     }
     return out;
   }
+}
+
+function ropsOf(o: CoreOptions, state: RopsState | undefined): RopsStation | null {
+  return o.rops?.enabled === true ? new RopsStation(o.ofp, o.rops, state) : null;
 }
 
 function engineOptions(o: CoreOptions) {

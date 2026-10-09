@@ -1,7 +1,9 @@
 import {
   type AtcStation,
+  type CenterStation,
   checkExtDataUpdate,
   type ExtDataUpdate,
+  type FirArea,
   type FlightPhase,
   type NaturalEvent,
   type Ofp,
@@ -11,7 +13,14 @@ import {
 import { DataSourceError, type FetchContext, type HttpClient, ICAO_RE } from './common.js';
 import { fetchEonetEvents } from './eonet.js';
 import { fetchStands } from './stands.js';
-import { fetchVatsimStations, stationsFor, type VatsimStation } from './vatsim.js';
+import { fetchVatsim, stationsFor, type VatsimStation } from './vatsim.js';
+import {
+  centersFor,
+  fetchVatspy,
+  routeFirs,
+  type VatsimCenter,
+  type VatspyData,
+} from './vatspy.js';
 import { fetchWx } from './wx.js';
 
 /**
@@ -24,11 +33,13 @@ import { fetchWx } from './wx.js';
  * Schedule: weather of the OFP airports at start and every 10 min, plus any airport the
  * pilot asks for (`REQ WX`, core event `DATA_REQUEST`); VATSIM at start and every 5 min
  * from the climb to the approach; EONET at start and every hour; the destination's stands
- * once (cached 30 days).
+ * once (cached 30 days). With the ROPS station (T23, `startFlight(…, { firs: true })`): the
+ * VATSpy FIR boundaries once (cached 7 days) — the FIRs along the route go to the core, and
+ * with every VATSIM fetch the online centres covering them.
  */
 
-export type DataSourceKind = 'wx' | 'vatsim' | 'eonet' | 'stands';
-export const DATA_SOURCES: readonly DataSourceKind[] = ['wx', 'vatsim', 'eonet', 'stands'];
+export type DataSourceKind = 'wx' | 'vatsim' | 'eonet' | 'stands' | 'firs';
+export const DATA_SOURCES: readonly DataSourceKind[] = ['wx', 'vatsim', 'eonet', 'stands', 'firs'];
 
 export interface CacheEntry {
   /** When the value was fetched, epoch ms. */
@@ -77,6 +88,7 @@ export const DATA_POLICY: Readonly<Record<DataSourceKind, Policy>> = {
   vatsim: { refreshMs: 5 * MIN, cacheMs: MIN, retryMs: 2 * MIN, maxTries: null },
   eonet: { refreshMs: 60 * MIN, cacheMs: 30 * MIN, retryMs: 15 * MIN, maxTries: null },
   stands: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
+  firs: { refreshMs: null, cacheMs: 7 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
 };
 
 /** VATSIM refreshes only here (the first fetch at start goes in any phase). */
@@ -109,6 +121,8 @@ interface Flight {
   readonly ofp: Ofp;
   /** Origin, destination, alternates. */
   readonly airports: readonly string[];
+  /** FIR boundaries and centres for the ROPS station (T23). */
+  readonly firs: boolean;
 }
 
 export class ExternalDataService {
@@ -126,7 +140,13 @@ export class ExternalDataService {
     atc: Record<string, AtcStation[]> | null;
     events: NaturalEvent[] | null;
     stands: { icao: string; list: ParkingStand[] } | null;
-  } = { wx: {}, atc: null, events: null, stands: null };
+    firs: FirArea[] | null;
+    centers: CenterStation[] | null;
+  } = empty();
+  /** VATSpy data of the flight (T23) and the ids of the route's FIRs. */
+  private vatspy: { data: VatspyData; route: ReadonlySet<string> } | null = null;
+  /** Centres of the last VATSIM fetch, mapped once VATSpy is there. */
+  private rawCenters: readonly VatsimCenter[] | null = null;
   private notes: DataNote[] = [];
   private readonly running = new Set<Promise<void>>();
 
@@ -140,20 +160,26 @@ export class ExternalDataService {
     this.enabled = new Set(o.sources ?? DATA_SOURCES);
   }
 
-  /** A new flight (also right after the OFP is loaded, to prefetch). Fetching starts on tick. */
-  startFlight(ofp: Ofp, now: number): void {
-    if (this.flight?.ofp === ofp) return;
+  /**
+   * A new flight (also right after the OFP is loaded, to prefetch). Fetching starts on tick.
+   * `firs`: also the FIR boundaries and centres for the ROPS station (T23).
+   */
+  startFlight(ofp: Ofp, now: number, opts: { readonly firs?: boolean } = {}): void {
+    const firs = opts.firs === true;
+    if (this.flight?.ofp === ofp && this.flight.firs === firs) return;
     this.generation++;
     const airports = [ofp.origin.icao, ofp.destination.icao, ...ofp.alternates.map((a) => a.icao)];
-    this.flight = { ofp, airports: [...new Set(airports)].filter((i) => ICAO_RE.test(i)) };
+    this.flight = { ofp, airports: [...new Set(airports)].filter((i) => ICAO_RE.test(i)), firs };
     this.src = new Map(
-      DATA_SOURCES.filter((k) => this.enabled.has(k)).map((k) => [
+      DATA_SOURCES.filter((k) => this.enabled.has(k) && (k !== 'firs' || firs)).map((k) => [
         k,
         { inFlight: false, nextAt: now, fails: 0, fetched: false, failing: false },
       ]),
     );
     this.wxExtra.clear();
-    this.pending = { wx: {}, atc: null, events: null, stands: null };
+    this.pending = empty();
+    this.vatspy = null;
+    this.rawCenters = null;
   }
 
   stopFlight(): void {
@@ -161,6 +187,8 @@ export class ExternalDataService {
     this.flight = null;
     this.src.clear();
     this.wxExtra.clear();
+    this.vatspy = null;
+    this.rawCenters = null;
   }
 
   /** Weather for an airport outside the OFP, as soon as possible (core `DATA_REQUEST`). */
@@ -182,7 +210,7 @@ export class ExternalDataService {
       if (s.inFlight || (now < s.nextAt && !asked)) continue;
       const p = DATA_POLICY[kind];
       if (p.maxTries !== null && s.fails >= p.maxTries) continue;
-      if (kind === 'stands' && s.fetched) continue;
+      if ((kind === 'stands' || kind === 'firs') && s.fetched) continue;
       if (kind === 'vatsim' && s.fetched && (phase === null || !VATSIM_PHASES.has(phase))) {
         s.nextAt = now + (p.refreshMs ?? 0);
         continue;
@@ -194,11 +222,16 @@ export class ExternalDataService {
   /** Data fetched since the last call (stamped `now`), and source status changes. */
   take(now: number): { update: ExtDataUpdate | null; notes: DataNote[] } {
     const p = this.pending;
-    this.pending = { wx: {}, atc: null, events: null, stands: null };
+    this.pending = empty();
     const notes = this.notes;
     this.notes = [];
     const has =
-      Object.keys(p.wx).length > 0 || p.atc !== null || p.events !== null || p.stands !== null;
+      Object.keys(p.wx).length > 0 ||
+      p.atc !== null ||
+      p.events !== null ||
+      p.stands !== null ||
+      p.firs !== null ||
+      p.centers !== null;
     if (!has) return { update: null, notes };
     return {
       update: {
@@ -207,6 +240,8 @@ export class ExternalDataService {
         ...(p.atc === null ? {} : { atc: p.atc }),
         ...(p.events === null ? {} : { events: p.events }),
         ...(p.stands === null ? {} : { stands: p.stands }),
+        ...(p.firs === null ? {} : { firs: p.firs }),
+        ...(p.centers === null ? {} : { centers: p.centers }),
       },
       notes,
     };
@@ -284,20 +319,38 @@ export class ExternalDataService {
         return () => Object.assign(this.pending.wx, wx);
       }
       case 'vatsim': {
-        let stations = (await this.cached('vatsim', now, kind, checkStations)) as
-          | VatsimStation[]
+        let feed = (await this.cached('vatsim', now, kind, checkVatsim)) as
+          | { stations: VatsimStation[]; centers: VatsimCenter[] }
           | undefined;
-        if (stations === undefined) {
-          stations = await fetchVatsimStations(this.ctx);
-          await this.store('vatsim', now, stations);
+        if (feed === undefined) {
+          feed = await fetchVatsim(this.ctx);
+          await this.store('vatsim', now, feed);
         }
         const o = flight.ofp;
-        const atc = stationsFor(stations, [
+        const atc = stationsFor(feed.stations, [
           { icao: o.origin.icao, iata: o.origin.iata },
           { icao: o.destination.icao, iata: o.destination.iata },
         ]);
+        const centers = feed.centers;
         return () => {
           this.pending.atc = atc;
+          if (!flight.firs) return;
+          this.rawCenters = centers;
+          this.mapCenters();
+        };
+      }
+      case 'firs': {
+        let data = (await this.cached('vatspy', now, kind, checkVatspy)) as VatspyData | undefined;
+        if (data === undefined) {
+          data = await fetchVatspy(this.ctx);
+          await this.store('vatspy', now, data);
+        }
+        const route = routeFirs(data, flight.ofp);
+        const vatspy = { data, route: new Set(route.map((f) => f.id)) };
+        return () => {
+          this.vatspy = vatspy;
+          this.pending.firs = route;
+          this.mapCenters();
         };
       }
       case 'eonet': {
@@ -331,6 +384,12 @@ export class ExternalDataService {
     }
   }
 
+  /** Centres of the last VATSIM fetch that cover the route's FIRs (T23). */
+  private mapCenters(): void {
+    if (this.vatspy === null || this.rawCenters === null) return;
+    this.pending.centers = centersFor(this.rawCenters, this.vatspy.data, this.vatspy.route);
+  }
+
   /** A fresh cached value (checked), or undefined. Cache errors count as a miss. */
   private async cached(
     key: string,
@@ -356,6 +415,37 @@ export class ExternalDataService {
       // A cache that cannot write only costs a request next time.
     }
   }
+}
+
+function empty() {
+  return { wx: {}, atc: null, events: null, stands: null, firs: null, centers: null };
+}
+
+function checkVatsim(v: unknown): void {
+  if (typeof v !== 'object' || v === null) throw new DataSourceError('bad cached VATSIM data');
+  const { stations, centers } = v as { stations?: unknown; centers?: unknown };
+  checkStations(stations);
+  const ok =
+    Array.isArray(centers) &&
+    centers.every(
+      (c: unknown) =>
+        typeof c === 'object' &&
+        c !== null &&
+        typeof (c as VatsimCenter).callsign === 'string' &&
+        typeof (c as VatsimCenter).frequency === 'string',
+    );
+  if (!ok) throw new DataSourceError('bad cached VATSIM data');
+}
+
+function checkVatspy(v: unknown): void {
+  if (typeof v !== 'object' || v === null) throw new DataSourceError('bad cached VATSpy data');
+  const { firs, prefixes } = v as { firs?: unknown; prefixes?: unknown };
+  checkExtDataUpdate({ t: 0, firs });
+  const ok =
+    typeof prefixes === 'object' &&
+    prefixes !== null &&
+    Object.values(prefixes).every((l) => Array.isArray(l) && l.every((f) => typeof f === 'string'));
+  if (!ok) throw new DataSourceError('bad cached VATSpy data');
 }
 
 function checkStations(v: unknown): void {

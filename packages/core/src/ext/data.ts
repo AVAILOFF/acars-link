@@ -52,6 +52,29 @@ export interface ParkingStand {
 }
 
 /**
+ * A FIR as the ROPS station sees it (T23; VATSpy `Boundaries.geojson` + the name from
+ * `VATSpy.dat`, docs/06 "Границы FIR"). Only FIRs near the route are passed in.
+ */
+export interface FirArea {
+  /** `EDGG`. */
+  readonly id: string;
+  /** VATSpy name, e.g. `Langen`, `Shanwick Oceanic`. */
+  readonly name: string;
+  readonly oceanic: boolean;
+  /** GeoJSON MultiPolygon coordinates: polygons → rings (outer first) → `[lon, lat]`. */
+  readonly polygons: readonly (readonly (readonly (readonly [number, number])[])[])[];
+}
+
+/** An online VATSIM centre (CTR) or FSS and the FIRs it covers (T23; no personal data). */
+export interface CenterStation {
+  readonly callsign: string;
+  /** MHz, `136.125`. */
+  readonly frequency: string;
+  /** FIR ids (`EDGG`); a UIR station lists all its FIRs. */
+  readonly firs: readonly string[];
+}
+
+/**
  * One data update, passed with a tick. Each field replaces what the core knew of it:
  * `wx` per airport (null = fetched, no report), `atc` per airport of the flight, `events`
  * the whole list, `stands` the destination's list.
@@ -63,6 +86,10 @@ export interface ExtDataUpdate {
   readonly atc?: Readonly<Record<string, readonly AtcStation[]>>;
   readonly events?: readonly NaturalEvent[];
   readonly stands?: { readonly icao: string; readonly list: readonly ParkingStand[] };
+  /** FIRs along the route (T23); replaces the list. */
+  readonly firs?: readonly FirArea[];
+  /** Online VATSIM centres (T23); replaces the list. */
+  readonly centers?: readonly CenterStation[];
 }
 
 /** A natural event placed against the planned route (once, when it arrives). */
@@ -81,6 +108,10 @@ export interface ExtState {
   readonly stands: readonly ParkingStand[] | null;
   /** The arrival gate went out in a message: stand updates no longer change it. */
   readonly gateLocked: boolean;
+  /** FIRs along the route (T23); absent in states saved before T23. */
+  readonly firs?: readonly FirArea[] | null;
+  readonly centers?: readonly CenterStation[] | null;
+  readonly centersT?: number | null;
 }
 
 export const EMPTY_EXT: ExtState = {
@@ -101,6 +132,7 @@ export const EVENT_CORRIDOR_NM = 150;
 
 const ICAO = /^[A-Z0-9]{3,4}$/;
 const REF = /^[A-Z0-9]{1,6}$/;
+const FIR = /^[A-Z]{4}$/;
 
 export class ExtDataError extends Error {
   override readonly name = 'ExtDataError';
@@ -117,7 +149,7 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
     throw new ExtDataError(`data update: ${why}`);
   };
   if (!isObj(x) || !isNum(x['t'])) return bad('t');
-  const { wx, atc, events, stands } = x;
+  const { wx, atc, events, stands, firs, centers } = x;
   if (wx !== undefined) {
     if (!isObj(wx)) bad('wx');
     for (const [icao, r] of Object.entries(wx as object)) {
@@ -171,8 +203,56 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
         bad('stands item');
     }
   }
+  if (firs !== undefined) {
+    if (!Array.isArray(firs)) bad('firs');
+    for (const f of firs as unknown[]) {
+      if (
+        !isObj(f) ||
+        !FIR.test(String(f['id'])) ||
+        typeof f['name'] !== 'string' ||
+        typeof f['oceanic'] !== 'boolean' ||
+        !isPolygons(f['polygons'])
+      )
+        bad('firs item');
+    }
+  }
+  if (centers !== undefined) {
+    if (!Array.isArray(centers)) bad('centers');
+    for (const c of centers as unknown[]) {
+      if (
+        !isObj(c) ||
+        typeof c['callsign'] !== 'string' ||
+        typeof c['frequency'] !== 'string' ||
+        !Array.isArray(c['firs']) ||
+        !(c['firs'] as unknown[]).every((f) => FIR.test(String(f)))
+      )
+        bad('centers item');
+    }
+  }
   return x as unknown as ExtDataUpdate;
 }
+
+const isPolygons = (x: unknown): boolean =>
+  Array.isArray(x) &&
+  x.every(
+    (rings: unknown) =>
+      Array.isArray(rings) &&
+      rings.length > 0 &&
+      rings.every(
+        (ring: unknown) =>
+          Array.isArray(ring) &&
+          ring.length >= 4 &&
+          ring.every(
+            (pt: unknown) =>
+              Array.isArray(pt) &&
+              pt.length === 2 &&
+              isNum(pt[0]) &&
+              isNum(pt[1]) &&
+              Math.abs(pt[0]) <= 180 &&
+              Math.abs(pt[1]) <= 90,
+          ),
+      ),
+  );
 
 /** Applies an update. Stands are only for the destination and only until the gate went out. */
 export function applyExtData(
@@ -195,6 +275,8 @@ export function applyExtData(
       .sort((a, b) => a.alongNm - b.alongNm || (a.id < b.id ? -1 : 1));
     next = { ...next, events };
   }
+  if (u.firs !== undefined) next = { ...next, firs: [...u.firs] };
+  if (u.centers !== undefined) next = { ...next, centers: [...u.centers], centersT: u.t };
   if (
     u.stands !== undefined &&
     u.stands.icao === ofp.destination.icao &&

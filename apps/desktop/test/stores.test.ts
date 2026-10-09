@@ -60,6 +60,8 @@ describe('settings', () => {
       liveData: true,
       soundOnMessage: false,
       messageGapSec: 60,
+      rops: false,
+      ropsStandAside: true,
       scenarios: {},
       chances: {},
     });
@@ -80,6 +82,8 @@ describe('settings', () => {
       { bridgePort: 80 },
       { bridgePort: 47830.5 },
       { recordFlights: 'yes' },
+      { rops: 1 },
+      { ropsStandAside: 'no' },
       { messageGapSec: -1 },
       { messageGapSec: 1.5 },
       { messageGapSec: 601 },

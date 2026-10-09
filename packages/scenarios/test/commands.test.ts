@@ -5,6 +5,7 @@ import {
   B77X_PROFILE,
   B78X_PROFILE,
   type CompiledScenario,
+  type CoreEvent,
   checkText,
   DEFAULT_PROFILE,
   type DisplayProfile,
@@ -14,10 +15,8 @@ import {
   type Ofp,
   OPS_REPLY_ID,
   type OutboundMessage,
-  type PhaseEvent,
   type PilotMessage,
   parseSimbriefOfp,
-  type ScenarioEvent,
   type SyntheticFlight,
   stageIndex,
   withGap,
@@ -112,7 +111,7 @@ interface Exchange {
 
 interface Run {
   readonly out: OutboundMessage[];
-  readonly events: (PhaseEvent | ScenarioEvent)[];
+  readonly events: CoreEvent[];
   readonly talk: Exchange[];
 }
 
@@ -125,7 +124,7 @@ function fly(
   const core = AcarsCore.create({ ofp: c.ofp, scenarios, seed: 'cmd', profile });
   core.startFlight();
   const out: OutboundMessage[] = [];
-  const events: (PhaseEvent | ScenarioEvent)[] = [];
+  const events: CoreEvent[] = [];
   const talk: Exchange[] = [];
   const entered = new Map<FlightPhase, number>([['BOARDING', c.flight.snapshots[0]?.t ?? 0]]);
   const done = new Set<number>();

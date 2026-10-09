@@ -4,17 +4,16 @@ import { describe, expect, it } from 'vitest';
 import {
   AcarsCore,
   B78X_PROFILE,
+  type CoreEvent,
   type CoreOptions,
   checkText,
   compileScenario,
   DEFAULT_PROFILE,
   generateSyntheticFlight,
   type OutboundMessage,
-  type PhaseEvent,
   parseSimbriefOfp,
   type ScenarioDef,
   ScenarioError,
-  type ScenarioEvent,
   type SyntheticFlight,
   stageIndex,
   stationCallsign,
@@ -43,7 +42,7 @@ const def = (d: Partial<ScenarioDef> & Pick<ScenarioDef, 'id' | 'trigger'>): Sce
 interface Result {
   readonly core: AcarsCore;
   readonly out: OutboundMessage[];
-  readonly events: (PhaseEvent | ScenarioEvent)[];
+  readonly events: CoreEvent[];
 }
 
 function fly(
@@ -56,7 +55,7 @@ function fly(
 ): Result {
   if (from === 0) core.startFlight();
   const out: OutboundMessage[] = [];
-  const events: (PhaseEvent | ScenarioEvent)[] = [];
+  const events: CoreEvent[] = [];
   for (const s of flight.snapshots.slice(from, to)) {
     const r = core.tick({ now: s.t, telemetry: s });
     out.push(...r.outbound);

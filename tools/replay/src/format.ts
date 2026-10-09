@@ -6,6 +6,7 @@ import {
   isTelemetrySnapshot,
   type Ofp,
   type PilotMessage,
+  type RopsOptions,
   type TelemetrySnapshot,
   type Value,
 } from '@acars/core';
@@ -21,7 +22,9 @@ import {
  *                                                                      + external data fetched, T13;
  *                                                                      + "force": [id] started by hand)
  * {"type":"end","now":…,"to":"DONE"}                                   user closed the flight
- * {"type":"out","t":…,"scenarioId":…,"from":…,"to":…,"text":…}        telex the core produced live
+ * {"type":"out","t":…,"scenarioId":…,"from":…,"to":…,"text":…[,"packet":…]}
+ *                                                                      telex the core produced live
+ *                                                                      (ATC CPDLC, T23: + the /data2/ packet)
  * {"type":"cmd","t":…,"scenarioId":…,"command":…,"data":{…}}         sim command produced live (T22:
  *                                                                      "vdgs" + VdgsMessage, bridge
  *                                                                      commands + their args)
@@ -67,6 +70,8 @@ export interface RecordingHeader {
   readonly probabilities?: Readonly<Record<string, number>>;
   /** Airline memory the flight started with (T14 `flags.*`); absent = none. */
   readonly flags?: Readonly<Record<string, Value>>;
+  /** ROPS ATC station (T23); absent = off. */
+  readonly rops?: RopsOptions;
 }
 
 export type RecordingEvent =
@@ -90,6 +95,8 @@ export type RecordingEvent =
       readonly from: string;
       readonly to: string;
       readonly text: string;
+      /** The Hoppie `/data2/` packet of an ATC CPDLC uplink (T23). */
+      readonly packet?: string;
     }
   | {
       readonly type: 'cmd';
@@ -198,6 +205,16 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     throw bad('probabilities');
   if (x['dataWaitMs'] !== undefined && !(isNum(x['dataWaitMs']) && x['dataWaitMs'] >= 0))
     throw bad('dataWaitMs');
+  const r = x['rops'];
+  if (
+    r !== undefined &&
+    !(
+      isObj(r) &&
+      typeof r['enabled'] === 'boolean' &&
+      (r['standAside'] === undefined || typeof r['standAside'] === 'boolean')
+    )
+  )
+    throw bad('rops');
   return x as unknown as RecordingHeader;
 }
 
@@ -250,9 +267,14 @@ function checkEvent(x: unknown, no: number): RecordingEvent {
         const ok =
           Array.isArray(x['inbound']) &&
           x['inbound'].every(
-            (m: unknown) => isObj(m) && isStr(m['from']) && isStr(m['type']) && isStr(m['text']),
+            (m: unknown) =>
+              isObj(m) &&
+              isStr(m['from']) &&
+              isStr(m['type']) &&
+              isStr(m['text']) &&
+              (m['to'] === undefined || isStr(m['to'])),
           );
-        if (!ok) throw bad('inbound must be [{from, type, text}]');
+        if (!ok) throw bad('inbound must be [{from, type, text, to?}]');
       }
       if (x['force'] !== undefined && !isStrArr(x['force'])) throw bad('force must be [id]');
       if (x['data'] !== undefined) {
@@ -271,6 +293,7 @@ function checkEvent(x: unknown, no: number): RecordingEvent {
     case 'out':
       if (!isNum(x['t'])) throw bad('t');
       for (const k of ['scenarioId', 'from', 'to', 'text']) if (!isStr(x[k])) throw bad(k);
+      if (x['packet'] !== undefined && !isStr(x['packet'])) throw bad('packet');
       return x as unknown as RecordingEvent;
     case 'cmd':
       if (!isNum(x['t'])) throw bad('t');

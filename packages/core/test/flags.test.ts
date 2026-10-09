@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest';
 import {
   AcarsCore,
   buildIrregularData,
+  type CoreEvent,
   compileScenario,
   generateSyntheticFlight,
   metarTempC,
   type OutboundMessage,
-  type PhaseEvent,
   parseSimbriefOfp,
   reassignedGate,
   type ScenarioDef,
@@ -38,7 +38,7 @@ const def = (d: Partial<ScenarioDef> & Pick<ScenarioDef, 'id' | 'trigger'>): Sce
 interface Run {
   readonly core: AcarsCore;
   readonly out: OutboundMessage[];
-  readonly events: (PhaseEvent | ScenarioEvent)[];
+  readonly events: CoreEvent[];
 }
 
 function fly(
@@ -55,7 +55,7 @@ function fly(
   let core = AcarsCore.create(options);
   core.startFlight();
   const out: OutboundMessage[] = [];
-  const events: (PhaseEvent | ScenarioEvent)[] = [];
+  const events: CoreEvent[] = [];
   flight.snapshots.forEach((s, i) => {
     if (i === resumeAt) {
       core = AcarsCore.fromState(JSON.parse(JSON.stringify(core.getState())), options);

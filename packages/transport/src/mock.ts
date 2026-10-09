@@ -30,6 +30,8 @@ export class MockTransport implements Transport {
   private seq = 0;
   /** Last {@link Transport.expectReply} duration, for assertions. */
   lastExpectReplyMs: number | null = null;
+  /** ATC callsigns from the last {@link Transport.listen}, for assertions. */
+  listening: readonly string[] = [];
 
   constructor(private readonly clock: Clock) {}
 
@@ -53,6 +55,13 @@ export class MockTransport implements Transport {
 
   expectReply(durationMs: number): void {
     this.lastExpectReplyMs = durationMs;
+  }
+
+  listen(callsigns: readonly string[]): void {
+    for (const cs of callsigns) {
+      if (!isValidCallsign(cs)) throw new TypeError(`invalid callsign "${cs}"`);
+    }
+    this.listening = [...callsigns];
   }
 
   /** The next queued telexes fail permanently with these reasons, one each. */

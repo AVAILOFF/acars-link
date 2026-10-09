@@ -26,6 +26,8 @@ export function defaultSettings(locale: string): Settings {
     liveData: true,
     soundOnMessage: false,
     messageGapSec: 60,
+    rops: false,
+    ropsStandAside: true,
     scenarios: {},
     chances: {},
   };
@@ -71,6 +73,8 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'recordFlights':
       case 'liveData':
       case 'soundOnMessage':
+      case 'rops':
+      case 'ropsStandAside':
         if (typeof value !== 'boolean') throw bad(key, 'true or false');
         out[key] = value;
         break;
@@ -95,6 +99,8 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'liveData',
     'soundOnMessage',
     'messageGapSec',
+    'rops',
+    'ropsStandAside',
   ] as const;
   for (const key of keys) {
     if (!(key in r)) continue;

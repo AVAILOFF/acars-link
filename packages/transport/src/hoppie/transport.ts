@@ -1,4 +1,4 @@
-import type { Clock, Rng } from '@acars/core';
+import { type Clock, cpdlcPacket, type Rng } from '@acars/core';
 import { type HttpClient, HttpTimeoutError } from '../http.js';
 import type {
   OutgoingTelex,
@@ -25,7 +25,9 @@ import {
  * endpoint). Etiquette from tech.html (CLAUDE.md, invariant 6):
  * - one request in flight, at least `minRequestGapMs` between requests (no bursts);
  * - poll a station callsign only after it sent its first message, every 45–75 s at
- *   random, 20 s for a short while when a reply is expected;
+ *   random, 20 s for a short while when a reply is expected; an ATC station (T23,
+ *   {@link HoppieTransport.listen}) is polled from the start: it waits for the aircraft's logon
+ *   (tech.html asks only aircraft clients to wait for their first message);
  * - 15 s timeout; a failed poll is skipped until the next normal interval, a failed
  *   send is retried with exponential backoff and jitter, never in a tight loop.
  * Telexes go out strictly in order: a telex waiting for a retry holds the ones behind it.
@@ -89,6 +91,10 @@ export class HoppieTransport implements Transport {
   private readonly queue: QueuedTelex[] = [];
   /** Station callsign → next poll time. A station joins after its first sent telex. */
   private readonly polls = new Map<string, number>();
+  /** ATC callsigns polled without a sent telex ({@link listen}). */
+  private listened = new Set<string>();
+  /** Callsigns that sent a telex (stay polled when no longer listened to). */
+  private readonly senders = new Set<string>();
   private events: TransportEvent[] = [];
   private inflight: Promise<void> | null = null;
   private lastRequestAt = Number.NEGATIVE_INFINITY;
@@ -132,10 +138,25 @@ export class HoppieTransport implements Transport {
       if (!isValidCallsign(cs)) throw new TypeError(`invalid callsign "${cs}"`);
     }
     if (telex.message.text.trim() === '') throw new TypeError('empty telex');
+    if (telex.cpdlc !== undefined) cpdlcPacket(telex.cpdlc, telex.message); // checks the profile
     this.seq++;
     const id = `tx-${this.seq}`;
     this.queue.push({ id, telex, attempts: 0, notBefore: Number.NEGATIVE_INFINITY });
     return id;
+  }
+
+  listen(callsigns: readonly string[]): void {
+    for (const cs of callsigns) {
+      if (!isValidCallsign(cs)) throw new TypeError(`invalid callsign "${cs}"`);
+    }
+    const next = new Set(callsigns);
+    const now = this.o.clock.now();
+    for (const cs of this.listened) {
+      if (!next.has(cs) && !this.senders.has(cs)) this.polls.delete(cs);
+    }
+    // A new ATC station: first poll soon (the aircraft may already be calling it).
+    for (const cs of next) if (!this.polls.has(cs)) this.polls.set(cs, now + this.gapMs);
+    this.listened = next;
   }
 
   expectReply(durationMs: number): void {
@@ -192,8 +213,11 @@ export class HoppieTransport implements Transport {
       logon: this.o.logon,
       from: q.telex.from,
       to: q.telex.to,
-      type: 'telex',
-      packet: q.telex.message.text,
+      type: q.telex.cpdlc === undefined ? 'telex' : 'cpdlc',
+      packet:
+        q.telex.cpdlc === undefined
+          ? q.telex.message.text
+          : cpdlcPacket(q.telex.cpdlc, q.telex.message),
     });
     const now = this.o.clock.now();
     if (out.kind === 'failure') return this.retryHead(q, now, out.reason, null);
@@ -201,6 +225,7 @@ export class HoppieTransport implements Transport {
       this.queue.shift();
       this.events.push({ type: 'SENT', id: q.id, t: now });
       this.setStatus(now, 'ok');
+      this.senders.add(q.telex.from);
       if (!this.polls.has(q.telex.from)) this.polls.set(q.telex.from, this.nextPoll(now));
       return;
     }

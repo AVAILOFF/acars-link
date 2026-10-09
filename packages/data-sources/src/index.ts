@@ -11,4 +11,5 @@ export * from './eonet.js';
 export * from './service.js';
 export * from './stands.js';
 export * from './vatsim.js';
+export * from './vatspy.js';
 export * from './wx.js';

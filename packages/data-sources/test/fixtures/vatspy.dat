@@ -1,0 +1,11 @@
+; Excerpt of VATSpy.dat (VATSpy Data Project v2610.1, CC BY-SA 4.0), see README.md
+[FIRs]
+;ICAO|NAME|CALLSIGN PREFIX|FIR BOUNDARY
+EDGG|Langen||EDGG
+EDGG-N|Langen Radar (North) - Langen|EDGG_N|EDGG-N
+EDGG-N|Langen Radar (North) - Langen|EDGG_NH|EDGG-N
+EDMM|Muenchen||EDMM
+EGTL|London TMA (Up to FL195) - London|LTC|EGTL
+EGTT|London|LON|EGTT
+[UIRs]
+EUC-ME|Maastricht|EDWW-BOR,EDMM,EDGG-BAD,EDGG-DKB,EDGG-GIN,EDGG-RUD,LOVV

@@ -207,6 +207,28 @@ function NetworkForm() {
         <p className="hint">{t('set.liveDataHint')}</p>
       </div>
       <div className="field">
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={settings.rops}
+            disabled={busy !== null}
+            onChange={(e) => void update({ rops: e.currentTarget.checked })}
+          />
+          {t('set.rops')}
+        </label>
+        <p className="hint">{t('set.ropsHint')}</p>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={settings.ropsStandAside}
+            disabled={busy !== null || !settings.rops}
+            onChange={(e) => void update({ ropsStandAside: e.currentTarget.checked })}
+          />
+          {t('set.ropsStandAside')}
+        </label>
+        <p className="hint">{t('set.ropsStandAsideHint')}</p>
+      </div>
+      <div className="field">
         <label htmlFor="gap">{t('set.gap')}</label>
         <select
           id="gap"

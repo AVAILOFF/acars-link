@@ -7,6 +7,7 @@ import {
   parseJson,
   request,
 } from './common.js';
+import type { VatsimCenter } from './vatspy.js';
 
 /**
  * Online VATSIM ATC from the data feed v3 (docs/06; URL from `status.vatsim.net/status.json`,
@@ -30,9 +31,35 @@ export interface VatsimStation extends AtcStation {
 }
 
 export async function fetchVatsimStations(ctx: FetchContext): Promise<VatsimStation[]> {
+  return (await fetchVatsim(ctx)).stations;
+}
+
+/** Airport stations and centres (T23) from one fetch of the feed. */
+export async function fetchVatsim(
+  ctx: FetchContext,
+): Promise<{ stations: VatsimStation[]; centers: VatsimCenter[] }> {
   const res = await request(ctx, VATSIM_DATA_URL);
   expectOk(res, 'VATSIM');
-  return parseVatsimFeed(parseJson(res.body, 'VATSIM'));
+  const json = parseJson(res.body, 'VATSIM');
+  return { stations: parseVatsimFeed(json), centers: parseVatsimCenters(json) };
+}
+
+/** Centres (facility 6 CTR) and FSS (1) on an air-band frequency, for the ROPS station (T23). */
+export function parseVatsimCenters(json: unknown): VatsimCenter[] {
+  if (!isObj(json) || !Array.isArray(json['controllers'])) {
+    throw new DataSourceError('VATSIM: no controllers[] in the feed');
+  }
+  const out: VatsimCenter[] = [];
+  for (const x of json['controllers'] as unknown[]) {
+    if (!isObj(x) || typeof x['callsign'] !== 'string' || typeof x['frequency'] !== 'string')
+      continue;
+    if (x['facility'] !== 6 && x['facility'] !== 1) continue;
+    const callsign = x['callsign'].toUpperCase();
+    const mhz = Number(x['frequency']);
+    if (!/^[A-Z0-9_]{3,20}$/.test(callsign) || !(mhz >= 118 && mhz < 137)) continue;
+    out.push({ callsign, frequency: x['frequency'] });
+  }
+  return out;
 }
 
 export function parseVatsimFeed(json: unknown): VatsimStation[] {

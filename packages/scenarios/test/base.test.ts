@@ -5,6 +5,7 @@ import {
   B77X_PROFILE,
   B78X_PROFILE,
   type CompiledScenario,
+  type CoreEvent,
   checkText,
   DEFAULT_PROFILE,
   type DisplayProfile,
@@ -12,9 +13,7 @@ import {
   MISSING,
   type Ofp,
   type OutboundMessage,
-  type PhaseEvent,
   parseSimbriefOfp,
-  type ScenarioEvent,
   type SyntheticFlight,
   stageIndex,
   withGap,
@@ -78,7 +77,7 @@ const FLIGHTS: readonly Case[] = [
 
 interface Run {
   readonly out: OutboundMessage[];
-  readonly events: (PhaseEvent | ScenarioEvent)[];
+  readonly events: CoreEvent[];
 }
 
 function fly(
@@ -90,7 +89,7 @@ function fly(
   const core = AcarsCore.create({ ofp: c.ofp, scenarios, seed, profile });
   core.startFlight();
   const out: OutboundMessage[] = [];
-  const events: (PhaseEvent | ScenarioEvent)[] = [];
+  const events: CoreEvent[] = [];
   for (const s of c.flight.snapshots) {
     const r = core.tick({ now: s.t, telemetry: s });
     out.push(...r.outbound);

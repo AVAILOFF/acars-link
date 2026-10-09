@@ -33,6 +33,13 @@ export interface Settings {
    * minute; closer messages arrive together. Default 60.
    */
   readonly messageGapSec: number;
+  /**
+   * ROPS ATC station (T23): a simulated CPDLC station per FIR on Hoppie (`X` + FIR, e.g.
+   * XDGG) for the own aircraft. Needs live data (FIR boundaries). Off by default.
+   */
+  readonly rops: boolean;
+  /** ROPS steps aside where a live VATSIM centre covers the FIR. Default on. */
+  readonly ropsStandAside: boolean;
   /** Scenario id → enabled; absent ids use `enabled_by_default`. */
   readonly scenarios: Readonly<Record<string, boolean>>;
   /** Irregular scenario id → chance in percent (0–100); absent ids use the YAML `probability`. */
@@ -127,6 +134,14 @@ export interface TransportView {
   readonly reason: string | null;
 }
 
+/** ROPS station state (T23). */
+export interface AtcView {
+  /** Station to log on to (the FIR's), null before the FIR is known. */
+  readonly station: string | null;
+  /** Station the aircraft is logged on to. */
+  readonly connected: string | null;
+}
+
 export type Delivery = 'queued' | 'sent' | 'retry' | 'failed' | 'dropped';
 
 /** System entries carry a code + params; the renderer translates them. */
@@ -151,7 +166,15 @@ export type SystemCode =
   | 'forced_unknown'
   | 'data_restored'
   | 'transport_status'
-  | 'sim_command_failed';
+  | 'sim_command_failed'
+  | 'atc_station'
+  | 'atc_logon'
+  | 'atc_logon_refused'
+  | 'atc_handover'
+  | 'atc_logoff'
+  | 'atc_live'
+  | 'atc_unsupported'
+  | 'atc_needs_data';
 
 export type FeedEntry =
   | {
@@ -197,6 +220,8 @@ export interface AppState {
   readonly bridge: BridgeView;
   readonly telemetry: TelemetryView | null;
   readonly transport: TransportView | null;
+  /** ROPS station of the running flight (T23); null = off or no flight. */
+  readonly atc: AtcView | null;
   /** Newest last, capped. */
   readonly feed: readonly FeedEntry[];
   /** Names of the airline-memory flags kept for the next flight (T14). */

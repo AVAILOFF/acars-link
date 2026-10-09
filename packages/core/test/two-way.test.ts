@@ -4,18 +4,17 @@ import { describe, expect, it } from 'vitest';
 import {
   AcarsCore,
   type CompiledScenario,
+  type CoreEvent,
   compileScenario,
   generateSyntheticFlight,
   normalizePilotText,
   OPS_REPLY_ID,
   type OutboundMessage,
-  type PhaseEvent,
   type PilotMessage,
   parseCommand,
   parseSimbriefOfp,
   type ScenarioDef,
   ScenarioError,
-  type ScenarioEvent,
   type SyntheticFlight,
   stageIndex,
 } from '../src/index.js';
@@ -48,7 +47,7 @@ const pilot = (text: string, from = ofp.callsign, type = 'telex'): PilotMessage 
 interface Result {
   readonly core: AcarsCore;
   readonly out: OutboundMessage[];
-  readonly events: (PhaseEvent | ScenarioEvent)[];
+  readonly events: CoreEvent[];
 }
 
 /** Flies `flight`; `say` maps a snapshot index to the pilot telexes of that tick. */
@@ -63,7 +62,7 @@ function fly(
   const core = AcarsCore.create({ ofp, scenarios: compiled, seed: 'two-way' });
   core.startFlight();
   const out: OutboundMessage[] = [];
-  const events: (PhaseEvent | ScenarioEvent)[] = [];
+  const events: CoreEvent[] = [];
   flight.snapshots.forEach((s, i) => {
     const inbound = say.get(i);
     const r = core.tick({ now: s.t, telemetry: s, ...(inbound === undefined ? {} : { inbound }) });

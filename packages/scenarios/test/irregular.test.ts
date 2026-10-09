@@ -5,6 +5,7 @@ import {
   B77X_PROFILE,
   B78X_PROFILE,
   type CompiledScenario,
+  type CoreEvent,
   checkText,
   DEFAULT_PROFILE,
   type DisplayProfile,
@@ -13,10 +14,8 @@ import {
   MISSING,
   type Ofp,
   type OutboundMessage,
-  type PhaseEvent,
   type PilotMessage,
   parseSimbriefOfp,
-  type ScenarioEvent,
   type SyntheticFlight,
   stageIndex,
   type Value,
@@ -151,7 +150,7 @@ const SETUP: Readonly<Record<string, Setup>> = {
 interface Run {
   readonly core: AcarsCore;
   readonly out: OutboundMessage[];
-  readonly events: (PhaseEvent | ScenarioEvent)[];
+  readonly events: CoreEvent[];
 }
 
 /**
@@ -179,7 +178,7 @@ function fly(
   });
   core.startFlight();
   const out: OutboundMessage[] = [];
-  const events: (PhaseEvent | ScenarioEvent)[] = [];
+  const events: CoreEvent[] = [];
   let pending: PilotMessage[] = [];
   const pilot = (text: string): PilotMessage => ({ from: c.ofp.callsign, type: 'telex', text });
   const board = c.flight.snapshots.findIndex((s) => s.t >= c.ofp.times.schedOutMs - 60 * 60_000);

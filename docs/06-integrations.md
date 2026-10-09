@@ -23,6 +23,16 @@
 - **Проверено человеком** (MSFS 2024, Fenix A320, 2026-10-08): telex от `XOPS` на `VPAII` — MCDU → AOC MSG DISPLAY, заголовок `XOPS TELEX`, Fenix сам разбивает на страницы (`1/2`, 7 строк текста на первой странице). Строка ровно в 24 символа (`TELEX FROM XOPS TO VPAII`) помещается, линия `---` на всю ширину, **запятая отображается** (в отличие от iniBuilds). Ответ из Fenix (AOC free text на `XOPS`) пришёл как `telex` от `VPAII` с пакетом `REQ-REFUEL` — приём telex пилота работает.
 - Отправитель «авиакомпании» в оригинале: `OPS<номер рейса>`. Допустимость по правилам сети `[ПРОВЕРИТЬ]` — вопрос владельцу Hoppie до публичного релиза (08, решение 9).
 
+## CPDLC через Hoppie (T23)
+
+Сверено 2026-10-09. Hoppie не разбирает CPDLC: это свободный текст в сообщении `cpdlc`, обрабатывают его клиенты (tech.html: «@» — переводы строк для показа). Формат пакета и фразы — из открытого кода и перехваченных пакетов. Код не копировался, взят только формат.
+- Источники: FlyByWire A32NX `fbw-common/src/systems/datalink` (`AcarsConnector.ts`, `CpdlcMessage.ts`, `CpdlcMessageElements.ts`, `ATC.ts`; GPL-3.0); пакеты сети из YV E-Jet `Nasal/cpdlc/hoppie-driver.nas` и `hoppie-standalone` (MIT); руководство TopSky «Data Link Functions» v2.2 (2017); страница Hoppie ACARS ATC Client (`hoppie.nl/acars/prg/atc`).
+- Пакет: `/data2/<min>/<mrn>/<ra>/<текст>`. `min` — счётчик отправителя, `mrn` — `min` сообщения, на которое ответ (пусто у первого), `ra` — `WU`, `AN`, `R`, `NE`, `Y`, `N`. FBW берёт текст как шестое поле `split('/')`, поэтому в тексте uplink нет `/`. `@` выделяет значение, `@_@` разделяет части строки.
+- Логон: самолёт шлёт `/data2/n//Y/REQUEST LOGON` (так шлют A350/A380, T09). Станция отвечает `/data2/m/n/NE/LOGON ACCEPTED` и `CURRENT ATC UNIT@_@EDGG@_@LANGEN CTL` (океан — `… OCA`). Отказ — `UNABLE …` (FBW: UM9996/UM0). Передача: `HANDOVER @EDUU` (NE) — FBW шлёт LOGOFF старой станции и REQUEST LOGON новой. Конец связи — `LOGOFF` (NE).
+- Позывные живых станций — 4 символа (TopSky: «four characters»): EDGG, EDYJ, LONC, EUWN. ROPS использует `X` + FIR (решение 2026-10-09, `07` T23).
+- Опрос: по tech.html ждать первого сообщения должны клиенты самолётов; станция УВД ждёт логона, поэтому опрашивается с начала (те же 45–75 с, после HANDOVER — 20 с не дольше 3 мин).
+- `[ПРОВЕРИТЬ]` человеком: показ в PMDG 777/737, Fenix, iniBuilds; автологон после HANDOVER у не-FBW самолётов.
+
 ## SayIntentions ACARS
 
 - Endpoint: `https://acars.sayintentions.ai/acars/system/connect.html` (Hoppie-совместимый). Логон — SI-код пользователя.
@@ -68,6 +78,7 @@
 | NASA EONET v3 | стихийные события | нет | сверено 2026-10-08 (T13), ниже |
 | TheSpaceDevs LL 2.2.0 | пуски ракет | нет, жёсткий rate limit | кэшировать |
 | Overpass API (OSM) | стоянки и гейты аэропорта (`aeroway=parking_position/gate`) | нет | T13, ниже; живой ответ `[ПРОВЕРИТЬ]` |
+| VATSpy Data Project | границы FIR, префиксы позывных центров (ROPS, T23) | нет | CC BY-SA 4.0, сверено 2026-10-09, ниже |
 | FAA NOTAM API | NOTAM | да | только через бэкенд |
 | AeroDataBox (RapidAPI) | реальное расписание прилётов | да, платно | только через бэкенд, опционально |
 | OpenAI / Anthropic | оживление текста | да | только через бэкенд, см. CLAUDE.md инвариант 8 |
@@ -85,3 +96,10 @@
 - **Расписание** (`ExternalDataService` тикает от главного цикла приложения, своих таймеров нет): погода аэропортов OFP — при загрузке OFP и каждые 10 мин (+ аэропорт из `REQ WX` сразу); VATSIM — при старте и каждые 5 мин от набора до захода; EONET — при старте и раз в час; стоянки — один раз. Кэш: погода 5 мин, VATSIM 1 мин, EONET 30 мин, стоянки 30 дней; в приложении — файлы в `<userData>/cache` (значения проверяются при чтении). После сбоя — повтор через 2/2/15/10 мин, стоянки — не более 3 попыток за рейс. Один запрос на источник одновременно. Сбой источника — одна запись в ленте (`data_failed`), восстановление — `data_restored`; сообщения при этом идут по OFP.
 - User-Agent: `ACARS-Sim/0.1 (flight simulator ACARS; personal use)`. Настройка «Живые данные» (по умолчанию включена); выключено — в сеть ходят только SimBrief и Hoppie.
 - Не сделано в T13: TheSpaceDevs (пуски), IVAO, FAA NOTAM, AeroDataBox.
+
+### Границы FIR (T23)
+
+- **VATSpy Data Project** (`github.com/vatsimnetwork/vatspy-data-project`), лицензия **CC BY-SA 4.0**, сверено 2026-10-09 (релиз v2610.1). Файлы: `https://raw.githubusercontent.com/vatsimnetwork/vatspy-data-project/master/Boundaries.geojson` (~2,2 МБ) и `…/VATSpy.dat` (~0,9 МБ).
+- `Boundaries.geojson` — RFC 7946, у каждого объекта MultiPolygon и свойства `id` (FIR `EDGG`, сектор `EDGG-N`), `oceanic` (`"0"`/`"1"`), `label_lon`, `label_lat`, `region`, `division`. Полигоны разрезаны по антимеридиану (координат за ±180 и пролётов больше 180° нет). Некоторые `id` встречаются дважды (`KZNY`: суша и океан) — объединяются. FIR — только 4-буквенные `id` (одобрено, `07` T23). Среди них есть подобласти (`EGTL` London TMA внутри `EGTT`), при перекрытии берётся большая.
+- `VATSpy.dat`: `[FIRs]` — строки `ICAO|NAME|CALLSIGN PREFIX|FIR BOUNDARY` (пустой префикс = ICAO), `[UIRs]` — `ID|NAME|FIR,FIR,…` (бывают секторы `EDGG-BAD`). Отсюда имена органов и FIR онлайн-центров VATSIM: самый длинный префикс из частей позывного до суффикса (`EDGG_DKB_CTR` → `EDGG_DKB` → EDGG, `LON_S_CTR` → `LON` → EGTT), UIR — все его FIR (`-` в id → `_` в позывном).
+- В ядро и запись полёта уходят только FIR вдоль маршрута (точки маршрута через ≤ 10 NM) и центры, покрывающие их. VATSIM: CTR (facility 6) и FSS (1) на частотах 118–137 МГц. Загрузка — один раз за рейс при включённой станции, кэш 7 дней, после сбоя — через 10 мин, не более 3 попыток. Реализация — `packages/data-sources/src/vatspy.ts`, фикстура — `packages/data-sources/test/fixtures/` (урезанный реальный релиз, та же лицензия).
