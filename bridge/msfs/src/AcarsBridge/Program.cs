@@ -65,8 +65,9 @@ switch (sourceName)
 }
 
 var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
-var hub = new LoggingSink(new BridgeHub(version, source.Name));
-var app = BridgeServer.Build(hub.Hub, port,
+var commands = new CommandDispatcher(source as ICommandTarget, clock);
+var hub = new LoggingSink(new BridgeHub(version, source.Name, commands.Commands));
+var app = BridgeServer.Build(hub.Hub, port, commands,
     verbose ? Microsoft.Extensions.Logging.LogLevel.Information : Microsoft.Extensions.Logging.LogLevel.Warning);
 
 using var cts = new CancellationTokenSource();
@@ -77,7 +78,8 @@ Console.CancelKeyPress += (_, e) =>
 };
 
 await app.StartAsync(cts.Token);
-Console.WriteLine($"{Protocol.BridgeName} {version}: source={source.Name}, listening on ws://127.0.0.1:{port}{BridgeServer.Path}");
+Console.WriteLine($"{Protocol.BridgeName} {version}: source={source.Name}, listening on ws://127.0.0.1:{port}{BridgeServer.Path}" +
+                  $" (protocol {Protocol.MinProtocolVersion}-{Protocol.ProtocolVersion}, commands: {string.Join(", ", commands.Commands)})");
 
 var run = source.RunAsync(hub, cts.Token);
 try

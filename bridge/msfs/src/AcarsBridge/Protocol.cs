@@ -64,18 +64,24 @@ public sealed record BridgeStatus(
 }
 
 /// <summary>
-/// WebSocket protocol, bridge → app only (v1 defines no client → bridge messages; they are ignored).
-/// Every frame is one JSON object with a <c>type</c>:
+/// WebSocket protocol. Every frame is one JSON object with a <c>type</c>. The client picks the version
+/// with the query <c>?protocol=2</c>; without it the bridge speaks v1, so v1 clients keep working.
+/// Bridge → app (v1 and v2):
 /// <list type="bullet">
-/// <item><c>{"type":"hello","protocol":1,"telemetryVersion":1,"bridge":"acars-msfs-bridge","version":"…","source":"simconnect|fake"}</c> — first frame.</item>
+/// <item><c>{"type":"hello","protocol":1|2,"telemetryVersion":1,"bridge":"acars-msfs-bridge","version":"…","source":"simconnect|fake"}</c> — first frame; v2 adds <c>"commands":["ping",…]</c>.</item>
 /// <item><c>{"type":"status","sim":"disconnected|connecting|connected","running":…,"paused":…,"simRate":…,"detail"?:…,"retryInMs"?:…}</c></item>
 /// <item><c>{"type":"telemetry","data":TelemetrySnapshot}</c> — ~1 Hz while connected and running.</item>
 /// </list>
-/// Incompatible changes bump <see cref="ProtocolVersion"/>.
+/// v2 only, app → bridge: <c>{"type":"command","id":"…","command":"ping","args"?:{…}}</c> (whitelist:
+/// <see cref="CommandCatalog"/>); the bridge answers that client alone with
+/// <c>{"type":"ack","id":"…"|null,"ok":true}</c> or <c>{"type":"ack","id":…,"ok":false,"error":"…","detail"?:"…"}</c>.
+/// v1 clients' messages are ignored. Incompatible changes bump <see cref="ProtocolVersion"/>.
 /// </summary>
 public static class Protocol
 {
-    public const int ProtocolVersion = 1;
+    public const int ProtocolVersion = 2;
+    /// <summary>Oldest version still served (to clients that do not ask for a newer one).</summary>
+    public const int MinProtocolVersion = 1;
     public const string BridgeName = "acars-msfs-bridge";
 
     public static readonly JsonSerializerOptions Json = new()
@@ -85,18 +91,49 @@ public static class Protocol
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
-    public static string Hello(string version, string source) =>
-        JsonSerializer.Serialize(
-            new
-            {
-                type = "hello",
-                protocol = ProtocolVersion,
-                telemetryVersion = TelemetrySnapshot.Version,
-                bridge = BridgeName,
-                version,
-                source,
-            },
-            Json);
+    /// <summary>
+    /// Version for a client from its <c>protocol</c> query value: the highest supported version not
+    /// above the requested one; v1 when absent or not a number.
+    /// </summary>
+    public static int Negotiate(string? requested) =>
+        int.TryParse(requested, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var v)
+            ? Math.Clamp(v, MinProtocolVersion, ProtocolVersion)
+            : MinProtocolVersion;
+
+    public static string Hello(string version, string source, int protocol = MinProtocolVersion, IReadOnlyList<string>? commands = null) =>
+        protocol < 2
+            ? JsonSerializer.Serialize(
+                new
+                {
+                    type = "hello",
+                    protocol = 1,
+                    telemetryVersion = TelemetrySnapshot.Version,
+                    bridge = BridgeName,
+                    version,
+                    source,
+                },
+                Json)
+            : JsonSerializer.Serialize(
+                new
+                {
+                    type = "hello",
+                    protocol,
+                    telemetryVersion = TelemetrySnapshot.Version,
+                    bridge = BridgeName,
+                    version,
+                    source,
+                    commands = commands ?? [],
+                },
+                Json);
+
+    /// <summary><c>id</c> is always present (null when the frame had no readable id); <c>detail</c> only when set.</summary>
+    public static string Ack(string? id, CommandResult result)
+    {
+        var o = new System.Text.Json.Nodes.JsonObject { ["type"] = "ack", ["id"] = id, ["ok"] = result.Ok };
+        if (!result.Ok) o["error"] = result.Error ?? CommandErrors.Failed;
+        if (result.Detail is not null) o["detail"] = result.Detail;
+        return o.ToJsonString();
+    }
 
     public static string Status(BridgeStatus s) =>
         JsonSerializer.Serialize(

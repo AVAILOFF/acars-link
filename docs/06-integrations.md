@@ -45,7 +45,8 @@
 
 - MSFS SDK → SimConnect (C/C++ или managed .NET-обёртка `Microsoft.FlightSimulator.SimConnect`). MSFS 2024 — проверить совместимость SDK `[ПРОВЕРИТЬ]`.
 - Подписка `SIMCONNECT_PERIOD_SECOND` на data definition. Системные события: `Pause`, `SimStart`, `SimStop`, `AircraftLoaded`.
-- Мост: реконнект с backoff. WebSocket-сервер **только 127.0.0.1**. Протокол — JSON-сообщения `{type:"telemetry", data}` / `{type:"status"}`. Версия протокола в handshake.
+- Мост: реконнект с backoff. WebSocket-сервер **только 127.0.0.1**. Протокол — JSON-сообщения `{type:"telemetry", data}` / `{type:"status"}`. Версия протокола в handshake (`hello`).
+- Протокол v2 (T21): клиент просит `?protocol=2`. После этого он может слать `{type:"command",id,command,args}` из белого списка. Мост отвечает этому клиенту `{type:"ack",id,ok,error?,detail?}`. Клиент без запроса версии получает v1 без изменений. Подробно — `bridge/msfs/README.md`. Команды выдаёт ядро (`CoreOutput.commands`, `packages/core/src/sim/commands.ts`). Пока в белом списке только `ping`.
 - Список SimVar — `03-architecture.md`.
 
 ## Внешние данные

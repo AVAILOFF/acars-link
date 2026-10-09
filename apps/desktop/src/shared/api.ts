@@ -102,6 +102,10 @@ export interface BridgeView {
   /** Error text for `closed` (e.g. wrong protocol version). */
   readonly detail: string | null;
   readonly retryAt: number | null;
+  /** Protocol of the connected bridge (after `hello`); v1 takes no commands. */
+  readonly protocol: 1 | 2 | null;
+  /** Sim commands the bridge offers (v2 `hello`). */
+  readonly commands: readonly string[];
 }
 
 export interface TelemetryView {
@@ -146,7 +150,8 @@ export type SystemCode =
   | 'forced_running'
   | 'forced_unknown'
   | 'data_restored'
-  | 'transport_status';
+  | 'transport_status'
+  | 'sim_command_failed';
 
 export type FeedEntry =
   | {

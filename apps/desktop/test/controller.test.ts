@@ -87,6 +87,27 @@ const outbound = (feed: readonly FeedEntry[]) =>
   feed.flatMap((e) => (e.kind === 'outbound' ? [e] : []));
 
 describe('AppController', () => {
+  it('sim commands go to the bridge; only failures reach the feed', async () => {
+    const s = await setup();
+    const socket = s.sockets.last();
+    socket.hello(2, 1, ['ping']);
+    const id = s.app.sendSimCommand({ command: 'ping', args: {} });
+    expect(socket.sent).toEqual([{ type: 'command', id, command: 'ping', args: {} }]);
+    socket.frame({ type: 'ack', id, ok: true });
+    expect(s.app.state().feed).toEqual([]);
+
+    const id2 = s.app.sendSimCommand({ command: 'ping', args: {} });
+    socket.frame({ type: 'ack', id: id2, ok: false, error: 'unavailable', detail: 'no GSX' });
+    expect(s.app.state().feed).toMatchObject([
+      {
+        kind: 'system',
+        code: 'sim_command_failed',
+        params: { command: 'ping', error: 'unavailable', detail: 'no GSX' },
+      },
+    ]);
+    expect(s.app.state().bridge).toMatchObject({ protocol: 2, commands: ['ping'] });
+  });
+
   it('needs a SimBrief username before loading the OFP', async () => {
     const { app } = await setup();
     expect(await guard(() => app.loadOfp())).toMatchObject({

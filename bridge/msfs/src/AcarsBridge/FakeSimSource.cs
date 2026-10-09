@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace AcarsBridge;
@@ -6,9 +7,10 @@ namespace AcarsBridge;
 /// Sim-less source for developing the app (T10) and for tests: emits snapshots at 1 Hz.
 /// With a JSONL file (one TelemetrySnapshot per line), plays it in a loop; otherwise repeats a
 /// parked A320 at EDDF (same values as reference/telemetry.sample.json). <c>t</c> is always
-/// rewritten to the bridge clock.
+/// rewritten to the bridge clock. Accepts every whitelisted command (protocol v2), confirms it and
+/// keeps it in <see cref="Executed"/>.
 /// </summary>
-public sealed class FakeSimSource(TimeProvider clock, IReadOnlyList<TelemetrySnapshot>? frames = null) : ISimSource
+public sealed class FakeSimSource(TimeProvider clock, IReadOnlyList<TelemetrySnapshot>? frames = null) : ISimSource, ICommandTarget
 {
     public static readonly TelemetrySnapshot Parked = new()
     {
@@ -22,6 +24,18 @@ public sealed class FakeSimSource(TimeProvider clock, IReadOnlyList<TelemetrySna
     private readonly IReadOnlyList<TelemetrySnapshot> _frames = frames is { Count: > 0 } ? frames : [Parked];
 
     public string Name => "fake";
+
+    public IReadOnlyCollection<string> Commands => CommandCatalog.Names;
+
+    /// <summary>Commands run so far, oldest first.</summary>
+    public ConcurrentQueue<SimCommand> Executed { get; } = new();
+
+    public Task<CommandResult> ExecuteAsync(SimCommand command, CancellationToken ct)
+    {
+        Executed.Enqueue(command);
+        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] command {command.Id}: {command.Name}");
+        return Task.FromResult(CommandResult.Success);
+    }
 
     public static FakeSimSource FromJsonl(TimeProvider clock, string path)
     {

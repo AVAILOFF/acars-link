@@ -1,6 +1,7 @@
 import {
   type CompiledScenario,
   type Ofp,
+  type SimCommand,
   selectProfile,
   stationCallsign,
   type TelemetrySnapshot,
@@ -16,7 +17,7 @@ import type {
   Settings,
   SettingsPatch,
 } from '../shared/api.js';
-import { BridgeClient, type SocketLike, type Timers } from './bridge.js';
+import { BridgeClient, type CommandResult, type SocketLike, type Timers } from './bridge.js';
 import { AppFailure } from './errors.js';
 import { Feed } from './feed.js';
 import type { Flags, FlagsStore } from './flags.js';
@@ -113,6 +114,7 @@ export class AppController {
       now: o.now,
       onTelemetry: (s) => this.onTelemetry(s),
       onChange: o.onChange,
+      onCommandResult: (r) => this.onCommandResult(r),
     });
     try {
       this.scenarios = loadScenarios(o.scenarioSources);
@@ -135,6 +137,24 @@ export class AppController {
     this.data.stopFlight();
     this.session?.stop(this.o.now());
     this.session = null;
+  }
+
+  /**
+   * A command for the simulator (T21) goes to the bridge; only failures reach the feed (a sim
+   * without the add-on, a v1 bridge), so a working channel stays quiet.
+   */
+  sendSimCommand(c: Pick<SimCommand, 'command' | 'args'>): string {
+    return this.bridge.sendCommand(c.command, c.args);
+  }
+
+  private onCommandResult(r: CommandResult): void {
+    if (r.ok) return;
+    this.feed.system(this.o.now(), 'sim_command_failed', {
+      command: r.command,
+      error: r.error ?? '',
+      detail: r.detail ?? '',
+    });
+    this.o.onChange();
   }
 
   /** Main loop, ~1 Hz. */
@@ -318,6 +338,7 @@ export class AppController {
       data: settings.liveData ? this.data : null,
       flags,
       minGapMs: settings.messageGapSec * 1000,
+      simCommands: (c) => this.sendSimCommand(c),
     });
     if (Object.keys(flags).length > 0) {
       this.feed.system(now, 'memory', { names: Object.keys(flags).sort().join(', ') });

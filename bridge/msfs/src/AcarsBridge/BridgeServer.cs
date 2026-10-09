@@ -37,14 +37,18 @@ public static class AccessPolicy
     }
 }
 
-/// <summary>WebSocket server on 127.0.0.1 that streams <see cref="BridgeHub"/> frames.</summary>
+/// <summary>
+/// WebSocket server on 127.0.0.1 that streams <see cref="BridgeHub"/> frames. A client asking for
+/// <c>?protocol=2</c> may send commands (<see cref="CommandDispatcher"/>); the <c>ack</c> goes to it alone.
+/// </summary>
 public static class BridgeServer
 {
     public const int DefaultPort = 47830;
     public const string Path = "/";
 
-    public static WebApplication Build(BridgeHub hub, int port, LogLevel logLevel = LogLevel.Warning)
+    public static WebApplication Build(BridgeHub hub, int port, CommandDispatcher? commands = null, LogLevel logLevel = LogLevel.Warning)
     {
+        var dispatcher = commands ?? new CommandDispatcher(null, TimeProvider.System);
         var builder = WebApplication.CreateSlimBuilder();
         builder.Logging.SetMinimumLevel(logLevel);
         // Loopback IPv4 only. Never Any/IPv6Any (invariant 10).
@@ -52,11 +56,11 @@ public static class BridgeServer
 
         var app = builder.Build();
         app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(15) });
-        app.Map(Path, ctx => Handle(ctx, hub));
+        app.Map(Path, ctx => Handle(ctx, hub, dispatcher));
         return app;
     }
 
-    private static async Task Handle(HttpContext ctx, BridgeHub hub)
+    private static async Task Handle(HttpContext ctx, BridgeHub hub, CommandDispatcher commands)
     {
         if (!AccessPolicy.IsAllowedHost(ctx.Request.Host.Value)
             || !AccessPolicy.IsAllowedOrigin(ctx.Request.Headers.Origin))
@@ -71,12 +75,13 @@ public static class BridgeServer
             return;
         }
 
+        var protocol = Protocol.Negotiate(ctx.Request.Query["protocol"].FirstOrDefault());
         using var ws = await ctx.WebSockets.AcceptWebSocketAsync();
-        var (id, reader) = hub.Subscribe();
+        var (id, reader) = hub.Subscribe(protocol);
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted);
         try
         {
-            var receive = DrainInbound(ws, cts.Token);
+            var receive = protocol >= 2 ? ReadCommands(ws, id, hub, commands, cts.Token) : DrainInbound(ws, cts.Token);
             var send = Pump(ws, reader, cts.Token);
             await Task.WhenAny(receive, send);
             await cts.CancelAsync();
@@ -89,6 +94,7 @@ public static class BridgeServer
         finally
         {
             hub.Unsubscribe(id);
+            commands.Forget(id);
         }
     }
 
@@ -96,6 +102,40 @@ public static class BridgeServer
     {
         await foreach (var frame in reader.ReadAllAsync(ct))
             await ws.SendAsync(Encoding.UTF8.GetBytes(frame), WebSocketMessageType.Text, true, ct);
+    }
+
+    /// <summary>
+    /// Protocol v2: each text message is one command, run in order; the <c>ack</c> is queued to this
+    /// client. Messages over <see cref="CommandCatalog.MaxFrameBytes"/> and binary ones are refused
+    /// (<c>bad_frame</c>) without being parsed.
+    /// </summary>
+    private static async Task ReadCommands(WebSocket ws, Guid client, BridgeHub hub, CommandDispatcher commands, CancellationToken ct)
+    {
+        var buffer = new byte[CommandCatalog.MaxFrameBytes];
+        while (ws.State == WebSocketState.Open)
+        {
+            var length = 0;
+            var tooLong = false;
+            ValueWebSocketReceiveResult r;
+            do
+            {
+                if (length == buffer.Length)
+                {
+                    tooLong = true;
+                    length = 0; // keep reading to the end of the message, drop the bytes
+                }
+                r = await ws.ReceiveAsync(buffer.AsMemory(length), ct);
+                if (r.MessageType == WebSocketMessageType.Close) return;
+                length += r.Count;
+            } while (!r.EndOfMessage);
+
+            string ack;
+            if (tooLong || r.MessageType != WebSocketMessageType.Text)
+                ack = Protocol.Ack(null, CommandResult.Fail(CommandErrors.BadFrame, tooLong ? "frame too long" : "text frames only"));
+            else
+                ack = await commands.HandleAsync(client, Encoding.UTF8.GetString(buffer, 0, length), ct);
+            hub.Send(client, ack);
+        }
     }
 
     /// <summary>Protocol v1 has no client → bridge messages: read and discard until close.</summary>

@@ -6,9 +6,10 @@ namespace AcarsBridge;
 /// <summary>
 /// Fan-out of protocol frames to WebSocket clients. Each client has a small bounded queue that drops
 /// the oldest frame, so a stalled client never blocks the sim loop. Keeps the latest status and
-/// telemetry so a new client gets the current state right after <c>hello</c>.
+/// telemetry so a new client gets the current state right after <c>hello</c>. Each client gets the
+/// <c>hello</c> of its protocol version; v2 <c>hello</c> lists <paramref name="commands"/>.
 /// </summary>
-public sealed class BridgeHub(string version, string source) : ISimSink
+public sealed class BridgeHub(string version, string source, IReadOnlyList<string>? commands = null) : ISimSink
 {
     private const int QueueCapacity = 32;
 
@@ -20,8 +21,11 @@ public sealed class BridgeHub(string version, string source) : ISimSink
     public BridgeStatus LastStatus { get; private set; } = BridgeStatus.Initial;
     public int ClientCount => _clients.Count;
 
+    /// <summary>Commands announced to v2 clients.</summary>
+    public IReadOnlyList<string> Commands { get; } = commands ?? [];
+
     /// <summary>Registers a client; its queue starts with hello, status and the last telemetry.</summary>
-    public (Guid Id, ChannelReader<string> Reader) Subscribe()
+    public (Guid Id, ChannelReader<string> Reader) Subscribe(int protocol = Protocol.MinProtocolVersion)
     {
         var ch = Channel.CreateBounded<string>(new BoundedChannelOptions(QueueCapacity)
         {
@@ -31,13 +35,16 @@ public sealed class BridgeHub(string version, string source) : ISimSink
         var id = Guid.NewGuid();
         lock (_gate)
         {
-            ch.Writer.TryWrite(Protocol.Hello(version, source));
+            ch.Writer.TryWrite(Protocol.Hello(version, source, protocol, Commands));
             ch.Writer.TryWrite(_status);
             if (_telemetry is not null) ch.Writer.TryWrite(_telemetry);
             _clients[id] = ch;
         }
         return (id, ch.Reader);
     }
+
+    /// <summary>A frame for one client only (an <c>ack</c>). False if the client is gone.</summary>
+    public bool Send(Guid id, string frame) => _clients.TryGetValue(id, out var ch) && ch.Writer.TryWrite(frame);
 
     public void Unsubscribe(Guid id)
     {

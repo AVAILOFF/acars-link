@@ -17,6 +17,7 @@ import {
 } from './scenario/engine.js';
 import type { Value } from './scenario/expr.js';
 import type { PilotMessage } from './scenario/pilot.js';
+import type { SimCommand } from './sim/commands.js';
 import type { TelemetrySnapshot } from './telemetry/types.js';
 
 /**
@@ -40,6 +41,11 @@ export interface CoreInput {
 
 export interface CoreOutput {
   readonly outbound: readonly OutboundMessage[];
+  /**
+   * Commands to the simulator (T21, `sim/commands.ts`), in order; not paced by `minGapMs`. No
+   * scenario step produces them yet (T22 `vdgs:` will).
+   */
+  readonly commands: readonly SimCommand[];
   readonly phase: FlightPhase;
   readonly events: readonly (PhaseEvent | ScenarioEvent)[];
 }
@@ -200,6 +206,7 @@ export class AcarsCore {
     });
     return {
       outbound: this.pace(now, out.outbound),
+      commands: [],
       phase: this.fsm.phase,
       events: [...phaseEvents, ...out.events],
     };

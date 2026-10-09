@@ -8,8 +8,9 @@ namespace AcarsBridge;
 /// MSFS via managed SimConnect (MSFS SDK). Compiled only when the SDK is found (see the .csproj).
 /// No window: SimConnect signals an <see cref="EventWaitHandle"/>, and a dedicated thread calls
 /// ReceiveMessage. Reconnects with <see cref="ReconnectPolicy"/> when the sim is not running or quits.
+/// Commands (protocol v2): only <c>ping</c> so far — ok while a SimConnect session is open.
 /// </summary>
-public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy = null) : ISimSource
+public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy = null) : ISimSource, ICommandTarget
 {
     private enum Def { Telemetry }
     private enum Req { Telemetry }
@@ -32,6 +33,19 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     private readonly ReconnectPolicy _policy = policy ?? new ReconnectPolicy();
 
     public string Name => "simconnect";
+
+    /// <summary>A SimConnect session is open (set on the message thread, read by command handlers).</summary>
+    private volatile bool _open;
+
+    public IReadOnlyCollection<string> Commands { get; } = ["ping"];
+
+    public Task<CommandResult> ExecuteAsync(SimCommand command, CancellationToken ct) =>
+        Task.FromResult(command.Name switch
+        {
+            "ping" when _open => CommandResult.Success,
+            "ping" => CommandResult.Fail(CommandErrors.Unavailable, "sim not connected"),
+            _ => CommandResult.Fail(CommandErrors.UnknownCommand, command.Name),
+        });
 
     public Task RunAsync(ISimSink sink, CancellationToken ct) =>
         Task.Factory.StartNew(() => Loop(sink, ct), ct, TaskCreationOptions.LongRunning, TaskScheduler.Default);
@@ -76,6 +90,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         sc.OnRecvOpen += (_, _) =>
         {
             open = true;
+            _open = true;
             _policy.Reset();
             Publish();
         };
@@ -116,12 +131,19 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         sc.RequestDataOnSimObject(Req.Telemetry, Def.Telemetry, SimConnect.SIMCONNECT_OBJECT_ID_USER,
             SIMCONNECT_PERIOD.SECOND, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
 
-        while (ended is null && !ct.IsCancellationRequested)
+        try
         {
-            // Also poll on timeout: draining an empty queue is harmless and covers a missed signal.
-            signal.WaitOne(PollInterval);
-            sc.ReceiveMessage();
-            if (open) pump.Tick();
+            while (ended is null && !ct.IsCancellationRequested)
+            {
+                // Also poll on timeout: draining an empty queue is harmless and covers a missed signal.
+                signal.WaitOne(PollInterval);
+                sc.ReceiveMessage();
+                if (open) pump.Tick();
+            }
+        }
+        finally
+        {
+            _open = false;
         }
         return ended ?? "stopped";
     }

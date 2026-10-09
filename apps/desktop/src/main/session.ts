@@ -7,6 +7,7 @@ import {
   type FlightPhase,
   type Ofp,
   type PilotMessage,
+  type SimCommand,
   stationCallsign,
   type TelemetrySnapshot,
   type Value,
@@ -49,6 +50,8 @@ export interface FlightSessionOptions {
   readonly flags?: Readonly<Record<string, Value>>;
   /** Minimum time between airline telexes, ms (core `minGapMs`). */
   readonly minGapMs?: number;
+  /** Commands to the simulator the core produced (T21), sent on by the controller. */
+  readonly simCommands?: (c: SimCommand) => void;
 }
 
 /** Names of the data sources in the feed (proper names, the same in every language). */
@@ -88,6 +91,7 @@ export class FlightSession {
   private delayReported = false;
   private recording: RecordingSink | null;
   private readonly data: ExternalDataService | null;
+  private readonly simCommands: (c: SimCommand) => void;
 
   constructor(o: FlightSessionOptions) {
     this.core = AcarsCore.create({
@@ -101,6 +105,7 @@ export class FlightSession {
       ...(o.minGapMs === undefined ? {} : { minGapMs: o.minGapMs }),
     });
     this.data = o.data ?? null;
+    this.simCommands = o.simCommands ?? (() => {});
     this.irregular = o.scenarios
       .filter((c) => c.def.category === 'irregular' && c.def.trigger.on !== 'command')
       .map((c) => ({ id: c.id, title: { en: c.def.title, ru: c.def.title_ru ?? null } }))
@@ -321,6 +326,7 @@ export class FlightSession {
           break;
       }
     }
+    for (const c of out.commands) this.simCommands(c);
     for (const m of out.outbound) {
       this.record(outLine(m));
       const entry = {

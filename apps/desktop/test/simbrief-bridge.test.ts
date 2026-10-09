@@ -2,7 +2,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { isTelemetrySnapshot, type TelemetrySnapshot } from '@acars/core';
 import { describe, expect, it } from 'vitest';
-import { BridgeClient, bridgeUrl, RECONNECT_DELAYS_MS } from '../src/main/bridge.js';
+import {
+  BridgeClient,
+  bridgeUrl,
+  COMMAND_TIMEOUT_MS,
+  type CommandResult,
+  RECONNECT_DELAYS_MS,
+} from '../src/main/bridge.js';
 import { fetchOfp, normalizeSimbriefUsername, simbriefUrl } from '../src/main/simbrief.js';
 import { FakeHttp, FakeTimers, simbriefOk, socketFactory } from './support.js';
 
@@ -63,6 +69,7 @@ function client(port = 47830) {
   const sockets = socketFactory();
   const timers = new FakeTimers();
   const telemetry: TelemetrySnapshot[] = [];
+  const results: CommandResult[] = [];
   let now = 1_000_000;
   const c = new BridgeClient({
     port,
@@ -71,17 +78,18 @@ function client(port = 47830) {
     now: () => now,
     onTelemetry: (s) => telemetry.push(s),
     onChange: () => {},
+    onCommandResult: (r) => results.push(r),
   });
-  return { c, sockets, timers, telemetry, tick: (ms: number) => (now += ms) };
+  return { c, sockets, timers, telemetry, results, tick: (ms: number) => (now += ms) };
 }
 
 describe('BridgeClient', () => {
   it('connects to 127.0.0.1 only', () => {
-    expect(bridgeUrl(47830)).toBe('ws://127.0.0.1:47830/');
+    expect(bridgeUrl(47830)).toBe('ws://127.0.0.1:47830/?protocol=2');
     expect(() => bridgeUrl(0)).toThrow();
     const { c, sockets } = client(47831);
     c.start();
-    expect(sockets.last().url).toBe('ws://127.0.0.1:47831/');
+    expect(sockets.last().url).toBe('ws://127.0.0.1:47831/?protocol=2');
   });
 
   it('hello → status → telemetry', () => {
@@ -120,10 +128,10 @@ describe('BridgeClient', () => {
     const { c, sockets, timers } = client();
     c.start();
     const s = sockets.last();
-    s.hello(2, 1);
+    s.hello(3, 1);
     expect(s.closed).toMatchObject({ code: 1002 });
     expect(c.view.link).toBe('closed');
-    expect(c.view.detail).toMatch(/protocol 2/);
+    expect(c.view.detail).toMatch(/protocol 3/);
     expect(timers.pending).toHaveLength(1);
   });
 
@@ -137,7 +145,99 @@ describe('BridgeClient', () => {
     const first = sockets.last();
     c.setPort(47900);
     expect(first.closed).not.toBeNull();
-    expect(sockets.last().url).toBe('ws://127.0.0.1:47900/');
+    expect(sockets.last().url).toBe('ws://127.0.0.1:47900/?protocol=2');
+  });
+
+  it('works with a v1 bridge: telemetry flows, commands are unavailable and nothing is sent', () => {
+    const { c, sockets, telemetry, results } = client();
+    c.start();
+    const s = sockets.last();
+    s.hello(1);
+    expect(c.view).toMatchObject({ link: 'open', protocol: 1, commands: [] });
+    s.frame({ type: 'telemetry', data: SAMPLE });
+    expect(telemetry).toEqual([SAMPLE]);
+    c.sendCommand('ping');
+    expect(s.sent).toEqual([]);
+    expect(results).toMatchObject([{ command: 'ping', ok: false, error: 'unavailable' }]);
+  });
+
+  it('v2: sends a command and reports the ack once', () => {
+    const { c, sockets, timers, results } = client();
+    c.start();
+    const s = sockets.last();
+    s.hello(2, 1, ['ping']);
+    expect(c.view).toMatchObject({ protocol: 2, commands: ['ping'] });
+
+    const id = c.sendCommand('ping');
+    expect(s.sent).toEqual([{ type: 'command', id, command: 'ping', args: {} }]);
+    expect(c.pendingCommands).toBe(1);
+    s.frame({ type: 'ack', id: 'someone-else', ok: true }); // not ours: ignored
+    s.frame({ type: 'ack', id: null, ok: false, error: 'bad_frame' });
+    expect(results).toEqual([]);
+    s.frame({ type: 'ack', id, ok: true });
+    s.frame({ type: 'ack', id, ok: true }); // duplicate: ignored
+    expect(results).toEqual([{ id, command: 'ping', ok: true, error: null, detail: null }]);
+    expect(c.pendingCommands).toBe(0);
+    expect(timers.pending).toHaveLength(0); // the timeout was cleared
+
+    const id2 = c.sendCommand('ping');
+    s.frame({ type: 'ack', id: id2, ok: false, error: 'unavailable', detail: 'sim not connected' });
+    expect(results[1]).toEqual({
+      id: id2,
+      command: 'ping',
+      ok: false,
+      error: 'unavailable',
+      detail: 'sim not connected',
+    });
+  });
+
+  it('v2: timeout, dropped connection, refused args, command not offered, send error', () => {
+    const { c, sockets, timers, results } = client();
+    c.start();
+    let s = sockets.last();
+    s.hello();
+
+    const late = c.sendCommand('ping');
+    expect(timers.runNext()).toBe(COMMAND_TIMEOUT_MS);
+    expect(results.pop()).toMatchObject({ id: late, ok: false, error: 'timeout' });
+    s.frame({ type: 'ack', id: late, ok: true }); // after the timeout: ignored
+    expect(results).toEqual([]);
+
+    const lost = c.sendCommand('ping');
+    s.drop();
+    expect(results.pop()).toMatchObject({ id: lost, ok: false, error: 'disconnected' });
+    expect(c.view.protocol).toBeNull();
+    c.sendCommand('ping');
+    expect(results.pop()).toMatchObject({ error: 'unavailable' });
+
+    timers.runNext(); // reconnect
+    s = sockets.last();
+    s.hello();
+    c.sendCommand('ping', { x: 1 });
+    expect(results.pop()).toMatchObject({ error: 'bad_args', detail: 'ping takes no arguments' });
+    expect(s.sent).toEqual([]);
+
+    s.hello(2, 1, []);
+    c.sendCommand('ping');
+    expect(results.pop()).toMatchObject({
+      error: 'unavailable',
+      detail: 'bridge does not offer ping',
+    });
+
+    s.hello();
+    s.sendError = new Error('socket not open');
+    c.sendCommand('ping');
+    expect(results.pop()).toMatchObject({ error: 'disconnected', detail: 'socket not open' });
+    expect(c.pendingCommands).toBe(0);
+  });
+
+  it('stop() fails pending commands', () => {
+    const { c, sockets, results } = client();
+    c.start();
+    sockets.last().hello();
+    const id = c.sendCommand('ping');
+    c.stop();
+    expect(results).toMatchObject([{ id, error: 'disconnected' }]);
   });
 
   it('isTelemetrySnapshot accepts the reference sample', () => {

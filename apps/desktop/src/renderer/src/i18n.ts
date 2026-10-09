@@ -82,6 +82,7 @@ const en = {
   'sys.scenario_error': 'Scenario {id} failed: {error}',
   'sys.reply_timeout': 'No answer to {id}: taken as {option}',
   'sys.transport_status': 'Network: {status} {reason}',
+  'sys.sim_command_failed': 'Sim command {command} failed: {error} {detail}',
   'net.outbox': '{n} waiting for the gap',
   'flight.fplnHint':
     'iniBuilds A350/A380: do F-PLN REQUEST (INIT REQUEST) in the FMS, otherwise the aircraft does not fetch the messages.',
@@ -267,6 +268,7 @@ const ru: Record<MessageKey, string> = {
   'sys.scenario_error': 'Ошибка сценария {id}: {error}',
   'sys.reply_timeout': 'Нет ответа на {id}: принято {option}',
   'sys.transport_status': 'Сеть: {status} {reason}',
+  'sys.sim_command_failed': 'Команда симулятору {command} не выполнена: {error} {detail}',
   'net.outbox': 'ждут интервала: {n}',
   'flight.fplnHint':
     'iniBuilds A350/A380: сделайте F-PLN REQUEST (INIT REQUEST) в FMS, иначе самолёт не забирает сообщения.',

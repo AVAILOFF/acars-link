@@ -29,13 +29,18 @@ acars-msfs-bridge --port 47831 --verbose
 Start order does not matter. Until MSFS is up, the bridge retries with backoff
 1, 2, 4, 8, 16, 30, 30 … s. The same happens after MSFS quits.
 
-## Protocol v1 (bridge → app only)
+## Protocol v1 and v2
 
-One JSON object per text frame:
+One JSON object per text frame. The client picks the version in the URL: `ws://127.0.0.1:47830/?protocol=2`.
+Without the query (or with `protocol=1`) the bridge speaks v1, exactly as before, so v1 clients keep working.
+A higher number than the bridge knows gets the highest version it supports. The app (T21) asks for v2 and also
+accepts a v1 bridge: telemetry then works and commands end with `unavailable`.
+
+### Bridge → app (v1 and v2)
 
 | `type` | When | Fields |
 |---|---|---|
-| `hello` | first frame | `protocol: 1`, `telemetryVersion: 1`, `bridge`, `version`, `source: "simconnect" \| "fake"` |
+| `hello` | first frame | `protocol: 1 \| 2`, `telemetryVersion: 1`, `bridge`, `version`, `source: "simconnect" \| "fake"`; v2 adds `commands: string[]` |
 | `status` | right after `hello`, then on every change | `sim: "disconnected" \| "connecting" \| "connected"`, `running`, `paused`, `simRate`, `detail?`, `retryInMs?` |
 | `telemetry` | ~1 Hz while `connected` and `running` | `data: TelemetrySnapshot` |
 
@@ -45,6 +50,37 @@ One JSON object per text frame:
 - `simRate` is `SIMULATION RATE`. Snapshots are capped at ~1 per second of wall time at any sim rate.
 - `t` is the bridge wall clock, in epoch ms UTC.
 - Messages from the client are ignored in v1. An incompatible change bumps `protocol`.
+
+### Commands (v2): app → bridge → sim
+
+```
+→ {"type":"command","id":"c1","command":"ping","args":{}}
+← {"type":"ack","id":"c1","ok":true}
+← {"type":"ack","id":"c1","ok":false,"error":"unavailable","detail":"sim not connected"}
+```
+
+- `id`: 1–64 of `A–Z a–z 0–9 . _ -`, chosen by the client. The `ack` goes only to the client that sent the command.
+  If the frame has no readable `id`, the `ack` has `"id": null`.
+- `command`: must be in the whitelist (`CommandCatalog` in `src/AcarsBridge/Commands.cs`) and supported by
+  the source. `hello` lists the commands this bridge offers. `args` is optional. It is a flat object of
+  up to 16 entries. Each value is a string (up to 512 characters), a number or a boolean. Each command
+  also checks its own arguments.
+- Commands run one at a time per client, in order. Each command has a 10 s timeout and is never retried.
+  The app's own timeout is 15 s.
+- Rate limit per client: a burst of 10, then 2 per second. Commands over the limit get `rate_limited`.
+- A text frame may be up to 4096 bytes. Longer frames and binary frames get `bad_frame` and are not parsed.
+- `error` codes: `bad_frame` (not JSON, wrong shape, bad `id`/`args`), `unknown_command` (not whitelisted or
+  not supported by this source), `bad_args`, `unavailable` (cannot run now), `rate_limited`, `failed`
+  (the source failed, or `detail: "timeout"`).
+- An `ack` uses the same per-client queue as telemetry, so a client that stalls long enough can lose it.
+  The app treats a missing `ack` as `timeout`.
+
+| Command | Args | `simconnect` | `fake` |
+|---|---|---|---|
+| `ping` | none | ok while a SimConnect session is open, else `unavailable` | ok |
+
+The fake source accepts every whitelisted command, confirms it, and logs it to the console.
+VDGS text (T22) and sim effects (T34) will be added to the whitelist when those tasks are done.
 
 Access rules (CLAUDE.md, invariant 10): the bridge listens on `127.0.0.1` only. The `Host` header must be `127.0.0.1` or `localhost`.
 `Origin` must be absent, `file://`, `null`, or an http(s) loopback origin. Anything else gets 403, so web pages

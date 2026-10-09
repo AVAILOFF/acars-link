@@ -50,7 +50,15 @@ export class FakeSocket implements SocketLike {
   onclose: SocketLike['onclose'] = null;
   onerror: SocketLike['onerror'] = null;
   closed: { code?: number; reason?: string } | null = null;
+  /** Frames the client sent, parsed. */
+  readonly sent: unknown[] = [];
+  /** Set to make `send` throw. */
+  sendError: Error | null = null;
   constructor(readonly url: string) {}
+  send(data: string) {
+    if (this.sendError !== null) throw this.sendError;
+    this.sent.push(JSON.parse(data));
+  }
   close(code?: number, reason?: string) {
     this.closed = {
       ...(code === undefined ? {} : { code }),
@@ -66,7 +74,8 @@ export class FakeSocket implements SocketLike {
   drop(reason = '') {
     this.onclose?.({ code: 1006, reason });
   }
-  hello(protocol = 1, telemetryVersion = 1) {
+  /** Bridge `hello`; v2 lists `commands`, v1 has no such field. */
+  hello(protocol = 2, telemetryVersion = 1, commands: readonly string[] = ['ping']) {
     this.open();
     this.frame({
       type: 'hello',
@@ -75,6 +84,7 @@ export class FakeSocket implements SocketLike {
       bridge: 'acars-msfs-bridge',
       version: 't',
       source: 'fake',
+      ...(protocol >= 2 ? { commands } : {}),
     });
   }
 }

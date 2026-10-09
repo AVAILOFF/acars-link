@@ -29,10 +29,15 @@ public class BridgeHubTests
         var (_, reader) = hub.Subscribe();
         var frames = Drain(reader);
         Assert.Equal(["hello", "status", "telemetry"], frames.Select(f => (string)f["type"]!));
-        Assert.Equal(Protocol.ProtocolVersion, (int)frames[0]["protocol"]!);
+        Assert.Equal(1, (int)frames[0]["protocol"]!); // no version asked for: v1
         Assert.Equal(TelemetrySnapshot.Version, (int)frames[0]["telemetryVersion"]!);
         Assert.Equal("connected", (string)frames[1]["sim"]!);
         Assert.Equal("FenixA320_DLH", (string)frames[2]["data"]!["aircraftTitle"]!);
+
+        var (_, v2) = new BridgeHub("0.1.0", "fake", ["ping"]).Subscribe(2);
+        var hello = Drain(v2)[0];
+        Assert.Equal(Protocol.ProtocolVersion, (int)hello["protocol"]!);
+        Assert.Equal("ping", (string)hello["commands"]![0]!);
     }
 
     [Fact]
