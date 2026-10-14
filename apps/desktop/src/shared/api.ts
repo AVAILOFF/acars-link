@@ -54,6 +54,11 @@ export interface Settings {
   readonly scenarios: Readonly<Record<string, boolean>>;
   /** Irregular scenario id → chance in percent (0–100); absent ids use the YAML `probability`. */
   readonly chances: Readonly<Record<string, number>>;
+  /**
+   * Chance multiplier of `drone_activity` by the destination country (T38): ISO 3166-1 alpha-2
+   * code or `*` (any other) → factor. Empty = the table built into the app.
+   */
+  readonly droneRisk: Readonly<Record<string, number>>;
 }
 
 export type SettingsPatch = Partial<Omit<Settings, 'scenarios' | 'chances'>>;
@@ -84,6 +89,8 @@ export interface ScenarioInfo {
   readonly defaultChance: number;
   /** The user's chance, percent; null = the default. Irregular scenarios only. */
   readonly chance: number | null;
+  /** The built-in multiplier table (T38); only for `drone_activity`, else null. */
+  readonly droneRiskDefault: Readonly<Record<string, number>> | null;
 }
 
 /** An irregular scenario of the running flight that can be started by hand. */

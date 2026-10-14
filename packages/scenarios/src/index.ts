@@ -3,5 +3,6 @@
  */
 export const SCENARIOS_PACKAGE = '@acars/scenarios';
 
+export * from './drone-risk.js';
 export * from './load.js';
 export * from './schema.js';

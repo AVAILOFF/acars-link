@@ -203,6 +203,42 @@ describe('sport', () => {
   });
 });
 
+describe('airportCountry (T38)', () => {
+  const svc = (body: string | null) =>
+    new ExternalDataService({
+      userAgent: 't',
+      http: {
+        async request() {
+          if (body === null) throw new Error('offline');
+          return { status: 200, body };
+        },
+      },
+    });
+
+  it('real airports → ISO country (OurAirports rows of 2026-10-14)', async () => {
+    const s = svc(fixture('ourairports-drone-airports.csv'));
+    const now = Date.parse('2026-10-14T12:00:00Z');
+    const got: Record<string, string | null> = {};
+    for (const i of ['UUEE', 'EDDM', 'EKCH', 'OMDB', 'KJFK', 'RJBB', 'ZZZZ']) {
+      got[i] = await s.airportCountry(i, now);
+    }
+    expect(got).toEqual({
+      UUEE: 'RU',
+      EDDM: 'DE',
+      EKCH: 'DK',
+      OMDB: 'AE',
+      KJFK: 'US',
+      RJBB: 'JP',
+      ZZZZ: null,
+    });
+  });
+
+  it('no network → null, no throw', async () => {
+    expect(await svc(null).airportCountry('UUEE', 0)).toBeNull();
+    expect(await svc('not,a,csv').airportCountry('UUEE', 0)).toBeNull();
+  });
+});
+
 describe('ExternalDataService: special-event groups (T29)', () => {
   const T0 = Date.parse('2026-10-09T12:00:00Z');
   const fake = (asked: string[]): HttpClient => ({

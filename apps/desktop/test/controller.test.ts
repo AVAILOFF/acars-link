@@ -662,7 +662,7 @@ describe('live data (T13)', () => {
       'swpc.noaa.gov',
       'isigmet',
       'usgs',
-      'airports.csv',
+      // (airports.csv is still asked once for drone_activity, T38)
       'nager',
       'jolpi',
       'nhle',
@@ -776,7 +776,8 @@ describe('irregular events by hand', () => {
     await s.app.stopFlight();
     // The recording keeps the chance: the replay sends the same.
     const rec = await readRecording(s.recordings);
-    expect(rec.header.probabilities).toEqual({ dg_notoc: 1 });
+    // drone_activity: the destination country is unknown here (live data off) → the `*` row.
+    expect(rec.header.probabilities).toEqual({ dg_notoc: 1, drone_activity: 0.009 });
     const r = replay(rec, {
       scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
     });
@@ -789,6 +790,95 @@ describe('irregular events by hand', () => {
     const second = outbound(t.app.state().feed);
     expect(second.length).toBeGreaterThan(0);
     expect(second.some((m) => m.scenarioId === 'dg_notoc')).toBe(false);
+  });
+
+  describe('drone_activity chance by destination country (T38)', () => {
+    const fixtures = join(import.meta.dirname, '../../../packages/data-sources/test/fixtures');
+
+    /** Simbrief plus OurAirports (RJBB = JP); every other source answers 404. */
+    async function countryHttp(): Promise<FakeHttp> {
+      const simbrief = await readFile(OFP_FIXTURE, 'utf8');
+      const csv = await readFile(join(fixtures, 'ourairports-airports.csv'), 'utf8');
+      return new FakeHttp((req) =>
+        req.url.includes('airports.csv')
+          ? { status: 200, body: csv }
+          : req.url.includes('simbrief')
+            ? { status: 200, body: simbrief }
+            : { status: 404, body: '' },
+      );
+    }
+
+    async function started(o: {
+      liveData: boolean;
+      droneRisk?: Record<string, number>;
+      pct?: number;
+    }) {
+      const s = await setup({ http: await countryHttp() });
+      await s.app.setSimbriefUsername('pilot42');
+      await s.app.updateSettings({
+        transport: 'offline',
+        liveData: o.liveData,
+        ...(o.droneRisk === undefined ? {} : { droneRisk: o.droneRisk }),
+      });
+      if (o.pct !== undefined) await s.app.setScenarioChance('drone_activity', o.pct);
+      await s.app.loadOfp();
+      s.sockets.last().hello();
+      await s.app.startFlight();
+      await s.app.stopFlight();
+      return { s, rec: await readRecording(s.recordings) };
+    }
+
+    const p = (rec: Recording) => rec.header.probabilities?.['drone_activity'];
+
+    it('the built-in table: JP is level D (×0.3 → 0.9 %); unknown country → the same `*`', async () => {
+      const info = (await (await setup()).app.listScenarios()).find(
+        (x) => x.id === 'drone_activity',
+      );
+      expect(info?.defaultChance).toBe(3);
+      expect(info?.droneRiskDefault).toMatchObject({ RU: 5, DE: 2, US: 1, '*': 0.3 });
+      expect(p((await started({ liveData: true })).rec)).toBeCloseTo(0.009, 10);
+      expect(p((await started({ liveData: false })).rec)).toBeCloseTo(0.009, 10);
+    });
+
+    it('the user table replaces the built-in one; a manual percent goes through the factor', async () => {
+      const own = { JP: 20, '*': 3 };
+      expect(p((await started({ liveData: true, droneRisk: own })).rec)).toBeCloseTo(0.6, 10);
+      // country unknown (live data off) → `*`
+      expect(p((await started({ liveData: false, droneRisk: own })).rec)).toBeCloseTo(0.09, 10);
+      expect(p((await started({ liveData: true, droneRisk: own, pct: 10 })).rec)).toBe(1);
+      expect(p((await started({ liveData: true, droneRisk: { JP: 1 }, pct: 10 })).rec)).toBeCloseTo(
+        0.1,
+        10,
+      );
+      // other scenarios are not touched
+      const { rec } = await started({ liveData: true, droneRisk: own });
+      expect(Object.keys(rec.header.probabilities ?? {})).toEqual(['drone_activity']);
+    });
+
+    it('the recording keeps the chance; replay applies it, and a changed header changes the replay', async () => {
+      const { s, rec } = await (async () => {
+        const s = await setup({ http: await countryHttp() });
+        await s.app.setSimbriefUsername('pilot42');
+        await s.app.updateSettings({ transport: 'offline', droneRisk: { JP: 100 } });
+        await s.app.loadOfp();
+        s.sockets.last().hello();
+        await s.app.startFlight();
+        fly(s);
+        await s.app.stopFlight();
+        return { s, rec: await readRecording(s.recordings) };
+      })();
+      expect(p(rec)).toBe(1);
+      const sent = outbound(s.app.state().feed).filter((m) => m.scenarioId === 'drone_activity');
+      expect(sent.length).toBeGreaterThan(0);
+      const scenarios = BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id));
+      const r = replay(rec, { scenarios });
+      expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+      const off = replay(
+        { ...rec, header: { ...rec.header, probabilities: { drone_activity: 0 } } },
+        { scenarios },
+      );
+      expect(off.outbound.some((m) => m.scenarioId === 'drone_activity')).toBe(false);
+    });
   });
 
   it('run now: starts at once or tells why not; recorded and replayed', async () => {

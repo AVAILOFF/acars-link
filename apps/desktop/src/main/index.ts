@@ -90,6 +90,17 @@ function createWindow(): BrowserWindow {
     return { action: 'deny' };
   });
   w.webContents.on('will-navigate', (e) => e.preventDefault());
+  // A dead or hung renderer must not leave a blank window; the flight runs in this process.
+  const reload = (why: string) => {
+    console.error(`renderer ${why}, reloading the window`);
+    if (w.isDestroyed()) return;
+    lastSent = '';
+    w.webContents.reload();
+  };
+  w.webContents.on('render-process-gone', (_e, details) => {
+    if (details.reason !== 'clean-exit') reload(`gone (${details.reason})`);
+  });
+  w.on('unresponsive', () => reload('unresponsive'));
   if (devUrl !== undefined) void w.loadURL(devUrl);
   else void w.loadFile(rendererFile);
   return w;

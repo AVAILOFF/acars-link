@@ -68,6 +68,7 @@ describe('settings', () => {
       specialOther: true,
       scenarios: {},
       chances: {},
+      droneRisk: {},
     });
     expect(defaultSettings('ru-RU').language).toBe('ru');
   });
@@ -94,12 +95,34 @@ describe('settings', () => {
       { messageGapSec: 601 },
       { scenarios: {} },
       { chances: {} },
+      { droneRisk: 5 },
+      { droneRisk: [] },
+      { droneRisk: { ru: 2 } },
+      { droneRisk: { RU: -1 } },
+      { droneRisk: { RU: 101 } },
+      { droneRisk: { RU: '2' } },
+      { droneRisk: Object.fromEntries(Array.from({ length: 301 }, (_, i) => [`K${i}`, 1])) },
       { evil: 1 },
       null,
       [],
     ]) {
       expect(() => validatePatch(bad), JSON.stringify(bad)).toThrow(AppFailure);
     }
+  });
+
+  it('drone_activity multiplier table (T38): validated, rounded, empty = built-in', () => {
+    expect(validatePatch({ droneRisk: { RU: 6, '*': 0.25, DE: 1.234 } })).toEqual({
+      droneRisk: { RU: 6, '*': 0.25, DE: 1.23 },
+    });
+    expect(validatePatch({ droneRisk: {} })).toEqual({ droneRisk: {} });
+    expect(
+      sanitize({ droneRisk: { RU: 6, de: 2 } }, defaults).droneRisk,
+      'one bad row drops the whole table',
+    ).toEqual({});
+    expect(sanitize({ droneRisk: { RU: 6, '*': 0.5 } }, defaults).droneRisk).toEqual({
+      RU: 6,
+      '*': 0.5,
+    });
   });
 
   it('sanitizes the file field by field', () => {

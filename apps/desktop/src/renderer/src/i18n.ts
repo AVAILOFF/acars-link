@@ -143,6 +143,16 @@ const en = {
   'scen.off': 'off',
   'scen.chance': 'Chance of {id}, percent',
   'scen.chanceDefault': 'default {value}%',
+  'drone.title': 'Chance multiplier by destination country',
+  'drone.hint':
+    'Final chance = base chance × the factor of the destination country (ISO code, * = any other), at most 100%. Game numbers; the table is a snapshot of 2026-10. Empty = the built-in table.',
+  'drone.country': 'Country code',
+  'drone.factor': 'Factor for {country}',
+  'drone.remove': 'Remove {country}',
+  'drone.add': 'Add',
+  'drone.reset': 'Built-in table',
+  'drone.custom': 'Your table',
+  'drone.builtin': 'Built-in table',
   'force.label': 'Irregular event',
   'force.run': 'Run now',
   'force.hint':
@@ -212,6 +222,7 @@ const en = {
   'err.scenarios_invalid': 'Scenario files are invalid: {detail}',
   'err.internal': 'Unexpected error: {detail}',
   'err.dismiss': 'Dismiss',
+  'err.view_crashed': 'This screen failed to display. Switch tabs or reload the window.',
 
   'phase.PREFLIGHT': 'Preflight',
   'phase.BOARDING': 'Boarding',
@@ -372,6 +383,16 @@ const ru: Record<MessageKey, string> = {
   'scen.off': 'выкл',
   'scen.chance': 'Вероятность {id}, проценты',
   'scen.chanceDefault': 'по умолчанию {value}%',
+  'drone.title': 'Множитель вероятности по стране назначения',
+  'drone.hint':
+    'Итоговая вероятность = базовая × множитель страны назначения (код ISO, * = любая другая), не больше 100%. Игровые числа; таблица — снимок на 2026-10. Пусто — встроенная таблица.',
+  'drone.country': 'Код страны',
+  'drone.factor': 'Множитель для {country}',
+  'drone.remove': 'Удалить {country}',
+  'drone.add': 'Добавить',
+  'drone.reset': 'Встроенная таблица',
+  'drone.custom': 'Ваша таблица',
+  'drone.builtin': 'Встроенная таблица',
   'force.label': 'Нестандартное событие',
   'force.run': 'Запустить сейчас',
   'force.hint':
@@ -442,6 +463,7 @@ const ru: Record<MessageKey, string> = {
   'err.scenarios_invalid': 'Ошибка в файлах сценариев: {detail}',
   'err.internal': 'Непредвиденная ошибка: {detail}',
   'err.dismiss': 'Закрыть',
+  'err.view_crashed': 'Этот экран не удалось показать. Переключите вкладку или перезагрузите окно.',
 
   'phase.PREFLIGHT': 'Подготовка',
   'phase.BOARDING': 'Посадка пассажиров',
@@ -470,14 +492,41 @@ export type Translate = (
   params?: Readonly<Record<string, string | number>>,
 ) => string;
 
+/** An unknown key (e.g. a code from a newer main process) shows as text instead of crashing the UI. */
 export function translator(lang: Language): Translate {
-  const dict = MESSAGES[lang];
-  return (key, params) =>
-    dict[key].replace(/\{(\w+)\}/g, (m, name: string) =>
+  const dict: Readonly<Record<string, string | undefined>> = MESSAGES[lang];
+  return (key, params) => {
+    const template = dict[key];
+    if (template === undefined) {
+      console.error(`i18n: no message for key "${key}" (${lang})`);
+      return key;
+    }
+    return template.replace(/\{(\w+)\}/g, (m, name: string) =>
       params !== undefined && name in params ? String(params[name]) : m,
     );
+  };
 }
 
 export const phaseKey = (p: FlightPhase): MessageKey => `phase.${p}`;
 export const systemKey = (c: SystemCode): MessageKey => `sys.${c}`;
 export const errorKey = (c: ErrorCode): MessageKey => `err.${c}`;
+
+/** Params of a system entry that hold a flight phase; all others (callsigns, ids) are shown as is. */
+const PHASE_PARAMS: Readonly<Partial<Record<SystemCode, readonly string[]>>> = {
+  phase: ['from', 'to'],
+  flight_stopped: ['phase'],
+};
+
+/** Text of a system feed entry in the UI language. */
+export function systemText(
+  t: Translate,
+  code: SystemCode,
+  params: Readonly<Record<string, string>>,
+): string {
+  const out: Record<string, string> = { ...params };
+  for (const k of PHASE_PARAMS[code] ?? []) {
+    const p = out[k];
+    if (p !== undefined) out[k] = t(phaseKey(p as FlightPhase));
+  }
+  return t(systemKey(code), out);
+}

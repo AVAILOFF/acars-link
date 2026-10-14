@@ -567,3 +567,29 @@ input.short {
 .scenario-desc {
   margin: -2px 0 6px 28px;
 }
+
+.drone-risk {
+  margin: 0 0 8px 28px;
+}
+
+.drone-rows {
+  list-style: none;
+  margin: 4px 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.drone-rows li,
+.drone-add {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.drone-rows input,
+.drone-add input {
+  width: 72px;
+  text-align: right;
+}

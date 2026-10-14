@@ -1,6 +1,6 @@
-import type { FlightPhase } from '@acars/core';
 import type { FeedEntry } from '../../shared/api.js';
-import { phaseKey, systemKey } from './i18n.js';
+import { ErrorBoundary } from './ErrorBoundary.js';
+import { systemText } from './i18n.js';
 import { useT, zulu } from './ui.js';
 
 /** Newest first. Telexes are shown as the aircraft would show them (monospace, line by line). */
@@ -18,7 +18,9 @@ export function FeedList({ entries }: { entries: readonly FeedEntry[] }) {
         <ol className="feed">
           {list.map((e) => (
             <li key={e.id} className={`feed-item ${e.kind}`}>
-              <Entry e={e} />
+              <ErrorBoundary resetKey={e.id} fallback={<p className="muted mono">{e.id}</p>}>
+                <Entry e={e} />
+              </ErrorBoundary>
             </li>
           ))}
         </ol>
@@ -30,15 +32,10 @@ export function FeedList({ entries }: { entries: readonly FeedEntry[] }) {
 function Entry({ e }: { e: FeedEntry }) {
   const t = useT();
   if (e.kind === 'system') {
-    const params: Record<string, string> = { ...e.params };
-    for (const k of ['from', 'to', 'phase'] as const) {
-      const p = params[k];
-      if (p !== undefined) params[k] = t(phaseKey(p as FlightPhase));
-    }
     return (
       <div className="sys">
         <time className="mono">{zulu(e.t)}</time>
-        <span>{t(systemKey(e.code), params)}</span>
+        <span>{systemText(t, e.code, e.params)}</span>
       </div>
     );
   }

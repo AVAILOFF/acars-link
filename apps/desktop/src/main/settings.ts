@@ -1,4 +1,5 @@
 import { DEFAULT_STATION } from '@acars/core';
+import { DRONE_RISK_MAX, isDroneRiskKey, isDroneRiskValue } from '@acars/scenarios';
 import type { Language, Settings, SettingsPatch, TransportChoice } from '../shared/api.js';
 import { AppFailure } from './errors.js';
 import { readTextFile, writeTextFileAtomic } from './files.js';
@@ -34,6 +35,7 @@ export function defaultSettings(locale: string): Settings {
     specialOther: true,
     scenarios: {},
     chances: {},
+    droneRisk: {},
   };
 }
 
@@ -74,6 +76,12 @@ export function validatePatch(patch: unknown): SettingsPatch {
         }
         out.bridgePort = value as number;
         break;
+      case 'droneRisk': {
+        const t = parseDroneRisk(value);
+        if (t === null) throw bad(key, `{country or *: 0..${DRONE_RISK_MAX}}`);
+        out.droneRisk = t;
+        break;
+      }
       case 'recordFlights':
       case 'liveData':
       case 'soundOnMessage':
@@ -89,6 +97,19 @@ export function validatePatch(patch: unknown): SettingsPatch {
       default:
         throw bad(key, 'unknown setting');
     }
+  }
+  return out;
+}
+
+/** A multiplier table (country or `*` → 0..100, at most 300 rows), else null. */
+function parseDroneRisk(v: unknown): Record<string, number> | null {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return null;
+  const entries = Object.entries(v);
+  if (entries.length > 300) return null;
+  const out: Record<string, number> = {};
+  for (const [k, m] of entries) {
+    if (!isDroneRiskKey(k) || !isDroneRiskValue(m)) return null;
+    out[k] = Math.round(m * 100) / 100;
   }
   return out;
 }
@@ -113,6 +134,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'specialSport',
     'specialAviation',
     'specialOther',
+    'droneRisk',
   ] as const;
   for (const key of keys) {
     if (!(key in r)) continue;

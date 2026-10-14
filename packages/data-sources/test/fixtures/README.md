@@ -26,3 +26,4 @@ Trimmed real responses of the data sources (docs/06 "Внешние данные
   - `jolpica-f1-last.json` — Jolpica `f1/current/last/results.json`, unchanged (CC BY-NC-SA 4.0, © Jolpica contributors).
   - `nhl-score.json` — `api-web.nhle.com/v1/score/2026-10-08`, 3 of the 10 games, `gameWeek` and `oddsPartners` dropped.
   - `ourairports-airports.csv` — the header and the EDDF, EGLL, KJFK, RJBB and `00A` rows of OurAirports `airports.csv` (public domain).
+- T38, taken 2026-10-14: `ourairports-drone-airports.csv` — the header and the UUEE, EDDM, EKCH, OMDB, KJFK and RJBB rows of OurAirports `airports.csv` (public domain).

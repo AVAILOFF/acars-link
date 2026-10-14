@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { ErrorBoundary } from './ErrorBoundary.js';
 import { FlightView } from './FlightView.js';
 import { errorKey } from './i18n.js';
 import { ScenariosView } from './ScenariosView.js';
@@ -62,13 +63,22 @@ export function App() {
       </header>
       <ErrorBanner />
       <main className="content">
-        {!ready ? null : tab === 'flight' ? (
-          <FlightView />
-        ) : tab === 'scenarios' ? (
-          <ScenariosView />
-        ) : (
-          <SettingsView />
-        )}
+        <ErrorBoundary
+          resetKey={tab}
+          fallback={
+            <p className="muted" role="alert">
+              {t('err.view_crashed')}
+            </p>
+          }
+        >
+          {!ready ? null : tab === 'flight' ? (
+            <FlightView />
+          ) : tab === 'scenarios' ? (
+            <ScenariosView />
+          ) : (
+            <SettingsView />
+          )}
+        </ErrorBoundary>
       </main>
     </div>
   );

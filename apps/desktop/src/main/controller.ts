@@ -7,7 +7,12 @@ import {
   type TelemetrySnapshot,
 } from '@acars/core';
 import { type DataCache, ExternalDataService } from '@acars/data-sources';
-import { loadScenarios, ScenarioLoadError } from '@acars/scenarios';
+import {
+  DRONE_RISK_DEFAULT,
+  droneProbability,
+  loadScenarios,
+  ScenarioLoadError,
+} from '@acars/scenarios';
 import type { HttpClient, Transport } from '@acars/transport';
 import type {
   AppState,
@@ -72,6 +77,9 @@ export const titleText = (c: CompiledScenario) => ({ en: c.def.title, ru: c.def.
 /** Irregular events: category `irregular`, not a pilot-command handler (`cmd_divert`). */
 export const isIrregularEvent = (c: CompiledScenario): boolean =>
   c.def.category === 'irregular' && c.def.trigger.on !== 'command';
+
+/** The scenario whose chance depends on the destination country (T38). */
+export const DRONE_SCENARIO_ID = 'drone_activity';
 
 /** Identifies the app to aviationweather.gov, VATSIM, NASA and Overpass (they ask for it). */
 export const DATA_USER_AGENT = 'ACARS-Sim/0.1 (flight simulator ACARS; personal use)';
@@ -236,6 +244,7 @@ export class AppController {
         enabled: chosen[c.id] ?? c.def.enabled_by_default,
         defaultChance: Math.round(c.probability * 1000) / 10,
         chance: isIrregularEvent(c) ? (chances[c.id] ?? null) : null,
+        droneRiskDefault: c.id === DRONE_SCENARIO_ID ? DRONE_RISK_DEFAULT : null,
       }))
       .sort((a, b) => a.category.localeCompare(b.category) || a.title.localeCompare(b.title));
   }
@@ -333,14 +342,25 @@ export class AppController {
     } else {
       transport = this.o.createTransport({ kind: 'offline' });
     }
+    const now = this.o.now();
+    // T38: the country of the destination (OurAirports; unknown offline → the `*` row).
+    const droneOn = settings.scenarios[DRONE_SCENARIO_ID] ?? true;
+    const droneCountry =
+      settings.liveData && droneOn
+        ? await this.data.airportCountry(ofp.destination.icao, now)
+        : null;
+    const droneTable =
+      Object.keys(settings.droneRisk).length === 0 ? DRONE_RISK_DEFAULT : settings.droneRisk;
     const enabled = this.scenarios
       .filter((c) => specialGroupOn(c.id, settings))
       .filter((c) => settings.scenarios[c.id] ?? c.def.enabled_by_default)
       .map((c) => {
         const pct = isIrregularEvent(c) ? settings.chances[c.id] : undefined;
-        return pct === undefined ? c : { ...c, probability: pct / 100 };
+        const base = pct === undefined ? c.probability : pct / 100;
+        const probability =
+          c.id === DRONE_SCENARIO_ID ? droneProbability(base, droneTable, droneCountry) : base;
+        return probability === c.probability ? c : { ...c, probability };
       });
-    const now = this.o.now();
     this.prefetch(ofp, settings);
     const flags = await this.flagStore.get();
     let recording: RecordingSink | null = null;

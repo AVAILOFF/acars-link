@@ -607,14 +607,7 @@ export class ExternalDataService {
       }
       case 'holidays': {
         const icao = flight.ofp.destination.icao;
-        let map = (await this.cached('airport-countries', now, kind, checkCountries)) as
-          | Record<string, string>
-          | undefined;
-        if (map === undefined) {
-          map = await fetchAirportCountries(this.ctx);
-          await this.store('airport-countries', now, map);
-        }
-        const country = map[icao];
+        const country = (await this.countryMap(now, kind))[icao];
         if (country === undefined) return () => {};
         // Years of now and of the latest possible arrival (a day after now + block time).
         const t = flight.ofp.times;
@@ -662,6 +655,29 @@ export class ExternalDataService {
   private mapCenters(): void {
     if (this.vatspy === null || this.rawCenters === null) return;
     this.pending.centers = centersFor(this.rawCenters, this.vatspy.data, this.vatspy.route);
+  }
+
+  /** ICAO → ISO country map (OurAirports), cached 30 days. */
+  private async countryMap(now: number, kind: DataSourceKind): Promise<Record<string, string>> {
+    const hit = (await this.cached('airport-countries', now, kind, checkCountries)) as
+      | Record<string, string>
+      | undefined;
+    if (hit !== undefined) return hit;
+    const map = await fetchAirportCountries(this.ctx);
+    await this.store('airport-countries', now, map);
+    return map;
+  }
+
+  /**
+   * ISO 3166-1 alpha-2 country of an airport (OurAirports, T38); null when the airport is not
+   * in the list or the list cannot be had (no network). Never throws.
+   */
+  async airportCountry(icao: string, now: number): Promise<string | null> {
+    try {
+      return (await this.countryMap(now, 'holidays'))[icao] ?? null;
+    } catch {
+      return null;
+    }
   }
 
   /** A fresh cached value of an update field, else fetched and stored. */
