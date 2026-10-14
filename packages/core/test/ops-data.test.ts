@@ -150,10 +150,10 @@ describe('airline type: turnaround and onward connection (T43)', () => {
   });
 
   it('low-cost: short turnaround and connection', () => {
-    expect(turn(as('RYR'))).toEqual([25, 35]);
+    expect(turn(as('RYR'))).toEqual([45, 55]);
     const [lo, hi] = conn(as('EZY'));
-    expect(lo).toBeGreaterThanOrEqual(30);
-    expect(hi).toBeLessThanOrEqual(55); // rounded up to 5 min
+    expect(lo).toBeGreaterThanOrEqual(50);
+    expect(hi).toBeLessThanOrEqual(75); // rounded up to 5 min
   });
 
   it('hub carriers: about two hours', () => {
@@ -163,8 +163,10 @@ describe('airline type: turnaround and onward connection (T43)', () => {
     expect(hi).toBeLessThanOrEqual(145);
   });
 
-  it('others as before (heavy A35K: 75–95, connection 50–95)', () => {
+  it('others: 50–70 (heavy A35K 75–95 as before), connection 50–95', () => {
     expect(turn(kg)).toEqual([75, 95]);
+    const medium: Ofp = { ...kg, aircraft: { ...kg.aircraft, wakeCategory: 'M' } };
+    expect(turn(medium)).toEqual([50, 70]);
     const [lo, hi] = conn(kg);
     expect(lo).toBeGreaterThanOrEqual(50);
     expect(hi).toBeLessThanOrEqual(100);

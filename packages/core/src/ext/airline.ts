@@ -27,13 +27,15 @@ const LCC_ICAO = [
 ];
 /**
  * Subsidiaries of the listed LCCs founded after the list (easyJet Europe, Ryanair UK, Buzz,
- * Lauda Europe, Wizz Air Malta / UK, Norwegian Air Sweden / International): assumption.
+ * Lauda Europe, Wizz Air Malta / UK, Norwegian Air Sweden / International): assumption,
+ * confirmed by the user 2026-10-15.
  */
 const LCC_SUBSIDIARIES = ['EJU', 'RUK', 'RYS', 'LDM', 'WMT', 'WUK', 'NOZ', 'IBK'];
 
 /**
  * Hub carriers whose passengers mostly connect (Emirates, Etihad, Qatar Airways, Singapore
- * Airlines, Cathay Pacific, Turkish Airlines): assumption, user's examples 2026-10-15.
+ * Airlines, Cathay Pacific, Turkish Airlines): the user's examples and three alike, confirmed
+ * 2026-10-15.
  */
 const HUB_ICAO = ['UAE', 'ETD', 'QTR', 'SIA', 'CPA', 'THY'];
 

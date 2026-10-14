@@ -90,11 +90,11 @@ export function buildFlightData(ofp: Ofp, seed: number | string): FlightData {
   const belt = rng.int(1, 12);
   const transferPax = Math.round((pax * rng.int(5, 25)) / 100);
   const heavy = ofp.aircraft.wakeCategory === 'H' || ofp.aircraft.wakeCategory === 'J';
-  // By airline type (T43, assumption 2026-10-15): low-cost 25–35 min, hub carriers about two
-  // hours (105–135), others as before (40–60, heavy 75–95). One draw, as before.
+  // By airline type (T43, user's numbers 2026-10-15): low-cost 45–55 min, hub carriers about
+  // two hours (105–135), others 50–70 (heavy 75–95 as before). One draw, as before.
   const type = airlineType(ofp.airlineIcao);
   const [turnBase, turnSteps] =
-    type === 'LCC' ? [25, 2] : type === 'HUB' ? [105, 6] : heavy ? [75, 4] : [40, 4];
+    type === 'LCC' ? [45, 2] : type === 'HUB' ? [105, 6] : heavy ? [75, 4] : [50, 4];
   const turnaroundMin = turnBase + rng.int(0, turnSteps) * 5;
   const seats = ofp.aircraft.maxPax ?? pax;
   // Appended last: the draw order of older recordings stays.

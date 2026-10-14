@@ -47,10 +47,10 @@ export function buildIrregularData(
   const t = ofp.times;
   const on = t.schedOnMs ?? t.schedInMs - (t.taxiInSec ?? 300) * 1000;
   const curfew = ceilTo(on + rng.int(20, 60) * MIN, 15 * MIN);
-  // Onward flight after STA by airline type (T43, assumption 2026-10-15): low-cost 30–50 min,
+  // Onward flight after STA by airline type (T43, user's numbers 2026-10-15): low-cost 50–70 min,
   // hub carriers 100–140 (about two hours), others 50–95 as before. One draw, as before.
   const type = airlineType(ofp.airlineIcao);
-  const [connMin, connMax] = type === 'LCC' ? [30, 50] : type === 'HUB' ? [100, 140] : [50, 95];
+  const [connMin, connMax] = type === 'LCC' ? [50, 70] : type === 'HUB' ? [100, 140] : [50, 95];
   const connectStd = ceilTo(t.schedInMs + rng.int(connMin, connMax) * MIN, 5 * MIN);
   const connectNo = rng.int(100, 989);
   // 20–50 % of the transfer passengers (`ops.transfer_pax`) take this one connection.
