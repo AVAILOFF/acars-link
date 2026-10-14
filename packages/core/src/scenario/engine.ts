@@ -16,7 +16,7 @@ import { createRng, type Rng, type RngState, rngFromState } from '../random/rng.
 import type { SimCommand } from '../sim/commands.js';
 import { buildVdgsMessage, type VdgsDisplay, VdgsError, type VdgsLine } from '../sim/vdgs.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
-import type { CompiledScenario } from './compile.js';
+import type { CompiledScenario, CompiledStep } from './compile.js';
 import { buildContext, RouteGeometry, type RunVariable, type ScenarioContext } from './context.js';
 import type { Lookup, Value } from './expr.js';
 import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
@@ -147,6 +147,13 @@ export type ScenarioEvent =
       readonly result: 'started' | 'conditions' | 'running' | 'unknown';
       readonly detail: string | null;
     }
+  | {
+      /** A `wait: until` ended (T39): the condition held, or its time ran out. */
+      readonly type: 'WAIT_UNTIL';
+      readonly id: string;
+      readonly t: number;
+      readonly result: 'MET' | 'TIMEOUT';
+    }
   | { readonly type: 'SCENARIO_STARTED'; readonly id: string; readonly t: number }
   | {
       readonly type: 'SCENARIO_SKIPPED';
@@ -223,6 +230,8 @@ interface Run {
   untilPhase: FlightPhase | null;
   /** Waiting for a pilot answer (`wait: reply`). */
   reply: { options: string[]; default: string; untilFlightMs: number } | null;
+  /** Waiting for a condition (`wait: until`, T39): the step and the flight time to give up at. */
+  until: { step: number; deadlineMs: number } | null;
   /** `reply.*` and `cmd.*` of this run. */
   vars: Partial<Record<RunVariable, Value>>;
 }
@@ -405,7 +414,7 @@ export class ScenarioEngine {
     // Fields added with T12 are absent in older states: defaults.
     e.st.runs = copy.runs
       .filter((r) => e.byId.has(r.id))
-      .map((r) => ({ ...r, reply: r.reply ?? null, vars: r.vars ?? {} }));
+      .map((r) => ({ ...r, reply: r.reply ?? null, until: r.until ?? null, vars: r.vars ?? {} }));
     e.st.sessionFired = [...copy.sessionFired];
     e.st.sent = { ...(copy.sent ?? {}) };
     e.st.divert = copy.divert ?? null;
@@ -621,6 +630,7 @@ export class ScenarioEngine {
       untilFlightMs: null,
       untilPhase: null,
       reply: null,
+      until: null,
       vars: { ...vars },
     };
     this.st.runs.push(run);
@@ -912,6 +922,17 @@ export class ScenarioEngine {
     ) {
       return 'cooldown';
     }
+    // Group limit (T39): members started in this flight, the scenario itself included.
+    const group = sc.def.group;
+    if (group !== undefined && sc.groupMax !== null) {
+      let started = 0;
+      for (const other of this.ordered) {
+        if (other.def.group === group) {
+          started += (this.st.scenarios[other.id] as ScenarioState).starts;
+        }
+      }
+      if (started >= sc.groupMax) return 'excluded';
+    }
     // Mutual exclusion, either direction, against anything started in this flight.
     for (const other of this.ordered) {
       if (other.id === sc.id || (this.st.scenarios[other.id] as ScenarioState).starts === 0)
@@ -921,6 +942,25 @@ export class ScenarioEngine {
       }
     }
     return null;
+  }
+
+  /** `wait: until` is over: the outcome goes to the next `branch` as `reply.option`. */
+  private finishUntil(
+    run: Run,
+    id: string,
+    met: boolean,
+    input: EngineTickInput,
+    events: ScenarioEvent[],
+  ): void {
+    const result = met ? 'MET' : 'TIMEOUT';
+    run.vars = {
+      ...run.vars,
+      'reply.option': result,
+      'reply.text': null,
+      'reply.arg': null,
+      'reply.timeout': !met,
+    };
+    events.push({ type: 'WAIT_UNTIL', id, t: input.now, result });
   }
 
   /** Executes steps of a run until it waits or finishes. */
@@ -948,6 +988,13 @@ export class ScenarioEngine {
         'reply.timeout': true,
       };
       events.push({ type: 'REPLY_TIMEOUT', id: sc.id, t: input.now, option });
+    }
+    if (run.until !== null) {
+      const w = sc.steps[run.until.step] as Extract<CompiledStep, { kind: 'wait_until' }>;
+      const met = w.cond.test(this.lookFor(run.vars));
+      if (!met && input.flightTimeMs < run.until.deadlineMs) return;
+      run.until = null;
+      this.finishUntil(run, sc.id, met, input, events);
     }
     if (run.untilFlightMs !== null) {
       if (input.flightTimeMs < run.untilFlightMs) return;
@@ -984,6 +1031,18 @@ export class ScenarioEngine {
           timeoutMs,
         });
         return;
+      }
+      if (step.kind === 'wait_until') {
+        const met = step.cond.test(this.lookFor(run.vars));
+        if (!met) {
+          run.until = {
+            step: run.step - 1,
+            deadlineMs: input.flightTimeMs + step.timeoutMin * 60_000,
+          };
+          return;
+        }
+        this.finishUntil(run, sc.id, true, input, events);
+        continue;
       }
       if (step.kind === 'branch') {
         const option = run.vars['reply.option'];

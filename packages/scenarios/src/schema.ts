@@ -10,7 +10,7 @@ import {
  * JSON Schema (2020-12) of a scenario file (docs/05-scenario-engine.md; T06, T12: `wait: reply`,
  * `branch`, `resend`, `on: command`). Structure only; semantics (expressions, templates,
  * variables, branch keys, `set` targets) are checked by `compileScenario` in `@acars/core`.
- * `set` — T14. `vdgs` — T22 (line widths are checked by `compileScenario`).
+ * `set` — T14. `vdgs` — T22 (line widths are checked by `compileScenario`). `wait: until`, `group` — T39.
  */
 
 const phase = { enum: [...FLIGHT_PHASES] } as const;
@@ -113,6 +113,8 @@ export const SCENARIO_SCHEMA = {
       ],
     },
     excludes: { type: 'array', items: id },
+    // T39: limit per flight is described in `groups.ts`.
+    group: id,
     priority: { type: 'integer' },
     steps: { $ref: '#/$defs/steps' },
   },
@@ -153,6 +155,15 @@ export const SCENARIO_SCHEMA = {
                     additionalProperties: false,
                     required: ['phase'],
                     properties: { phase },
+                  },
+                  {
+                    type: 'object',
+                    additionalProperties: false,
+                    required: ['until', 'timeout_min'],
+                    properties: {
+                      until: text,
+                      timeout_min: { type: 'number', exclusiveMinimum: 0 },
+                    },
                   },
                   {
                     type: 'object',

@@ -17,6 +17,7 @@ import {
   type Step,
   TIME_REFS,
   TRIGGER_EVENTS,
+  UNTIL_OUTCOMES,
 } from './types.js';
 
 /**
@@ -56,6 +57,11 @@ export type CompiledStep =
       readonly default: string;
     }
   | {
+      readonly kind: 'wait_until';
+      readonly cond: CompiledExpr;
+      readonly timeoutMin: number;
+    }
+  | {
       readonly kind: 'branch';
       readonly arms: Readonly<Record<string, number>>;
       readonly end: number;
@@ -90,6 +96,30 @@ export interface CompiledScenario {
   readonly steps: readonly CompiledStep[];
   readonly probability: number;
   readonly priority: number;
+  /** Members of the group that may start in one flight; null = no limit (T39). */
+  readonly groupMax: number | null;
+}
+
+/** Group descriptions (`@acars/scenarios`): name → limit. */
+export type ScenarioGroups = Readonly<Record<string, { readonly max_per_flight: number }>>;
+
+/**
+ * Gives a scenario its group's limit (T39). `compileScenario` leaves it null (no limit): the
+ * table of groups lives in `@acars/scenarios`, which calls this for every scenario it loads.
+ */
+export function withGroups(s: CompiledScenario, groups: ScenarioGroups): CompiledScenario {
+  const name = s.def.group;
+  if (name === undefined) return s;
+  const g = groups[name];
+  if (g === undefined) throw new ScenarioError(s.id, 'group', `unknown group "${name}"`);
+  if (!(Number.isInteger(g.max_per_flight) && g.max_per_flight >= 1)) {
+    throw new ScenarioError(
+      s.id,
+      'group',
+      `group "${name}": max_per_flight must be an integer ≥ 1`,
+    );
+  }
+  return { ...s, groupMax: g.max_per_flight };
 }
 
 const ID = /^[a-z][a-z0-9_]*$/;
@@ -143,6 +173,8 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
   for (const x of def.excludes ?? []) {
     if (x === id) fail('excludes', 'a scenario cannot exclude itself');
   }
+
+  if (def.group !== undefined && !ID.test(def.group)) fail('group', 'must be snake_case');
 
   const vars = (path: string, used: readonly string[]) => {
     for (const v of used) if (!isContextVariable(v)) fail(path, `unknown variable ${v}`);
@@ -222,8 +254,20 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
             default: r.default,
           });
           reply = r.options;
+        } else if ('until' in w) {
+          if (!(w.timeout_min > 0)) fail(`${path}.wait.timeout_min`, 'must be > 0');
+          let cond: CompiledExpr;
+          try {
+            cond = compileExpr(w.until);
+          } catch (e) {
+            if (e instanceof ExprError) return fail(`${path}.wait.until`, e.message);
+            throw e;
+          }
+          vars(`${path}.wait.until`, cond.vars);
+          steps.push({ kind: 'wait_until', cond, timeoutMin: w.timeout_min });
+          reply = UNTIL_OPTIONS;
         } else {
-          fail(`${path}.wait`, 'needs minutes, phase or reply');
+          fail(`${path}.wait`, 'needs minutes, phase, reply or until');
         }
         continue;
       }
@@ -334,9 +378,10 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
   };
   emit(def.steps, 'steps', null);
 
-  return { def, id, conditions, steps, probability, priority: def.priority ?? 0 };
+  return { def, id, conditions, steps, probability, priority: def.priority ?? 0, groupMax: null };
 }
 
 const OPTION = /^[A-Z][A-Z0-9]*$/;
 const MIXED = Symbol('mixed');
+const UNTIL_OPTIONS: readonly string[] = UNTIL_OUTCOMES;
 type Reply = readonly string[] | null | typeof MIXED;

@@ -208,14 +208,17 @@ function checkFormat(r: Run, profile: DisplayProfile): void {
 }
 
 describe('special event files', () => {
-  it('ten scenarios; the news ones exclude each other, the safety ones nothing', () => {
+  it('ten scenarios; the news ones are one group of 1, the safety ones nothing', () => {
     expect(special.map((s) => s.id).sort()).toEqual([...NEWS, ...SAFETY].sort());
     for (const id of NEWS) {
-      expect([...(byId(id).def.excludes ?? [])].sort()).toEqual(
-        NEWS.filter((x) => x !== id).sort(),
-      );
+      expect(byId(id).def.group).toBe('special_news');
+      expect(byId(id).groupMax).toBe(1);
+      expect(byId(id).def.excludes).toBeUndefined();
     }
-    for (const id of SAFETY) expect(byId(id).def.excludes).toBeUndefined();
+    for (const id of SAFETY) {
+      expect(byId(id).def.excludes).toBeUndefined();
+      expect(byId(id).def.group).toBeUndefined();
+    }
   });
 });
 

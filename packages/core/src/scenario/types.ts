@@ -8,7 +8,8 @@ import type { FlightPhase, PhaseEvent } from '../phase/fsm.js';
  * v0 (T06): triggers `phase_enter | phase | time | distance | event`, steps `send | wait`
  * (`minutes`, `phase`). T12: `wait: reply`, `branch`, `resend`, trigger `command` (pilot
  * commands, `scenario/pilot.ts`). T14: `set` (flags that outlive the flight, the run's
- * diversion and arrival gate). T22: `vdgs` (text for the GSX docking display).
+ * diversion and arrival gate). T22: `vdgs` (text for the GSX docking display). T39:
+ * `wait: until` and `group`.
  */
 
 export type ScenarioCategory = 'docs' | 'ops' | 'irregular' | 'external' | 'fun';
@@ -82,10 +83,24 @@ export interface ReplyWait {
   readonly default: string;
 }
 
+/**
+ * Waits until a condition (the language of `conditions`) holds; checked on every tick, also
+ * when the step is reached. After `timeout_min` of flight time it is given up. A following
+ * `branch` tells the outcomes apart: {@link UNTIL_OUTCOMES} (`reply.option`).
+ */
+export interface UntilWait {
+  readonly until: string;
+  readonly timeout_min: number;
+}
+
+/** Arms of a `branch` after `wait: until`. */
+export const UNTIL_OUTCOMES = ['MET', 'TIMEOUT'] as const;
+
 export type WaitStep =
   | { readonly wait: { readonly minutes: number } }
   | { readonly wait: { readonly phase: FlightPhase } }
-  | { readonly wait: { readonly reply: ReplyWait } };
+  | { readonly wait: { readonly reply: ReplyWait } }
+  | { readonly wait: UntilWait };
 
 /** Steps by the last answer (`reply.option`); an answer without an arm goes on after it. */
 export interface BranchStep {
@@ -152,6 +167,11 @@ export interface ScenarioDef {
   /** Default `per_flight`; `none` for `on: command`. */
   readonly cooldown?: Cooldown;
   readonly excludes?: readonly string[];
+  /**
+   * Scenario group (T39): the group's `max_per_flight` (described in `@acars/scenarios`)
+   * limits how many of its members start in one flight.
+   */
+  readonly group?: string;
   /** Higher first when several start on one tick. Default 0. */
   readonly priority?: number;
   readonly steps: readonly Step[];

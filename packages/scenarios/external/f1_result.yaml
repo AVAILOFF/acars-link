@@ -14,7 +14,7 @@ trigger:
 conditions:
   - "ext.f1_race != null"
   - "flight.minutes_to_tod == null || flight.minutes_to_tod > 30"
-excludes: [aurora_on_route, solar_eclipse, airshow_dest, aviation_history, nhl_results, holiday_dest, earthquake_dest]
+group: special_news
 priority: 0
 steps:
   - send:

@@ -15,7 +15,7 @@ trigger:
 conditions:
   - "ext.quake_mag != null"
   - "flight.minutes_to_tod == null || flight.minutes_to_tod > 30"
-excludes: [aurora_on_route, solar_eclipse, airshow_dest, aviation_history, f1_result, nhl_results, holiday_dest]
+group: special_news
 priority: 0
 steps:
   - send:

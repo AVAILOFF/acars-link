@@ -4,9 +4,11 @@ import {
   type ScenarioDef,
   ScenarioError,
   type Step,
+  withGroups,
 } from '@acars/core';
 import { Ajv2020, type ErrorObject } from 'ajv/dist/2020.js';
 import { parseDocument } from 'yaml';
+import { SCENARIO_GROUPS } from './groups.js';
 import { SCENARIO_SCHEMA } from './schema.js';
 
 /**
@@ -72,7 +74,7 @@ function resendIds(steps: readonly Step[]): string[] {
 export function loadScenario(source: string, file = '<scenario>'): CompiledScenario {
   const def = parseScenario(source, file);
   try {
-    return compileScenario(def);
+    return withGroups(compileScenario(def), SCENARIO_GROUPS);
   } catch (e) {
     if (e instanceof ScenarioError) throw new ScenarioLoadError(file, [`${e.path}: ${e.message}`]);
     throw e;
