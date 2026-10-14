@@ -224,6 +224,9 @@ describe('RDY (T44)', () => {
       expect(errors(r)).toEqual([]);
       const t = textsOf(r, 'cmd_rdy');
       expect(t[0], `seed rdy${n}: ${all(r)}`).toContain('READY MSG SENT');
+      // The CTOT is the one the slot announced, not moved by the delay the slot caused.
+      const announced = /CTOT (\d{4})Z/.exec(textsOf(r, 'slot_ctot')[0] ?? '')?.[1];
+      expect(t[0]).toContain(`CTOT ${announced}Z`);
       expect(t).toHaveLength(2);
       // The answer comes 3 minutes later.
       const sent = r.out.filter((m) => m.scenarioId === 'cmd_rdy');

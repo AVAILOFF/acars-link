@@ -111,8 +111,8 @@ const missing = new RegExp(`(^|[^-])${MISSING}($|[^-])`, 'm');
 const num = (text: string, re: RegExp) => Number(re.exec(text)?.[1]);
 
 describe('base scenario set', () => {
-  it('has 15 scenarios, file name = id, all enabled by default', () => {
-    expect(base).toHaveLength(15);
+  it('has 16 scenarios, file name = id, all enabled by default', () => {
+    expect(base).toHaveLength(16);
     expect(base.map((s) => `${s.id}.yaml`)).toEqual(files.map((f) => f.file));
     expect(base.every((s) => s.def.enabled_by_default)).toBe(true);
   });
@@ -124,6 +124,8 @@ describe.each(FLIGHTS)('each scenario alone on $name', (c) => {
     for (const profile of [DEFAULT_PROFILE, B77X_PROFILE, B78X_PROFILE]) {
       const r = fly(c, [{ ...s, probability: 1 }], profile);
       expect(errors(r)).toEqual([]);
+      // slot_missed needs a late take-off after a slot: its own test below.
+      if (s.id === 'slot_missed') continue;
       expect(r.out.length, `${s.id} sent nothing on ${profile.id}`).toBeGreaterThan(0);
       for (const m of r.out) {
         expect(checkText(m.message.text, profile)).toEqual([]);
@@ -176,6 +178,26 @@ describe('the whole set on one flight', () => {
     const gate = /EXPECTED GATE (\w+)/.exec(textOf(r, 'gate_assignment'))?.[1];
     expect(gate).toMatch(/^[A-E]\d{1,2}$/);
     expect(textOf(r, 'arrival_info')).toContain(`GATE ${gate} CONFIRMED`);
+  });
+
+  it('slot_missed: only when airborne later than CTOT + 10 min (window −5/+10, T43)', () => {
+    const MIN = 60_000;
+    const set = base
+      .filter((x) => x.id === 'slot_ctot' || x.id === 'slot_missed')
+      .map((x) => ({ ...x, probability: 1 }));
+    // On time: took off before the CTOT, nothing to report.
+    expect(fly(FLIGHTS[0] as Case, set).out.map((m) => m.scenarioId)).toEqual(['slot_ctot']);
+    // The crew sits at the gate for an hour (no DELAY sent): far outside the slot.
+    const lateFlight = withPause(normal, {
+      atIndex: stageIndex(normal, 'GATE', 600),
+      durationSec: 3600,
+    });
+    const r = fly({ name: 'late', ofp: kg, flight: lateFlight, seed: 'late' }, set);
+    expect(errors(r)).toEqual([]);
+    expect(r.out.map((m) => m.scenarioId)).toEqual(['slot_ctot', 'slot_missed']);
+    const text = textOf(r, 'slot_missed');
+    expect(text).toContain('DEPARTED OUTSIDE SLOT');
+    expect(text).toContain(`CTOT ${/CTOT (\d{4})Z/.exec(textOf(r, 'slot_ctot'))?.[1]}Z`);
   });
 
   it('no stands known: no invented gate in any message (T43)', () => {

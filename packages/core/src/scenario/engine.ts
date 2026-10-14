@@ -281,6 +281,8 @@ export interface ScenarioEngineState {
   readonly forced: readonly string[];
   /** Fuel seen before OUT (T43, `fuel_slip`); absent in older states. */
   readonly fuel?: FuelTrack | null;
+  /** Part of the delay a `set: flight.delay_min` added (the slot), ms; absent in older states. */
+  readonly delayRaisedMs?: number;
 }
 
 interface PendingWx {
@@ -366,6 +368,7 @@ export class ScenarioEngine {
     gate: string | null;
     forced: string[];
     fuel: FuelTrack | null;
+    delayRaisedMs: number;
   };
   /** Context of the current tick; rebuilt when a command or a send changes it. */
   private ctx: ScenarioContext | null = null;
@@ -419,6 +422,7 @@ export class ScenarioEngine {
       gate: null,
       forced: [],
       fuel: null,
+      delayRaisedMs: 0,
     };
     this.rebuildData();
   }
@@ -451,6 +455,7 @@ export class ScenarioEngine {
     e.st.forced = [...(copy.forced ?? [])];
     // Fields added with T43.
     e.st.fuel = copy.fuel ?? null;
+    e.st.delayRaisedMs = copy.delayRaisedMs ?? 0;
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
     e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
@@ -485,10 +490,16 @@ export class ScenarioEngine {
   /** Ops data from the (delayed) OFP and seed; the gate from the OSM stands when known. */
   private rebuildData(): void {
     const delay = this.st.delayMs ?? 0;
-    const data = buildFlightData(
-      delay === 0 ? this.ofp : delayedOfp(this.ofp, delay, true),
-      this.seed,
-    );
+    const at = (ms: number) => (ms === 0 ? this.ofp : delayedOfp(this.ofp, ms, true));
+    const built = buildFlightData(at(delay), this.seed);
+    const raised = this.st.delayRaisedMs;
+    const data =
+      raised === 0
+        ? built
+        : {
+            ...built,
+            ops: { ...built.ops, ctot: buildFlightData(at(delay - raised), this.seed).ops.ctot },
+          };
     const stands = this.st.ext.stands;
     // No stands, no gate (T43): nothing is invented.
     const picked = stands === null ? null : pickStandInfo(stands, this.seed);
@@ -954,7 +965,11 @@ export class ScenarioEngine {
         const min = typeof value === 'number' ? value : Number(value);
         applied = input.oooi.OUT === null && Number.isFinite(min) && min >= 0 && min <= 600;
         if (applied) {
-          this.setDelay(Math.max(this.st.delayMs ?? 0, Math.round(min) * 60_000));
+          const before = this.st.delayMs ?? 0;
+          const after = Math.max(before, Math.round(min) * 60_000);
+          // The CTOT the slot announced must not move with the delay the slot itself caused.
+          this.st.delayRaisedMs += after - before;
+          this.setDelay(after);
           refresh = true;
         }
       } else if (a.target === 'ops.arr_gate') {

@@ -1,0 +1,26 @@
+# The slot was missed (T44/T43 item 2): airborne later than CTOT + 10 min. The tolerance window
+# (-5/+10 min around the CTOT) is the Network Manager rule (EUROCONTROL ATFCM; AIP Ireland
+# ENR 1.9, checked 2026-10-14). No new CTOT is invented: the departure has already happened.
+id: slot_missed
+version: 1
+category: ops
+title: Slot missed
+title_ru: "Слот пропущен"
+description: "After take-off later than CTOT + 10 min (tolerance window -5/+10 min): the slot is reported as missed."
+description_ru: "Взлёт позже CTOT + 10 мин (допуск -5/+10 мин): сообщение о пропущенном слоте."
+enabled_by_default: true
+trigger:
+  on: event
+  event: OOOI_OFF
+conditions:
+  - "'slot_ctot' in flight.sent"
+  - "ops.slot_missed"
+steps:
+  - send:
+      header: SLOT MISSED
+      body: |
+        {ofp.callsign} {ofp.orig}
+        CTOT {ops.ctot|hhmm}Z TOL -5/+10
+        OFF {flight.off|hhmm}Z
+        DEPARTED OUTSIDE SLOT
+        ATFM REPORT FILED

@@ -217,6 +217,7 @@ export const CONTEXT_VARIABLES = [
   'flight.fuel_diff_kg',
   'ops.turn_avail_min',
   'ops.ctot_ready',
+  'ops.slot_missed',
   'ops.rdy_window',
   'ops.rdy_better',
   'ops.gate_known',
@@ -718,6 +719,7 @@ function t4344Variables(
   | 'ops.turn_avail_min'
   | 'ops.quick_turn'
   | 'ops.ctot_ready'
+  | 'ops.slot_missed'
   | 'ops.rdy_window'
   | 'ops.rdy_better',
   Value
@@ -741,6 +743,9 @@ function t4344Variables(
     // RDY (T44): a ready flight may ask for an earlier slot from EOBT−15 min to CTOT−taxi (REA
     // rule of the Network Manager, e.g. AIP Ireland ENR 1.9 2.5.4); the gain is an assumption.
     'ops.ctot_ready': ops.ctot - ops.rdyGainMin * 60_000,
+    // Slot tolerance window −5/+10 min around the CTOT (EUROCONTROL NM; AIP Ireland ENR 1.9,
+    // checked 2026-10-14): airborne later than CTOT + 10 min = the slot was missed.
+    'ops.slot_missed': oooi.OFF !== null && oooi.OFF > ops.ctot + 10 * 60_000,
     'ops.rdy_window':
       oooi.OUT === null &&
       now >= ofp.times.estOutMs - 15 * 60_000 &&
