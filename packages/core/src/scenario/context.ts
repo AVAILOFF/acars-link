@@ -11,6 +11,7 @@ import type { Ofp } from '../ofp/types.js';
 import type { FlightPhase, OooiKind } from '../phase/fsm.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import { aircraftVariables } from './aircraft.js';
+import { type DelayPart, delayLine } from './delay-codes.js';
 import type { Value } from './expr.js';
 import type { IrregularData } from './irregular-data.js';
 import type { FlightData } from './ops-data.js';
@@ -125,6 +126,8 @@ export const CONTEXT_VARIABLES = [
   'flight.minutes_to_dest',
   'flight.minutes_to_sched_out',
   'flight.delay_min',
+  // MVT delay element at OUT (T43, delay-codes.ts): `DL81/63/0025/0010`; null on time / before OUT
+  'flight.delay_codes',
   'flight.minutes_since_off',
   'flight.eta',
   'flight.eta_live',
@@ -313,6 +316,8 @@ export interface ContextInput {
   readonly data: FlightData;
   /** Late-start delay plus pilot `DELAY`s (engine), ms. */
   readonly delayMs?: number;
+  /** What the delay is made of (T43). */
+  readonly delayParts?: readonly DelayPart[];
   /** Diversion airport the pilot declared (`DIVERT`), engine. */
   readonly divert?: string | null;
   /** Ids of the scenarios that sent something in this flight, first send first. */
@@ -474,6 +479,13 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'flight.minutes_to_dest': eta(toDest),
       'flight.minutes_to_sched_out': minutes(t.schedOutMs - now),
       'flight.delay_min': minutes(input.delayMs ?? 0),
+      'flight.delay_codes':
+        oooi.OUT === null
+          ? null
+          : delayLine(
+              input.delayParts ?? [],
+              Math.floor((oooi.OUT - ofp.times.schedOutMs) / 60_000),
+            ),
       'flight.minutes_since_off': oooi.OFF === null ? null : minutes(now - oooi.OFF),
       // Planned en-route time after the actual take-off; no wind model here.
       'flight.eta': oooi.OFF === null ? null : oooi.OFF + t.estTimeEnrouteSec * 1000,

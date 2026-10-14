@@ -30,6 +30,7 @@ exports[`replay through the core > timeline report (brief) 1`] = `
 08:10:17Z +01:00:17  PHASE      TAXI_OUT → TAKEOFF
 08:11:16Z +01:01:16  PHASE      TAKEOFF → CLIMB
 08:11:16Z +01:01:16  OOOI       OFF at 08:10:50Z
+08:14:16Z +01:04:16  PILOT      departure_report: wait until MET
 08:14:16Z +01:04:16  TELEX      departure_report  OPS822 → SJX822  (7 lines)
 08:27:33Z +01:17:33  PHASE      CLIMB → CRUISE
 08:50:50Z +01:40:50  TELEX      next_leg  OPS822 → SJX822  (7 lines)
@@ -44,6 +45,7 @@ exports[`replay through the core > timeline report (brief) 1`] = `
 10:20:43Z +03:10:43  PHASE      LANDED → TAXI_IN
 10:29:23Z +03:19:23  PHASE      TAXI_IN → ON_BLOCK
 10:29:23Z +03:19:23  OOOI       IN at 10:29:13Z
+10:29:23Z +03:19:23  PILOT      block_report: wait until MET
 10:29:23Z +03:19:23  TELEX      block_report  OPS822 → SJX822  (8 lines)
 10:31:25Z +03:21:25  PILOT      welcome_turnaround: wait until TIMEOUT
 10:31:27Z +03:21:27  PILOT      welcome_turnaround: wait until TIMEOUT

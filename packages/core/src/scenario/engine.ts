@@ -26,6 +26,7 @@ import {
   type RunVariable,
   type ScenarioContext,
 } from './context.js';
+import { type DelayPart, LATE_START_CODE, reasonCode, SLOT_CODE } from './delay-codes.js';
 import type { Lookup, Value } from './expr.js';
 import { pruneExpiredFlags } from './flags-expiry.js';
 import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
@@ -283,6 +284,8 @@ export interface ScenarioEngineState {
   readonly fuel?: FuelTrack | null;
   /** Part of the delay a `set: flight.delay_min` added (the slot), ms; absent in older states. */
   readonly delayRaisedMs?: number;
+  /** What the delay is made of, with IATA delay codes (T43); absent in older states. */
+  readonly delayParts?: readonly DelayPart[];
 }
 
 interface PendingWx {
@@ -369,6 +372,7 @@ export class ScenarioEngine {
     forced: string[];
     fuel: FuelTrack | null;
     delayRaisedMs: number;
+    delayParts: DelayPart[];
   };
   /** Context of the current tick; rebuilt when a command or a send changes it. */
   private ctx: ScenarioContext | null = null;
@@ -423,6 +427,7 @@ export class ScenarioEngine {
       forced: [],
       fuel: null,
       delayRaisedMs: 0,
+      delayParts: [],
     };
     this.rebuildData();
   }
@@ -456,6 +461,7 @@ export class ScenarioEngine {
     // Fields added with T43.
     e.st.fuel = copy.fuel ?? null;
     e.st.delayRaisedMs = copy.delayRaisedMs ?? 0;
+    e.st.delayParts = [...(copy.delayParts ?? [])];
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
     e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
@@ -548,6 +554,8 @@ export class ScenarioEngine {
     if (this.st.delayMs === null) {
       const late = input.now + this.leadMs - this.ofp.times.schedOutMs;
       this.setDelay(late > 0 ? Math.ceil(late / DELAY_STEP_MS) * DELAY_STEP_MS : 0);
+      const ms = this.st.delayMs ?? 0;
+      if (ms > 0) this.st.delayParts.push({ code: LATE_START_CODE, ms });
     }
     if (input.data !== undefined) {
       const before = this.st.ext.stands;
@@ -624,6 +632,7 @@ export class ScenarioEngine {
     this.ctx = buildContext({
       ofp: this.ctxOfp,
       delayMs: this.st.delayMs ?? 0,
+      delayParts: this.st.delayParts,
       route: this.route,
       now: input.now,
       phase: input.phase,
@@ -851,6 +860,10 @@ export class ScenarioEngine {
       case 'DELAY':
         if (input.oooi.OUT !== null) return { hint: 'OFF BLOCK ALREADY' };
         this.setDelay((this.st.delayMs ?? 0) + (args.minutes as number) * 60_000);
+        this.st.delayParts.push({
+          code: reasonCode(args.reason as string | null),
+          ms: (args.minutes as number) * 60_000,
+        });
         break;
       case 'DIVERT':
         if (input.oooi.OFF === null || input.oooi.ON !== null) return { hint: 'NOT AIRBORNE' };
@@ -969,6 +982,8 @@ export class ScenarioEngine {
           const after = Math.max(before, Math.round(min) * 60_000);
           // The CTOT the slot announced must not move with the delay the slot itself caused.
           this.st.delayRaisedMs += after - before;
+          // Only the slot raises the delay this way: ATFM (T43).
+          if (after > before) this.st.delayParts.push({ code: SLOT_CODE, ms: after - before });
           this.setDelay(after);
           refresh = true;
         }

@@ -1,4 +1,5 @@
-# OOOI departure log: OUT and OFF times, ETA from the actual take-off.
+# OOOI departure log: OUT and OFF times, ETA from the actual take-off. Off-block after STD: the
+# MVT delay element with IATA delay codes (T43, core delay-codes.ts).
 id: departure_report
 version: 1
 category: ops
@@ -9,11 +10,25 @@ trigger:
   event: OOOI_OFF
 steps:
   - wait: { minutes: 3 }
-  - send:
-      header: DEPARTURE REPORT
-      body: |
-        {ofp.callsign} {ofp.orig}-{ofp.dest}
-        OUT {flight.out|hhmm}Z
-        OFF {flight.off|hhmm}Z
-        ETA {flight.eta|hhmm}Z
-        STA {ofp.sched_in|hhmm}Z
+  # On time first: the message keeps its time (TIMEOUT comes a tick later).
+  - wait: { until: "flight.delay_codes == null", timeout_min: 0.02 }
+  - branch:
+      MET:
+        - send:
+            header: DEPARTURE REPORT
+            body: |
+              {ofp.callsign} {ofp.orig}-{ofp.dest}
+              OUT {flight.out|hhmm}Z
+              OFF {flight.off|hhmm}Z
+              ETA {flight.eta|hhmm}Z
+              STA {ofp.sched_in|hhmm}Z
+      TIMEOUT:
+        - send:
+            header: DEPARTURE REPORT
+            body: |
+              {ofp.callsign} {ofp.orig}-{ofp.dest}
+              OUT {flight.out|hhmm}Z
+              OFF {flight.off|hhmm}Z
+              ETA {flight.eta|hhmm}Z
+              STA {ofp.sched_in|hhmm}Z
+              {flight.delay_codes}

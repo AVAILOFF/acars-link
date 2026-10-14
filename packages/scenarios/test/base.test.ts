@@ -427,6 +427,36 @@ describe('late start (docs/05 "Поздний старт")', () => {
     );
   });
 
+  it('late start: the reports carry delay code 63 (T43)', () => {
+    const r = lateRun(5);
+    const dep = textOf(r, 'departure_report');
+    expect(dep).toMatch(/\nDL63\/(\d\d\/)?\d{4}(\/\d{4})?$/m);
+    const line = /DL\S+/.exec(dep)?.[0];
+    expect(textOf(r, 'block_report')).toContain(line);
+    // On time: no delay line.
+    expect(textOf(fly(FLIGHTS[0] as Case, all), 'departure_report')).not.toContain('DL');
+  });
+
+  it('pilot DELAY with a reason: its IATA code in the departure report (T43)', () => {
+    const flight = withPause(normal, {
+      atIndex: stageIndex(normal, 'GATE', 600),
+      durationSec: 1200,
+    });
+    const set = all.filter((s) => s.id === 'departure_report' || s.id === 'cmd_delay');
+    const core = AcarsCore.create({ ofp: kg, scenarios: set, seed: 'dly' });
+    core.startFlight();
+    const out: OutboundMessage[] = [];
+    flight.snapshots.forEach((s, i) => {
+      const inbound =
+        i === 1
+          ? [{ from: kg.callsign, type: 'telex' as const, text: 'DELAY 20 TECH BRAKES' }]
+          : [];
+      out.push(...core.tick({ now: s.t, telemetry: s, inbound }).outbound);
+    });
+    const dep = out.find((m) => m.scenarioId === 'departure_report')?.message.text ?? '';
+    expect(dep).toMatch(/\nDL41\//);
+  });
+
   it('started in time (35 min or more before STD): no delay, as before', () => {
     const core = AcarsCore.create({ ofp: kg, scenarios: all, seed: 'x' });
     core.startFlight();
