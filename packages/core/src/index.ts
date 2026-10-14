@@ -29,6 +29,7 @@ export * from './geo/geo.js';
 export * from './ofp/index.js';
 export * from './phase/fsm.js';
 export * from './random/rng.js';
+export * from './scenario/aircraft.js';
 export * from './scenario/compile.js';
 export * from './scenario/context.js';
 export * from './scenario/engine.js';

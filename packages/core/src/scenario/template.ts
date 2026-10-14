@@ -1,11 +1,12 @@
 import { metarQnh } from '../ext/data.js';
 import type { Rng } from '../random/rng.js';
+import { holdPosition, seatLetters } from './aircraft.js';
 import type { Lookup, Value } from './expr.js';
 import { NAME_KINDS, type NameKind, personName } from './names.js';
 
 /**
  * Message templates (docs/05 "Шаблоны"): `{var}`, `{var|fmt}`, `{var|fmt:arg|fmt2}`,
- * generators `{rand:10-35}`, `{rand:-5-5}`, `{pick:[A,B,C]}`, `{seat}`, `{name:crew}`,
+ * generators `{rand:10-35}`, `{rand:-5-5}`, `{pick:[A,B,C]}`, `{seat}`, `{hold}` (by the aircraft, T40), `{name:crew}`,
  * `{name:ops}` (`K. TANAKA`; surnames by the origin's ICAO region, see `names.ts`).
  *
  * Formatters: `kg1` (12345 → 12.3), `hhmm` and `ddmmm` (epoch ms, UTC), `pad:N`
@@ -27,6 +28,7 @@ type Source =
   | { readonly k: 'rand'; readonly min: number; readonly max: number }
   | { readonly k: 'pick'; readonly items: readonly string[] }
   | { readonly k: 'seat' }
+  | { readonly k: 'hold' }
   | { readonly k: 'name'; readonly kind: NameKind };
 
 interface Fmt {
@@ -37,7 +39,6 @@ interface Fmt {
 type Part = string | { readonly src: Source; readonly fmts: readonly Fmt[] };
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-const SEAT_LETTERS = 'ABCDEFGHJK';
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
@@ -101,6 +102,7 @@ function text(v: Value | string): string {
 
 function parseSource(expr: string): Source {
   if (expr === 'seat') return { k: 'seat' };
+  if (expr === 'hold') return { k: 'hold' };
   const name = /^name:([a-z]+)$/.exec(expr);
   if (name !== null) {
     const kind = name[1] as NameKind;
@@ -216,8 +218,24 @@ function resolve(src: Source, look: Lookup, rng: Rng): Value {
       return rng.int(src.min, src.max);
     case 'pick':
       return rng.pick(src.items);
-    case 'seat':
-      return `${rng.int(1, 45)}${rng.pick([...SEAT_LETTERS])}`;
+    case 'seat': {
+      const family = look('aircraft.family');
+      const body = look('aircraft.body');
+      const letters = seatLetters(
+        typeof family === 'string' ? family : null,
+        typeof body === 'string' ? body : null,
+      );
+      return `${rng.int(1, 45)}${rng.pick([...letters])}`;
+    }
+    case 'hold': {
+      const family = look('aircraft.family');
+      const body = look('aircraft.body');
+      return holdPosition(
+        typeof family === 'string' ? family : null,
+        typeof body === 'string' ? body : null,
+        rng,
+      );
+    }
     case 'name': {
       const orig = look('ofp.orig');
       return personName(src.kind, typeof orig === 'string' ? orig : '', rng);

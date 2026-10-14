@@ -10,6 +10,7 @@ import { distanceNm, type LatLon } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';
 import type { FlightPhase, OooiKind } from '../phase/fsm.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
+import { aircraftVariables } from './aircraft.js';
 import type { Value } from './expr.js';
 import type { IrregularData } from './irregular-data.js';
 import type { FlightData } from './ops-data.js';
@@ -87,6 +88,10 @@ export const CONTEXT_VARIABLES = [
   // aircraft
   'aircraft.icao',
   'aircraft.cat',
+  'aircraft.family',
+  'aircraft.maker',
+  'aircraft.body',
+  'aircraft.alert_sys',
   'aircraft.title',
   // telemetry
   'tm.alt_ft',
@@ -430,6 +435,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
     'cmd.wx_obs': null,
     ...extVariables(input),
     ...specialVariables(input),
+    ...aircraftVariables(ofp.aircraft.icao),
     ...irrVariables(input),
     'load.pax': load.pax,
     'load.pax_lmc': load.paxLmc,
