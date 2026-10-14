@@ -85,6 +85,16 @@ export const CONTEXT_VARIABLES = [
   'ofp.est_in',
   'ofp.block_time_min',
   'ofp.ete_min',
+  // SimBrief TLR for the planned runway and OFP crew counts (T43): `perfVariables`
+  'ofp.to_flaps',
+  'ofp.to_thrust',
+  'ofp.v1',
+  'ofp.vr',
+  'ofp.v2',
+  'ofp.ldg_flaps',
+  'ofp.vref',
+  'ofp.crew_cockpit',
+  'ofp.crew_cabin',
   // aircraft
   'aircraft.icao',
   'aircraft.cat',
@@ -499,6 +509,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       ...t4344Variables(input, toDest, gs),
       ...gateVariables(input),
       ...fuelVariables(input),
+      ...perfVariables(ofp),
       'load.pax': load.pax,
       'load.pax_lmc': load.paxLmc,
       'load.cargo_kg': load.cargoKg,
@@ -811,6 +822,38 @@ function fuelVariables(
     'flight.fuel_before_kg': f?.first ?? null,
     'flight.fuel_uplift_kg': f === null || fob === null ? null : fob - f.first,
     'flight.fuel_diff_kg': fob === null ? null : fob - planned,
+  };
+}
+
+/**
+ * TLR and crew from the OFP (T43). TLR only when computed for the runway the OFP plans (the
+ * message names that runway); recordings made before T43 have no such fields.
+ */
+function perfVariables(
+  ofp: Ofp,
+): Record<
+  Extract<
+    ContextVariable,
+    `ofp.${'to' | 'ldg'}_${string}` | `ofp.v${string}` | `ofp.crew_${string}`
+  >,
+  Value
+> {
+  const to = ofp.takeoffPerf ?? null;
+  const ldg = ofp.landingPerf ?? null;
+  const tp = to !== null && to.runway === ofp.origin.planRwy ? to : null;
+  const lp = ldg !== null && ldg.runway === ofp.destination.planRwy ? ldg : null;
+  const crew = ofp.crew ?? null;
+  return {
+    'ofp.to_flaps': tp?.flaps ?? null,
+    'ofp.to_thrust':
+      tp === null ? null : tp.flexTempC === null ? tp.thrust : `${tp.thrust} ${tp.flexTempC}`,
+    'ofp.v1': tp?.v1Kt ?? null,
+    'ofp.vr': tp?.vrKt ?? null,
+    'ofp.v2': tp?.v2Kt ?? null,
+    'ofp.ldg_flaps': lp?.flaps ?? null,
+    'ofp.vref': lp?.vrefKt ?? null,
+    'ofp.crew_cockpit': crew?.cockpit ?? null,
+    'ofp.crew_cabin': crew?.cabin ?? null,
   };
 }
 

@@ -3,11 +3,14 @@ import type {
   OfpAircraft,
   OfpAirport,
   OfpAtis,
+  OfpCrew,
   OfpFix,
   OfpFuel,
+  OfpLandingPerf,
   OfpMassUnit,
   OfpStage,
   OfpStepClimb,
+  OfpTakeoffPerf,
   OfpTimes,
   OfpWeights,
 } from './types.js';
@@ -63,6 +66,41 @@ class Reader {
 
   has(key: string): boolean {
     return this.obj[key] !== undefined;
+  }
+
+  /** Optional object; null when missing or not an object. */
+  optSection(key: string): Reader | null {
+    const v = this.raw(key);
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) return null;
+    return new Reader(v as Json, join(this.path, key));
+  }
+
+  /**
+   * Objects under `key`: an array, or a single object (SimBrief's XML-to-JSON gives one
+   * element without the array). Non-objects are skipped.
+   */
+  objects(key: string): Reader[] {
+    const v = this.raw(key);
+    const p = join(this.path, key);
+    const items = Array.isArray(v) ? v : v === undefined ? [] : [v];
+    return items.flatMap((item, i) =>
+      typeof item === 'object' && item !== null && !Array.isArray(item)
+        ? [new Reader(item as Json, Array.isArray(v) ? join(p, i) : p)]
+        : [],
+    );
+  }
+
+  /** Integer, or null when missing or not an integer (optional sections such as `tlr`). */
+  looseInt(key: string): number | null {
+    const v = this.raw(key);
+    return typeof v === 'string' && /^\d+$/.test(v.trim()) ? Number(v) : null;
+  }
+
+  /** Strings under `key`: an array, or one string. Empty ones are skipped. */
+  strings(key: string): string[] {
+    const v = this.raw(key);
+    const items = Array.isArray(v) ? v : [v];
+    return items.filter((x): x is string => typeof x === 'string' && x.trim() !== '');
   }
 
   section(key: string): Reader {
@@ -347,6 +385,57 @@ function parseFuel(r: Reader, kg: (n: number) => number): OfpFuel {
   };
 }
 
+/** The TLR entry for the planned runway (`conditions.planned_runway`); null if absent. */
+function tlrRunway(r: Reader | null): { cond: Reader; rwy: Reader; id: string } | null {
+  const cond = r?.optSection('conditions') ?? null;
+  const id = cond?.optStr('planned_runway')?.toUpperCase() ?? null;
+  if (r === null || cond === null || id === null) return null;
+  const rwy = r.objects('runway').find((x) => x.optStr('identifier')?.toUpperCase() === id);
+  return rwy === undefined ? null : { cond, rwy, id };
+}
+
+/** Takeoff numbers of the planned runway; null when TLR or any speed is missing. */
+function parseTakeoffPerf(tlr: Reader | null): OfpTakeoffPerf | null {
+  const p = tlrRunway(tlr?.optSection('takeoff') ?? null);
+  if (p === null) return null;
+  const { rwy } = p;
+  const flaps = rwy.optStr('flap_setting');
+  const thrust = rwy.optStr('thrust_setting');
+  const v1 = rwy.looseInt('speeds_v1');
+  const vr = rwy.looseInt('speeds_vr');
+  const v2 = rwy.looseInt('speeds_v2');
+  if (flaps === null || thrust === null || v1 === null || vr === null || v2 === null) return null;
+  return {
+    runway: p.id,
+    flaps: flaps.toUpperCase(),
+    thrust: thrust.toUpperCase(),
+    flexTempC: rwy.looseInt('flex_temperature'),
+    v1Kt: v1,
+    vrKt: vr,
+    v2Kt: v2,
+  };
+}
+
+/** Landing flaps and VREF for the planned runway and the planned surface (dry / wet). */
+function parseLandingPerf(tlr: Reader | null): OfpLandingPerf | null {
+  const landing = tlr?.optSection('landing') ?? null;
+  const p = tlrRunway(landing);
+  if (landing === null || p === null) return null;
+  const wet = p.cond.optStr('surface_condition')?.toLowerCase() === 'wet';
+  const dist = landing.optSection(wet ? 'distance_wet' : 'distance_dry');
+  const flaps = p.cond.optStr('flap_setting') ?? dist?.optStr('flap_setting') ?? null;
+  const vref = dist?.looseInt('speeds_vref') ?? null;
+  if (flaps === null || vref === null) return null;
+  return { runway: p.id, flaps: flaps.toUpperCase(), vrefKt: vref };
+}
+
+function parseCrew(r: Reader | null): OfpCrew | null {
+  if (r === null) return null;
+  const cockpit = ['cpt', 'fo'].filter((k) => r.strings(k).length > 0).length;
+  const cabin = r.strings('pu').length + r.strings('fa').length;
+  return cockpit + cabin === 0 ? null : { cockpit, cabin };
+}
+
 function parseTimes(r: Reader): OfpTimes {
   const times: OfpTimes = {
     schedOutMs: r.timeMs('sched_out'),
@@ -419,6 +508,9 @@ export function parseSimbriefOfp(json: unknown): Ofp {
     fuel: parseFuel(root.section('fuel'), kg),
     times: parseTimes(root.section('times')),
     navlog: parseNavlog(root),
+    takeoffPerf: parseTakeoffPerf(root.optSection('tlr')),
+    landingPerf: parseLandingPerf(root.optSection('tlr')),
+    crew: parseCrew(root.optSection('crew')),
   };
 }
 

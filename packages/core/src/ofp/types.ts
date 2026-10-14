@@ -131,6 +131,38 @@ export interface OfpTimes {
   readonly taxiInSec: number | null;
 }
 
+/**
+ * SimBrief takeoff/landing performance (`tlr`, T43), for the planned runway only. Present when
+ * the OFP was planned with TLR; values as SimBrief gives them (speeds kt, temperature °C).
+ */
+export interface OfpTakeoffPerf {
+  readonly runway: string;
+  /** `flap_setting`, e.g. `1`. */
+  readonly flaps: string;
+  /** `thrust_setting`, e.g. `FLEX`, `TOGA`. */
+  readonly thrust: string;
+  /** `flex_temperature`, °C; null when not given. */
+  readonly flexTempC: number | null;
+  readonly v1Kt: number;
+  readonly vrKt: number;
+  readonly v2Kt: number;
+}
+
+export interface OfpLandingPerf {
+  readonly runway: string;
+  readonly flaps: string;
+  /** `speeds_vref` of the distance for `surface_condition` (dry / wet). */
+  readonly vrefKt: number;
+}
+
+/** Crew from the OFP (`crew`, T43): head counts only, names are not used. */
+export interface OfpCrew {
+  /** Captain and first officer given. */
+  readonly cockpit: number;
+  /** Purser and flight attendants. */
+  readonly cabin: number;
+}
+
 export interface Ofp {
   readonly source: OfpSource;
   /** ATC callsign, e.g. `SJX822` (`atc.callsign`). Hoppie recipient. */
@@ -159,4 +191,11 @@ export interface Ofp {
   readonly fuel: OfpFuel;
   readonly times: OfpTimes;
   readonly navlog: readonly OfpFix[];
+  /**
+   * Null without TLR / crew in the OFP. Recordings made before T43 have no such fields:
+   * readers treat `undefined` as null.
+   */
+  readonly takeoffPerf: OfpTakeoffPerf | null;
+  readonly landingPerf: OfpLandingPerf | null;
+  readonly crew: OfpCrew | null;
 }

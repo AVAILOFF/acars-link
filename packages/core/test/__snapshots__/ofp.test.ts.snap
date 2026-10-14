@@ -35,6 +35,7 @@ exports[`parseSimbriefOfp — real OFP planned in kg (A35K RCTP-RJBB) > is stabl
   ],
   "callsign": "SJX822",
   "costIndex": 109,
+  "crew": null,
   "destination": {
     "atis": [
       {
@@ -68,6 +69,7 @@ exports[`parseSimbriefOfp — real OFP planned in kg (A35K RCTP-RJBB) > is stabl
     "taxiKg": 600,
   },
   "initialAltitudeFt": 39000,
+  "landingPerf": null,
   "navlog": [
     {
       "altitudeFt": 2600,
@@ -1261,6 +1263,7 @@ exports[`parseSimbriefOfp — real OFP planned in kg (A35K RCTP-RJBB) > is stabl
   },
   "star": "NIXOVB",
   "stepClimbs": [],
+  "takeoffPerf": null,
   "times": {
     "estBlockSec": 9443,
     "estInMs": 1791454943000,

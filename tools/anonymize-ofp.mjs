@@ -1,11 +1,12 @@
 // Turns a real SimBrief OFP (json=v2) into a small anonymized test fixture.
 //
-//   node tools/anonymize-ofp.mjs <raw.json> <out.json> [--to-lbs] [--no-flight-number] [--extra-alternate]
+//   node tools/anonymize-ofp.mjs <raw.json> <out.json> [--to-lbs] [--no-flight-number] [--extra-alternate] [--with-perf]
 //
 // Keeps only the sections the parser reads, drops personal data (pilot id, crew, user ids,
 // links, files, NOTAMs, free text). Raw OFPs live in reference/ofp/raw/ (gitignored).
 // Flags produce synthetic variants for tests: weights converted to lbs, empty flight
-// number / airline, a second alternate.
+// number / airline, a second alternate. `--with-perf` keeps the TLR (`tlr`, no personal data)
+// and the crew head count: names are replaced with role placeholders.
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const [, , inPath, outPath, ...flags] = process.argv;
@@ -138,6 +139,19 @@ const out = {
     'est_ramp',
   ]),
 };
+
+if (has('--with-perf')) {
+  if (raw.tlr) out.tlr = raw.tlr;
+  if (raw.crew) {
+    const names = (v, role) => (Array.isArray(v) ? v.map(() => role) : v ? role : '');
+    out.crew = {
+      cpt: names(raw.crew.cpt, 'CPT'),
+      fo: names(raw.crew.fo, 'FO'),
+      pu: names(raw.crew.pu, 'PU'),
+      fa: names(raw.crew.fa, 'FA'),
+    };
+  }
+}
 
 if (has('--to-lbs')) {
   const KG_TO_LB = 1 / 0.45359237;

@@ -93,6 +93,7 @@ REQ:M.<мах> FL<эшелон>[
   - `params.units` — `"kgs"` или `"lbs"`; веса и топливо в этих единицах, количества (`pax_count`) — нет;
   - `navlog[].distance` — длина плеча (сумма = `general.route_distance`); TOC/TOD — `ident: "TOC"/"TOD"`, `type: "ltlg"`; `stage` — `CLB/CRZ/DSC`;
   - `aircraft.equip_category` — категория турбулентности следа (`H` и т. п.).
+- **TLR и экипаж (T43, проверено на реальном OFP A35K RCTP–RJBB 2026-10-08, сверка 2026-10-15).** `tlr.takeoff.conditions.planned_runway` и `tlr.takeoff.runway[]` (по одной записи на ВПП): `identifier`, `flap_setting`, `thrust_setting` (`FLEX`), `flex_temperature` (°C), `speeds_v1/vr/v2` (kt); `tlr.landing.conditions` (`planned_runway`, `flap_setting`, `surface_condition` `dry`/`wet`), `tlr.landing.distance_dry|distance_wet.speeds_vref`. `crew`: `cpt`, `fo`, `dx` (диспетчер, не на борту), `pu`, `fa[]` — имена (`cpt` — имя пилота). Берём только числа ВПП по плану и численность экипажа, имена не используем. Раздела `tlr` нет, если OFP построен без TLR. Поля не описаны в публичной документации SimBrief. `thrust_setting`/`flex_temperature` у Boeing (D-TO, assumed temperature) — `[ПРОВЕРИТЬ]` на реальном OFP; одна ВПП в `runway` объектом, а не массивом — допущение, парсер принимает оба вида.
 - Поля и их маппинг — `packages/core/src/ofp/` (тип `Ofp`, `parseSimbriefOfp`). Ошибки формата — `OfpParseError` с путём поля.
 - Тестовые примеры делаются `tools/anonymize-ofp.mjs` из сырых OFP в `reference/ofp/raw/` (в `.gitignore`). Сырые OFP не коммитить: в них id пилота и имена.
 

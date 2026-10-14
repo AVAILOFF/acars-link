@@ -1,4 +1,6 @@
-# Departure data from the OFP; weather live when the app has it (T13), else the OFP METAR. No V-speeds: the OFP has none, numbers are never invented.
+# Departure data from the OFP; weather live when the app has it (T13), else the OFP METAR.
+# Flaps, thrust and V-speeds only from SimBrief TLR for the planned runway (T43); without TLR
+# the message has none: numbers are never invented.
 id: takeoff_data
 version: 1
 category: docs
@@ -11,15 +13,34 @@ conditions:
   - "phase in ['PREFLIGHT','BOARDING']"
 priority: 2
 steps:
-  - send:
-      header: TAKEOFF DATA
-      body: |
-        {ofp.callsign} {ofp.orig} RWY {ofp.orig_rwy}
-        SID {ofp.sid}
-        ELEV {ofp.orig_elev_ft} FT
-        TRANS ALT {ofp.orig_trans_alt_ft} FT
-        TOW {ofp.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
-        TOF {ofp.fuel_takeoff_kg|kg1}
-        CRZ FL{ofp.cruise_fl} CI {ofp.cost_index}
-        WX {wx.orig_metar}
-      footer: VERIFY PERF ON EFB
+  # Without TLR first: the message keeps its trigger time (TIMEOUT comes a tick later).
+  - wait: { until: "ofp.v1 == null", timeout_min: 0.02 }
+  - branch:
+      MET:
+        - send:
+            header: TAKEOFF DATA
+            body: |
+              {ofp.callsign} {ofp.orig} RWY {ofp.orig_rwy}
+              SID {ofp.sid}
+              ELEV {ofp.orig_elev_ft} FT
+              TRANS ALT {ofp.orig_trans_alt_ft} FT
+              TOW {ofp.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
+              TOF {ofp.fuel_takeoff_kg|kg1}
+              CRZ FL{ofp.cruise_fl} CI {ofp.cost_index}
+              WX {wx.orig_metar}
+            footer: VERIFY PERF ON EFB
+      TIMEOUT:
+        - send:
+            header: TAKEOFF DATA
+            body: |
+              {ofp.callsign} {ofp.orig} RWY {ofp.orig_rwy}
+              SID {ofp.sid}
+              ELEV {ofp.orig_elev_ft} FT
+              TRANS ALT {ofp.orig_trans_alt_ft} FT
+              TOW {ofp.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
+              TOF {ofp.fuel_takeoff_kg|kg1}
+              FLAPS {ofp.to_flaps} {ofp.to_thrust}
+              V1 {ofp.v1} VR {ofp.vr} V2 {ofp.v2}
+              CRZ FL{ofp.cruise_fl} CI {ofp.cost_index}
+              WX {wx.orig_metar}
+            footer: VERIFY PERF ON EFB

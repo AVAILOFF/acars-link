@@ -1,4 +1,6 @@
-# Final loadsheet with the last-minute change (LMC) against the preliminary one.
+# Final loadsheet with the last-minute change (LMC) against the preliminary one. OEW and the
+# crew head count (cockpit/cabin) from the OFP (T43); no crew list in the OFP — no CREW line.
+# No trim/CG: the OFP has none.
 id: final_loadsheet
 version: 1
 category: docs
@@ -11,18 +13,41 @@ conditions:
   - "phase in ['PREFLIGHT','BOARDING','PUSHBACK','TAXI_OUT']"
 priority: 3
 steps:
-  - send:
-      header: FINAL LOADSHEET
-      body: |
-        {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
-        A/C {ofp.ac_reg} {ofp.ac_icao}
-        ZFW {load.zfw_kg|kg1} MAX {ofp.max_zfw_kg|kg1}
-        TOF {ofp.fuel_takeoff_kg|kg1}
-        TOW {load.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
-        TIF {ofp.fuel_burn_kg|kg1}
-        LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
-        UNDERLOAD {load.underload_kg|kg1}
-        PAX {load.pax} CGO {load.cargo_kg|kg1}
-        LMC PAX {load.pax_lmc|sign} CGO {load.cargo_lmc_kg|sign} KG
-        ALL WEIGHTS IN TONNES
-      footer: "PREPARED BY {name:ops}"
+  # Without the OFP crew first: the message keeps its trigger time (TIMEOUT comes a tick later).
+  - wait: { until: "ofp.crew_cockpit == null", timeout_min: 0.02 }
+  - branch:
+      MET:
+        - send:
+            header: FINAL LOADSHEET
+            body: |
+              {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
+              A/C {ofp.ac_reg} {ofp.ac_icao}
+              OEW {ofp.oew_kg|kg1}
+              ZFW {load.zfw_kg|kg1} MAX {ofp.max_zfw_kg|kg1}
+              TOF {ofp.fuel_takeoff_kg|kg1}
+              TOW {load.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
+              TIF {ofp.fuel_burn_kg|kg1}
+              LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
+              UNDERLOAD {load.underload_kg|kg1}
+              PAX {load.pax} CGO {load.cargo_kg|kg1}
+              LMC PAX {load.pax_lmc|sign} CGO {load.cargo_lmc_kg|sign} KG
+              ALL WEIGHTS IN TONNES
+            footer: "PREPARED BY {name:ops}"
+      TIMEOUT:
+        - send:
+            header: FINAL LOADSHEET
+            body: |
+              {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
+              A/C {ofp.ac_reg} {ofp.ac_icao}
+              CREW {ofp.crew_cockpit}/{ofp.crew_cabin}
+              OEW {ofp.oew_kg|kg1}
+              ZFW {load.zfw_kg|kg1} MAX {ofp.max_zfw_kg|kg1}
+              TOF {ofp.fuel_takeoff_kg|kg1}
+              TOW {load.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
+              TIF {ofp.fuel_burn_kg|kg1}
+              LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
+              UNDERLOAD {load.underload_kg|kg1}
+              PAX {load.pax} CGO {load.cargo_kg|kg1}
+              LMC PAX {load.pax_lmc|sign} CGO {load.cargo_lmc_kg|sign} KG
+              ALL WEIGHTS IN TONNES
+            footer: "PREPARED BY {name:ops}"

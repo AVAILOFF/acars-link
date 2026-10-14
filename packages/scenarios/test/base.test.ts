@@ -306,6 +306,62 @@ describe('the whole set on one flight', () => {
   });
 });
 
+describe('TLR and crew from the OFP (T43)', () => {
+  const tlr = ofpOf('rctp-rjbb-a35k-kgs-tlr');
+  const all = base.map((s) => ({ ...s, probability: 1 }));
+  const c: Case = {
+    name: 'tlr',
+    ofp: tlr,
+    flight: generateSyntheticFlight({ ofp: tlr }),
+    seed: 'tlr',
+  };
+  const r = fly(c, all);
+
+  it('runs without errors, every line fits every profile', () => {
+    expect(errors(r)).toEqual([]);
+    for (const profile of [DEFAULT_PROFILE, B77X_PROFILE, B78X_PROFILE]) {
+      for (const m of fly(c, all, profile).out) {
+        expect(checkText(m.message.text, profile)).toEqual([]);
+        expect(m.message.text).not.toMatch(missing);
+      }
+    }
+  });
+
+  it('takeoff data: flaps, FLEX and V-speeds of the planned runway', () => {
+    const text = textOf(r, 'takeoff_data');
+    expect(text).toContain('RWY 05R');
+    expect(text).toContain('FLAPS 1 FLEX 71');
+    expect(text).toContain('V1 139 VR 139 V2 146');
+  });
+
+  it('landing data: flaps and VREF', () => {
+    expect(textOf(r, 'landing_data')).toContain('FLAPS FULL VREF 131');
+  });
+
+  it('final loadsheet: crew 2/16 and OEW; crew info counts the same cabin crew', () => {
+    const final = textOf(r, 'final_loadsheet');
+    expect(final).toContain('CREW 2/16');
+    expect(final).toContain('OEW 155.0');
+    expect(textOf(r, 'crew_info')).toContain('CABIN CREW 16');
+  });
+
+  it('without TLR and crew: no performance or CREW line, nothing invented', () => {
+    const plain = fly(FLIGHTS[0] as Case, all);
+    expect(textOf(plain, 'takeoff_data')).not.toMatch(/FLAPS|V1/);
+    expect(textOf(plain, 'landing_data')).not.toContain('VREF');
+    expect(textOf(plain, 'final_loadsheet')).not.toContain('CREW');
+  });
+
+  it('TLR for another runway than planned is not used', () => {
+    const moved: Ofp = { ...tlr, origin: { ...tlr.origin, planRwy: '05L' } };
+    const run = fly(
+      { ...c, ofp: moved },
+      all.filter((s) => s.id === 'takeoff_data'),
+    );
+    expect(textOf(run, 'takeoff_data')).not.toContain('V1');
+  });
+});
+
 describe('late start (docs/05 "Поздний старт")', () => {
   const MIN = 60_000;
   const STD = kg.times.schedOutMs;

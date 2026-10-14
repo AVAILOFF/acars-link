@@ -117,7 +117,8 @@ export function buildFlightData(ofp: Ofp, seed: number | string): FlightData {
       turnaroundMin,
       nextFlight: nextFlight(ofp),
       nextStd: roundTo5Min(t.schedInMs + turnaroundMin * MIN),
-      cabinCrew: Math.max(1, Math.ceil(seats / 50)),
+      // The OFP crew list when there is one (T43); else one per 50 seats.
+      cabinCrew: ofp.crew?.cabin || Math.max(1, Math.ceil(seats / 50)),
       rdyGainMin,
     },
   };

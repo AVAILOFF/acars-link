@@ -220,3 +220,60 @@ describe('parseSimbriefOfp — format errors', () => {
     expect(parseSimbriefOfpText(text).callsign).toBe('SJX822');
   });
 });
+
+describe('parseSimbriefOfp — TLR and crew (T43)', () => {
+  const TLR = 'rctp-rjbb-a35k-kgs-tlr.json';
+
+  it('takes flaps, thrust and V-speeds of the planned runway, VREF of the planned surface', () => {
+    const ofp = parseSimbriefOfp(load(TLR));
+    // 05L in the same TLR has FLEX 72: the planned 05R is picked.
+    expect(ofp.takeoffPerf).toEqual({
+      runway: '05R',
+      flaps: '1',
+      thrust: 'FLEX',
+      flexTempC: 71,
+      v1Kt: 139,
+      vrKt: 139,
+      v2Kt: 146,
+    });
+    expect(ofp.landingPerf).toEqual({ runway: '06L', flaps: 'FULL', vrefKt: 131 });
+  });
+
+  it('counts the crew: captain and FO, purser and flight attendants', () => {
+    expect(parseSimbriefOfp(load(TLR)).crew).toEqual({ cockpit: 2, cabin: 16 });
+  });
+
+  it('is null without TLR / crew in the OFP', () => {
+    const ofp = parseSimbriefOfp(load(KGS));
+    expect(ofp.takeoffPerf).toBeNull();
+    expect(ofp.landingPerf).toBeNull();
+    expect(ofp.crew).toBeNull();
+  });
+
+  it('wet surface: VREF of distance_wet', () => {
+    const json = load(TLR);
+    json.tlr.landing.conditions.surface_condition = 'wet';
+    json.tlr.landing.distance_wet.speeds_vref = '133';
+    expect(parseSimbriefOfp(json).landingPerf?.vrefKt).toBe(133);
+  });
+
+  it('one runway given as an object, not a list', () => {
+    const json = load(TLR);
+    json.tlr.takeoff.runway = json.tlr.takeoff.runway.find(
+      (r: { identifier: string }) => r.identifier === '05R',
+    );
+    expect(parseSimbriefOfp(json).takeoffPerf?.v2Kt).toBe(146);
+  });
+
+  it('planned runway not in the TLR, or a speed missing → null, the OFP still parses', () => {
+    const other = load(TLR);
+    other.tlr.takeoff.conditions.planned_runway = '10';
+    expect(parseSimbriefOfp(other).takeoffPerf).toBeNull();
+    const noSpeed = load(TLR);
+    for (const r of noSpeed.tlr.takeoff.runway) r.speeds_v1 = '';
+    noSpeed.tlr.landing.distance_dry.speeds_vref = 'N/A';
+    const ofp = parseSimbriefOfp(noSpeed);
+    expect(ofp.takeoffPerf).toBeNull();
+    expect(ofp.landingPerf).toBeNull();
+  });
+});
