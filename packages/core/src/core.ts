@@ -80,6 +80,8 @@ export interface CoreOptions {
   readonly dataWaitMs?: number;
   /** Test hook, see `ScenarioEngineOptions.syntheticConnections` (T43). */
   readonly syntheticConnections?: boolean;
+  /** Generator of person names, see `ScenarioEngineOptions.namesVersion` (T43); default 2. */
+  readonly namesVersion?: 1 | 2;
   /** `flags.*` left by earlier flights (T14); read back with {@link AcarsCore.flags}. */
   readonly flags?: Readonly<Record<string, Value>>;
   /**
@@ -317,5 +319,6 @@ function engineOptions(o: CoreOptions) {
     ...(o.syntheticConnections === undefined
       ? {}
       : { syntheticConnections: o.syntheticConnections }),
+    ...(o.namesVersion === undefined ? {} : { namesVersion: o.namesVersion }),
   };
 }

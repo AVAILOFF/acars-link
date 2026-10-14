@@ -107,10 +107,10 @@ describe('names', () => {
     }
   });
 
-  it('{name:crew} in a template uses the origin region', () => {
+  it('{name:crew} in a template: version 1 (no names.*) uses the origin region', () => {
     const look: Lookup = (p) => (p === 'ofp.orig' ? 'RJBB' : undefined);
     const t = compileTemplate('CPT {name:crew}');
-    expect(t.vars).toEqual(['ofp.orig']);
+    expect(t.vars).toEqual(['ofp.orig', 'names.region', 'names.mix']);
     const jp = new Set(['SATO', 'SUZUKI', 'TAKAHASHI', 'TANAKA', 'WATANABE', 'ITO']);
     const all = new Set<string>();
     for (let i = 0; i < 100; i++) all.add(t.render(look, createRng(i)).split(' ').at(-1) ?? '');

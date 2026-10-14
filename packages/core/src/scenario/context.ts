@@ -1,3 +1,4 @@
+import { airlineCountry } from '../ext/airline.js';
 import {
   ATC_MAX_AGE_MS,
   type ExtState,
@@ -14,6 +15,7 @@ import { aircraftVariables } from './aircraft.js';
 import { type DelayPart, delayLine } from './delay-codes.js';
 import type { Value } from './expr.js';
 import type { IrregularData } from './irregular-data.js';
+import { countryRegion, MULTINATIONAL_AIRLINES } from './names.js';
 import type { FlightData } from './ops-data.js';
 import { SPECIAL_VARIABLES, type SpecialVariable, specialVariables } from './special-vars.js';
 
@@ -96,6 +98,9 @@ export const CONTEXT_VARIABLES = [
   'ofp.vref',
   'ofp.crew_cockpit',
   'ofp.crew_cabin',
+  // person names (T43, names.ts): surname region and mix of nationalities
+  'names.region',
+  'names.mix',
   // aircraft
   'aircraft.icao',
   'aircraft.cat',
@@ -316,6 +321,8 @@ export interface ContextInput {
   readonly data: FlightData;
   /** Late-start delay plus pilot `DELAY`s (engine), ms. */
   readonly delayMs?: number;
+  /** Generator of `{name:…}` (T43): 1 = by the origin's ICAO prefix, 2 = by the airline. */
+  readonly namesVersion?: 1 | 2;
   /** What the delay is made of (T43). */
   readonly delayParts?: readonly DelayPart[];
   /** Diversion airport the pilot declared (`DIVERT`), engine. */
@@ -522,6 +529,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       ...gateVariables(input),
       ...fuelVariables(input),
       ...perfVariables(ofp),
+      ...nameVariables(input),
       'load.pax': load.pax,
       'load.pax_lmc': load.paxLmc,
       'load.cargo_kg': load.cargoKg,
@@ -869,6 +877,20 @@ function perfVariables(
     'ofp.vref': lp?.vrefKt ?? null,
     'ofp.crew_cockpit': crew?.cockpit ?? null,
     'ofp.crew_cabin': crew?.cabin ?? null,
+  };
+}
+
+/** `names.*` (T43): version 2 — the airline's country, else the origin's (VATSpy), else null. */
+function nameVariables(input: ContextInput): Record<'names.region' | 'names.mix', Value> {
+  if ((input.namesVersion ?? 2) === 1) return { 'names.region': null, 'names.mix': 'none' };
+  const { ofp, ext } = input;
+  const airline = ofp.airlineIcao;
+  const region =
+    countryRegion(airlineCountry(airline)) ??
+    countryRegion(ext?.airports?.[ofp.origin.icao]?.country ?? null);
+  return {
+    'names.region': region,
+    'names.mix': airline !== null && MULTINATIONAL_AIRLINES.has(airline) ? 'all' : 'some',
   };
 }
 

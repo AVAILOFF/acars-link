@@ -66,6 +66,8 @@ export interface RecordingHeader {
   readonly dataWaitMs?: number;
   /** Core `minGapMs`: minimum time between telexes; absent = 0. */
   readonly minGapMs?: number;
+  /** Core `namesVersion` (T43); absent = 1, the names of recordings made before it. */
+  readonly namesVersion?: 1 | 2;
   /** Probabilities set by the user instead of the files' (scenario id → 0..1); absent = none. */
   readonly probabilities?: Readonly<Record<string, number>>;
   /** Airline memory the flight started with (T14 `flags.*`); absent = none. */
@@ -200,6 +202,8 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
   if (x['flags'] !== undefined && !isObj(x['flags'])) throw bad('flags');
   if (x['minGapMs'] !== undefined && !(isNum(x['minGapMs']) && x['minGapMs'] >= 0))
     throw bad('minGapMs');
+  if (x['namesVersion'] !== undefined && x['namesVersion'] !== 1 && x['namesVersion'] !== 2)
+    throw bad('namesVersion');
   const p = x['probabilities'];
   if (p !== undefined && !(isObj(p) && Object.values(p).every((v) => isNum(v) && v >= 0 && v <= 1)))
     throw bad('probabilities');

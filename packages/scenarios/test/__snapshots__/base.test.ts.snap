@@ -7,12 +7,12 @@ CREW INFO
 ------------------------
 SJX822 RCTP-RJBB 08OCT
 STD 0745Z STA 1020Z
-CPT E. CHEN
-FO D. TSAI
-SCCM C. CHEN
+CPT K. GONZALEZ
+FO K. HUANG
+SCCM N. LI
 CABIN CREW 8
 ........................
-CREW CONTROL J. LIU",
+CREW CONTROL D. CHEN",
   "2026-10-08T07:15:00.000Z slot_ctot
 SLOT ALLOCATION
 ------------------------
@@ -34,7 +34,7 @@ LAW 192.8 MAX 236.0
 PAX 266 CGO 6.7
 ALL WEIGHTS IN TONNES
 ........................
-PREPARED BY P. HUANG",
+PREPARED BY E. KATO",
   "2026-10-08T07:33:00.000Z takeoff_data
 TAKEOFF DATA
 ------------------------
@@ -66,7 +66,7 @@ FINRES 2.4
 EXTRA 2.4
 FUEL IN TONNES
 ........................
-FUELLER C. CHANG",
+FUELLER N. YANG",
   "2026-10-08T07:46:00.000Z final_loadsheet
 FINAL LOADSHEET
 ------------------------
@@ -83,7 +83,7 @@ PAX 266 CGO 6.8
 LMC PAX 0 CGO +180 KG
 ALL WEIGHTS IN TONNES
 ........................
-PREPARED BY E. LI",
+PREPARED BY E. PEDERSEN",
   "2026-10-08T08:14:16.000Z departure_report
 DEPARTURE REPORT
 ------------------------
@@ -154,6 +154,6 @@ STD 1205Z
 CLEANING AND CATERING
 ON THE WAY
 ........................
-STATION OPS T. HSU",
+STATION OPS C. CHENG",
 ]
 `;

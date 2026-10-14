@@ -37,6 +37,7 @@ export function recordingFromSnapshots(
       profile: meta.profile ?? selectProfile({ icao: meta.ofp.aircraft.icao }),
       scenarios: meta.scenarios,
       sessionFired: [],
+      namesVersion: 2,
     }),
     events: eventsFromSnapshots(snapshots),
   };

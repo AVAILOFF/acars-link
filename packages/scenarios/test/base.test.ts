@@ -362,6 +362,103 @@ describe('TLR and crew from the OFP (T43)', () => {
   });
 });
 
+describe('crew names by the airline (T43 item 10)', () => {
+  const crewInfo = base.filter((s) => s.id === 'crew_info').map((s) => ({ ...s, probability: 1 }));
+  const FI = new Set([
+    'KORHONEN',
+    'VIRTANEN',
+    'MAKINEN',
+    'NIEMINEN',
+    'MAKELA',
+    'HAMALAINEN',
+    'LAINE',
+    'HEIKKINEN',
+    'KOSKINEN',
+    'JARVINEN',
+    'LEHTONEN',
+    'LEHTINEN',
+  ]);
+  const airport = (icao: string) => ({ ...kg.origin, icao });
+  /** Surnames of crew_info on `n` seeds. */
+  function surnames(ofp: Ofp, n = 20, namesVersion?: 1 | 2): string[] {
+    const flight = generateSyntheticFlight({ ofp });
+    const out: string[] = [];
+    for (let seed = 0; seed < n; seed++) {
+      const core = AcarsCore.create({
+        ofp,
+        scenarios: crewInfo,
+        seed: String(seed),
+        ...(namesVersion === undefined ? {} : { namesVersion }),
+      });
+      core.startFlight();
+      for (const snap of flight.snapshots.slice(0, 3)) {
+        for (const m of core.tick({ now: snap.t, telemetry: snap }).outbound) {
+          for (const line of m.message.lines) {
+            const name = /^(?:CPT|FO|SCCM|CREW CONTROL) [A-Z]. (.+)$/.exec(line)?.[1];
+            if (name !== undefined) out.push(name);
+          }
+        }
+      }
+    }
+    return out;
+  }
+  const share = (names: readonly string[], set: ReadonlySet<string>) =>
+    names.filter((x) => set.has(x)).length / names.length;
+  const fin = (orig: string): Ofp => ({
+    ...kg,
+    airlineIcao: 'FIN',
+    callsign: 'FIN4E',
+    origin: airport(orig),
+  });
+
+  it('FIN from EFHK: Finnish surnames, about one in ten from elsewhere', () => {
+    const names = surnames(fin('EFHK'));
+    // 4 names a flight; a long one (VAN DEN BERG) may wrap and be missed here.
+    expect(names.length).toBeGreaterThanOrEqual(75);
+    expect(share(names, FI)).toBeGreaterThan(0.75);
+    expect(share(names, FI)).toBeLessThan(1);
+  });
+
+  it('FIN from ENGM: still Finnish (by the airline, not the airport)', () => {
+    expect(share(surnames(fin('ENGM')), FI)).toBeGreaterThan(0.75);
+  });
+
+  it('UAE from OMDB: a mixed crew from many regions', () => {
+    const names = surnames({
+      ...kg,
+      airlineIcao: 'UAE',
+      callsign: 'UAE5',
+      origin: airport('OMDB'),
+    });
+    expect(new Set(names).size).toBeGreaterThan(20);
+    expect(share(names, FI)).toBeLessThan(0.3);
+  });
+
+  it('airline not in OpenFlights: the origin (SJX from RCTP → Taiwan)', () => {
+    const TW = new Set([
+      'CHEN',
+      'LIN',
+      'HUANG',
+      'CHANG',
+      'LI',
+      'WANG',
+      'WU',
+      'LIU',
+      'TSAI',
+      'YANG',
+      'HSU',
+      'CHENG',
+    ]);
+    expect(share(surnames(kg), TW)).toBeGreaterThan(0.75);
+  });
+
+  it('version 1 (old recordings): by the origin only, no mix', () => {
+    const names = surnames(fin('ENGM'), 10, 1);
+    expect(share(names, FI)).toBe(0);
+    expect(names.every((x) => !FI.has(x))).toBe(true);
+  });
+});
+
 describe('late start (docs/05 "Поздний старт")', () => {
   const MIN = 60_000;
   const STD = kg.times.schedOutMs;

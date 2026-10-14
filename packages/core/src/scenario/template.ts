@@ -7,7 +7,7 @@ import { NAME_KINDS, type NameKind, personName } from './names.js';
 /**
  * Message templates (docs/05 "Шаблоны"): `{var}`, `{var|fmt}`, `{var|fmt:arg|fmt2}`,
  * generators `{rand:10-35}`, `{rand:-5-5}`, `{pick:[A,B,C]}`, `{seat}` (`{seat:1-2}` — rows), `{hold}` (by the aircraft, T40), `{name:crew}`,
- * `{name:ops}` (`K. TANAKA`; surnames by the origin's ICAO region, see `names.ts`).
+ * `{name:ops}` (`K. TANAKA`; surnames by the airline's country, see `names.ts`).
  *
  * Formatters: `kg1` (12345 → 12.3), `hhmm` and `ddmmm` (epoch ms, UTC), `pad:N`
  * (right-pad to N), `lpad:N` (left-pad), `int` (round), `sign` (+3, -120, 0), `upper`,
@@ -179,7 +179,11 @@ export function compileTemplate(source: string): CompiledTemplate {
     const [head = '', ...rest] = splitPipes(inner);
     const src = parseSource(head.trim());
     if (src.k === 'var') vars.add(src.path);
-    if (src.k === 'name') vars.add('ofp.orig');
+    if (src.k === 'name') {
+      vars.add('ofp.orig');
+      vars.add('names.region');
+      vars.add('names.mix');
+    }
     parts.push({ src, fmts: rest.map((s) => parseFmt(s.trim())) });
     i = end + 1;
   }
@@ -246,7 +250,15 @@ function resolve(src: Source, look: Lookup, rng: Rng): Value {
     }
     case 'name': {
       const orig = look('ofp.orig');
-      return personName(src.kind, typeof orig === 'string' ? orig : '', rng);
+      const region = look('names.region');
+      const mix = look('names.mix');
+      return personName(
+        src.kind,
+        typeof orig === 'string' ? orig : '',
+        rng,
+        typeof region === 'string' ? region : null,
+        mix === 'some' || mix === 'all' ? mix : 'none',
+      );
     }
   }
 }

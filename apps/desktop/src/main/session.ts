@@ -77,6 +77,9 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
   nhl: 'NHL',
 };
 
+/** Person names of new flights (core `namesVersion`, T43); recorded in the header. */
+const NAMES_VERSION = 2;
+
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */
 export const DATA_WAIT_MS = 60_000;
 
@@ -121,6 +124,7 @@ export class FlightSession {
       ...(o.flags === undefined ? {} : { flags: o.flags }),
       ...(o.minGapMs === undefined ? {} : { minGapMs: o.minGapMs }),
       ...(o.rops === undefined ? {} : { rops: o.rops }),
+      namesVersion: NAMES_VERSION,
     });
     this.data = o.data ?? null;
     this.simCommands = o.simCommands ?? (() => {});
@@ -148,6 +152,7 @@ export class FlightSession {
         ...probabilities(o.scenarios),
         ...(o.minGapMs === undefined || o.minGapMs === 0 ? {} : { minGapMs: o.minGapMs }),
         ...(o.rops === undefined ? {} : { rops: o.rops }),
+        namesVersion: NAMES_VERSION,
       }),
     );
     this.core.startFlight();

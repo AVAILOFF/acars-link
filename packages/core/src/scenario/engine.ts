@@ -216,6 +216,11 @@ export interface ScenarioEngineOptions {
   /** Minutes before `sched_out` a flight must start not to count as delayed. Default 35. */
   readonly lateStartLeadMin?: number;
   /**
+   * Generator of `{name:…}` (T43, `names.ts`): 1 = surnames by the origin's ICAO prefix (as
+   * recorded before T43), 2 = by the airline's country (default).
+   */
+  readonly namesVersion?: 1 | 2;
+  /**
    * How long `REQ WX` waits for weather the app fetches on `DATA_REQUEST`, ms of clock time.
    * 0 (default) = answer at once with what the core has (no live data source).
    */
@@ -357,6 +362,7 @@ export class ScenarioEngine {
   /** Start order for one tick: priority desc, then id. */
   private readonly ordered: readonly CompiledScenario[];
   private readonly rngs = new Map<string, Rng>();
+  private readonly namesVersion: 1 | 2;
   private st: {
     scenarios: Record<string, ScenarioState>;
     runs: Run[];
@@ -391,6 +397,7 @@ export class ScenarioEngine {
     this.syntheticConnections = options.syntheticConnections ?? false;
     if (!(this.dataWaitMs >= 0)) throw new RangeError('dataWaitMs must be ≥ 0');
     this.seed = options.seed;
+    this.namesVersion = options.namesVersion ?? 2;
     this.leadMs = (options.lateStartLeadMin ?? DEFAULT_LATE_START_LEAD_MIN) * 60_000;
     if (!(this.leadMs >= 0)) throw new RangeError('lateStartLeadMin must be ≥ 0');
     this.data = buildFlightData(options.ofp, options.seed);
@@ -633,6 +640,7 @@ export class ScenarioEngine {
       ofp: this.ctxOfp,
       delayMs: this.st.delayMs ?? 0,
       delayParts: this.st.delayParts,
+      namesVersion: this.namesVersion,
       route: this.route,
       now: input.now,
       phase: input.phase,
