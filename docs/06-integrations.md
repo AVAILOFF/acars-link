@@ -78,6 +78,13 @@ REQ:M.<мах> FL<эшелон>[
 - `https://davidmegginson.github.io/ourairports-data/airport-frequencies.csv` (~1,3 МБ, обновляется ночью). Лицензия (ourairports.com/data, сверено 2026-10-09): «All data is released to the Public Domain, and comes with no guarantee of accuracy or fitness for use». Столбцы `id, airport_ref, airport_ident, type, description, frequency_mhz`; типы `DEL`, `CLD`, `GND`, `TWR`, `APP`, `DEP`, `ATIS` и др.
 - Только частоты аэропорта вылета, при включённой станции ROPS; кэш 30 дней, после сбоя — через 10 мин, не более 3 попыток. Используются, когда у VATSIM нет живого диспетчера (NEXT FREQ / DPFRQ). Реализация — `packages/data-sources/src/ourairports.ts`.
 
+## OpenFlights (T43)
+
+- Данные: `airlines.dat`, `airports.dat`, `routes.dat` из github.com/jpatokal/openflights (`data/`, последнее изменение 2017-02-02), описание — openflights.org/data.php (сверка 2026-10-15). Таблица в ядре `packages/core/src/ext/openflights.ts` генерируется `node tools/openflights/generate.mjs <папка> packages/core/src/ext/openflights.ts`, вручную не править.
+- **Лицензия:** базы — Open Database License (ODbL), содержимое — Database Contents License; данные маршрутов (Airline Route Mapper) — public domain; данные авиакомпаний из Википедии могут быть под GFDL. Требования: указывать источник (OpenFlights.org), производные базы, опубликованные открыто, — тоже под свободной лицензией (наша таблица — ODbL); коммерческое использование — по отдельной лицензии OpenFlights. Решение пользователя 2026-10-15: использовать (п. 12 T43). `[ПРИ РЕЛИЗЕ]` — указать источник в «О программе».
+- **Актуальность:** маршруты не обновляются с июня 2014 («только историческая ценность»), флаг `active` у авиакомпаний ненадёжен. Поэтому из маршрутов берём только «авиакомпания выполняла собственные (не codeshare) вылеты из аэропорта» — без номеров рейсов, направлений и времени.
+- Маршруты: `routes.dat` по `airline id` → ICAO авиакомпании (`airlines.dat`), по `source airport id` → ICAO аэропорта (`airports.dat`); строки без ICAO-кодов отброшены (470 авиакомпаний, ~14,8 тыс. пар). Страна авиакомпании — поле `country` активных записей; код ICAO у активных авиакомпаний разных стран — не берём.
+
 ## SayIntentions ACARS
 
 - Endpoint: `https://acars.sayintentions.ai/acars/system/connect.html` (Hoppie-совместимый). Логон — SI-код пользователя.

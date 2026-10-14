@@ -196,6 +196,8 @@ function fly(
     divert?: boolean;
     flags?: Readonly<Record<string, Value>>;
     seed?: string;
+    /** The synthetic onward flight (test hook); default on. */
+    synthetic?: boolean;
   } = {},
 ): Run {
   const core = AcarsCore.create({
@@ -203,7 +205,8 @@ function fly(
     scenarios,
     seed: o.seed ?? 'irregular',
     profile: o.profile ?? DEFAULT_PROFILE,
-    syntheticConnections: true, // no schedule source yet: the synthetic onward flight is a test hook
+    // The synthetic onward flight with a number is a test hook; real flights: OpenFlights routes.
+    syntheticConnections: o.synthetic ?? true,
     ...(o.flags === undefined ? {} : { flags: o.flags }),
   });
   core.startFlight();
@@ -370,6 +373,21 @@ describe('chains inside a flight', () => {
     expect(pax).toBeGreaterThan(0);
     const transfer = buildFlightData(kg, 'irregular').ops.transferPax;
     expect(pax).toBeLessThanOrEqual(Math.ceil(transfer / 2));
+  });
+
+  it('without the test hook: only an airline with departures from the destination (OpenFlights, T43)', () => {
+    const set = ['short_connection', 'connection_made'].map(byId);
+    // SJX has no routes in OpenFlights (2014): no onward flight is invented.
+    expect(
+      ids(fly(c, set, { delayMin: 30, synthetic: false })).filter((x) => x !== '#ops'),
+    ).toEqual([]);
+    // ANA flew from RJBB: an onward flight, without a number.
+    const ana: Ofp = { ...kg, airlineIcao: 'ANA', callsign: 'ANA822' };
+    const r = fly({ ...c, ofp: ana }, set, { delayMin: 30, synthetic: false });
+    expect(ids(r).filter((x) => x !== '#ops')).toEqual(['short_connection', 'connection_made']);
+    expect(textsOf(r, 'short_connection')[0]).toMatch(/\d+ PAX TO ONWARD FLT/);
+    expect(textsOf(r, 'connection_made')[0]).toContain('ONWARD FLT WILL WAIT');
+    for (const m of r.out) expect(m.message.text).not.toMatch(/ANA\d{3}/);
   });
 
   it('the curfew needs a delay; UNABLE diverts to the alternate', () => {

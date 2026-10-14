@@ -702,7 +702,10 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
     'irr.curfew': i?.curfew ?? null,
     'irr.curfew_local': i === undefined || offset === null ? null : i.curfew + offset * 3_600_000,
     'irr.curfew_margin_min': i === undefined ? null : minutes(i.curfew - (t.estOnMs ?? t.estInMs)),
-    'irr.connect_flight': i?.connectKnown === true ? i.connectFlight : null,
+    // A confirmed flight (test hook) by its number; an airline route only (OpenFlights) as
+    // `ONWARD FLT`; else none: no invented flights (T43).
+    'irr.connect_flight':
+      i?.connectKnown === true ? i.connectFlight : i?.onwardRoute === true ? 'ONWARD FLT' : null,
     'irr.connect_std': i?.connectStd ?? null,
     'irr.connect_pax': i?.connectPax ?? null,
     'irr.connect_margin_min': i === undefined ? null : minutes(i.connectStd - t.estInMs),

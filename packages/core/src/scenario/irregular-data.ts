@@ -1,3 +1,4 @@
+import { airlineDepartsFrom } from '../ext/airline.js';
 import type { ParkingStand } from '../ext/data.js';
 import type { Ofp } from '../ofp/types.js';
 import { createRng } from '../random/rng.js';
@@ -16,6 +17,11 @@ export interface IrregularData {
   /** Latest landing at the destination (noise curfew), epoch ms UTC. */
   readonly curfew: number;
   readonly connectFlight: string;
+  /**
+   * The airline has own departures from the destination (OpenFlights routes, T43): an onward
+   * flight of it is plausible, its number and time are not known.
+   */
+  readonly onwardRoute: boolean;
   /** STD of the onward connection, epoch ms UTC. */
   readonly connectStd: number;
   readonly connectPax: number;
@@ -56,6 +62,7 @@ export function buildIrregularData(
   return {
     curfew,
     connectFlight: `${prefix}${connectNo}`,
+    onwardRoute: airlineDepartsFrom(ofp.airlineIcao, ofp.destination.icao),
     connectStd,
     connectPax,
     tankerKg,
