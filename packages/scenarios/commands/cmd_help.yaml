@@ -17,6 +17,10 @@ steps:
         DELAY MIN REASON
         DIVERT ICAO
         ETA
+        RDY
+        REQ ATIS ICAO
+        REQ GATE CHANGE
+        MEDICAL TEXT
         ATC LOGON X+FIR
         DCL TELEX TO X{ofp.orig}
       footer: SEND AS FREE TEXT TELEX

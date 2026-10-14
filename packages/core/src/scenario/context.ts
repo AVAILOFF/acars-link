@@ -140,6 +140,12 @@ export const CONTEXT_VARIABLES = [
   'cmd.taf',
   'cmd.wx_live',
   'cmd.wx_obs',
+  'cmd.atis',
+  'cmd.atis_code',
+  'cmd.gate',
+  'cmd.new_gate',
+  'cmd.divert_nm',
+  'cmd.divert_eta',
   // weather (T13): `*_metar` live METAR, else the OFP one; `*_live` true for a live one;
   // `*_obs` its observation time; `*_taf` live TAF only
   'wx.orig_metar',
@@ -210,6 +216,9 @@ export const CONTEXT_VARIABLES = [
   'flight.fuel_uplift_kg',
   'flight.fuel_diff_kg',
   'ops.turn_avail_min',
+  'ops.ctot_ready',
+  'ops.rdy_window',
+  'ops.rdy_better',
   'ops.gate_known',
   'ops.gate_place',
   'ops.gate_line',
@@ -337,6 +346,12 @@ export const RUN_VARIABLES = [
   'cmd.taf',
   'cmd.wx_live',
   'cmd.wx_obs',
+  'cmd.atis',
+  'cmd.atis_code',
+  'cmd.gate',
+  'cmd.new_gate',
+  'cmd.divert_nm',
+  'cmd.divert_eta',
 ] as const satisfies readonly ContextVariable[];
 export type RunVariable = (typeof RUN_VARIABLES)[number];
 
@@ -470,6 +485,12 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'cmd.taf': null,
       'cmd.wx_live': null,
       'cmd.wx_obs': null,
+      'cmd.atis': null,
+      'cmd.atis_code': null,
+      'cmd.gate': null,
+      'cmd.new_gate': null,
+      'cmd.divert_nm': null,
+      'cmd.divert_eta': null,
       ...extVariables(input),
       ...specialVariables(input),
       ...aircraftVariables(ofp.aircraft.icao),
@@ -692,7 +713,15 @@ function t4344Variables(
   input: ContextInput,
   toDest: number | null,
   gs: number | null,
-): Record<'flight.eta_live' | 'ops.turn_avail_min' | 'ops.quick_turn', Value> {
+): Record<
+  | 'flight.eta_live'
+  | 'ops.turn_avail_min'
+  | 'ops.quick_turn'
+  | 'ops.ctot_ready'
+  | 'ops.rdy_window'
+  | 'ops.rdy_better',
+  Value
+> {
   const { now, oooi, ofp } = input;
   const ops = input.data.ops;
   return {
@@ -709,6 +738,15 @@ function t4344Variables(
       oooi.IN !== null &&
       ops.nextStd > oooi.IN &&
       ops.nextStd - oooi.IN < ops.turnaroundMin * 60_000,
+    // RDY (T44): a ready flight may ask for an earlier slot from EOBT−15 min to CTOT−taxi (REA
+    // rule of the Network Manager, e.g. AIP Ireland ENR 1.9 2.5.4); the gain is an assumption.
+    'ops.ctot_ready': ops.ctot - ops.rdyGainMin * 60_000,
+    'ops.rdy_window':
+      oooi.OUT === null &&
+      now >= ofp.times.estOutMs - 15 * 60_000 &&
+      now <= ops.ctot - (ofp.times.taxiOutSec ?? 600) * 1000,
+    'ops.rdy_better':
+      ops.ctot - ops.rdyGainMin * 60_000 - now >= (ofp.times.taxiOutSec ?? 600) * 1000,
   };
 }
 

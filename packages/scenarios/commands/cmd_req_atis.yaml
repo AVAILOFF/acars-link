@@ -1,0 +1,22 @@
+# REQ ATIS [ICAO] (T44): the text of the VATSIM ATIS station of the airport (the destination
+# without an airport). A real D-ATIS is not used: no open source.
+id: cmd_req_atis
+version: 1
+category: ops
+title: "Pilot command: REQ ATIS"
+title_ru: "Команда пилота: REQ ATIS"
+description: "REQ ATIS [ICAO]: the text of the online VATSIM ATIS of the airport (destination without ICAO). Without an online ATIS: NO ATIS AVBL and the METAR."
+description_ru: "REQ ATIS [ICAO]: текст ATIS онлайн-станции VATSIM аэропорта (без ICAO — назначение). Если ATIS нет в эфире: NO ATIS AVBL и METAR."
+enabled_by_default: true
+trigger:
+  on: command
+  command: REQ_ATIS
+conditions:
+  - "cmd.atis != null"
+steps:
+  - send:
+      header: "ATIS {cmd.icao}"
+      body: |
+        INFO {cmd.atis_code|or:--}
+        {cmd.atis}
+        SOURCE VATSIM

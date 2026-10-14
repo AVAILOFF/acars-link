@@ -120,7 +120,7 @@ describe('pilot text and command parser', () => {
     expect(parseCommand('REQ WX EDDF')).toEqual({
       ok: true,
       command: 'REQ_WX',
-      args: { icao: 'EDDF', minutes: null, reason: null },
+      args: { icao: 'EDDF', minutes: null, reason: null, gate: null },
     });
     expect(parseCommand('REQ WX')).toMatchObject({ ok: true, args: { icao: null } });
     expect(parseCommand('REQ METAR RJBB')).toMatchObject({ command: 'REQ_WX' });
@@ -130,12 +130,42 @@ describe('pilot text and command parser', () => {
     expect(parseCommand('DELAY 20 LATE CATERING')).toEqual({
       ok: true,
       command: 'DELAY',
-      args: { icao: null, minutes: 20, reason: 'LATE CATERING' },
+      args: { icao: null, minutes: 20, reason: 'LATE CATERING', gate: null },
     });
     expect(parseCommand('DELAY 15')).toMatchObject({ args: { minutes: 15, reason: null } });
     expect(parseCommand('DIVERT RJOO')).toMatchObject({ ok: true, args: { icao: 'RJOO' } });
     expect(parseCommand('ETA')).toMatchObject({ ok: true, command: 'ETA' });
     expect(parseCommand('HELP')).toMatchObject({ ok: true, command: 'HELP' });
+  });
+
+  it('T44 commands: MEDICAL <text>, REQ ATIS [ICAO], RDY, REQ GATE CHANGE [gate] [reason]', () => {
+    expect(parseCommand('MEDICAL CHEST PAIN ROW 23')).toEqual({
+      ok: true,
+      command: 'MEDICAL',
+      args: { icao: null, minutes: null, reason: 'CHEST PAIN ROW 23', gate: null },
+    });
+    expect(parseCommand('MEDICAL')).toMatchObject({ ok: true, args: { reason: null } });
+    expect(parseCommand('REQ ATIS')).toMatchObject({ command: 'REQ_ATIS', args: { icao: null } });
+    expect(parseCommand('REQ ATIS EDDF')).toMatchObject({ args: { icao: 'EDDF' } });
+    expect(parseCommand('REQ ATIS FRANKFURT')).toMatchObject({
+      ok: false,
+      command: 'REQ_ATIS',
+      hint: 'REQ ATIS ICAO',
+    });
+    expect(parseCommand('RDY')).toMatchObject({ ok: true, command: 'RDY' });
+    expect(parseCommand('REQ GATE CHANGE')).toMatchObject({
+      command: 'REQ_GATE_CHANGE',
+      args: { gate: null, reason: null },
+    });
+    expect(parseCommand('REQ GATE CHANGE B12 TECH ON GATE')).toMatchObject({
+      command: 'REQ_GATE_CHANGE',
+      args: { gate: 'B12', reason: 'TECH ON GATE' },
+    });
+    expect(parseCommand('REQ GATE CHANGE NEARER TO EXIT')).toMatchObject({
+      args: { gate: null, reason: 'NEARER TO EXIT' },
+    });
+    // The old form stays a plain gate request.
+    expect(parseCommand('REQ GATE')).toMatchObject({ command: 'REQ_GATE' });
   });
 
   it('known command with bad arguments: a hint; anything else: null', () => {

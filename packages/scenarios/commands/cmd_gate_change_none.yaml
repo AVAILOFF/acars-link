@@ -1,0 +1,20 @@
+# REQ GATE CHANGE without a real gate or another free one (T44), or while diverting.
+id: cmd_gate_change_none
+version: 1
+category: ops
+title: "Pilot command: REQ GATE CHANGE, no gate data"
+title_ru: "Команда пилота: REQ GATE CHANGE, данных нет"
+description: "REQ GATE CHANGE when no gate is known yet, there is no other gate, or the flight diverts."
+description_ru: "REQ GATE CHANGE, когда гейта ещё нет, другого гейта нет или рейс на диверсии."
+enabled_by_default: true
+trigger:
+  on: command
+  command: REQ_GATE_CHANGE
+conditions:
+  - "flight.divert != null or not ops.gate_known or cmd.new_gate == null"
+steps:
+  - send:
+      header: GATE CHANGE
+      body: |
+        {ofp.callsign} UNABLE GATE CHANGE NOW
+        {ops.gate_line}

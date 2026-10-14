@@ -1,0 +1,25 @@
+# On block at the diversion airport (T44): handling, fuel and passengers; the airline remembers
+# the diversion (flags.recovery_*) for the next flight from that airport (recovery_followup).
+id: divert_arrival
+version: 1
+category: irregular
+title: Arrival at the diversion airport
+title_ru: "Прилёт на запасной (диверсия)"
+description: "On block after a diversion: handling, fuel and passengers are arranged, a request for the new plan. Leaves a note for the next flight from that airport."
+description_ru: "На стоянке после диверсии: наземное обслуживание, заправка и пассажиры, запрос нового плана. Оставляет запись для следующего рейса из этого аэропорта."
+enabled_by_default: true
+trigger:
+  on: phase_enter
+  phase: ON_BLOCK
+conditions:
+  - "flight.divert != null"
+steps:
+  - set: { flags.recovery_airport: "{flight.divert}", flags.recovery_flight: "{ofp.callsign}", flags.recovery_date: "{ofp.sched_out}" }
+  - send:
+      header: DIVERSION {flight.divert}
+      body: |
+        {ofp.callsign} ON BLOCK {flight.divert}
+        HANDLING AND FUEL ORDERED
+        PAX CARE ARRANGED
+        {ofp.dest} PAX REBOOKING IN PROGRESS
+        SEND FUEL REQUEST AND NEW ETD

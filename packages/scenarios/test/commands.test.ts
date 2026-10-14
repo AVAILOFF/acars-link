@@ -177,7 +177,19 @@ describe('pilot command scenarios', () => {
       commands.map((s) => (s.def.trigger.on === 'command' ? s.def.trigger.command : null)),
     );
     expect([...covered].sort()).toEqual(
-      ['DELAY', 'DIVERT', 'ETA', 'HELP', 'REQ_GATE', 'REQ_LOADSHEET', 'REQ_WX'].sort(),
+      [
+        'DELAY',
+        'DIVERT',
+        'ETA',
+        'HELP',
+        'MEDICAL',
+        'RDY',
+        'REQ_ATIS',
+        'REQ_GATE',
+        'REQ_GATE_CHANGE',
+        'REQ_LOADSHEET',
+        'REQ_WX',
+      ].sort(),
     );
   });
 });

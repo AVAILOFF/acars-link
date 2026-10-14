@@ -1,0 +1,54 @@
+# MEDICAL <text> from the pilot (T44): the pilot reports a medical case himself. The same chain
+# as medical_onboard (CONTINUE / DIVERT, paramedics on block); the pilot's text is in the
+# answer. The random medical_onboard does not start after it.
+id: cmd_medical
+version: 1
+category: irregular
+title: "Pilot command: MEDICAL"
+title_ru: "Команда пилота: MEDICAL"
+description: "MEDICAL <text> in the air: the crew reports a medical case. OPS asks CONTINUE or DIVERT (default CONTINUE after 10 min); DIVERT goes to the nearest of the origin and the alternates; paramedics meet the aircraft."
+description_ru: "MEDICAL <текст> в воздухе: экипаж сам сообщает о медицинском случае. OPS спрашивает CONTINUE или DIVERT (через 10 мин — CONTINUE); DIVERT — на ближайший из аэропорта вылета и запасных; на стоянке встречают медики."
+enabled_by_default: true
+trigger:
+  on: command
+  command: MEDICAL
+steps:
+  - send:
+      header: OPS MSG MEDICAL
+      body: |
+        MEDICAL REPORT RCVD
+        CREW INFO: {cmd.reason|or:NO DETAILS}
+        MEDLINK ADVISED
+        REPLY CONTINUE OR DIVERT
+  - wait:
+      reply: { options: [CONTINUE, DIVERT], timeout_min: 10, default: CONTINUE }
+  - branch:
+      DIVERT:
+        - set: { flight.divert: "{flight.nearest_altn}" }
+        - send:
+            header: OPS MSG MEDICAL
+            body: |
+              ROGER DIVERT {flight.divert|or:NEAREST SUITABLE}
+              {flight.nearest_altn_nm} NM FROM PRESENT POS
+              AMBULANCE AND HANDLING ORDERED
+              SEND NEW ETA WHEN ABLE
+        - wait: { phase: ON_BLOCK }
+        - send:
+            header: OPS MSG MEDICAL
+            body: |
+              PARAMEDICS AT AIRCRAFT DOOR
+              PATIENT DEPLANES FIRST
+      CONTINUE:
+        - send:
+            header: OPS MSG MEDICAL
+            body: |
+              MEDICAL UPDATE NOTED
+              CONTINUE TO {ofp.dest}
+              PLEASE REQUEST PRIORITY WITH ATC
+        - wait: { phase: ON_BLOCK }
+        - send:
+            header: OPS MSG MEDICAL
+            body: |
+              PARAMEDICS AT AIRCRAFT DOOR
+              {ops.gate_place}
+              PATIENT DEPLANES FIRST

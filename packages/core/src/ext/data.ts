@@ -42,6 +42,11 @@ export interface AtcStation {
   readonly frequency: string;
   /** ATIS letter (facility ATIS only). */
   readonly atisCode: string | null;
+  /**
+   * The ATIS text of a VATSIM ATIS station (T44), upper-case telex-safe, null = none; absent
+   * in older states and recordings.
+   */
+  readonly atisText?: string | null;
 }
 
 /** Natural event (NASA EONET), position = latest geometry. */
@@ -339,7 +344,8 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
           typeof s['callsign'] !== 'string' ||
           typeof s['frequency'] !== 'string' ||
           !['DEL', 'GND', 'TWR', 'APP', 'ATIS'].includes(s['facility'] as string) ||
-          !strOrNull(s['atisCode'])
+          !strOrNull(s['atisCode']) ||
+          !(s['atisText'] === undefined || strOrNull(s['atisText']))
         )
           bad(`atc.${icao} station`);
       }

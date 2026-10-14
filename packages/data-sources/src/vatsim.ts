@@ -30,6 +30,29 @@ export interface VatsimStation extends AtcStation {
   readonly prefix: string;
 }
 
+/** Longest ATIS text kept for a telex, characters. */
+const ATIS_TEXT_MAX = 400;
+
+/**
+ * `text_atis` (an array of lines in the v3 feed) as telex text: upper case, only `A–Z0–9` and
+ * a few punctuation marks, lines joined with a space, cut at a word boundary. Null without
+ * text. The text is the controller's broadcast, not personal data.
+ */
+export function atisTelexText(lines: unknown): string | null {
+  if (!Array.isArray(lines)) return null;
+  const text = lines
+    .filter((l): l is string => typeof l === 'string')
+    .join(' ')
+    .toUpperCase()
+    .replace(/[^A-Z0-9 ./,-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (text === '') return null;
+  if (text.length <= ATIS_TEXT_MAX) return text;
+  const cut = text.slice(0, ATIS_TEXT_MAX);
+  return cut.slice(0, Math.max(cut.lastIndexOf(' '), 1)).trim();
+}
+
 export async function fetchVatsimStations(ctx: FetchContext): Promise<VatsimStation[]> {
   return (await fetchVatsim(ctx)).stations;
 }
@@ -82,6 +105,7 @@ export function parseVatsimFeed(json: unknown): VatsimStation[] {
       facility,
       frequency: x['frequency'],
       atisCode: atis && /^[A-Z]$/.test(code) ? code : null,
+      atisText: atis ? atisTelexText(x['text_atis']) : null,
       prefix: callsign.split('_')[0] as string,
     });
   };
@@ -102,11 +126,12 @@ export function stationsFor(
     if (/^K[A-Z]{3}$/.test(a.icao)) prefixes.add(a.icao.slice(1));
     out[a.icao] = stations
       .filter((s) => prefixes.has(s.prefix))
-      .map(({ callsign, facility, frequency, atisCode }) => ({
+      .map(({ callsign, facility, frequency, atisCode, atisText }) => ({
         callsign,
         facility,
         frequency,
         atisCode,
+        atisText: atisText ?? null,
       }));
   }
   return out;

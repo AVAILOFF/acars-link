@@ -1,0 +1,21 @@
+# RDY when it makes no sense (T44): no CTOT issued, or outside the window for a ready message.
+id: cmd_rdy_none
+version: 1
+category: ops
+title: "Pilot command: RDY, no slot"
+title_ru: "Команда пилота: RDY, слота нет"
+description: "RDY without a CTOT, or too early/late for a ready message (from EOBT-15 min to CTOT minus taxi time)."
+description_ru: "RDY без выданного CTOT или слишком рано/поздно (окно: от EOBT-15 мин до CTOT минус время руления)."
+enabled_by_default: true
+trigger:
+  on: command
+  command: RDY
+conditions:
+  - "not ('slot_ctot' in flight.sent) or not ops.rdy_window"
+steps:
+  - send:
+      header: SLOT
+      body: |
+        NO SLOT RESTRICTION
+        OR READY MSG NOT POSSIBLE NOW
+        SEND RDY WHEN READY NEAR EOBT

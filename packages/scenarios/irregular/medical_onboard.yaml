@@ -15,6 +15,7 @@ trigger:
 conditions:
   - "flight.minutes_to_tod != null"
   - "flight.minutes_to_tod >= 30"
+  - "not ('cmd_medical' in flight.sent)"
 probability: 0.03
 excludes: [unruly_passenger]
 steps:

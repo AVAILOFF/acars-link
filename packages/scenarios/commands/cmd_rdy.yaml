@@ -1,0 +1,42 @@
+# RDY (T44): the crew is ready earlier than the slot. A "ready" message goes to ATC flow; after
+# a while an earlier CTOT or no improvement. The window (EOBT-15 min .. CTOT-taxi) is the REA
+# rule of the Network Manager; the 40 % chance and the gain (5-15 min) are assumptions.
+id: cmd_rdy
+version: 1
+category: ops
+title: "Pilot command: RDY"
+title_ru: "Команда пилота: RDY"
+description: "RDY with a CTOT issued, before off-block: READY MSG SENT; then (40 %) an earlier CTOT or NO IMPROVEMENT."
+description_ru: "RDY при выданном CTOT, до OUT: READY MSG SENT; затем (в 40 % случаев) более ранний CTOT или NO IMPROVEMENT."
+enabled_by_default: true
+trigger:
+  on: command
+  command: RDY
+conditions:
+  - "'slot_ctot' in flight.sent"
+  - "ops.rdy_window"
+steps:
+  - send:
+      header: SLOT
+      body: |
+        READY MSG SENT
+        CTOT {ops.ctot|hhmm}Z
+        STAND BY FOR UPDATE
+  - set: { flags.rdy_roll: "{pick:[Y,Y,N,N,N]}" }
+  - wait: { minutes: 3 }
+  - wait: { until: "flags.rdy_roll == 'Y' and ops.rdy_better", timeout_min: 0.02 }
+  - set: { flags.rdy_roll: null }
+  - branch:
+      MET:
+        - send:
+            header: SLOT
+            body: |
+              IMPROVED SLOT
+              NEW CTOT {ops.ctot_ready|hhmm}Z
+              OLD CTOT {ops.ctot|hhmm}Z
+      TIMEOUT:
+        - send:
+            header: SLOT
+            body: |
+              NO IMPROVEMENT
+              CTOT {ops.ctot|hhmm}Z UNCHANGED

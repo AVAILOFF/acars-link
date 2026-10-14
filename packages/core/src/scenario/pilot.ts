@@ -34,6 +34,8 @@ export interface CommandArgs {
   readonly icao: string | null;
   readonly minutes: number | null;
   readonly reason: string | null;
+  /** `REQ GATE CHANGE <gate>`: the gate asked for. */
+  readonly gate: string | null;
 }
 
 export type ParsedCommand =
@@ -45,7 +47,8 @@ export type ParsedCommand =
 export const MAX_PILOT_DELAY_MIN = 600;
 
 const ICAO = /^[A-Z]{4}$/;
-const NO_ARGS: CommandArgs = { icao: null, minutes: null, reason: null };
+const NO_ARGS: CommandArgs = { icao: null, minutes: null, reason: null, gate: null };
+const GATE_REF = /^[A-Z]{0,2}\d{1,3}[A-Z]?$/;
 
 /** Parses a normalized text; null = not a command. Extra words after a command are ignored. */
 export function parseCommand(normalized: string): ParsedCommand | null {
@@ -65,8 +68,22 @@ export function parseCommand(normalized: string): ParsedCommand | null {
           return ICAO.test(w2)
             ? ok('REQ_WX', { icao: w2 })
             : { ok: false, command: 'REQ_WX', hint: 'REQ WX ICAO' };
-        case 'GATE':
-          return ok('REQ_GATE');
+        case 'GATE': {
+          if (w2 !== 'CHANGE') return ok('REQ_GATE');
+          // REQ GATE CHANGE [gate] [reason…]
+          const [g, ...why] = rest;
+          const asked = g !== undefined && GATE_REF.test(g) ? g : null;
+          const reason = (asked === null ? [g, ...why] : why).filter((w) => w !== undefined);
+          return ok('REQ_GATE_CHANGE', {
+            gate: asked,
+            reason: reason.length === 0 ? null : reason.join(' '),
+          });
+        }
+        case 'ATIS':
+          if (w2 === undefined) return ok('REQ_ATIS');
+          return ICAO.test(w2)
+            ? ok('REQ_ATIS', { icao: w2 })
+            : { ok: false, command: 'REQ_ATIS', hint: 'REQ ATIS ICAO' };
         case 'LOADSHEET':
         case 'LS':
           return ok('REQ_LOADSHEET');
@@ -85,6 +102,13 @@ export function parseCommand(normalized: string): ParsedCommand | null {
       return w1 !== undefined && ICAO.test(w1)
         ? ok('DIVERT', { icao: w1 })
         : { ok: false, command: 'DIVERT', hint: 'DIVERT ICAO' };
+    case 'MEDICAL': {
+      // The pilot's own report: the rest of the text is passed on as the symptoms.
+      const text = [w1, w2, ...rest].filter((w) => w !== undefined).join(' ');
+      return ok('MEDICAL', { reason: text === '' ? null : text });
+    }
+    case 'RDY':
+      return ok('RDY');
     case 'ETA':
       return ok('ETA');
     case 'HELP':

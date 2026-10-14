@@ -46,6 +46,8 @@ export interface FlightOps {
   readonly nextFlight: string;
   readonly nextStd: number;
   readonly cabinCrew: number;
+  /** How much earlier a ready (RDY) flight may get its CTOT, minutes (T44, assumption). */
+  readonly rdyGainMin: number;
 }
 
 export interface FlightData {
@@ -89,6 +91,8 @@ export function buildFlightData(ofp: Ofp, seed: number | string): FlightData {
   const heavy = ofp.aircraft.wakeCategory === 'H' || ofp.aircraft.wakeCategory === 'J';
   const turnaroundMin = (heavy ? 75 : 40) + rng.int(0, 4) * 5;
   const seats = ofp.aircraft.maxPax ?? pax;
+  // Appended last: the draw order of older recordings stays.
+  const rdyGainMin = rng.int(5, 15);
 
   return {
     load: {
@@ -114,6 +118,7 @@ export function buildFlightData(ofp: Ofp, seed: number | string): FlightData {
       nextFlight: nextFlight(ofp),
       nextStd: roundTo5Min(t.schedInMs + turnaroundMin * MIN),
       cabinCrew: Math.max(1, Math.ceil(seats / 50)),
+      rdyGainMin,
     },
   };
 }

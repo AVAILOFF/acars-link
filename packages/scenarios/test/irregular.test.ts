@@ -117,6 +117,8 @@ interface Setup {
   readonly lateMin?: number;
   /** Cold weather at the origin. */
   readonly cold?: boolean;
+  /** The pilot declares a diversion to the first alternate in cruise. */
+  readonly divert?: boolean;
   /** The answers to try, one flight each; empty = no question. */
   readonly answers?: readonly string[];
 }
@@ -163,6 +165,14 @@ const SETUP: Readonly<Record<string, Setup>> = {
     }),
   },
   gate_reassignment: { with: ['gate_assignment'] },
+  divert_arrival: { divert: true },
+  recovery_followup: {
+    flags: (o) => ({
+      recovery_airport: o.origin.icao,
+      recovery_flight: 'SJX821',
+      recovery_date: daysBefore(o, 1),
+    }),
+  },
 };
 
 interface Run {
@@ -183,6 +193,7 @@ function fly(
     answer?: string;
     delayMin?: number;
     cold?: boolean;
+    divert?: boolean;
     flags?: Readonly<Record<string, Value>>;
     seed?: string;
   } = {},
@@ -200,12 +211,15 @@ function fly(
   const events: CoreEvent[] = [];
   let pending: PilotMessage[] = [];
   const pilot = (text: string): PilotMessage => ({ from: c.ofp.callsign, type: 'telex', text });
+  const divertAt = stageIndex(c.flight, 'CRUISE', 120);
   const board = c.flight.snapshots.findIndex((s) => s.t >= c.ofp.times.schedOutMs - 60 * 60_000);
   c.flight.snapshots.forEach((s, i) => {
     const inbound = pending;
     pending = [];
     if (i === Math.max(1, board) && o.delayMin !== undefined)
       inbound.push(pilot(`DELAY ${o.delayMin}`));
+    if (o.divert === true && i === divertAt)
+      inbound.push(pilot(`DIVERT ${c.ofp.alternates[0]?.icao ?? 'RJGG'}`));
     const cold = {
       wx: {
         [c.ofp.origin.icao]: {
@@ -285,6 +299,7 @@ describe.each(FLIGHTS)('each irregular scenario alone on $name', (c) => {
         ...(answer === undefined ? {} : { answer }),
         ...(setup.delayMin === undefined ? {} : { delayMin: setup.delayMin }),
         ...(setup.cold === undefined ? {} : { cold: setup.cold }),
+        ...(setup.divert === undefined ? {} : { divert: setup.divert }),
         ...(setup.flags === undefined ? {} : { flags: setup.flags(c.ofp) }),
       });
       expect(errors(r)).toEqual([]);

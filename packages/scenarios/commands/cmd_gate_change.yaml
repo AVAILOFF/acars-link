@@ -1,0 +1,40 @@
+# REQ GATE CHANGE [gate] [reason] (T44): a request for another gate. 70 % agree (the gate asked
+# for when it is a known stand, else the alternative one), otherwise all gates are occupied.
+# Assumptions: the answer texts and the 70 % (no real AOC sample); the gates come from the OSM
+# stands. Agreement is `set ops.arr_gate`: arrival info and REQ GATE name the new gate.
+id: cmd_gate_change
+version: 1
+category: ops
+title: "Pilot command: REQ GATE CHANGE"
+title_ru: "Команда пилота: REQ GATE CHANGE"
+description: "REQ GATE CHANGE [gate] [reason] before block: OPS agrees (70 %, the gate asked for if it is a known free stand) or says all gates are occupied. Arrival info then names the new gate."
+description_ru: "REQ GATE CHANGE [гейт] [причина] до прилёта на стоянку: OPS соглашается (70 %, запрошенный гейт, если он есть среди известных) или отвечает, что все заняты. Дальше arrival info называет новый гейт."
+enabled_by_default: true
+trigger:
+  on: command
+  command: REQ_GATE_CHANGE
+conditions:
+  - "flight.divert == null"
+  - "ops.gate_known"
+  - "cmd.new_gate != null"
+steps:
+  - set: { flags.gate_roll: "{pick:[Y,Y,Y,Y,Y,Y,Y,N,N,N]}" }
+  - wait: { until: "flags.gate_roll == 'Y'", timeout_min: 0.02 }
+  - set: { flags.gate_roll: null }
+  - branch:
+      MET:
+        - set: { ops.arr_gate: "{cmd.new_gate}" }
+        - send:
+            header: GATE CHANGE
+            body: |
+              {ofp.callsign} ARR {ofp.dest}
+              GATE CHANGE APPROVED
+              NEW {ops.gate_place}
+              BAGGAGE BELT {ops.belt} UNCHANGED
+      TIMEOUT:
+        - send:
+            header: GATE CHANGE
+            body: |
+              UNABLE GATE CHANGE
+              ALL GATES OCCUPIED
+              KEEP {ops.gate_place}

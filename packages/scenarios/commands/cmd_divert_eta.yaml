@@ -1,0 +1,23 @@
+# DIVERT <ICAO> (T44): distance and ETA to the diversion airport at the present ground speed.
+# Only for airports of the OFP (origin, alternates: their position is known) with a speed of 60
+# kt or more; otherwise nothing is sent (the answer of cmd_divert is enough).
+id: cmd_divert_eta
+version: 1
+category: irregular
+title: "Pilot command: DIVERT, distance and ETA"
+title_ru: "Команда пилота: DIVERT, расстояние и ETA"
+description: "After DIVERT to an airport of the flight plan: distance from the present position and ETA at the present ground speed."
+description_ru: "После DIVERT на аэропорт из плана полёта: расстояние от текущей позиции и ETA по текущей путевой скорости."
+enabled_by_default: true
+trigger:
+  on: command
+  command: DIVERT
+conditions:
+  - "cmd.divert_nm != null"
+  - "cmd.divert_eta != null"
+steps:
+  - send:
+      header: DIVERSION
+      body: |
+        {cmd.icao} {cmd.divert_nm} NM FROM PRESENT POS
+        ETA {cmd.divert_eta|hhmm}Z AT PRESENT GS

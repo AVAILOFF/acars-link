@@ -43,6 +43,10 @@ export const PILOT_COMMANDS = [
   'DIVERT',
   'ETA',
   'HELP',
+  'MEDICAL',
+  'REQ_ATIS',
+  'RDY',
+  'REQ_GATE_CHANGE',
 ] as const;
 export type PilotCommand = (typeof PILOT_COMMANDS)[number];
 

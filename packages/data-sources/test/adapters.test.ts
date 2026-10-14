@@ -150,6 +150,7 @@ describe('VATSIM data feed v3', () => {
     );
     expect(stations.find((s) => s.callsign === 'EDDF_ATIS')).toEqual({
       callsign: 'EDDF_ATIS',
+      atisText: 'SYNTHETIC',
       facility: 'ATIS',
       frequency: '118.025',
       atisCode: 'K',

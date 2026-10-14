@@ -1,5 +1,6 @@
 import type { CpdlcHeader } from '../atc/cpdlc.js';
 import {
+  ATC_MAX_AGE_MS,
   applyExtData,
   EMPTY_EXT,
   type ExtDataUpdate,
@@ -10,6 +11,7 @@ import {
 } from '../ext/data.js';
 import { FormatError, type FormattedMessage, formatMessage } from '../format/formatter.js';
 import { DEFAULT_PROFILE, type DisplayProfile } from '../format/profile.js';
+import { distanceNm } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';
 import { FLIGHT_PHASES, type FlightPhase, type OooiKind, type PhaseEvent } from '../phase/fsm.js';
 import { createRng, type Rng, type RngState, rngFromState } from '../random/rng.js';
@@ -752,7 +754,7 @@ export class ScenarioEngine {
         return;
       }
     }
-    const words = cmd.command.replace('_', ' ');
+    const words = cmd.command.replaceAll('_', ' ');
     const done = cmd.ok ? this.applyCommand(cmd, text, input) : { hint: `FORMAT ${cmd.hint}` };
     if ('hint' in done) {
       note('invalid', { command: cmd.command, detail: done.hint });
@@ -794,7 +796,9 @@ export class ScenarioEngine {
       live: false,
       obs: null,
     };
+    let extra: Partial<Record<RunVariable, Value>> = {};
     switch (cmd.command) {
+      case 'REQ_ATIS':
       case 'REQ_WX': {
         icao ??= this.ofp.destination.icao;
         const o = this.ofp;
@@ -805,6 +809,32 @@ export class ScenarioEngine {
           live?.metar != null
             ? { metar: live.metar, taf: live.taf, live: true, obs: live.obsTime }
             : { metar: known?.metar ?? null, taf: live?.taf ?? null, live: false, obs: null };
+        if (cmd.command === 'REQ_ATIS') {
+          // The VATSIM ATIS station's text (T44); stale feed data is not an ATIS.
+          const fresh = this.st.ext.atcT !== null && input.now - this.st.ext.atcT <= ATC_MAX_AGE_MS;
+          const station = fresh
+            ? this.st.ext.atc?.[icao]?.find((s) => s.facility === 'ATIS' && s.atisText != null)
+            : undefined;
+          extra = {
+            'cmd.atis': station?.atisText ?? null,
+            'cmd.atis_code': station?.atisCode ?? null,
+          };
+        }
+        break;
+      }
+      case 'MEDICAL':
+        if (input.oooi.OFF === null || input.oooi.ON !== null) return { hint: 'NOT AIRBORNE' };
+        break;
+      case 'RDY':
+        if (input.oooi.OUT !== null) return { hint: 'OFF BLOCK ALREADY' };
+        break;
+      case 'REQ_GATE_CHANGE': {
+        if (input.oooi.IN !== null) return { hint: 'ALREADY ON BLOCK' };
+        // The gate asked for when it is one of the known stands (and not the current one), else
+        // the alternative of the gate reassignment; none when no other stand is known.
+        const known = this.st.ext.stands?.some((s) => s.ref === args.gate) === true;
+        const wanted = args.gate !== null && known && args.gate !== this.data.ops.arrGate;
+        extra = { 'cmd.gate': args.gate, 'cmd.new_gate': wanted ? args.gate : this.newGate };
         break;
       }
       case 'DELAY':
@@ -815,6 +845,7 @@ export class ScenarioEngine {
         if (input.oooi.OFF === null || input.oooi.ON !== null) return { hint: 'NOT AIRBORNE' };
         if (icao === this.ofp.destination.icao) return { hint: `${icao} IS DESTINATION` };
         this.st.divert = icao;
+        extra = this.divertDistance(icao, input);
         break;
       default:
         break;
@@ -831,7 +862,27 @@ export class ScenarioEngine {
         'cmd.taf': wx.taf,
         'cmd.wx_live': cmd.command === 'REQ_WX' ? wx.live : null,
         'cmd.wx_obs': wx.obs,
+        ...extra,
       },
+    };
+  }
+
+  /**
+   * Distance and ETA to a diversion airport (T44): only for the airports of the OFP (their
+   * position is known); null for others. The ETA needs a ground speed of 60 kt or more.
+   */
+  private divertDistance(
+    icao: string | null,
+    input: EngineTickInput,
+  ): Partial<Record<RunVariable, Value>> {
+    const tm = input.telemetry;
+    const o = this.ofp;
+    const apt = [o.origin, ...o.alternates].find((a) => a.icao === icao);
+    if (apt === undefined || tm === null) return { 'cmd.divert_nm': null, 'cmd.divert_eta': null };
+    const nm = distanceNm(tm, apt);
+    return {
+      'cmd.divert_nm': Math.round(nm),
+      'cmd.divert_eta': tm.gsKt >= 60 ? input.now + Math.round((nm / tm.gsKt) * 3_600_000) : null,
     };
   }
 

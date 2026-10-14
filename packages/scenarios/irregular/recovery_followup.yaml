@@ -1,0 +1,26 @@
+# The next flight from the airport of an earlier diversion (T44, flags.recovery_*): the
+# aircraft is recovered, crew duty and a new plan are checked before departure.
+id: recovery_followup
+version: 1
+category: irregular
+title: Recovery after a diversion
+title_ru: "Продолжение после диверсии"
+description: "Before the flight from an earlier diversion airport: the aircraft was diverted from the earlier flight, crew duty and the new flight plan are checked."
+description_ru: "Перед рейсом из аэропорта прежней диверсии: борт сюда уходил на запасной, проверяются рабочее время экипажа и новый план полёта."
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -40 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "flags.recovery_airport == ofp.orig"
+steps:
+  - send:
+      header: OPS MSG RECOVERY
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        AFTER DIVERSION OF {flags.recovery_flight}
+        CREW DUTY TIME CHECKED
+        NEW FLIGHT PLAN AND FUEL ORDERED
+        EXPECT LATE PAX AND BAGS
+  - set: { flags.recovery_airport: null, flags.recovery_flight: null, flags.recovery_date: null }
