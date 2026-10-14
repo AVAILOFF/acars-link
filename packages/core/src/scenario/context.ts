@@ -206,6 +206,11 @@ export const CONTEXT_VARIABLES = [
   'ops.next_flight',
   'ops.next_std',
   'ops.turn_avail_min',
+  'ops.gate_known',
+  'ops.gate_place',
+  'ops.gate_line',
+  'ops.gate_expected',
+  'ops.ground_support',
   'ops.quick_turn',
   'ops.cabin_crew',
   // irregular-scenario data (T14, irregular-data.ts); `*_margin_min` against the estimates
@@ -291,7 +296,11 @@ export interface ContextInput {
   /** External data (T13). */
   readonly ext?: ExtState;
   /** Irregular-scenario data and the gate a reassignment would move to (T14). */
-  readonly irr?: IrregularData & { readonly newGate: string };
+  readonly irr?: IrregularData & {
+    readonly newGate: string | null;
+    /** A source confirmed the onward flight (T43); none exists yet. */
+    readonly connectKnown: boolean;
+  };
   readonly polyline?: RoutePolyline;
   /** Flight seed (T29: the "on this day" fact of several). */
   readonly seed?: number | string;
@@ -443,6 +452,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
     ...aircraftVariables(ofp.aircraft.icao),
     ...irrVariables(input),
     ...t4344Variables(input, toDest, gs),
+    ...gateVariables(input),
     'load.pax': load.pax,
     'load.pax_lmc': load.paxLmc,
     'load.cargo_kg': load.cargoKg,
@@ -620,7 +630,7 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
     'irr.curfew': i?.curfew ?? null,
     'irr.curfew_local': i === undefined || offset === null ? null : i.curfew + offset * 3_600_000,
     'irr.curfew_margin_min': i === undefined ? null : minutes(i.curfew - (t.estOnMs ?? t.estInMs)),
-    'irr.connect_flight': i?.connectFlight ?? null,
+    'irr.connect_flight': i?.connectKnown === true ? i.connectFlight : null,
     'irr.connect_std': i?.connectStd ?? null,
     'irr.connect_pax': i?.connectPax ?? null,
     'irr.connect_margin_min': i === undefined ? null : minutes(i.connectStd - t.estInMs),
@@ -672,5 +682,41 @@ function t4344Variables(
       oooi.IN !== null &&
       ops.nextStd > oooi.IN &&
       ops.nextStd - oooi.IN < ops.turnaroundMin * 60_000,
+  };
+}
+
+/**
+ * The arrival gate for message texts (T43). The gate is real (OSM stands) or there is none: then
+ * every text says it will be advised. A parking position (`stand`) is a STAND, never a GATE,
+ * and has no jet bridge: bus and stairs.
+ */
+function gateVariables(
+  input: ContextInput,
+): Record<
+  | 'ops.gate_known'
+  | 'ops.gate_place'
+  | 'ops.gate_line'
+  | 'ops.gate_expected'
+  | 'ops.ground_support',
+  Value
+> {
+  const { arrGate, gateKind } = input.data.ops;
+  if (arrGate === null) {
+    return {
+      'ops.gate_known': false,
+      'ops.gate_place': 'GATE TBA',
+      'ops.gate_line': 'GATE WILL BE ADVISED',
+      'ops.gate_expected': 'GATE WILL BE ADVISED',
+      'ops.ground_support': 'GROUND SUPPORT TBA',
+    };
+  }
+  const place = `${gateKind === 'stand' ? 'STAND' : 'GATE'} ${arrGate}`;
+  return {
+    'ops.gate_known': true,
+    'ops.gate_place': place,
+    'ops.gate_line': `${place} CONFIRMED`,
+    'ops.gate_expected': `EXPECTED ${place}`,
+    'ops.ground_support':
+      gateKind === 'stand' ? 'REMOTE STAND, BUS AND STAIRS' : 'GPU AND PCA AVBL',
   };
 }

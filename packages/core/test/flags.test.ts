@@ -60,7 +60,21 @@ function fly(
     if (i === resumeAt) {
       core = AcarsCore.fromState(JSON.parse(JSON.stringify(core.getState())), options);
     }
-    const r = core.tick({ now: s.t, telemetry: s });
+    const r = core.tick({
+      now: s.t,
+      telemetry: s,
+      ...(i === 0
+        ? {
+            data: {
+              t: s.t,
+              stands: {
+                icao: ofp.destination.icao,
+                list: ['A1', 'A2', 'A3', 'B1'].map((ref) => ({ ref, kind: 'gate' as const })),
+              },
+            },
+          }
+        : {}),
+    });
     out.push(...r.outbound);
     events.push(...r.events);
   });
@@ -247,8 +261,9 @@ describe('irregular data', () => {
 
   it('a reassigned gate is never the current one', () => {
     for (let i = 0; i < 50; i++) {
-      expect(reassignedGate('A12', null, i)).not.toBe('A12');
-      expect(reassignedGate('A12', null, i)).toMatch(/^A\d+$/);
+      // No stands, no new gate: nothing is invented (T43).
+      expect(reassignedGate('A12', null, i)).toBeNull();
+      expect(reassignedGate('2', [{ ref: '2', kind: 'stand' }], i)).toBeNull();
       expect(
         reassignedGate(
           '2',

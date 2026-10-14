@@ -19,6 +19,6 @@ steps:
         {ofp.callsign} {ofp.orig}-{ofp.dest}
         ETA {flight.eta_live|hhmm}Z STA {ofp.sched_in|hhmm}Z
         GS {tm.gs_kt} KT {flight.dist_to_dest_nm} NM TO GO
-        GATE {ops.arr_gate}
+        {ops.gate_place}
         TRANSFER PAX {ops.transfer_pax}
         CONNECTIONS ADVISED

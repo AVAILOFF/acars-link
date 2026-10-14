@@ -10,6 +10,7 @@ import {
 } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { loadScenarios } from '../src/index.js';
+import { standsFor } from './stands.js';
 
 /** T22: sim-effect scenarios (`sim/`): VDGS text for GSX. */
 
@@ -24,13 +25,17 @@ const sim = loadScenarios(
 const ofpOf = (name: string): Ofp =>
   parseSimbriefOfp(JSON.parse(readFileSync(join(OFPS, `${name}.json`), 'utf8')));
 
-function fly(ofp: Ofp) {
+function fly(ofp: Ofp, stands = true) {
   const core = AcarsCore.create({ ofp, scenarios: sim, seed: 'sim' });
   core.startFlight();
   const commands: SimCommand[] = [];
   const errors: string[] = [];
-  for (const s of generateSyntheticFlight({ ofp }).snapshots) {
-    const out = core.tick({ now: s.t, telemetry: s });
+  for (const [i, s] of generateSyntheticFlight({ ofp }).snapshots.entries()) {
+    const out = core.tick({
+      now: s.t,
+      telemetry: s,
+      ...(i === 0 && stands ? { data: standsFor(ofp, s.t) } : {}),
+    });
     commands.push(...out.commands);
     expect(out.outbound).toEqual([]);
     for (const e of out.events) if (e.type === 'SCENARIO_ERROR') errors.push(e.error);

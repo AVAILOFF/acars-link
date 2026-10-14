@@ -61,7 +61,7 @@ describe('buildFlightData', () => {
       expect(ops.slotDelayMin).toBeGreaterThanOrEqual(5);
       expect(ops.slotDelayMin).toBeLessThanOrEqual(30);
       expect(ops.ctot).toBe((kg.times.schedOffMs ?? 0) + ops.slotDelayMin * MIN);
-      expect(ops.arrGate).toMatch(/^[A-E]([1-9]|[1-3]\d|40)$/);
+      expect(ops.arrGate).toBeNull(); // never invented (T43): the engine takes it from OSM stands
       expect(ops.transferPax).toBeLessThanOrEqual(load.pax);
       expect([75, 80, 85, 90, 95]).toContain(ops.turnaroundMin); // A35K: wake H
       expect(ops.nextStd % (5 * MIN)).toBe(0);

@@ -20,5 +20,5 @@ steps:
       body: |
         {irr.connect_flight} HELD FOR {irr.connect_pax} PAX
         STD {irr.connect_std|hhmm}Z, DEPARTURE WILL BE LATE
-        TRANSFER BUS AT GATE {ops.arr_gate}
+        TRANSFER BUS AT {ops.gate_place}
         DEPLANE TRANSFER PAX FIRST

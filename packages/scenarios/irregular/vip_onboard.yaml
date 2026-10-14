@@ -27,6 +27,6 @@ steps:
       header: OPS MSG
       body: |
         VIP SEAT {flags.vip_seat} DISEMBARKS FIRST
-        PROTOCOL CAR AT GATE {ops.arr_gate}
+        PROTOCOL CAR AT {ops.gate_place}
         HOLD OTHER PAX 3 MIN
   - set: { flags.vip_seat: null }

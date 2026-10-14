@@ -25,6 +25,7 @@ import {
 } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { loadScenario, loadScenarios } from '../src/index.js';
+import { standsFor } from './stands.js';
 
 /**
  * T12: the pilot command scenarios (`commands/*.yaml`, docs/05 "Входящие команды пилота") with
@@ -128,7 +129,7 @@ function fly(
   const talk: Exchange[] = [];
   const entered = new Map<FlightPhase, number>([['BOARDING', c.flight.snapshots[0]?.t ?? 0]]);
   const done = new Set<number>();
-  for (const s of c.flight.snapshots) {
+  for (const [k, s] of c.flight.snapshots.entries()) {
     const due = script.flatMap((line, i) => {
       const t0 = entered.get(line.phase);
       return t0 !== undefined && !done.has(i) && s.t >= t0 + line.sec * 1000 ? [i] : [];
@@ -139,7 +140,12 @@ function fly(
       type: 'telex',
       text: script[i]?.say ?? '',
     }));
-    const r = core.tick({ now: s.t, telemetry: s, inbound });
+    const r = core.tick({
+      now: s.t,
+      telemetry: s,
+      inbound,
+      ...(k === 0 ? { data: standsFor(c.ofp, s.t) } : {}),
+    });
     for (const e of r.events) {
       if (e.type === 'PHASE_CHANGE' && !entered.has(e.to)) entered.set(e.to, e.t);
     }

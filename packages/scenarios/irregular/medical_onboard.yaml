@@ -75,5 +75,5 @@ steps:
             header: OPS MSG MEDICAL
             body: |
               PARAMEDICS AT AIRCRAFT DOOR
-              GATE {ops.arr_gate}
+              {ops.gate_place}
               PATIENT DEPLANES FIRST

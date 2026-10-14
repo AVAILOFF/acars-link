@@ -26,6 +26,7 @@ import {
 } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { loadScenarios } from '../src/index.js';
+import { standsFor } from './stands.js';
 
 /**
  * T14: the irregular scenarios (`irregular/*.yaml`, docs/02 "Нестандартные"). Each alone on 3
@@ -191,6 +192,7 @@ function fly(
     scenarios,
     seed: o.seed ?? 'irregular',
     profile: o.profile ?? DEFAULT_PROFILE,
+    syntheticConnections: true, // no schedule source yet: the synthetic onward flight is a test hook
     ...(o.flags === undefined ? {} : { flags: o.flags }),
   });
   core.startFlight();
@@ -204,17 +206,22 @@ function fly(
     pending = [];
     if (i === Math.max(1, board) && o.delayMin !== undefined)
       inbound.push(pilot(`DELAY ${o.delayMin}`));
+    const cold = {
+      wx: {
+        [c.ofp.origin.icao]: {
+          metar: `${c.ofp.origin.icao} 080600Z 36010KT 2000 -SN BKN008 M02/M04 Q1002`,
+          taf: null,
+          obsTime: s.t,
+        },
+      },
+    };
+    const gates = i === 0 ? standsFor(c.ofp, s.t).stands : undefined;
     const data: ExtDataUpdate | undefined =
-      o.cold === true && i === 0
+      i === 0
         ? {
             t: s.t,
-            wx: {
-              [c.ofp.origin.icao]: {
-                metar: `${c.ofp.origin.icao} 080600Z 36010KT 2000 -SN BKN008 M02/M04 Q1002`,
-                taf: null,
-                obsTime: s.t,
-              },
-            },
+            ...(gates === undefined ? {} : { stands: gates }),
+            ...(o.cold === true ? cold : {}),
           }
         : undefined;
     const r = core.tick({

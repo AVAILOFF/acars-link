@@ -18,5 +18,5 @@ steps:
       header: CONNECTIONS
       body: |
         {irr.connect_flight} WILL WAIT
-        TRANSFER BUS AT GATE {ops.arr_gate}
+        TRANSFER BUS AT {ops.gate_place}
         THANK YOU FOR THE EFFORT

@@ -67,20 +67,15 @@ export function buildIrregularData(
 }
 
 /**
- * The gate a reassignment moves to: another stand of the OSM list when there is one, else a
- * placeholder of the same pier letter; never `current`. One draw of `${seed}/#irr-gate`.
+ * The gate a reassignment moves to: another stand of the OSM list; never `current`. Null when
+ * there is none (T43: no invented gates). One draw of `${seed}/#irr-gate`.
  */
 export function reassignedGate(
-  current: string,
+  current: string | null,
   stands: readonly ParkingStand[] | null,
   seed: number | string,
-): string {
+): string | null {
   const rng = createRng(`${String(seed)}/#irr-gate`);
   const pool = [...new Set((stands ?? []).map((s) => s.ref))].filter((r) => r !== current).sort();
-  if (pool.length > 0) return rng.pick(pool);
-  const m = /^([A-Z]*)(\d+)$/.exec(current);
-  const pier = m?.[1] ?? '';
-  const n = Number(m?.[2] ?? 0);
-  const step = rng.int(1, 9);
-  return `${pier}${n + step > 99 ? Math.max(1, n - step) : n + step}`;
+  return pool.length > 0 ? rng.pick(pool) : null;
 }

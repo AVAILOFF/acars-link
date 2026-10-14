@@ -215,43 +215,6 @@ describe('AppController', () => {
     expect(end.feed.at(-1)).toMatchObject({ kind: 'system', code: 'flight_stopped' });
   });
 
-  it('GSX VDGS (T22): stale file removed at start, arrival text after landing, gone on stop', async () => {
-    const vdgsDir = join(await tempDir(), 'VGDS');
-    mkdirSync(vdgsDir, { recursive: true });
-    writeFileSync(join(vdgsDir, VDGS_FILE), '{"stale":true}');
-    writeFileSync(join(vdgsDir, 'other_addon.json'), '{}');
-    const s = await setup({ vdgsDir });
-    const { app } = s;
-    expect(existsSync(join(vdgsDir, VDGS_FILE))).toBe(false);
-    await app.setSimbriefUsername('pilot42');
-    await app.updateSettings({ transport: 'offline' });
-    await app.loadOfp();
-    s.sockets.last().hello();
-    await app.startFlight();
-    fly(s);
-    const file = JSON.parse(readFileSync(join(vdgsDir, VDGS_FILE), 'utf8'));
-    expect(file.messages).toMatchObject([
-      { id: 'acars_vdgs_arrival', conditions: { airports: ['RJBB'] } },
-    ]);
-    expect(
-      app.state().feed.some((e) => e.kind === 'system' && e.code === 'sim_command_failed'),
-    ).toBe(false);
-    await app.stopFlight();
-    expect(readdirSync(vdgsDir)).toEqual(['other_addon.json']);
-
-    // The command is in the recording, and a replay produces it again.
-    const rec = await readRecording(s.recordings);
-    const cmds = rec.events.filter((e) => e.type === 'cmd');
-    expect(cmds).toMatchObject([
-      { scenarioId: 'vdgs_arrival', command: 'vdgs', data: { airport: 'RJBB' } },
-    ]);
-    const again = replay(rec, { scenarios: BASE_SCENARIOS_COMPILED });
-    const replayed = again.timeline.flatMap((e) => (e.kind === 'cmd' ? [e.command] : []));
-    expect(replayed.map((c) => ('vdgs' in c ? c.vdgs : null))).toEqual(
-      cmds.map((c) => (c.type === 'cmd' ? c.data : null)),
-    );
-  });
-
   it('disabled scenarios do not run; per_session ids carry over to the next flight', async () => {
     const s = await setup();
     const { app } = s;
@@ -548,6 +511,44 @@ describe('live data (T13)', () => {
     }
   }
 
+  it('GSX VDGS (T22): stale file removed at start, arrival text after landing, gone on stop', async () => {
+    const vdgsDir = join(await tempDir(), 'VGDS');
+    mkdirSync(vdgsDir, { recursive: true });
+    writeFileSync(join(vdgsDir, VDGS_FILE), '{"stale":true}');
+    writeFileSync(join(vdgsDir, 'other_addon.json'), '{}');
+    // Live data: the gate comes from the OSM stands, there is no invented one (T43).
+    const s = await setup({ vdgsDir, http: await dataHttp() });
+    const { app } = s;
+    expect(existsSync(join(vdgsDir, VDGS_FILE))).toBe(false);
+    await app.setSimbriefUsername('pilot42');
+    await app.updateSettings({ transport: 'offline' });
+    await app.loadOfp();
+    s.sockets.last().hello();
+    await app.startFlight();
+    await flyAsync(s);
+    const file = JSON.parse(readFileSync(join(vdgsDir, VDGS_FILE), 'utf8'));
+    expect(file.messages).toMatchObject([
+      { id: 'acars_vdgs_arrival', conditions: { airports: ['RJBB'] } },
+    ]);
+    expect(
+      app.state().feed.some((e) => e.kind === 'system' && e.code === 'sim_command_failed'),
+    ).toBe(false);
+    await app.stopFlight();
+    expect(readdirSync(vdgsDir)).toEqual(['other_addon.json']);
+
+    // The command is in the recording, and a replay produces it again.
+    const rec = await readRecording(s.recordings);
+    const cmds = rec.events.filter((e) => e.type === 'cmd');
+    expect(cmds).toMatchObject([
+      { scenarioId: 'vdgs_arrival', command: 'vdgs', data: { airport: 'RJBB' } },
+    ]);
+    const again = replay(rec, { scenarios: BASE_SCENARIOS_COMPILED });
+    const replayed = again.timeline.flatMap((e) => (e.kind === 'cmd' ? [e.command] : []));
+    expect(replayed.map((c) => ('vdgs' in c ? c.vdgs : null))).toEqual(
+      cmds.map((c) => (c.type === 'cmd' ? c.data : null)),
+    );
+  });
+
   it('fetches after the OFP loads, feeds the core, is recorded and replays the same', async () => {
     const http = await dataHttp();
     const s = await setup({ http });
@@ -598,7 +599,7 @@ describe('live data (T13)', () => {
     expect(text('dest_weather_live')).toMatch(/RJBB \d{6}Z/);
     expect(out.some((m) => m.scenarioId === 'dest_weather')).toBe(false);
     // A gate from the OSM fixture (refs 2, 5, 11, 12, 13, 41).
-    const gate = /EXPECTED GATE (\w+)/.exec(text('gate_assignment'))?.[1];
+    const gate = /EXPECTED (?:GATE|STAND) (\w+)/.exec(text('gate_assignment'))?.[1];
     expect(['2', '5', '11', '12', '13', '41']).toContain(gate);
     expect(feed.some((e) => e.kind === 'system' && e.code === 'data_failed')).toBe(false);
 

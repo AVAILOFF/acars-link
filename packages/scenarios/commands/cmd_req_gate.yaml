@@ -14,6 +14,6 @@ steps:
       header: GATE INFO
       body: |
         {ofp.callsign} ARR {ofp.dest}
-        EXPECTED GATE {ops.arr_gate}
+        {ops.gate_expected}
         BAGGAGE BELT {ops.belt}
         STA {ofp.sched_in|hhmm}Z

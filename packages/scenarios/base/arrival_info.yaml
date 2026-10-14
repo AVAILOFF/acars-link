@@ -15,7 +15,7 @@ steps:
       header: ARRIVAL INFO
       body: |
         {ofp.callsign} {ofp.dest}
-        GATE {ops.arr_gate} CONFIRMED
+        {ops.gate_line}
         BAGGAGE BELT {ops.belt}
         TRANSFER PAX {ops.transfer_pax}
-        GPU AND PCA AVBL
+        {ops.ground_support}

@@ -22,6 +22,7 @@ import {
 } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { loadScenarios } from '../src/index.js';
+import { standsFor } from './stands.js';
 
 /**
  * T07: the 15 base scenarios (docs/02 MVP). docs/05 "Валидация контента": every scenario
@@ -85,16 +86,21 @@ function fly(
   scenarios: readonly CompiledScenario[],
   profile: DisplayProfile = DEFAULT_PROFILE,
   seed: string = c.seed,
+  stands = true,
 ): Run {
   const core = AcarsCore.create({ ofp: c.ofp, scenarios, seed, profile });
   core.startFlight();
   const out: OutboundMessage[] = [];
   const events: CoreEvent[] = [];
-  for (const s of c.flight.snapshots) {
-    const r = core.tick({ now: s.t, telemetry: s });
+  c.flight.snapshots.forEach((s, i) => {
+    const r = core.tick({
+      now: s.t,
+      telemetry: s,
+      ...(i === 0 && stands ? { data: standsFor(c.ofp, s.t) } : {}),
+    });
     out.push(...r.outbound);
     events.push(...r.events);
-  }
+  });
   return { out, events };
 }
 
@@ -170,6 +176,40 @@ describe('the whole set on one flight', () => {
     const gate = /EXPECTED GATE (\w+)/.exec(textOf(r, 'gate_assignment'))?.[1];
     expect(gate).toMatch(/^[A-E]\d{1,2}$/);
     expect(textOf(r, 'arrival_info')).toContain(`GATE ${gate} CONFIRMED`);
+  });
+
+  it('no stands known: no invented gate in any message (T43)', () => {
+    const none = fly(FLIGHTS[0] as Case, all, DEFAULT_PROFILE, 'normal', false);
+    expect(errors(none)).toEqual([]);
+    expect(none.out.map((m) => m.scenarioId)).not.toContain('gate_assignment');
+    const arrival = textOf(none, 'arrival_info');
+    expect(arrival).toContain('GATE WILL BE ADVISED');
+    expect(arrival).toContain('GROUND SUPPORT TBA');
+    for (const m of none.out) expect(m.message.text).not.toMatch(/GATE [A-E]\d{1,2}/);
+  });
+
+  it('a parking position is a STAND without a bridge: bus and stairs (T43)', () => {
+    const c = FLIGHTS[0] as Case;
+    const core = AcarsCore.create({ ofp: c.ofp, scenarios: all, seed: 'normal' });
+    core.startFlight();
+    const out: OutboundMessage[] = [];
+    c.flight.snapshots.forEach((s, i) => {
+      const data =
+        i === 0
+          ? {
+              t: s.t,
+              stands: {
+                icao: c.ofp.destination.icao,
+                list: ['12', '13'].map((ref) => ({ ref, kind: 'stand' as const })),
+              },
+            }
+          : undefined;
+      out.push(...core.tick({ now: s.t, telemetry: s, ...(data ? { data } : {}) }).outbound);
+    });
+    const text = out.find((m) => m.scenarioId === 'arrival_info')?.message.text ?? '';
+    expect(text).toMatch(/STAND 1[23] CONFIRMED/);
+    expect(text).toContain('REMOTE STAND');
+    expect(text).not.toContain('GPU AND PCA');
   });
 
   it('slot moves the schedule: delay = CTOT − planned OFF (T43)', () => {

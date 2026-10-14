@@ -13,6 +13,7 @@ trigger:
   dist: { to: tod, lte_nm: 100 }
 conditions:
   - "flight.divert == null"
+  - "irr.connect_flight != null"
   - "irr.connect_margin_min < 60"
 probability: 0.5
 steps:
@@ -23,4 +24,4 @@ steps:
         STD {irr.connect_std|hhmm}Z
         MARGIN {irr.connect_margin_min} MIN
         EXPEDITE ARRIVAL IF ABLE
-        TRANSFER STAFF AT GATE {ops.arr_gate}
+        TRANSFER STAFF AT {ops.gate_place}

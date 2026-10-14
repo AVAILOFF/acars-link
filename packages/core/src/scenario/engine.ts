@@ -211,6 +211,12 @@ export interface ScenarioEngineOptions {
    * 0 (default) = answer at once with what the core has (no live data source).
    */
   readonly dataWaitMs?: number;
+  /**
+   * Test hook (T43): offer the synthetic onward flight of `irr.connect_*` as if a source had
+   * confirmed it. Off by default: without a confirmed flight `irr.connect_flight` is null and
+   * `short_connection` does not start (no invented flights).
+   */
+  readonly syntheticConnections?: boolean;
   /** `flags.*` left by earlier flights (T14). */
   readonly flags?: Readonly<Record<string, Value>>;
 }
@@ -320,13 +326,14 @@ export class ScenarioEngine {
   private readonly route: RouteGeometry;
   private readonly polyline: RoutePolyline;
   private readonly dataWaitMs: number;
+  private readonly syntheticConnections: boolean;
   private readonly seed: number | string;
   private readonly leadMs: number;
   /** Derived from OFP + seed (+ delay), so not part of the serialized state. */
   private data: FlightData;
   /** Irregular-scenario data (T14), from the published OFP and the seed. */
   private readonly irr: IrregularData;
-  private newGate = '';
+  private newGate: string | null = null;
   private readonly profile: DisplayProfile;
   private readonly from: string;
   private readonly byId: ReadonlyMap<string, CompiledScenario>;
@@ -361,6 +368,7 @@ export class ScenarioEngine {
     this.route = new RouteGeometry(options.ofp);
     this.polyline = new RoutePolyline(options.ofp);
     this.dataWaitMs = options.dataWaitMs ?? 0;
+    this.syntheticConnections = options.syntheticConnections ?? false;
     if (!(this.dataWaitMs >= 0)) throw new RangeError('dataWaitMs must be ≥ 0');
     this.seed = options.seed;
     this.leadMs = (options.lateStartLeadMin ?? DEFAULT_LATE_START_LEAD_MIN) * 60_000;
@@ -466,9 +474,16 @@ export class ScenarioEngine {
       this.seed,
     );
     const stands = this.st.ext.stands;
-    const planned = stands === null ? data.ops.arrGate : pickStand(stands, this.seed);
-    this.newGate = reassignedGate(planned, stands, this.seed);
-    this.data = { ...data, ops: { ...data.ops, arrGate: this.st.gate ?? planned } };
+    // No stands, no gate (T43): nothing is invented.
+    const picked = stands === null ? null : pickStandInfo(stands, this.seed);
+    const planned = picked?.ref ?? null;
+    this.newGate = reassignedGate(this.st.gate ?? planned, stands, this.seed);
+    const ref = this.st.gate ?? planned;
+    const kind =
+      ref === null
+        ? null
+        : ((stands ?? []).find((x) => x.ref === ref)?.kind ?? picked?.kind ?? 'gate');
+    this.data = { ...data, ops: { ...data.ops, arrGate: ref, gateKind: kind } };
   }
 
   /** `flags.*` now (T14): hand them to the next flight. */
@@ -575,7 +590,7 @@ export class ScenarioEngine {
       ext: this.st.ext,
       polyline: this.polyline,
       seed: this.seed,
-      irr: { ...this.irr, newGate: this.newGate },
+      irr: { ...this.irr, newGate: this.newGate, connectKnown: this.syntheticConnections },
     });
   }
 
@@ -1089,9 +1104,9 @@ export class ScenarioEngine {
             vdgs: buildVdgsMessage(airport, step.durationSec, given),
           });
           const readsGate = Object.values(step.displays).some((ls) =>
-            (ls ?? []).some((l) => l.t.vars.includes('ops.arr_gate')),
+            (ls ?? []).some((l) => GATE_VARS.some((v) => l.t.vars.includes(v))),
           );
-          if (!this.st.ext.gateLocked && readsGate) {
+          if (!this.st.ext.gateLocked && readsGate && this.data.ops.arrGate !== null) {
             this.st.ext = { ...this.st.ext, gateLocked: true };
           }
         } catch (e) {
@@ -1127,7 +1142,11 @@ export class ScenarioEngine {
           this.profile,
         );
         this.emit(sc.id, message, input.now, outbound);
-        if (!this.st.ext.gateLocked && sendReads(step, 'ops.arr_gate')) {
+        if (
+          !this.st.ext.gateLocked &&
+          this.data.ops.arrGate !== null &&
+          GATE_VARS.some((v) => sendReads(step, v))
+        ) {
           this.st.ext = { ...this.st.ext, gateLocked: true };
         }
       } catch (e) {
@@ -1187,6 +1206,9 @@ function delayedOfp(ofp: Ofp, ms: number, sched: boolean): Ofp {
   };
 }
 
+/** Variables that read the arrival gate: once one went out, the gate is fixed (`gateLocked`). */
+const GATE_VARS = ['ops.arr_gate', 'ops.gate_place', 'ops.gate_line', 'ops.gate_expected'] as const;
+
 function sendReads(step: CompiledScenario['steps'][number], variable: string): boolean {
   if (step.kind !== 'send') return false;
   return [step.header, step.body, step.footer].some((t) => t?.vars.includes(variable) === true);
@@ -1197,10 +1219,21 @@ function sendReads(step: CompiledScenario['steps'][number], variable: string): b
  * positions; refs in natural order (`A2` < `A10`); one draw of `${seed}/#stands`.
  */
 export function pickStand(stands: readonly ParkingStand[], seed: number | string): string {
+  return (pickStandInfo(stands, seed) as { ref: string }).ref;
+}
+
+/** {@link pickStand} with the kind of the picked stand (`stand` = a parking position). */
+export function pickStandInfo(
+  stands: readonly ParkingStand[],
+  seed: number | string,
+): { readonly ref: string; readonly kind: ParkingStand['kind'] } | null {
   const gates = stands.filter((s) => s.kind === 'gate');
   const pool = (gates.length >= 3 ? gates : stands).map((s) => s.ref);
   const refs = [...new Set(pool)].sort(naturalCompare);
-  return createRng(`${String(seed)}/#stands`).pick(refs);
+  if (refs.length === 0) return null;
+  const ref = createRng(`${String(seed)}/#stands`).pick(refs);
+  const found = (gates.length >= 3 ? gates : stands).find((s) => s.ref === ref);
+  return { ref, kind: found?.kind ?? 'stand' };
 }
 
 /** Digit runs compare as numbers, the rest by char code (locale-free, deterministic). */

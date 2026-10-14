@@ -78,6 +78,8 @@ export interface CoreOptions {
   readonly phaseConfig?: Partial<PhaseConfig>;
   /** `REQ WX` wait for fetched weather, ms (T13); 0 = no live data source. */
   readonly dataWaitMs?: number;
+  /** Test hook, see `ScenarioEngineOptions.syntheticConnections` (T43). */
+  readonly syntheticConnections?: boolean;
   /** `flags.*` left by earlier flights (T14); read back with {@link AcarsCore.flags}. */
   readonly flags?: Readonly<Record<string, Value>>;
   /**
@@ -312,5 +314,8 @@ function engineOptions(o: CoreOptions) {
     ...(o.sessionFired === undefined ? {} : { sessionFired: o.sessionFired }),
     ...(o.dataWaitMs === undefined ? {} : { dataWaitMs: o.dataWaitMs }),
     ...(o.flags === undefined ? {} : { flags: o.flags }),
+    ...(o.syntheticConnections === undefined
+      ? {}
+      : { syntheticConnections: o.syntheticConnections }),
   };
 }

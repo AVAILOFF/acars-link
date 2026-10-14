@@ -335,9 +335,9 @@ describe('the whole set with live data on the normal flight', () => {
       STANDS.map((ref) => ({ ref, kind: 'stand' })),
       'external',
     );
-    expect(textOf(live, 'gate_assignment')).toContain(`EXPECTED GATE ${gate}`);
-    expect(textOf(live, 'cmd_req_gate')).toContain(`EXPECTED GATE ${gate}`);
-    expect(textOf(live, 'arrival_info')).toContain(`GATE ${gate} CONFIRMED`);
+    expect(textOf(live, 'gate_assignment')).toContain(`EXPECTED STAND ${gate}`);
+    expect(textOf(live, 'cmd_req_gate')).toContain(`EXPECTED STAND ${gate}`);
+    expect(textOf(live, 'arrival_info')).toContain(`STAND ${gate} CONFIRMED`);
   });
 
   it('REQ WX for an airport outside the OFP waits for the fetch, then answers "no data"', () => {

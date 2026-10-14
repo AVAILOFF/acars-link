@@ -11,7 +11,8 @@ import { createRng } from '../random/rng.js';
  * The Rng is `${seed}/#ops` (`#` cannot appear in a scenario id). Draw order is part of
  * the replay contract: append new draws at the end.
  *
- * Gate, belt and transfer numbers are placeholders until the OSM stands adapter (T13).
+ * Belt and transfer numbers are placeholders. The arrival gate is NOT invented (T43): `arrGate`
+ * stays null until the engine takes a real one from the OSM stands (T13).
  */
 
 export interface FlightLoad {
@@ -34,7 +35,10 @@ export interface FlightOps {
   readonly slotDelayMin: number;
   /** Calculated take-off time, epoch ms UTC. */
   readonly ctot: number;
-  readonly arrGate: string;
+  /** A real gate/stand ref from OSM; null while there is none. */
+  readonly arrGate: string | null;
+  /** What `arrGate` is: an `aeroway=gate` or a parking position (remote stand). */
+  readonly gateKind: 'gate' | 'stand' | null;
   readonly belt: number;
   readonly transferPax: number;
   readonly turnaroundMin: number;
@@ -77,7 +81,9 @@ export function buildFlightData(ofp: Ofp, seed: number | string): FlightData {
 
   const slotDelayMin = rng.int(5, 30);
   const offMs = t.schedOffMs ?? t.schedOutMs + (t.taxiOutSec ?? 600) * 1000;
-  const arrGate = `${rng.pick(['A', 'B', 'C', 'D', 'E'])}${rng.int(1, 40)}`;
+  // Still drawn (and dropped) so that the rest of the draw order stays as in older recordings.
+  rng.pick(['A', 'B', 'C', 'D', 'E']);
+  rng.int(1, 40);
   const belt = rng.int(1, 12);
   const transferPax = Math.round((pax * rng.int(5, 25)) / 100);
   const heavy = ofp.aircraft.wakeCategory === 'H' || ofp.aircraft.wakeCategory === 'J';
@@ -100,7 +106,8 @@ export function buildFlightData(ofp: Ofp, seed: number | string): FlightData {
     ops: {
       slotDelayMin,
       ctot: offMs + slotDelayMin * MIN,
-      arrGate,
+      arrGate: null,
+      gateKind: null,
       belt,
       transferPax,
       turnaroundMin,

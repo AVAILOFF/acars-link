@@ -296,7 +296,7 @@ describe('pilot commands', () => {
   const gate = def({
     id: 'cmd_gate',
     trigger: { on: 'command', command: 'REQ_GATE' },
-    steps: [{ send: { body: 'GATE {ops.arr_gate} FOR {cmd.text}' } }],
+    steps: [{ send: { body: '{ops.gate_line} FOR {cmd.text}' } }],
   });
   const wx = def({
     id: 'cmd_wx',
@@ -348,7 +348,7 @@ describe('pilot commands', () => {
       ]),
     );
     expect(texts(r, 'cmd_gate')).toHaveLength(2);
-    expect(texts(r, 'cmd_gate')[0]).toMatch(/^GATE [A-E]\d+ FOR REQ GATE$/);
+    expect(texts(r, 'cmd_gate')[0]).toBe('GATE WILL BE ADVISED FOR REQ GATE');
   });
 
   it('REQ WX: METAR from the OFP for orig/dest/altn, else the other scenario', () => {
