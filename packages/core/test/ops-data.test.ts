@@ -2,7 +2,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  airlineType,
   buildFlightData,
+  buildIrregularData,
   compileTemplate,
   createRng,
   type Lookup,
@@ -128,5 +130,43 @@ describe('|sign', () => {
     ['{x.d|sign}', '----'],
   ])('%s → %s', (src, out) => {
     expect(compileTemplate(src).render(look, createRng(1))).toBe(out);
+  });
+});
+
+describe('airline type: turnaround and onward connection (T43)', () => {
+  const as = (airline: string): Ofp => ({ ...kg, airlineIcao: airline });
+  const range = (xs: readonly number[]) => [Math.min(...xs), Math.max(...xs)];
+  const turn = (o: Ofp) => range(seeds.map((s) => buildFlightData(o, s).ops.turnaroundMin));
+  const conn = (o: Ofp) =>
+    range(seeds.map((s) => (buildIrregularData(o, s, 20).connectStd - o.times.schedInMs) / MIN));
+
+  it('classifies by ICAO code', () => {
+    expect(airlineType('RYR')).toBe('LCC');
+    expect(airlineType('EJU')).toBe('LCC');
+    expect(airlineType('UAE')).toBe('HUB');
+    expect(airlineType('SIA')).toBe('HUB');
+    expect(airlineType('FIN')).toBe('OTHER');
+    expect(airlineType(null)).toBe('OTHER');
+  });
+
+  it('low-cost: short turnaround and connection', () => {
+    expect(turn(as('RYR'))).toEqual([25, 35]);
+    const [lo, hi] = conn(as('EZY'));
+    expect(lo).toBeGreaterThanOrEqual(30);
+    expect(hi).toBeLessThanOrEqual(55); // rounded up to 5 min
+  });
+
+  it('hub carriers: about two hours', () => {
+    expect(turn(as('UAE'))).toEqual([105, 135]);
+    const [lo, hi] = conn(as('ETD'));
+    expect(lo).toBeGreaterThanOrEqual(100);
+    expect(hi).toBeLessThanOrEqual(145);
+  });
+
+  it('others as before (heavy A35K: 75–95, connection 50–95)', () => {
+    expect(turn(kg)).toEqual([75, 95]);
+    const [lo, hi] = conn(kg);
+    expect(lo).toBeGreaterThanOrEqual(50);
+    expect(hi).toBeLessThanOrEqual(100);
   });
 });

@@ -1,3 +1,4 @@
+import { airlineType } from '../ext/airline.js';
 import type { Ofp } from '../ofp/types.js';
 import { createRng } from '../random/rng.js';
 
@@ -89,7 +90,12 @@ export function buildFlightData(ofp: Ofp, seed: number | string): FlightData {
   const belt = rng.int(1, 12);
   const transferPax = Math.round((pax * rng.int(5, 25)) / 100);
   const heavy = ofp.aircraft.wakeCategory === 'H' || ofp.aircraft.wakeCategory === 'J';
-  const turnaroundMin = (heavy ? 75 : 40) + rng.int(0, 4) * 5;
+  // By airline type (T43, assumption 2026-10-15): low-cost 25–35 min, hub carriers about two
+  // hours (105–135), others as before (40–60, heavy 75–95). One draw, as before.
+  const type = airlineType(ofp.airlineIcao);
+  const [turnBase, turnSteps] =
+    type === 'LCC' ? [25, 2] : type === 'HUB' ? [105, 6] : heavy ? [75, 4] : [40, 4];
+  const turnaroundMin = turnBase + rng.int(0, turnSteps) * 5;
   const seats = ofp.aircraft.maxPax ?? pax;
   // Appended last: the draw order of older recordings stays.
   const rdyGainMin = rng.int(5, 15);

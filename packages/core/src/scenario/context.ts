@@ -1,4 +1,4 @@
-import { airlineCountry } from '../ext/airline.js';
+import { airlineCountry, airlineType } from '../ext/airline.js';
 import {
   ATC_MAX_AGE_MS,
   type ExtState,
@@ -98,6 +98,8 @@ export const CONTEXT_VARIABLES = [
   'ofp.vref',
   'ofp.crew_cockpit',
   'ofp.crew_cabin',
+  // airline type (T43, ext/airline.ts): LCC / HUB / OTHER
+  'ofp.airline_type',
   // person names (T43, names.ts): surname region and mix of nationalities
   'names.region',
   'names.mix',
@@ -530,6 +532,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       ...fuelVariables(input),
       ...perfVariables(ofp),
       ...nameVariables(input),
+      'ofp.airline_type': airlineType(ofp.airlineIcao),
       'load.pax': load.pax,
       'load.pax_lmc': load.paxLmc,
       'load.cargo_kg': load.cargoKg,
