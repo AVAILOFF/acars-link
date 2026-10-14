@@ -35,7 +35,7 @@ export interface AircraftInfo {
   readonly family: AircraftFamily;
   readonly maker: string;
   readonly body: 'NARROW' | 'WIDE';
-  /** `null`: no central alerting system of ECAM / EICAS kind (turboprops). */
+  /** `null`: no central alerting system of ECAM / EICAS kind (turboprops, 737: annunciator panel). */
   readonly alertSys: 'ECAM' | 'EICAS' | null;
 }
 
@@ -44,7 +44,7 @@ const FAMILY_INFO: Readonly<Record<AircraftFamily, Omit<AircraftInfo, 'family'>>
   A330: { maker: 'AIRBUS', body: 'WIDE', alertSys: 'ECAM' },
   A350: { maker: 'AIRBUS', body: 'WIDE', alertSys: 'ECAM' },
   A380: { maker: 'AIRBUS', body: 'WIDE', alertSys: 'ECAM' },
-  B737: { maker: 'BOEING', body: 'NARROW', alertSys: 'EICAS' },
+  B737: { maker: 'BOEING', body: 'NARROW', alertSys: null },
   B747: { maker: 'BOEING', body: 'WIDE', alertSys: 'EICAS' },
   B777: { maker: 'BOEING', body: 'WIDE', alertSys: 'EICAS' },
   B787: { maker: 'BOEING', body: 'WIDE', alertSys: 'EICAS' },

@@ -15,14 +15,28 @@ conditions:
   - "flags.mel_reg == null"
 probability: 0.04
 steps:
-  - set:
-      flags.mel_item: "{pick:[21-52-01 PACK 2 INOP,36-11-02 ENG 2 BLEED VALVE,30-42-01 R WINDSHIELD HEAT,34-11-03 ADR 3 FAULT,49-11-01 APU INOP]}"
+  # By the aircraft family (T42): items of the FAA MMEL, repair category C. "If" idiom:
+  # wait/until with a tiny timeout, MET = the condition holds. Other types: generic items.
+  - wait: { until: "aircraft.family == 'A320'", timeout_min: 0.02 }
+  - branch:
+      MET:
+        - set:
+            flags.mel_item: "{pick:[49-10-01 APU INOP - GPU AND ASU AT DEST,30-42-01 ONE WINDOW HEAT COMPUTER INOP - NO ICING OPS,21-51-01 PACK FLOW CTL VALVE SECURED CLOSED - PACK INOP]}"
+      TIMEOUT:
+        - wait: { until: "aircraft.family == 'B737'", timeout_min: 0.02 }
+        - branch:
+            MET:
+              - set:
+                  flags.mel_item: "{pick:[49-01-01A APU INOP - GPU AND ASU AT DEST,21-01-01 ONE PACK INOP - MAX FL250,30-01-02 ONE WING A/I VALVE INOP - NO ICING OPS]}"
+            TIMEOUT:
+              - set:
+                  flags.mel_item: "{pick:[21-52-01 PACK 2 INOP,36-11-02 ENG 2 BLEED VALVE,30-42-01 R WINDSHIELD HEAT,34-11-03 ADR 3 FAULT,49-11-01 APU INOP]}"
   - send:
       header: MAINT CONTROL
       body: |
         CMS REPORTS FAULT
         {flags.mel_item}
-        CONFIRM INDICATION ON ECAM/EICAS
+        CONFIRM INDICATION ON {aircraft.alert_sys|or:CREW ALERTING}
         REPLY CONFIRM OR NEGATIVE
   - wait:
       reply: { options: [CONFIRM, NEGATIVE], timeout_min: 15, default: NEGATIVE }

@@ -19,7 +19,7 @@ describe('aircraftInfo', () => {
   it.each([
     ['A20N', 'A320', 'AIRBUS', 'NARROW', 'ECAM'],
     ['A321', 'A320', 'AIRBUS', 'NARROW', 'ECAM'],
-    ['B38M', 'B737', 'BOEING', 'NARROW', 'EICAS'],
+    ['B38M', 'B737', 'BOEING', 'NARROW', null],
     ['B77W', 'B777', 'BOEING', 'WIDE', 'EICAS'],
     ['A359', 'A350', 'AIRBUS', 'WIDE', 'ECAM'],
     ['A35K', 'A350', 'AIRBUS', 'WIDE', 'ECAM'],

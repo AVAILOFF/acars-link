@@ -506,6 +506,64 @@ describe('airline memory lifetime (T41)', () => {
   });
 });
 
+describe('realism (T42)', () => {
+  const withType = (icao: string): Case => {
+    const ofp = { ...kg, aircraft: { ...kg.aircraft, icao } };
+    return { name: icao, ofp, flight: generateSyntheticFlight({ ofp }) };
+  };
+
+  it('dg_notoc: UN3481 with IMP code, dry ice in kg, a hold position, never UN3480', () => {
+    const seen = new Set<string>();
+    for (let n = 1; n <= 40; n++) {
+      const r = fly(withType('B77W'), [byId('dg_notoc')], { seed: `dg${n}`, answer: 'ACK' });
+      const t = textsOf(r, 'dg_notoc')[0] ?? '';
+      expect(t).not.toContain('UN3480');
+      expect(t).toMatch(/POS (FWD|AFT|BULK) HOLD/);
+      expect(t).not.toContain('CAO YES');
+      const item = /(UN\d{4})/.exec(t)?.[1] ?? '?';
+      seen.add(item);
+      if (item === 'UN3481') expect(t).toMatch(/SEC I IMP RLI|SEC II IMP ELI/);
+      if (item === 'UN1845') expect(t).toMatch(/NET (25|50|100) KG/);
+    }
+    expect([...seen].sort()).toEqual(['UN1266', 'UN1845', 'UN2814', 'UN3481']);
+  });
+
+  it('tech_defect_mel: MMEL items of the family, alerting system by the type', () => {
+    const items = (icao: string) => {
+      const out = new Set<string>();
+      for (let n = 1; n <= 30; n++) {
+        const r = fly(withType(icao), [byId('tech_defect_mel')], {
+          seed: `mel${n}`,
+          answer: 'CONFIRM',
+        });
+        expect(errors(r)).toEqual([]);
+        const flags = r.core.flags;
+        out.add(String(flags['mel_item']));
+        expect(String(flags['mel_item']).length).toBeLessThanOrEqual(80);
+        const first = textsOf(r, 'tech_defect_mel')[0] ?? '';
+        expect(first).toContain(
+          icao === 'A20N' ? 'ON ECAM' : icao === 'B38M' ? 'ON CREW ALERTING' : 'ON ECAM',
+        );
+      }
+      return [...out].sort();
+    };
+    expect(items('A20N')).toEqual([
+      '21-51-01 PACK FLOW CTL VALVE SECURED CLOSED - PACK INOP',
+      '30-42-01 ONE WINDOW HEAT COMPUTER INOP - NO ICING OPS',
+      '49-10-01 APU INOP - GPU AND ASU AT DEST',
+    ]);
+    expect(items('B38M')).toEqual([
+      '21-01-01 ONE PACK INOP - MAX FL250',
+      '30-01-02 ONE WING A/I VALVE INOP - NO ICING OPS',
+      '49-01-01A APU INOP - GPU AND ASU AT DEST',
+    ]);
+    // Another type: the generic items, none of the above.
+    const other = items('A359');
+    expect(other.length).toBeGreaterThan(1);
+    expect(other.some((x) => x.startsWith('49-01-01A') || x.startsWith('49-10-01'))).toBe(false);
+  });
+});
+
 describe('chains between flights (flags)', () => {
   const day1: Case = FLIGHTS[0] as Case;
   const ofp2 = nextDay(kg);
