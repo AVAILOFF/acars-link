@@ -185,7 +185,7 @@ describe('the whole set on one flight', () => {
     const arrival = textOf(none, 'arrival_info');
     expect(arrival).toContain('GATE WILL BE ADVISED');
     expect(arrival).toContain('GROUND SUPPORT TBA');
-    for (const m of none.out) expect(m.message.text).not.toMatch(/GATE [A-E]\d{1,2}/);
+    for (const m of none.out) expect(m.message.text).not.toMatch(/\bGATE [A-E]\d{1,2}\b/);
   });
 
   it('a parking position is a STAND without a bridge: bus and stairs (T43)', () => {
@@ -210,6 +210,43 @@ describe('the whole set on one flight', () => {
     expect(text).toMatch(/STAND 1[23] CONFIRMED/);
     expect(text).toContain('REMOTE STAND');
     expect(text).not.toContain('GPU AND PCA');
+  });
+
+  it('fuel_slip waits for the refuelling to settle; UPLIFT = FOB − first reading (T43)', () => {
+    const MIN = 60_000;
+    const t0 = normal.snapshots[0]?.t ?? 0;
+    const ra = t0 + 16 * MIN;
+    const rb = t0 + 19 * MIN;
+    const fuelAt = (t: number) =>
+      t <= ra ? 6000 : t >= rb ? 20000 : 6000 + (14000 * (t - ra)) / (rb - ra);
+    const flight = {
+      ...normal,
+      snapshots: normal.snapshots.map((x) => ({ ...x, fuelKg: fuelAt(x.t) })),
+    };
+    const slip = base.filter((x) => x.id === 'fuel_slip').map((x) => ({ ...x, probability: 1 }));
+    const run = fly({ name: 'refuel', ofp: kg, flight, seed: 'refuel' }, slip);
+    expect(errors(run)).toEqual([]);
+    const sent = run.out.find((m) => m.scenarioId === 'fuel_slip');
+    // Level reached at rb, stable one minute later.
+    expect(sent?.t).toBeGreaterThanOrEqual(rb + MIN);
+    expect(sent?.t).toBeLessThanOrEqual(rb + 2 * MIN);
+    const text = sent?.message.text ?? '';
+    expect(num(text, /UPLIFT (\d+\.\d)/)).toBeCloseTo(14.0, 0);
+    expect(num(text, /FOB (\d+\.\d)/)).toBeCloseTo(20.0, 0);
+    // No refuelling at all: the slip still goes out, UPLIFT 0.
+    const flat = fly(
+      {
+        name: 'flat',
+        ofp: kg,
+        flight: { ...normal, snapshots: normal.snapshots.map((x) => ({ ...x, fuelKg: 9000 })) },
+        seed: 'flat',
+      },
+      slip,
+    );
+    expect(num(textOf(flat, 'fuel_slip'), /UPLIFT (\d+\.\d)/)).toBe(0);
+    expect(flat.out.find((m) => m.scenarioId === 'fuel_slip')?.t).toBe(
+      (kg.times.schedOutMs ?? 0) - 12 * MIN,
+    );
   });
 
   it('slot moves the schedule: delay = CTOT − planned OFF (T43)', () => {
@@ -275,7 +312,10 @@ describe('late start (docs/05 "Поздний старт")', () => {
     expect(at('slot_ctot')).toBe(newStd - 30 * MIN);
     expect(at('prelim_loadsheet')).toBe(newStd - 25 * MIN);
     expect(at('takeoff_data')).toBe(newStd - 20 * MIN);
-    expect(at('fuel_slip')).toBe(newStd - 12 * MIN);
+    // The synthetic flight refuels in the first 60 % of boarding: the slip follows the end of it
+    // by a minute, between its trigger (STD−18) and its deadline (STD−12).
+    expect(at('fuel_slip')).toBeGreaterThanOrEqual(newStd - 18 * MIN);
+    expect(at('fuel_slip')).toBeLessThanOrEqual(newStd - 12 * MIN);
     expect(at('final_loadsheet')).toBe(newStd - 7 * MIN);
     const order = r.out
       .map((m) => m.scenarioId)

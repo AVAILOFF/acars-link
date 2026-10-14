@@ -17,7 +17,13 @@ import type { SimCommand } from '../sim/commands.js';
 import { buildVdgsMessage, type VdgsDisplay, VdgsError, type VdgsLine } from '../sim/vdgs.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import type { CompiledScenario, CompiledStep } from './compile.js';
-import { buildContext, RouteGeometry, type RunVariable, type ScenarioContext } from './context.js';
+import {
+  buildContext,
+  type FuelTrack,
+  RouteGeometry,
+  type RunVariable,
+  type ScenarioContext,
+} from './context.js';
 import type { Lookup, Value } from './expr.js';
 import { pruneExpiredFlags } from './flags-expiry.js';
 import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
@@ -271,6 +277,8 @@ export interface ScenarioEngineState {
   readonly gate: string | null;
   /** Forced starts that arrived while telemetry was lost. */
   readonly forced: readonly string[];
+  /** Fuel seen before OUT (T43, `fuel_slip`); absent in older states. */
+  readonly fuel?: FuelTrack | null;
 }
 
 interface PendingWx {
@@ -285,6 +293,8 @@ export const OPS_REPLY_ID = '#ops';
 export const DEFAULT_STATION = 'OPS{flight}';
 export const DEFAULT_LATE_START_LEAD_MIN = 35;
 const DELAY_STEP_MS = 5 * 60_000;
+/** Fuel readings within this of each other are one level (docs/04 `fuelStable`). */
+const FUEL_TOLERANCE_KG = 100;
 /** Weather fetched longer ago than this is refreshed for `REQ WX` (when the app fetches). */
 const WX_FRESH_MS = 15 * 60_000;
 /** Limits of the airline memory (T14). */
@@ -353,6 +363,7 @@ export class ScenarioEngine {
     flags: Record<string, Value>;
     gate: string | null;
     forced: string[];
+    fuel: FuelTrack | null;
   };
   /** Context of the current tick; rebuilt when a command or a send changes it. */
   private ctx: ScenarioContext | null = null;
@@ -405,6 +416,7 @@ export class ScenarioEngine {
       flags: pruneExpiredFlags(options.flags ?? {}, options.ofp.times.schedOutMs),
       gate: null,
       forced: [],
+      fuel: null,
     };
     this.rebuildData();
   }
@@ -435,6 +447,8 @@ export class ScenarioEngine {
     e.st.flags = { ...(copy.flags ?? options.flags ?? {}) };
     e.st.gate = copy.gate ?? null;
     e.st.forced = [...(copy.forced ?? [])];
+    // Fields added with T43.
+    e.st.fuel = copy.fuel ?? null;
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
     e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
@@ -486,6 +500,23 @@ export class ScenarioEngine {
     this.data = { ...data, ops: { ...data.ops, arrGate: ref, gateKind: kind } };
   }
 
+  /**
+   * Fuel on board before OUT (T43): `first` is the first reading, `anchor` the current level
+   * (moved when the fuel changes by more than {@link FUEL_TOLERANCE_KG}), `since` when the
+   * level was reached, `changed` that a refuelling was seen at all. Stable = a change seen and
+   * then unchanged for a minute (no change: the slip waits for its deadline).
+   */
+  private trackFuel(input: EngineTickInput): void {
+    const tm = input.telemetry;
+    if (tm === null || input.telemetryLost || !tm.onGround || input.oooi.OUT !== null) return;
+    const f = this.st.fuel;
+    if (f === null) {
+      this.st.fuel = { first: tm.fuelKg, anchor: tm.fuelKg, since: input.now, changed: false };
+    } else if (Math.abs(tm.fuelKg - f.anchor) > FUEL_TOLERANCE_KG) {
+      this.st.fuel = { first: f.first, anchor: tm.fuelKg, since: input.now, changed: true };
+    }
+  }
+
   /** `flags.*` now (T14): hand them to the next flight. */
   get flags(): Readonly<Record<string, Value>> {
     return JSON.parse(JSON.stringify(this.st.flags)) as Record<string, Value>;
@@ -510,6 +541,7 @@ export class ScenarioEngine {
       this.st.ext = applyExtData(this.st.ext, input.data, this.ofp, this.polyline);
       if (this.st.ext.stands !== before) this.rebuildData();
     }
+    this.trackFuel(input);
     const inbox = [...this.st.inbox, ...(input.inbound ?? [])];
     const forced = [...this.st.forced, ...(input.force ?? [])];
     if (input.telemetryLost) {
@@ -590,6 +622,7 @@ export class ScenarioEngine {
       ext: this.st.ext,
       polyline: this.polyline,
       seed: this.seed,
+      fuel: this.st.fuel,
       irr: { ...this.irr, newGate: this.newGate, connectKnown: this.syntheticConnections },
     });
   }

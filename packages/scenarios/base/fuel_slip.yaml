@@ -1,4 +1,6 @@
-# Fuel slip after refuelling: planned block fuel against the fuel on board.
+# Fuel slip after refuelling (T43): sent when the fuel on board is stable (unchanged within
+# 100 kg for a minute after the refuelling), at the latest at STD-12. UPLIFT is the fuel now
+# minus the first reading before any refuelling; DIFF is the fuel against the planned ramp.
 id: fuel_slip
 version: 1
 category: docs
@@ -6,18 +8,21 @@ title: Fuel slip
 enabled_by_default: true
 trigger:
   on: time
-  at: { rel: sched_out, offset_min: -12 }
+  at: { rel: sched_out, offset_min: -18 }
 conditions:
   - "phase in ['PREFLIGHT','BOARDING']"
   - "tm.fuel_kg != null"
 priority: 2
 steps:
+  - wait: { until: "flight.fuel_stable", timeout_min: 6 }
   - send:
       header: FUEL SLIP
       body: |
         {ofp.callsign} {ofp.ac_reg} {ofp.orig}
         PLAN RAMP {ofp.fuel_ramp_kg|kg1}
         FOB {tm.fuel_kg|kg1}
+        UPLIFT {flight.fuel_uplift_kg|kg1}
+        DIFF {flight.fuel_diff_kg|sign} KG
         TAXI {ofp.fuel_taxi_kg|kg1}
         TRIP {ofp.fuel_burn_kg|kg1}
         CONT {ofp.fuel_cont_kg|kg1}

@@ -205,6 +205,10 @@ export const CONTEXT_VARIABLES = [
   'ops.turnaround_min',
   'ops.next_flight',
   'ops.next_std',
+  'flight.fuel_stable',
+  'flight.fuel_before_kg',
+  'flight.fuel_uplift_kg',
+  'flight.fuel_diff_kg',
   'ops.turn_avail_min',
   'ops.gate_known',
   'ops.gate_place',
@@ -295,6 +299,8 @@ export interface ContextInput {
   readonly sent?: readonly string[];
   /** External data (T13). */
   readonly ext?: ExtState;
+  /** Fuel seen before OUT (T43). */
+  readonly fuel?: FuelTrack | null;
   /** Irregular-scenario data and the gate a reassignment would move to (T14). */
   readonly irr?: IrregularData & {
     readonly newGate: string | null;
@@ -304,6 +310,16 @@ export interface ContextInput {
   readonly polyline?: RoutePolyline;
   /** Flight seed (T29: the "on this day" fact of several). */
   readonly seed?: number | string;
+}
+
+/** Fuel on board before OUT, see `ScenarioEngine.trackFuel` (T43). */
+export interface FuelTrack {
+  readonly first: number;
+  readonly anchor: number;
+  /** When `anchor` was reached, epoch ms. */
+  readonly since: number;
+  /** The level changed after the first reading, i.e. a refuelling was seen. */
+  readonly changed: boolean;
 }
 
 /** Per-run variables (`reply.*`, `cmd.*`): null in the shared context, set by the engine. */
@@ -343,136 +359,147 @@ export function buildContext(input: ContextInput): ScenarioContext {
     nm === null || gs === null ? null : Math.round((nm / gs) * 60);
   const block = t.schedBlockSec ?? (t.schedInMs - t.schedOutMs) / 1000;
 
-  return {
-    phase: input.phase,
-    'ofp.callsign': ofp.callsign,
-    'ofp.flight': ofp.flightNumber,
-    'ofp.airline': ofp.airlineIcao,
-    'ofp.orig': ofp.origin.icao,
-    'ofp.dest': ofp.destination.icao,
-    'ofp.orig_name': ofp.origin.name,
-    'ofp.dest_name': ofp.destination.name,
-    'ofp.orig_iata': ofp.origin.iata,
-    'ofp.dest_iata': ofp.destination.iata,
-    'ofp.orig_elev_ft': ofp.origin.elevationFt,
-    'ofp.dest_elev_ft': ofp.destination.elevationFt,
-    'ofp.orig_trans_alt_ft': ofp.origin.transAltFt,
-    'ofp.dest_trans_level_ft': ofp.destination.transLevelFt,
-    'ofp.orig_metar': ofp.origin.metar,
-    'ofp.dest_metar': ofp.destination.metar,
-    'ofp.altn_metar': ofp.alternates[0]?.metar ?? null,
-    'ofp.orig_rwy': ofp.origin.planRwy,
-    'ofp.dest_rwy': ofp.destination.planRwy,
-    'ofp.altn': ofp.alternates[0]?.icao ?? null,
-    'ofp.route': ofp.route,
-    'ofp.sid': ofp.sid,
-    'ofp.star': ofp.star,
-    'ofp.cost_index': ofp.costIndex,
-    'ofp.cruise_alt_ft': ofp.initialAltitudeFt,
-    'ofp.cruise_fl': Math.round(ofp.initialAltitudeFt / 100),
-    'ofp.ac_icao': ofp.aircraft.icao,
-    'ofp.ac_name': ofp.aircraft.name,
-    'ofp.ac_reg': ofp.aircraft.reg,
-    'ofp.pax': w.paxCount,
-    'ofp.bags': w.bagCount,
-    'ofp.cargo_kg': w.cargoKg,
-    'ofp.oew_kg': w.oewKg,
-    'ofp.payload_kg': w.payloadKg,
-    'ofp.zfw_kg': w.estZfwKg,
-    'ofp.max_zfw_kg': w.maxZfwKg,
-    'ofp.tow_kg': w.estTowKg,
-    'ofp.max_tow_kg': w.maxTowKg,
-    'ofp.ldw_kg': w.estLdwKg,
-    'ofp.max_ldw_kg': w.maxLdwKg,
-    'ofp.fuel_ramp_kg': f.planRampKg,
-    'ofp.fuel_takeoff_kg': f.planTakeoffKg,
-    'ofp.fuel_burn_kg': f.enrouteBurnKg,
-    'ofp.fuel_landing_kg': f.planLandingKg,
-    'ofp.fuel_taxi_kg': f.taxiKg,
-    'ofp.fuel_cont_kg': f.contingencyKg,
-    'ofp.fuel_altn_kg': f.alternateBurnKg,
-    'ofp.fuel_reserve_kg': f.reserveKg,
-    'ofp.fuel_extra_kg': f.extraKg,
-    'ofp.fuel_min_takeoff_kg': f.minTakeoffKg,
-    'ofp.sched_out': t.schedOutMs,
-    'ofp.sched_off': t.schedOffMs,
-    'ofp.sched_on': t.schedOnMs,
-    'ofp.sched_in': t.schedInMs,
-    'ofp.est_out': t.estOutMs,
-    'ofp.est_off': t.estOffMs,
-    'ofp.est_on': t.estOnMs,
-    'ofp.est_in': t.estInMs,
-    'ofp.block_time_min': Math.round(block / 60),
-    'ofp.ete_min': Math.round(t.estTimeEnrouteSec / 60),
-    'aircraft.icao': ofp.aircraft.icao,
-    'aircraft.cat': ofp.aircraft.wakeCategory,
-    'aircraft.title': tm?.aircraftTitle ?? null,
-    'tm.alt_ft': tm?.altFt ?? null,
-    'tm.agl_ft': tm?.aglFt ?? null,
-    'tm.ias_kt': tm?.iasKt ?? null,
-    'tm.gs_kt': tm?.gsKt ?? null,
-    'tm.vs_fpm': tm?.vsFpm ?? null,
-    'tm.fuel_kg': tm?.fuelKg ?? null,
-    'tm.on_ground': tm?.onGround ?? null,
-    'flight.now': now,
-    'flight.date': t.schedOutMs,
-    'flight.out': oooi.OUT,
-    'flight.off': oooi.OFF,
-    'flight.on': oooi.ON,
-    'flight.in': oooi.IN,
-    'flight.dist_to_dest_nm': toDest === null ? null : r1(toDest),
-    'flight.dist_to_tod_nm': toTod === null ? null : r1(toTod),
-    'flight.dist_from_orig_nm': tm === null ? null : r1(distanceNm(tm, ofp.origin)),
-    'flight.minutes_to_tod': toTod === null || toTod < 0 ? null : eta(toTod),
-    'flight.minutes_to_dest': eta(toDest),
-    'flight.minutes_to_sched_out': minutes(t.schedOutMs - now),
-    'flight.delay_min': minutes(input.delayMs ?? 0),
-    'flight.minutes_since_off': oooi.OFF === null ? null : minutes(now - oooi.OFF),
-    // Planned en-route time after the actual take-off; no wind model here.
-    'flight.eta': oooi.OFF === null ? null : oooi.OFF + t.estTimeEnrouteSec * 1000,
-    'flight.block_min': span(oooi.OUT, oooi.IN),
-    'flight.air_min': span(oooi.OFF, oooi.ON),
-    'flight.divert': input.divert ?? null,
-    'flight.sent': [...(input.sent ?? [])],
-    'reply.option': null,
-    'reply.text': null,
-    'reply.arg': null,
-    'reply.timeout': null,
-    'cmd.name': null,
-    'cmd.text': null,
-    'cmd.icao': null,
-    'cmd.minutes': null,
-    'cmd.reason': null,
-    'cmd.metar': null,
-    'cmd.taf': null,
-    'cmd.wx_live': null,
-    'cmd.wx_obs': null,
-    ...extVariables(input),
-    ...specialVariables(input),
-    ...aircraftVariables(ofp.aircraft.icao),
-    ...irrVariables(input),
-    ...t4344Variables(input, toDest, gs),
-    ...gateVariables(input),
-    'load.pax': load.pax,
-    'load.pax_lmc': load.paxLmc,
-    'load.cargo_kg': load.cargoKg,
-    'load.cargo_lmc_kg': load.cargoLmcKg,
-    'load.lmc_kg': load.lmcKg,
-    'load.zfw_kg': load.zfwKg,
-    'load.tow_kg': load.towKg,
-    'load.ldw_kg': load.ldwKg,
-    'load.underload_kg': load.underloadKg,
-    'load.lmc': load.lmc,
-    'ops.slot_delay_min': ops.slotDelayMin,
-    'ops.ctot': ops.ctot,
-    'ops.arr_gate': ops.arrGate,
-    'ops.belt': ops.belt,
-    'ops.transfer_pax': ops.transferPax,
-    'ops.turnaround_min': ops.turnaroundMin,
-    'ops.next_flight': ops.nextFlight,
-    'ops.next_std': ops.nextStd,
-    'ops.cabin_crew': ops.cabinCrew,
-  };
+  return mergeParts(
+    {
+      phase: input.phase,
+      'ofp.callsign': ofp.callsign,
+      'ofp.flight': ofp.flightNumber,
+      'ofp.airline': ofp.airlineIcao,
+      'ofp.orig': ofp.origin.icao,
+      'ofp.dest': ofp.destination.icao,
+      'ofp.orig_name': ofp.origin.name,
+      'ofp.dest_name': ofp.destination.name,
+      'ofp.orig_iata': ofp.origin.iata,
+      'ofp.dest_iata': ofp.destination.iata,
+      'ofp.orig_elev_ft': ofp.origin.elevationFt,
+      'ofp.dest_elev_ft': ofp.destination.elevationFt,
+      'ofp.orig_trans_alt_ft': ofp.origin.transAltFt,
+      'ofp.dest_trans_level_ft': ofp.destination.transLevelFt,
+      'ofp.orig_metar': ofp.origin.metar,
+      'ofp.dest_metar': ofp.destination.metar,
+      'ofp.altn_metar': ofp.alternates[0]?.metar ?? null,
+      'ofp.orig_rwy': ofp.origin.planRwy,
+      'ofp.dest_rwy': ofp.destination.planRwy,
+      'ofp.altn': ofp.alternates[0]?.icao ?? null,
+      'ofp.route': ofp.route,
+      'ofp.sid': ofp.sid,
+      'ofp.star': ofp.star,
+      'ofp.cost_index': ofp.costIndex,
+      'ofp.cruise_alt_ft': ofp.initialAltitudeFt,
+      'ofp.cruise_fl': Math.round(ofp.initialAltitudeFt / 100),
+      'ofp.ac_icao': ofp.aircraft.icao,
+      'ofp.ac_name': ofp.aircraft.name,
+      'ofp.ac_reg': ofp.aircraft.reg,
+      'ofp.pax': w.paxCount,
+      'ofp.bags': w.bagCount,
+    },
+    {
+      'ofp.cargo_kg': w.cargoKg,
+      'ofp.oew_kg': w.oewKg,
+      'ofp.payload_kg': w.payloadKg,
+      'ofp.zfw_kg': w.estZfwKg,
+      'ofp.max_zfw_kg': w.maxZfwKg,
+      'ofp.tow_kg': w.estTowKg,
+      'ofp.max_tow_kg': w.maxTowKg,
+      'ofp.ldw_kg': w.estLdwKg,
+      'ofp.max_ldw_kg': w.maxLdwKg,
+      'ofp.fuel_ramp_kg': f.planRampKg,
+      'ofp.fuel_takeoff_kg': f.planTakeoffKg,
+      'ofp.fuel_burn_kg': f.enrouteBurnKg,
+      'ofp.fuel_landing_kg': f.planLandingKg,
+      'ofp.fuel_taxi_kg': f.taxiKg,
+      'ofp.fuel_cont_kg': f.contingencyKg,
+      'ofp.fuel_altn_kg': f.alternateBurnKg,
+      'ofp.fuel_reserve_kg': f.reserveKg,
+      'ofp.fuel_extra_kg': f.extraKg,
+      'ofp.fuel_min_takeoff_kg': f.minTakeoffKg,
+      'ofp.sched_out': t.schedOutMs,
+      'ofp.sched_off': t.schedOffMs,
+      'ofp.sched_on': t.schedOnMs,
+      'ofp.sched_in': t.schedInMs,
+      'ofp.est_out': t.estOutMs,
+      'ofp.est_off': t.estOffMs,
+      'ofp.est_on': t.estOnMs,
+      'ofp.est_in': t.estInMs,
+      'ofp.block_time_min': Math.round(block / 60),
+      'ofp.ete_min': Math.round(t.estTimeEnrouteSec / 60),
+      'aircraft.icao': ofp.aircraft.icao,
+    },
+    {
+      'aircraft.cat': ofp.aircraft.wakeCategory,
+      'aircraft.title': tm?.aircraftTitle ?? null,
+      'tm.alt_ft': tm?.altFt ?? null,
+      'tm.agl_ft': tm?.aglFt ?? null,
+      'tm.ias_kt': tm?.iasKt ?? null,
+      'tm.gs_kt': tm?.gsKt ?? null,
+      'tm.vs_fpm': tm?.vsFpm ?? null,
+      'tm.fuel_kg': tm?.fuelKg ?? null,
+      'tm.on_ground': tm?.onGround ?? null,
+      'flight.now': now,
+      'flight.date': t.schedOutMs,
+      'flight.out': oooi.OUT,
+      'flight.off': oooi.OFF,
+      'flight.on': oooi.ON,
+      'flight.in': oooi.IN,
+      'flight.dist_to_dest_nm': toDest === null ? null : r1(toDest),
+      'flight.dist_to_tod_nm': toTod === null ? null : r1(toTod),
+      'flight.dist_from_orig_nm': tm === null ? null : r1(distanceNm(tm, ofp.origin)),
+      'flight.minutes_to_tod': toTod === null || toTod < 0 ? null : eta(toTod),
+      'flight.minutes_to_dest': eta(toDest),
+      'flight.minutes_to_sched_out': minutes(t.schedOutMs - now),
+      'flight.delay_min': minutes(input.delayMs ?? 0),
+      'flight.minutes_since_off': oooi.OFF === null ? null : minutes(now - oooi.OFF),
+      // Planned en-route time after the actual take-off; no wind model here.
+      'flight.eta': oooi.OFF === null ? null : oooi.OFF + t.estTimeEnrouteSec * 1000,
+      'flight.block_min': span(oooi.OUT, oooi.IN),
+      'flight.air_min': span(oooi.OFF, oooi.ON),
+      'flight.divert': input.divert ?? null,
+      'flight.sent': [...(input.sent ?? [])],
+      'reply.option': null,
+      'reply.text': null,
+    },
+    {
+      'reply.arg': null,
+      'reply.timeout': null,
+      'cmd.name': null,
+      'cmd.text': null,
+      'cmd.icao': null,
+      'cmd.minutes': null,
+      'cmd.reason': null,
+      'cmd.metar': null,
+      'cmd.taf': null,
+      'cmd.wx_live': null,
+      'cmd.wx_obs': null,
+      ...extVariables(input),
+      ...specialVariables(input),
+      ...aircraftVariables(ofp.aircraft.icao),
+      ...irrVariables(input),
+      ...t4344Variables(input, toDest, gs),
+      ...gateVariables(input),
+      ...fuelVariables(input),
+      'load.pax': load.pax,
+      'load.pax_lmc': load.paxLmc,
+      'load.cargo_kg': load.cargoKg,
+      'load.cargo_lmc_kg': load.cargoLmcKg,
+      'load.lmc_kg': load.lmcKg,
+      'load.zfw_kg': load.zfwKg,
+      'load.tow_kg': load.towKg,
+      'load.ldw_kg': load.ldwKg,
+      'load.underload_kg': load.underloadKg,
+      'load.lmc': load.lmc,
+      'ops.slot_delay_min': ops.slotDelayMin,
+      'ops.ctot': ops.ctot,
+    },
+    {
+      'ops.arr_gate': ops.arrGate,
+      'ops.belt': ops.belt,
+      'ops.transfer_pax': ops.transferPax,
+      'ops.turnaround_min': ops.turnaroundMin,
+      'ops.next_flight': ops.nextFlight,
+      'ops.next_std': ops.nextStd,
+      'ops.cabin_crew': ops.cabinCrew,
+    },
+  );
 }
 
 const EVENT_CATEGORY: Readonly<Record<string, string>> = {
@@ -719,4 +746,36 @@ function gateVariables(
     'ops.ground_support':
       gateKind === 'stand' ? 'REMOTE STAND, BUS AND STAIRS' : 'GPU AND PCA AVBL',
   };
+}
+
+/**
+ * Fuel slip data (T43): the level is stable when a refuelling was seen and the fuel did not
+ * change by more than 100 kg for a minute after it; UPLIFT is the fuel now minus the first reading (before any refuelling), DIFF the
+ * level against the planned ramp fuel.
+ */
+function fuelVariables(
+  input: ContextInput,
+): Record<
+  'flight.fuel_stable' | 'flight.fuel_before_kg' | 'flight.fuel_uplift_kg' | 'flight.fuel_diff_kg',
+  Value
+> {
+  const f = input.fuel ?? null;
+  const planned = input.ofp.fuel.planRampKg;
+  // The slip names the current reading as FOB: UPLIFT and DIFF use the same number.
+  const fob = input.telemetry?.fuelKg ?? f?.anchor ?? null;
+  return {
+    'flight.fuel_stable': f !== null && f.changed && input.now - f.since >= 60_000,
+    'flight.fuel_before_kg': f?.first ?? null,
+    'flight.fuel_uplift_kg': f === null || fob === null ? null : fob - f.first,
+    'flight.fuel_diff_kg': fob === null ? null : fob - planned,
+  };
+}
+
+/**
+ * The context is assembled from several smaller literals into one dictionary object: a single
+ * literal of ~300 mixed-type properties is built several times slower per tick (V8 map churn;
+ * T43: 12 000 ticks went from 0.1 s to 5 s).
+ */
+function mergeParts(...parts: readonly object[]): ScenarioContext {
+  return Object.assign(Object.create(null) as object, ...parts) as ScenarioContext;
 }

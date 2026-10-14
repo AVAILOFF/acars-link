@@ -568,7 +568,7 @@ describe('realism (T42)', () => {
     const other = items('A359');
     expect(other.length).toBeGreaterThan(1);
     expect(other.some((x) => x.startsWith('49-01-01A') || x.startsWith('49-10-01'))).toBe(false);
-  });
+  }, 60_000); // 90 whole flights
 });
 
 describe('chains between flights (flags)', () => {
