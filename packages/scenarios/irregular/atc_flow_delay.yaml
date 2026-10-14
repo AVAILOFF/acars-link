@@ -4,14 +4,15 @@ version: 1
 category: irregular
 title: ATC flow control delay
 title_ru: "Перенос слота ATC"
-description: "Shortly before departure the CTOT moves later because of flow control."
-description_ru: "Незадолго до вылета CTOT переносится на более позднее время из-за ограничения потока."
+description: "Shortly before departure the CTOT given earlier (slot_ctot) moves later because of flow control."
+description_ru: "Незадолго до вылета ранее выданный CTOT (slot_ctot) переносится на более позднее время из-за ограничения потока."
 enabled_by_default: true
 trigger:
   on: time
   at: { rel: sched_out, offset_min: -15 }
 conditions:
   - "phase in ['PREFLIGHT','BOARDING']"
+  - "'slot_ctot' in flight.sent"
 probability: 0.06
 steps:
   - send:

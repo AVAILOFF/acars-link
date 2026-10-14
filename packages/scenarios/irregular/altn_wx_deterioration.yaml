@@ -32,6 +32,26 @@ steps:
             body: |
               NOTED, MONITOR {ofp.altn} WX
               UPDATE WILL FOLLOW BEFORE TOD
+        - wait: { until: "flight.dist_to_tod_nm < 40", timeout_min: 90 }
+        # Live METAR of the alternate or none: the second wait is an "if" (the condition is
+        # checked at once; false for a second of flight time = TIMEOUT).
+        - wait: { until: "wx.altn_live == true", timeout_min: 0.02 }
+        - branch:
+            MET:
+              - send:
+                  header: DISPATCH
+                  body: |
+                    ALTN {ofp.altn} WX UPDATE
+                    {wx.altn_metar}
+                    ADVISE IF FUEL REQUIRES ACTION
+            TIMEOUT:
+              - send:
+                  header: DISPATCH
+                  body: |
+                    ALTN {ofp.altn} WX UPDATE
+                    NO NEW OBSERVATION RECEIVED
+                    CHECK ALTN WX WITH ATIS OR VOLMET
+                    ADVISE IF FUEL REQUIRES ACTION
       LOW:
         - send:
             header: DISPATCH

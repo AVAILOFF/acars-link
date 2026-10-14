@@ -223,6 +223,8 @@ export const CONTEXT_VARIABLES = [
   'irr.latest_out',
   'irr.new_gate',
   'irr.lost_bags',
+  'irr.crew_change_min',
+  'irr.crew_ready',
 ] as const;
 
 export type ContextVariable = (typeof CONTEXT_VARIABLES)[number];
@@ -628,6 +630,9 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
     'irr.latest_out': i === undefined ? null : t.estOutMs + i.fdpBufferMin * 60_000,
     'irr.new_gate': i?.newGate ?? null,
     'irr.lost_bags': i?.lostBags ?? null,
+    'irr.crew_change_min': i?.crewChangeMin ?? null,
+    'irr.crew_ready':
+      i === undefined ? null : t.estOutMs + (i.fdpBufferMin + i.crewChangeMin) * 60_000,
   };
 }
 

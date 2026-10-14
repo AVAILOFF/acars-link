@@ -25,25 +25,32 @@ export interface IrregularData {
   /** Minutes the crew's duty allows after the estimated off-block. */
   readonly fdpBufferMin: number;
   readonly lostBags: number;
+  /** Delay a crew change adds when the duty limit is passed, minutes (T41). */
+  readonly crewChangeMin: number;
 }
 
 const MIN = 60_000;
 const ceilTo = (ms: number, step: number) => Math.ceil(ms / step) * step;
 
-export function buildIrregularData(ofp: Ofp, seed: number | string): IrregularData {
+export function buildIrregularData(
+  ofp: Ofp,
+  seed: number | string,
+  transferPax: number,
+): IrregularData {
   const rng = createRng(`${String(seed)}/#irr`);
   const t = ofp.times;
   const on = t.schedOnMs ?? t.schedInMs - (t.taxiInSec ?? 300) * 1000;
   const curfew = ceilTo(on + rng.int(20, 60) * MIN, 15 * MIN);
   const connectStd = ceilTo(t.schedInMs + rng.int(50, 95) * MIN, 5 * MIN);
   const connectNo = rng.int(100, 989);
-  const pax = ofp.weights.paxCount;
-  const connectPax = Math.max(2, Math.round((pax * rng.int(4, 12)) / 100));
+  // 20–50 % of the transfer passengers (`ops.transfer_pax`) take this one connection.
+  const connectPax = Math.max(1, Math.round((transferPax * rng.int(20, 50)) / 100));
   // 10–25 % of the trip fuel, in 100 kg steps.
   const tankerKg = Math.round((ofp.fuel.enrouteBurnKg * rng.int(10, 25)) / 100 / 100) * 100;
   const flowDelayMin = rng.int(3, 8) * 5;
   const fdpBufferMin = rng.int(3, 8) * 5;
   const lostBags = rng.int(2, 9);
+  const crewChangeMin = rng.int(8, 18) * 5;
   const prefix =
     ofp.airlineIcao ?? /^([A-Z]+)\d/.exec(ofp.callsign)?.[1] ?? ofp.callsign.slice(0, 3);
   return {
@@ -55,6 +62,7 @@ export function buildIrregularData(ofp: Ofp, seed: number | string): IrregularDa
     flowDelayMin,
     fdpBufferMin,
     lostBags,
+    crewChangeMin,
   };
 }
 

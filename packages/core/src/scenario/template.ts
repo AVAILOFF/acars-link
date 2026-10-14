@@ -6,7 +6,7 @@ import { NAME_KINDS, type NameKind, personName } from './names.js';
 
 /**
  * Message templates (docs/05 "Шаблоны"): `{var}`, `{var|fmt}`, `{var|fmt:arg|fmt2}`,
- * generators `{rand:10-35}`, `{rand:-5-5}`, `{pick:[A,B,C]}`, `{seat}`, `{hold}` (by the aircraft, T40), `{name:crew}`,
+ * generators `{rand:10-35}`, `{rand:-5-5}`, `{pick:[A,B,C]}`, `{seat}` (`{seat:1-2}` — rows), `{hold}` (by the aircraft, T40), `{name:crew}`,
  * `{name:ops}` (`K. TANAKA`; surnames by the origin's ICAO region, see `names.ts`).
  *
  * Formatters: `kg1` (12345 → 12.3), `hhmm` and `ddmmm` (epoch ms, UTC), `pad:N`
@@ -27,7 +27,7 @@ type Source =
   | { readonly k: 'var'; readonly path: string }
   | { readonly k: 'rand'; readonly min: number; readonly max: number }
   | { readonly k: 'pick'; readonly items: readonly string[] }
-  | { readonly k: 'seat' }
+  | { readonly k: 'seat'; readonly rowMin: number; readonly rowMax: number }
   | { readonly k: 'hold' }
   | { readonly k: 'name'; readonly kind: NameKind };
 
@@ -101,7 +101,15 @@ function text(v: Value | string): string {
 }
 
 function parseSource(expr: string): Source {
-  if (expr === 'seat') return { k: 'seat' };
+  if (expr === 'seat') return { k: 'seat', rowMin: 1, rowMax: 45 };
+  const seat = /^seat:(\d+)-(\d+)$/.exec(expr);
+  if (seat !== null) {
+    const rowMin = Number(seat[1]);
+    const rowMax = Number(seat[2]);
+    if (rowMin < 1 || rowMin > rowMax)
+      throw new TemplateError(`{${expr}}: rows must be 1 <= min <= max`);
+    return { k: 'seat', rowMin, rowMax };
+  }
   if (expr === 'hold') return { k: 'hold' };
   const name = /^name:([a-z]+)$/.exec(expr);
   if (name !== null) {
@@ -225,7 +233,7 @@ function resolve(src: Source, look: Lookup, rng: Rng): Value {
         typeof family === 'string' ? family : null,
         typeof body === 'string' ? body : null,
       );
-      return `${rng.int(1, 45)}${rng.pick([...letters])}`;
+      return `${rng.int(src.rowMin, src.rowMax)}${rng.pick([...letters])}`;
     }
     case 'hold': {
       const family = look('aircraft.family');

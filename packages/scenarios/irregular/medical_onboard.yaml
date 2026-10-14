@@ -18,15 +18,31 @@ conditions:
 probability: 0.03
 excludes: [unruly_passenger]
 steps:
+  - set: { flags.med_doc: "{pick:[YES,NO]}" }
   - send:
       header: OPS MSG MEDICAL
       body: |
         CABIN REPORTS MEDICAL CASE
         SEAT {seat} PAX {rand:25-80}Y
         {pick:[CHEST PAIN,FAINTED,BREATHING DIFFICULTY,SEVERE ALLERGY]}
-        DOCTOR ON BOARD {pick:[YES,NO]}
-        MEDLINK ADVISES DIVERT IF NO IMPROVEMENT
-        REPLY CONTINUE OR DIVERT
+        DOCTOR ON BOARD {flags.med_doc}
+  # "if": the condition is checked at once; false for a second of flight time = TIMEOUT.
+  - wait: { until: "flags.med_doc == 'NO'", timeout_min: 0.02 }
+  - branch:
+      MET:
+        - send:
+            header: OPS MSG MEDICAL
+            body: |
+              NO DOCTOR ON BOARD
+              MEDLINK STRONGLY ADVISES DIVERT NOW
+              REPLY CONTINUE OR DIVERT
+      TIMEOUT:
+        - send:
+            header: OPS MSG MEDICAL
+            body: |
+              MEDLINK ADVISES DIVERT IF NO IMPROVEMENT
+              REPLY CONTINUE OR DIVERT
+  - set: { flags.med_doc: null }
   - wait:
       reply: { options: [CONTINUE, DIVERT], timeout_min: 10, default: CONTINUE }
   - branch:
@@ -37,14 +53,27 @@ steps:
             body: |
               ROGER DIVERT {flight.divert|or:NEAREST SUITABLE}
               {flight.nearest_altn_nm} NM FROM PRESENT POS
+              CREW INFO: {reply.arg|or:NO ADDL INFO}
               AMBULANCE AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
+        - wait: { phase: ON_BLOCK }
+        - send:
+            header: OPS MSG MEDICAL
+            body: |
+              PARAMEDICS AT AIRCRAFT DOOR
+              PATIENT DEPLANES FIRST
       CONTINUE:
-        - wait: { minutes: 15 }
         - send:
             header: OPS MSG MEDICAL
             body: |
               MEDICAL UPDATE NOTED
               CONTINUE TO {ofp.dest}
-              AMBULANCE ORDERED TO GATE {ops.arr_gate}
+              CREW INFO: {reply.arg|or:NO ADDL INFO}
               PLEASE REQUEST PRIORITY WITH ATC
+        - wait: { phase: ON_BLOCK }
+        - send:
+            header: OPS MSG MEDICAL
+            body: |
+              PARAMEDICS AT AIRCRAFT DOOR
+              GATE {ops.arr_gate}
+              PATIENT DEPLANES FIRST

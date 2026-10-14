@@ -4,6 +4,7 @@ import {
   AcarsCore,
   B77X_PROFILE,
   B78X_PROFILE,
+  buildFlightData,
   type CompiledScenario,
   type CoreEvent,
   checkText,
@@ -119,30 +120,46 @@ interface Setup {
   readonly answers?: readonly string[];
 }
 
+/** Scheduled OUT of `ofp` `days` days earlier: the date a flag of a flight before it carries. */
+const daysBefore = (ofp: Ofp, days: number) => ofp.times.schedOutMs - days * 86_400_000;
+
 const SETUP: Readonly<Record<string, Setup>> = {
   medical_onboard: { answers: ['CONTINUE', 'DIVERT'] },
   unruly_passenger: { answers: ['RESTRAIN', 'DIVERT', 'CONTINUE'] },
   unruly_followup: {
-    flags: () => ({ unruly_seat: '23C', unruly_flight: 'SJX821', unruly_date: 1 }),
+    flags: (o) => ({ unruly_seat: '23C', unruly_flight: 'SJX821', unruly_date: daysBefore(o, 1) }),
   },
   tech_defect_mel: { answers: ['CONFIRM', 'NEGATIVE'] },
   mel_carry_over: {
-    flags: (o) => ({ mel_item: '21-52-01 PACK 2 INOP', mel_reg: o.aircraft.reg, mel_date: 1 }),
+    flags: (o) => ({
+      mel_item: '21-52-01 PACK 2 INOP',
+      mel_reg: o.aircraft.reg,
+      mel_date: daysBefore(o, 1),
+    }),
   },
   deicing_holdover: { cold: true, answers: ['READY'] },
   curfew_dest: { delayMin: 90, answers: ['ABLE', 'UNABLE'] },
   tankering: { answers: ['ACCEPT', 'DECLINE'] },
   short_connection: { delayMin: 30 },
+  atc_flow_delay: { with: ['slot_ctot'] },
   connection_made: { with: ['short_connection'] },
+  connection_held: { with: ['short_connection'], lateMin: 30 },
   connection_missed: { with: ['short_connection'], lateMin: 90 },
   dg_notoc: { answers: ['ACK'] },
   runway_closure_dest: { answers: ['HOLD', 'DIVERT'] },
   altn_wx_deterioration: { answers: ['OK', 'LOW'] },
   crew_duty_limit: { delayMin: 45, answers: ['EXTEND', 'NO'] },
-  discretion_followup: { flags: () => ({ crew_discretion: 'SJX821', crew_discretion_date: 1 }) },
+  discretion_followup: {
+    flags: (o) => ({ crew_discretion: 'SJX821', crew_discretion_date: daysBefore(o, 1) }),
+  },
   drone_activity: { answers: ['HOLD', 'DIVERT'] },
   rush_bags_followup: {
-    flags: () => ({ rush_bags: 4, rush_from: 'RCTP', rush_to: 'RJBB', rush_date: 1 }),
+    flags: (o) => ({
+      rush_bags: 4,
+      rush_from: 'RCTP',
+      rush_to: 'RJBB',
+      rush_date: daysBefore(o, 1),
+    }),
   },
   gate_reassignment: { with: ['gate_assignment'] },
 };
@@ -288,12 +305,12 @@ describe('chains inside a flight', () => {
   it('DIVERT of a medical case sets the diversion: no arrival messages for the destination', () => {
     const r = fly(c, withBase('medical_onboard'), { answer: 'DIVERT' });
     expect(errors(r)).toEqual([]);
-    const set = r.events.find((e) => e.type === 'SET');
+    const set = r.events.find((e) => e.type === 'SET' && e.name === 'flight.divert');
     // The nearest of the origin and the alternate at that moment.
     expect(set).toMatchObject({ name: 'flight.divert', applied: true });
     const icao = (set as { value: string }).value;
     expect(['RCTP', 'RJGG']).toContain(icao);
-    expect(textsOf(r, 'medical_onboard')[1]).toMatch(
+    expect(textsOf(r, 'medical_onboard')[2]).toMatch(
       new RegExp(`ROGER DIVERT ${icao} [0-9]+ NM FROM PRESENT POS`),
     );
     for (const id of ['arrival_info', 'welcome_turnaround']) expect(ids(r)).not.toContain(id);
@@ -313,8 +330,10 @@ describe('chains inside a flight', () => {
     expect(textsOf(r, 'arrival_info')[0]).toContain(`GATE ${after} CONFIRMED`);
   });
 
-  it('a short connection ends made or missed, never both', () => {
-    const set = ['short_connection', 'connection_made', 'connection_missed'].map(byId);
+  it('a short connection ends made, held or missed, never two of them', () => {
+    const set = ['short_connection', 'connection_made', 'connection_held', 'connection_missed'].map(
+      byId,
+    );
     const made = fly(c, set, { delayMin: 30 });
     const missed = fly(late(kg, 90), set);
     expect(ids(made).filter((x) => x !== '#ops')).toEqual(['short_connection', 'connection_made']);
@@ -322,6 +341,13 @@ describe('chains inside a flight', () => {
       'short_connection',
       'connection_missed',
     ]);
+    const held = fly(late(kg, 30), set);
+    expect(ids(held).filter((x) => x !== '#ops')).toEqual(['short_connection', 'connection_held']);
+    // The passengers are a share of the transfer passengers.
+    const pax = Number(/(\d+) PAX TO/.exec(textsOf(held, 'short_connection')[0] ?? '')?.[1]);
+    expect(pax).toBeGreaterThan(0);
+    const transfer = buildFlightData(kg, 'irregular').ops.transferPax;
+    expect(pax).toBeLessThanOrEqual(Math.ceil(transfer / 2));
   });
 
   it('the curfew needs a delay; UNABLE diverts to the alternate', () => {
@@ -341,6 +367,142 @@ describe('chains inside a flight', () => {
     const pad = /PAD (\d)/.exec(textsOf(r, 'deicing_holdover')[0] ?? '')?.[1];
     expect(textsOf(r, 'deicing_holdover')[1]).toContain(`PAD ${pad}`);
     expect(r.core.flags).toEqual({});
+  });
+});
+
+describe('continuations (T41)', () => {
+  const c = FLIGHTS[0] as Case;
+  const med = (seed: string, answer: string) => fly(c, [byId('medical_onboard')], { seed, answer });
+
+  it('HOLD: arrivals / the runway reopen after the promised time', () => {
+    for (const id of ['drone_activity', 'runway_closure_dest']) {
+      const r = fly(c, [byId(id)], { answer: 'HOLD' });
+      const t = textsOf(r, id);
+      expect(t, id).toHaveLength(3);
+      expect(t.slice(0, 2).join(' ')).toContain('15 MIN');
+      expect(t[2]).toContain('ARRIVALS RESUMED');
+      // DIVERT: no continuation.
+      expect(textsOf(fly(c, [byId(id)], { answer: 'DIVERT' }), id)).toHaveLength(2);
+    }
+    const closed = textsOf(
+      fly(c, [byId('runway_closure_dest')], { answer: 'HOLD' }),
+      'runway_closure_dest',
+    );
+    expect(closed[2]).toContain(`RWY ${kg.destination.planRwy} REOPENED`);
+  });
+
+  it('atc_flow_delay needs the CTOT of slot_ctot', () => {
+    expect(ids(fly(c, [byId('atc_flow_delay')]))).toEqual([]);
+    expect(ids(fly(c, [byId('atc_flow_delay'), byId('slot_ctot')]))).toContain('atc_flow_delay');
+  });
+
+  it('the alternate: an update before TOD', () => {
+    const r = fly(c, [byId('altn_wx_deterioration')], { answer: 'OK' });
+    const t = textsOf(r, 'altn_wx_deterioration');
+    expect(t).toHaveLength(3);
+    expect(t[2]).toContain('NO NEW OBSERVATION RECEIVED');
+    const low = fly(c, [byId('altn_wx_deterioration')], { answer: 'LOW' });
+    expect(textsOf(low, 'altn_wx_deterioration')).toHaveLength(2);
+  });
+
+  it('medical: the doctor decides the advice, paramedics meet the aircraft on block', () => {
+    const seen = new Set<string>();
+    for (let n = 1; n <= 12; n++) {
+      const r = med(`m${n}`, 'CONTINUE');
+      const t = textsOf(r, 'medical_onboard');
+      expect(t).toHaveLength(4);
+      const doc = /DOCTOR ON BOARD (YES|NO)/.exec(t[0] ?? '')?.[1] ?? '?';
+      seen.add(doc);
+      expect(t[1]).toContain(
+        doc === 'NO' ? 'STRONGLY ADVISES DIVERT NOW' : 'DIVERT IF NO IMPROVEMENT',
+      );
+      expect(t[3]).toContain('PARAMEDICS AT AIRCRAFT DOOR');
+      expect(t[3]).toContain('GATE');
+      expect(r.core.flags).toEqual({});
+    }
+    expect([...seen].sort()).toEqual(['NO', 'YES']);
+    // Diverted: the same door message, no gate of the destination.
+    const d = textsOf(med('m1', 'DIVERT'), 'medical_onboard');
+    expect(d).toHaveLength(4);
+    expect(d[3]).toContain('PARAMEDICS AT AIRCRAFT DOOR');
+    expect(d[3]).not.toContain('GATE');
+  });
+
+  it('medical: what the commander adds to the answer comes back in the reply', () => {
+    const r = fly(c, [byId('medical_onboard')], {
+      seed: 'm1',
+      answer: 'CONTINUE PAX NOW CONSCIOUS',
+    });
+    expect(textsOf(r, 'medical_onboard').join(' ')).toContain('CREW INFO: PAX NOW CONSCIOUS');
+  });
+
+  it('a restrained passenger: police meet the aircraft on block, seat as reported', () => {
+    const r = fly(c, [byId('unruly_passenger')], { answer: 'RESTRAIN' });
+    const t = textsOf(r, 'unruly_passenger');
+    expect(t).toHaveLength(3);
+    const seat = /SEAT (\d+[A-K]) /.exec(t[0] ?? '')?.[1];
+    expect(t[2]).toContain('POLICE AT AIRCRAFT DOOR');
+    expect(t[2]).toContain(`PAX SEAT ${seat}`);
+  });
+
+  it('crew duty: NO and still not off block at the limit → a crew change with a new time', () => {
+    // The sim is paused at the gate for 90 min: off block long after the limit.
+    const paused: Case = {
+      name: 'paused at the gate',
+      ofp: kg,
+      flight: withPause(normal, { atIndex: stageIndex(normal, 'GATE', 1200), durationSec: 5400 }),
+    };
+    const r = fly(paused, [byId('crew_duty_limit')], { delayMin: 45, answer: 'NO' });
+    const t = textsOf(r, 'crew_duty_limit');
+    expect(t).toHaveLength(3);
+    expect(t[2]).toMatch(/CREW CHANGE ORDERED NEW CREW REPORTS \d{4}Z EXPECT DELAY \d\d MIN/);
+    // OUT in time: no crew change.
+    const ok = fly(c, [byId('crew_duty_limit')], { delayMin: 45, answer: 'NO' });
+    expect(textsOf(ok, 'crew_duty_limit')).toHaveLength(2);
+  });
+
+  it('gate change: the baggage belt line; VIP seat in the first rows', () => {
+    const r = fly(c, [byId('gate_reassignment'), byId('gate_assignment'), byId('arrival_info')]);
+    const belt = /BELT (\d+)/.exec(textsOf(r, 'arrival_info')[0] ?? '')?.[1];
+    expect(textsOf(r, 'gate_reassignment')[0]).toContain(`BAGGAGE BELT ${belt} UNCHANGED`);
+    const v = textsOf(fly(c, [byId('vip_onboard')]), 'vip_onboard');
+    expect(v[0]).toMatch(/VIP ON BOARD SEAT [12][A-K]/);
+  });
+});
+
+describe('airline memory lifetime (T41)', () => {
+  const day = 86_400_000;
+  const out = kg.times.schedOutMs;
+  const family = (date: number) => ({
+    mel_item: 'X',
+    mel_reg: 'R',
+    mel_date: date,
+    unruly_seat: '1A',
+    unruly_flight: 'F',
+    unruly_date: date,
+    crew_discretion: 'F',
+    crew_discretion_date: date,
+    rush_bags: 3,
+    rush_from: 'A',
+    rush_to: 'B',
+    rush_date: date,
+    other: 'kept',
+  });
+  const start = (flags: Readonly<Record<string, Value>>) =>
+    Object.keys(AcarsCore.create({ ofp: kg, scenarios: [], seed: 's', flags }).flags).sort();
+
+  it('MEL 10 days, no-fly and discretion 30 days, rush bags 3 days', () => {
+    expect(start(family(out - 2 * day))).toHaveLength(13);
+    expect(start(family(out - 4 * day)).filter((n) => n.startsWith('rush'))).toEqual([]);
+    expect(start(family(out - 4 * day))).toHaveLength(9);
+    expect(start(family(out - 11 * day)).filter((n) => n.startsWith('mel'))).toEqual([]);
+    expect(start(family(out - 11 * day))).toHaveLength(6);
+    // 31 days: only what belongs to no family.
+    expect(start(family(out - 31 * day))).toEqual(['other']);
+  });
+
+  it('a family without a date is kept', () => {
+    expect(start({ mel_item: 'X', mel_reg: 'R' })).toEqual(['mel_item', 'mel_reg']);
   });
 });
 
@@ -440,7 +602,11 @@ describe('the whole set', () => {
 
   it('same seed and flags → same messages', () => {
     const forced = set.map((s) => ({ ...s, probability: 1 }));
-    const flags = { mel_item: '49-11-01 APU INOP', mel_reg: kg.aircraft.reg, mel_date: 1 };
+    const flags = {
+      mel_item: '49-11-01 APU INOP',
+      mel_reg: kg.aircraft.reg,
+      mel_date: daysBefore(kg, 1),
+    };
     const a = fly(c, forced, { flags, answer: 'CONTINUE' });
     const b = fly(c, forced, { flags, answer: 'CONTINUE' });
     expect(b.out).toEqual(a.out);

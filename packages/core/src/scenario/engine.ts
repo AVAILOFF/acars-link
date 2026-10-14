@@ -19,6 +19,7 @@ import type { TelemetrySnapshot } from '../telemetry/types.js';
 import type { CompiledScenario, CompiledStep } from './compile.js';
 import { buildContext, RouteGeometry, type RunVariable, type ScenarioContext } from './context.js';
 import type { Lookup, Value } from './expr.js';
+import { pruneExpiredFlags } from './flags-expiry.js';
 import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
 import { buildFlightData, type FlightData } from './ops-data.js';
 import {
@@ -365,7 +366,7 @@ export class ScenarioEngine {
     this.leadMs = (options.lateStartLeadMin ?? DEFAULT_LATE_START_LEAD_MIN) * 60_000;
     if (!(this.leadMs >= 0)) throw new RangeError('lateStartLeadMin must be ≥ 0');
     this.data = buildFlightData(options.ofp, options.seed);
-    this.irr = buildIrregularData(options.ofp, options.seed);
+    this.irr = buildIrregularData(options.ofp, options.seed, this.data.ops.transferPax);
     this.profile = options.profile ?? DEFAULT_PROFILE;
     this.from = stationCallsign(options.station ?? DEFAULT_STATION, options.ofp);
     const byId = new Map<string, CompiledScenario>();
@@ -393,7 +394,7 @@ export class ScenarioEngine {
       inbox: [],
       ext: EMPTY_EXT,
       pendingWx: [],
-      flags: { ...(options.flags ?? {}) },
+      flags: pruneExpiredFlags(options.flags ?? {}, options.ofp.times.schedOutMs),
       gate: null,
       forced: [],
     };

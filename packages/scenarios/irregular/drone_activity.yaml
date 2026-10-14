@@ -22,7 +22,7 @@ steps:
       body: |
         DRONE ACTIVITY REPORTED
         ARRIVALS SUSPENDED AT {ofp.dest}
-        EXPECT HOLDING {rand:10-25} MIN
+        EXPECT HOLDING 15 MIN
         REPLY HOLD OR DIVERT
   - wait:
       reply: { options: [HOLD, DIVERT], timeout_min: 8, default: HOLD }
@@ -33,6 +33,15 @@ steps:
             body: |
               NOTED, UPDATE WHEN ARRIVALS RESUME
               ADVISE IF FUEL BECOMES CRITICAL
+        - wait: { until: "phase in ['LANDED','TAXI_IN','ON_BLOCK']", timeout_min: 15 }
+        - branch:
+            TIMEOUT:
+              - send:
+                  header: OPS MSG {ofp.dest}
+                  body: |
+                    ARRIVALS RESUMED AT {ofp.dest}
+                    DRONE ACTIVITY CLEARED
+                    EXPECT NORMAL APPROACH
       DIVERT:
         - set: { flight.divert: "{ofp.altn}" }
         - send:

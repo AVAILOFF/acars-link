@@ -14,7 +14,7 @@ conditions:
   - "phase in ['PREFLIGHT','BOARDING']"
 probability: 0.04
 steps:
-  - set: { flags.vip_seat: "{pick:[1A,1K,2A,2K]}" }
+  - set: { flags.vip_seat: "{seat:1-2}" }
   - send:
       header: OPS MSG
       body: |

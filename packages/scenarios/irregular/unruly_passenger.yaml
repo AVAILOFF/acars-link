@@ -39,6 +39,13 @@ steps:
               POLICE WILL MEET ACFT AT {ofp.dest}
               DO NOT OPEN DOORS BEFORE POLICE
               FILE CABIN INCIDENT REPORT
+        - wait: { phase: ON_BLOCK }
+        - send:
+            header: OPS MSG SECURITY
+            body: |
+              POLICE AT AIRCRAFT DOOR
+              PAX SEAT {flags.unruly_seat}
+              HOLD OTHER PAX UNTIL POLICE BOARD
       DIVERT:
         - set: { flight.divert: "{flight.nearest_altn}" }
         - send:

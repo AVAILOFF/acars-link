@@ -236,8 +236,8 @@ describe('set: run', () => {
 
 describe('irregular data', () => {
   it('is deterministic per seed and computed from the published schedule', () => {
-    expect(buildIrregularData(ofp, 's')).toEqual(buildIrregularData(ofp, 's'));
-    const d = buildIrregularData(ofp, 's');
+    expect(buildIrregularData(ofp, 's', 40)).toEqual(buildIrregularData(ofp, 's', 40));
+    const d = buildIrregularData(ofp, 's', 40);
     expect(d.curfew % (15 * 60_000)).toBe(0);
     expect(d.curfew).toBeGreaterThan(ofp.times.schedOnMs ?? 0);
     expect(d.connectStd).toBeGreaterThan(ofp.times.schedInMs);

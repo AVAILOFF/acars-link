@@ -1,0 +1,24 @@
+# Outcome of short_connection: on block 15-40 min before the connection's STD, the flight is held.
+id: connection_held
+version: 1
+category: irregular
+title: Connection held
+title_ru: "Стыковка: рейс задержан"
+description: "On block after a short connection with 15 to 40 min left: the onward flight is held for the passengers."
+description_ru: "На стоянке после короткой стыковки, если осталось от 15 до 40 мин: стыковочный рейс задержан до прибытия пассажиров."
+enabled_by_default: true
+trigger:
+  on: phase_enter
+  phase: ON_BLOCK
+conditions:
+  - "'short_connection' in flight.sent"
+  - "irr.connect_left_min >= 15"
+  - "irr.connect_left_min < 40"
+steps:
+  - send:
+      header: CONNECTIONS
+      body: |
+        {irr.connect_flight} HELD FOR {irr.connect_pax} PAX
+        STD {irr.connect_std|hhmm}Z, DEPARTURE WILL BE LATE
+        TRANSFER BUS AT GATE {ops.arr_gate}
+        DEPLANE TRANSFER PAX FIRST

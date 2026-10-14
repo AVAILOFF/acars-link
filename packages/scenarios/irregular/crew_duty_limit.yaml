@@ -42,3 +42,15 @@ steps:
               NOTED, STANDBY CREW ALERTED
               IF NOT OFF BLOCK BY {irr.latest_out|hhmm}Z
               CREW CHANGE WILL APPLY
+        - wait: { until: "flight.out != null or flight.now >= irr.latest_out", timeout_min: 240 }
+        # "if": still no OUT (false for a second of flight time = TIMEOUT).
+        - wait: { until: "flight.out == null", timeout_min: 0.02 }
+        - branch:
+            MET:
+              - send:
+                  header: CREW CONTROL
+                  body: |
+                    LATEST OFF BLOCK {irr.latest_out|hhmm}Z PASSED
+                    CREW CHANGE ORDERED
+                    NEW CREW REPORTS {irr.crew_ready|hhmm}Z
+                    EXPECT DELAY {irr.crew_change_min} MIN

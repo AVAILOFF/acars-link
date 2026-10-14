@@ -31,8 +31,17 @@ steps:
         - send:
             header: OPS MSG {ofp.dest}
             body: |
-              NOTED, EXPECT {rand:10-20} MIN HOLDING
+              NOTED, EXPECT 15 MIN HOLDING
               STAND AND HANDLING UNCHANGED
+        - wait: { until: "phase in ['LANDED','TAXI_IN','ON_BLOCK']", timeout_min: 15 }
+        - branch:
+            TIMEOUT:
+              - send:
+                  header: OPS MSG {ofp.dest}
+                  body: |
+                    RWY {ofp.dest_rwy} REOPENED
+                    ARRIVALS RESUMED AT {ofp.dest}
+                    EXPECT NORMAL APPROACH
       DIVERT:
         - set: { flight.divert: "{ofp.altn}" }
         - send:

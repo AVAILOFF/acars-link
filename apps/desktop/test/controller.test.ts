@@ -261,7 +261,7 @@ describe('AppController', () => {
     const list = await app.listScenarios();
     // 15 base + 12 commands (T12) + 4 live-data (T13) + 2 launches (T28) + 22 irregular (T14)
     // + 1 sim (T22) + 10 special events (T29)
-    expect(list).toHaveLength(66);
+    expect(list).toHaveLength(67);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -698,7 +698,11 @@ describe('airline memory (T14)', () => {
     const dir = await tempDir();
     const { FlagsStore } = await import('../src/main/flags.js');
     const store = new FlagsStore(join(dir, 'airline-memory.json'));
-    await store.set({ mel_item: '49-11-01 APU INOP', mel_reg: ofp.aircraft.reg, mel_date: 1 });
+    await store.set({
+      mel_item: '49-11-01 APU INOP',
+      mel_reg: ofp.aircraft.reg,
+      mel_date: ofp.times.schedOutMs - 86_400_000,
+    });
     const s = await setup({ flags: store });
     await s.app.setSimbriefUsername('pilot42');
     await s.app.updateSettings({ transport: 'offline', liveData: false });
@@ -890,7 +894,7 @@ describe('irregular events by hand', () => {
     });
     await s.app.startFlight();
     const list = s.app.state().irregular;
-    expect(list.length).toBe(22);
+    expect(list.length).toBe(23);
     expect(list.find((x) => x.id === 'vip_onboard')?.title).toEqual({
       en: 'VIP on board',
       ru: 'VIP на борту',

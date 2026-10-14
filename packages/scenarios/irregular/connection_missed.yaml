@@ -4,15 +4,15 @@ version: 1
 category: irregular
 title: Connection missed
 title_ru: "Стыковка: не успели"
-description: "On block after a short connection with less than 30 min left: passengers rebooked."
-description_ru: "На стоянке после короткой стыковки, если осталось меньше 30 мин: пассажиры переоформлены."
+description: "On block after a short connection with less than 15 min left: passengers rebooked."
+description_ru: "На стоянке после короткой стыковки, если осталось меньше 15 мин: пассажиры переоформлены."
 enabled_by_default: true
 trigger:
   on: phase_enter
   phase: ON_BLOCK
 conditions:
   - "'short_connection' in flight.sent"
-  - "irr.connect_left_min < 30"
+  - "irr.connect_left_min < 15"
 steps:
   - send:
       header: CONNECTIONS

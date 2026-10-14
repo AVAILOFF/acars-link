@@ -22,4 +22,5 @@ steps:
         GATE {ops.arr_gate} OCCUPIED
         {pick:[DEPARTURE DELAYED,TECH ACFT ON GATE,STAND U/S]}
         NEW GATE {irr.new_gate}
+        BAGGAGE BELT {ops.belt} UNCHANGED
   - set: { ops.arr_gate: "{irr.new_gate}" }

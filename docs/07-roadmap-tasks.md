@@ -412,6 +412,8 @@ UI: условие отправки (триггеры движка) и пере�
 8. `gate_reassignment` — строка о ленте багажа.
 9. `vip_onboard` — места через `{seat}` T40.
 10. Флаги памяти авиакомпании — срок жизни (N дней, на одобрение), просроченные удаляются при старте рейса.
+**Допущения одобрены пользователем 2026-10-14:** п. 4 — `connection_made` ≥ 40 мин до STD, новый `connection_held` 15–40 (рейс ждёт), `connection_missed` < 15; доля `irr.connect_pax` — 20–50 % от `ops.transfer_pax` (моё решение, в пределах карточки). П. 7 — смена экипажа: задержка случайно 40–90 мин, шаг 5 (`irr.crew_change_min`); новая задержка только в тексте (`set` не умеет менять `est_*`). П. 10 — срок флагов: MEL 10 дней, no-fly и discretion 30, rush-сумки 3. Мои решения: HOLD ждёт фиксированные 15 мин (текст «EXPECT HOLDING 15 MIN»), продолжение уходит, пока не LANDED; ВПП из данных аэропорта нет (есть только плановая) — «EXPECT RWY …» не делали; VIP-место — новый генератор `{seat:1-2}`.
+**Реализовано:** `core/src/scenario/{flags-expiry,irregular-data,context,template,engine}.ts`, сценарии `irregular/*.yaml` (+ `connection_held`), тесты `scenarios/test/irregular.test.ts` («continuations», «airline memory lifetime»), `core/test/flags.test.ts`. Идиома «если» на `wait: until` с `timeout_min: 0.02` — в `05`.
 **Готово, когда:** `irregular.test.ts` — каждый вариант ответа и новые продолжения на 3 полётах × 3 профиля; детерминизм; снапшоты обновлены осознанно.
 
 #### T42 — Irregular: реализм (группа Б) **Р**
