@@ -289,10 +289,10 @@ describe('ROPS station', () => {
       'XCAA /data2/3//NE/HANDOVER @XJJJ',
       'XJJJ /data2/1/2/NE/LOGON ACCEPTED',
       'XJJJ /data2/2//NE/CURRENT ATC UNIT@_@XJJJ@_@FUKUOKA CTL',
-      // T26: a random Direct To (seed "atc") and the descent clearance before TOD.
-      'XJJJ /data2/3//WU/PROCEED DIRECT TO @UPGEB@',
-      'XJJJ /data2/4//WU/DESCEND TO @FL250@',
-      'XJJJ /data2/5//NE/LOGOFF',
+      // T26: the descent clearance before TOD (T38: the straight test route saves < 5 NM, so
+      // no random Direct To).
+      'XJJJ /data2/3//WU/DESCEND TO @FL250@',
+      'XJJJ /data2/4//NE/LOGOFF',
     ]);
     expect(r.out.every((m) => m.kind === 'cpdlc' && m.scenarioId === ROPS_ID && m.toPilot)).toBe(
       true,
@@ -305,7 +305,6 @@ describe('ROPS station', () => {
       'ATC_HANDOVER',
       'ATC_LOGOFF',
       'ATC_LOGON',
-      'ATC_AUTO',
       'ATC_AUTO',
       'ATC_LOGOFF',
     ]);
@@ -335,6 +334,10 @@ describe('ROPS station', () => {
             },
             // Answers and other senders need nothing.
             { from: ofp.callsign, type: 'cpdlc', text: '/data2/3/2/N/WILCO', to: 'XCAA' },
+            // T38: Fenix answers STDBY (twice); any other wording with `mrn` is a reply too.
+            { from: ofp.callsign, type: 'cpdlc', text: '/data2/11/5/N/STDBY', to: 'XCAA' },
+            { from: ofp.callsign, type: 'cpdlc', text: '/data2/12/5/N/STDBY', to: 'XCAA' },
+            { from: ofp.callsign, type: 'cpdlc', text: '/data2/13/5/N/SOMETHING ELSE', to: 'XCAA' },
             { from: 'OTHER1', type: 'cpdlc', text: '/data2/0//Y/REQUEST LOGON', to: 'XCAA' },
           ],
         ],

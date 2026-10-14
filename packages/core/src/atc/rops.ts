@@ -11,9 +11,10 @@ import type { TelemetrySnapshot } from '../telemetry/types.js';
 import {
   cruiseSpan,
   DESCENT_BEFORE_TOD_NM,
+  DIRECT_TOD_MARGIN_NM,
   descentLevel,
-  directCandidate,
-  directTriggers,
+  directDecision,
+  directExit,
   stepStatus,
 } from './auto.js';
 import { type CpdlcHeader, type CpdlcResponse, formatCpdlc, parseCpdlc } from './cpdlc.js';
@@ -59,8 +60,6 @@ export const REPLY_DELAY_S = [20, 60] as const;
 export const TRAFFIC_REFUSAL = 0.1;
 /** The same request within this time after a traffic refusal is refused again. */
 export const TRAFFIC_HOLD_MS = 5 * 60_000;
-/** A random Direct To point passed by more than this is dropped (T26). */
-export const DIRECT_STALE_NM = 30;
 
 export interface RopsOptions {
   readonly enabled: boolean;
@@ -162,10 +161,12 @@ export interface RopsState {
 }
 
 export interface AutoState {
-  /** Route distances where random Direct To are still to be tried. */
-  readonly directs: readonly number[];
-  /** Random Direct To tried so far (seeds each one's pick). */
-  readonly tried: number;
+  /** FIRs already decided for a random Direct To (at most one per FIR, T38). */
+  readonly directFirs: readonly string[];
+  /** A random Direct To waiting for its delay. */
+  readonly directDue: { readonly fir: string; readonly at: number } | null;
+  /** The last Direct To given (fix and its index in the navlog); until passed, no new one. */
+  readonly directTo: { readonly ident: string; readonly idx: number } | null;
   /** Step climb fixes handled (sent or skipped). */
   readonly steps: readonly string[];
   readonly descent: boolean;
@@ -247,8 +248,9 @@ export class RopsStation {
       traffic: { key: string; t: number } | null;
     };
     auto: {
-      directs: number[];
-      tried: number;
+      directFirs: string[];
+      directDue: { fir: string; at: number } | null;
+      directTo: { ident: string; idx: number } | null;
       steps: string[];
       descent: boolean;
       asked: number[];
@@ -289,8 +291,9 @@ export class RopsStation {
         traffic: copy.req?.traffic ?? null,
       },
       auto: {
-        directs: [...(copy.auto?.directs ?? directTriggers(ofp, deps.seed))],
-        tried: copy.auto?.tried ?? 0,
+        directFirs: [...(copy.auto?.directFirs ?? [])],
+        directDue: copy.auto?.directDue ?? null,
+        directTo: copy.auto?.directTo ?? null,
         steps: [...(copy.auto?.steps ?? [])],
         descent: copy.auto?.descent ?? false,
         asked: [...(copy.auto?.asked ?? [])],
@@ -546,14 +549,19 @@ export class RopsStation {
     }
     const rcl = parseRcl(p.text);
     if (rcl !== null && this.ocl.receive(rcl, to, ocl)) return;
-    // Answers to our messages need nothing (no open dialogues in T23).
-    if (p.mrn !== null && /^(WILCO|UNABLE|ROGER|STANDBY|AFFIRM|NEGATIVE)\b/.test(p.text)) return;
+    // Answers to our messages need nothing (no open dialogues in T23). Fenix A320 answers
+    // `STDBY` for STANDBY (test flight 2026-10-10, docs/07 T38).
+    if (p.mrn !== null && /^(WILCO|UNABLE|ROGER|STANDBY|STDBY|AFFIRM|NEGATIVE)\b/.test(p.text))
+      return;
     // T25: requests to the station the aircraft is logged on to.
     const req = to === this.st.connected ? parseRequest(p.text) : null;
     if (req !== null) {
       this.request(req, p.text, p.min, to, input, map);
       return;
     }
+    // A packet with `mrn` is a reply to a message of ours, whatever its wording: never "not
+    // supported" (a request carries no `mrn`).
+    if (p.mrn !== null) return;
     send(to, 'NE', p.min, 'MESSAGE NOT SUPPORTED BY THIS ATS UNIT');
     events.push({ type: 'ATC_UNSUPPORTED', t: now, station: to, text: p.text });
   }
@@ -647,7 +655,7 @@ export class RopsStation {
         uplink('descent', `DESCEND TO @${level.text}@`);
         a.cleared = level.levelFt;
       }
-      a.directs = [];
+      a.directDue = null;
       return;
     }
     if (phase !== 'CRUISE') return;
@@ -668,28 +676,35 @@ export class RopsStation {
       }
     }
 
-    // Random Direct To at the planned route distances (unless turned off); points long
-    // passed (a flight started mid-way) are dropped, not sent one after another.
+    // Random Direct To (T38): decided once per FIR at the first contact in cruise.
     if (!this.randomDirects) return;
-    while (a.directs.length > 0 && route.alongNm - (a.directs[0] as number) > DIRECT_STALE_NM) {
-      a.directs.shift();
+    const fir = this.st.fir;
+    if (fir === null || span === null) return;
+    const given = a.directTo;
+    const blocked = given !== null && route.next <= given.idx;
+    if (a.directDue === null && !a.directFirs.includes(fir)) {
+      if (span.tod - route.alongNm <= DIRECT_TOD_MARGIN_NM) return;
+      a.directFirs.push(fir);
+      const d = directDecision(this.seed, fir);
+      if (d.issue) a.directDue = { fir, at: now + d.delayMs };
+      return;
     }
-    while (a.directs.length > 0 && route.alongNm >= (a.directs[0] as number)) {
-      a.directs.shift();
-      const rng = createRng(`${this.seed}/#direct/${a.tried}`);
-      a.tried += 1;
-      const fix = directCandidate(
-        this.ofp,
-        tm,
-        route,
-        this.st.fir,
-        (p) => map?.locate(p)?.id ?? null,
-        rng,
-      );
-      if (fix !== null) {
-        uplink('direct', `PROCEED DIRECT TO @${fix.ident}@`);
-        break;
-      }
+    const due = a.directDue;
+    if (due === null || now < due.at) return;
+    a.directDue = null;
+    // The aircraft left the FIR or is near TOD meanwhile, or is still on the last Direct To.
+    if (due.fir !== fir || blocked || span.tod - route.alongNm <= DIRECT_TOD_MARGIN_NM) return;
+    const exit = directExit(
+      this.ofp,
+      tm,
+      route,
+      fir,
+      (p) => map?.locate(p)?.id ?? null,
+      given?.idx ?? -1,
+    );
+    if (exit !== null) {
+      a.directTo = { ident: exit.fix.ident, idx: exit.idx };
+      uplink('direct', `PROCEED DIRECT TO @${exit.fix.ident}@`);
     }
   }
 

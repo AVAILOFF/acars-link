@@ -3,15 +3,15 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   AcarsCore,
-  AUTO_DIRECTS_MAX,
   type CoreEvent,
   cpdlcPacket,
   createRng,
   cruiseSpan,
+  DIRECT_MIN_SAVING_NM,
   DIRECT_TOD_MARGIN_NM,
   descentLevel,
-  directCandidate,
-  directTriggers,
+  directDecision,
+  directExit,
   distanceNm,
   type FirArea,
   generateSyntheticFlight,
@@ -53,50 +53,57 @@ describe('OFP step climbs (general.stepclimb_string)', () => {
   });
 });
 
-describe('random Direct To', () => {
+describe('random Direct To (T38: FIR exit point)', () => {
   const span = cruiseSpan(ofp);
+  const firAt = () => null;
 
-  it('0–3 points per flight between TOC and TOD − 50 NM, from the seed', () => {
-    expect(span).not.toBeNull();
-    const counts = new Set<number>();
-    for (let k = 0; k < 100; k++) {
-      const t = directTriggers(ofp, `s${k}`);
-      counts.add(t.length);
-      expect(t.length).toBeLessThanOrEqual(AUTO_DIRECTS_MAX);
-      expect([...t].sort((a, b) => a - b)).toEqual(t);
-      for (const x of t) {
-        expect(x).toBeGreaterThanOrEqual(span?.toc ?? 0);
-        expect(x).toBeLessThanOrEqual((span?.tod ?? 0) - DIRECT_TOD_MARGIN_NM);
-      }
+  it('decision: 50 % of the FIRs, delay 1–5 min, only from seed and FIR', () => {
+    let yes = 0;
+    for (let k = 0; k < 400; k++) {
+      const d = directDecision(`s${k}`, 'RJJJ');
+      if (d.issue) yes++;
+      expect(d.delayMs).toBeGreaterThanOrEqual(60_000);
+      expect(d.delayMs).toBeLessThanOrEqual(300_000);
     }
-    expect([...counts].sort()).toEqual([0, 1, 2, 3]);
-    expect(directTriggers(ofp, 'same')).toEqual(directTriggers(ofp, 'same'));
+    expect(yes).toBeGreaterThan(150);
+    expect(yes).toBeLessThan(250);
+    expect(directDecision('same', 'RCAA')).toEqual(directDecision('same', 'RCAA'));
   });
 
-  it('picks a fix of the FIR 50–250 NM ahead, off SID/STAR, that saves ≥ 2 NM', () => {
-    // At MIDAI: M750 bends to Y53 at MADOG, so SUC … NIXOV save 2–3 NM, MADOG only 0.1.
-    const r = onRoute('MADOG', 61);
-    const pos = fix('MIDAI');
-    const seen = new Set<string>();
-    for (let k = 0; k < 50; k++) {
-      const f = directCandidate(ofp, pos, r, 'RJJJ', () => null, createRng(`d${k}`));
-      expect(f).not.toBeNull();
-      if (f === null) continue;
-      seen.add(f.ident);
-      const ahead = f.cumDistNm - r.alongNm;
-      expect(ahead).toBeGreaterThanOrEqual(50);
-      expect(ahead).toBeLessThanOrEqual(250);
-      expect(ahead - distanceNm(pos, f)).toBeGreaterThanOrEqual(2);
-      expect(f.isSidStar || f.type === 'ltlg').toBe(false);
-      expect(f.fir).toBe('RJJJ');
-    }
-    expect([...seen].sort()).toEqual(['ENKOV', 'NIXOV', 'OLBUG', 'SUC', 'UPGEB']);
-    // In Taipei FIR the Fukuoka fixes are not ours.
-    expect(directCandidate(ofp, pos, r, 'RCAA', () => null, createRng('x'))).toBeNull();
-    // Near TOD only STAR fixes are 50 NM ahead: none.
-    expect(
-      directCandidate(ofp, fix('TOD'), onRoute('TOD'), 'RJJJ', () => null, createRng('y')),
-    ).toBeNull();
+  // The synthetic route is straight, so the saving is made by a route position 8 NM short of
+  // the aircraft's real one (as after a dogleg of the OFP): MELEN is then 249 NM ahead.
+  const pos = fix('MAMOD');
+  const r = { next: at('MUMBA'), alongNm: fix('MAMOD').cumDistNm - 8, offNm: 0 };
+
+  it('names the farthest fix of the FIR within 250 NM and TOD − 50 NM, off SID/STAR, saving ≥ 5 NM', () => {
+    const e = directExit(ofp, pos, r, 'RJJJ', firAt, -1);
+    expect(e?.fix.ident).toBe('MELEN');
+    if (e === null) return;
+    expect(ofp.navlog[e.idx]).toBe(e.fix);
+    const ahead = e.fix.cumDistNm - r.alongNm;
+    expect(ahead).toBeLessThanOrEqual(250);
+    expect(e.fix.cumDistNm).toBeLessThanOrEqual((span?.tod ?? 0) - DIRECT_TOD_MARGIN_NM);
+    expect(ahead - distanceNm(pos, e.fix)).toBeGreaterThanOrEqual(DIRECT_MIN_SAVING_NM);
+    // A farther fix of the FIR is out of range (INVAM is 270 NM ahead).
+    expect(fix('INVAM').cumDistNm - r.alongNm).toBeGreaterThan(250);
+    // Less than 5 NM saved: none.
+    expect(directExit(ofp, pos, { ...r, alongNm: r.alongNm + 6 }, 'RJJJ', firAt, -1)).toBeNull();
+  });
+
+  it('never the fix already given nor one behind it', () => {
+    const first = directExit(ofp, pos, r, 'RJJJ', firAt, -1);
+    expect(first?.idx).toBe(at('MELEN'));
+    expect(directExit(ofp, pos, r, 'RJJJ', firAt, first?.idx ?? -1)).toBeNull();
+    expect(directExit(ofp, pos, r, 'RJJJ', firAt, ofp.navlog.length)).toBeNull();
+  });
+
+  it('nothing to cut: the exit is the next fix; a foreign FIR; near TOD', () => {
+    expect(directExit(ofp, pos, { ...r, next: at('MELEN') }, 'RJJJ', firAt, -1)).toBeNull();
+    expect(directExit(ofp, pos, r, 'RCAA', firAt, -1)).toBeNull();
+    expect(directExit(ofp, fix('TOD'), onRoute('TOD'), 'RJJJ', firAt, -1)).toBeNull();
+    // The FIR holds one route fix ahead (MUMBA, the next one): no Direct To.
+    const one = directExit(ofp, pos, r, 'RJJJ', (p) => (p === fix('MUMBA') ? 'RJJJ' : 'XXXX'), -1);
+    expect(one).toBeNull();
   });
 });
 
@@ -243,13 +250,36 @@ describe('ROPS station sends clearances on its own (T26)', () => {
     expect(autos(fly(o, 'a', () => []))).toEqual(autos(fly(o, 'a', () => [])));
   });
 
+  // The OFP route is 20 NM longer than its fixes' geometry from MELEN on (as after a dogleg
+  // the aircraft cuts), so MELEN, the exit of the Fukuoka stretch in range, saves ≥ 5 NM.
+  const bent: Ofp = {
+    ...withSteps('RCTP/0390 MADOG/0410'),
+    navlog: ofp.navlog.map((f, i) =>
+      i >= at('MELEN') ? { ...f, cumDistNm: f.cumDistNm + 20 } : f,
+    ),
+  };
+  const directs = (o: Ofp, seed: string, randomDirects?: boolean) =>
+    autos(fly(o, seed, () => [], randomDirects)).filter((t) => t?.startsWith('PROCEED DIRECT TO'));
+
+  it('random Direct To: at most one per FIR, to the exit fix, never the same fix twice', () => {
+    const got: Record<string, number> = {};
+    for (let k = 0; k < 20; k++) {
+      const d = directs(bent, `d${k}`);
+      expect(d.length).toBeLessThanOrEqual(2);
+      expect(new Set(d).size).toBe(d.length);
+      for (const t of d) got[t ?? ''] = (got[t ?? ''] ?? 0) + 1;
+    }
+    expect(Object.keys(got).length).toBeGreaterThan(0);
+    // Deterministic.
+    expect(directs(bent, 'd1')).toEqual(directs(bent, 'd1'));
+  });
+
   it('random Direct To can be turned off; step climb and descent stay', () => {
-    const o = withSteps('RCTP/0390 MADOG/0410');
-    // Seed "atc" gives a random Direct To with the option on (atc.test.ts).
-    expect(autos(fly(o, 'atc', () => [])).some((t) => t?.startsWith('PROCEED DIRECT TO'))).toBe(
-      true,
+    const seed = Array.from({ length: 20 }, (_, k) => `d${k}`).find(
+      (x) => directs(bent, x).length > 0,
     );
-    const off = autos(fly(o, 'atc', () => [], false));
+    expect(seed).toBeDefined();
+    const off = autos(fly(bent, seed ?? '', () => [], false));
     expect(off).toEqual(['CLIMB TO @FL410@', 'DESCEND TO @FL250@']);
   });
 

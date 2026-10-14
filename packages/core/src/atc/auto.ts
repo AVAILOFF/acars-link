@@ -1,13 +1,17 @@
 import { distanceNm, type LatLon } from '../geo/geo.js';
 import type { Ofp, OfpFix, OfpStepClimb } from '../ofp/types.js';
-import { createRng, type Rng } from '../random/rng.js';
+import { createRng } from '../random/rng.js';
 import { checkLevel, levelText } from './levels.js';
 import { type RoutePosition, starEntryIndex } from './route.js';
 
 /**
- * Clearances the ROPS station sends on its own (T26, docs/07; approved 2026-10-09):
- * - up to 3 random Direct To per flight (seeded): in cruise, not closer than 50 NM to TOD,
- *   to a fix of the current FIR 50–250 NM ahead, not on a SID/STAR, saving ≥ 2 NM;
+ * Clearances the ROPS station sends on its own (T26, docs/07; the Direct To rule replaced by
+ * the user's decision of 2026-10-10, T38):
+ * - at most one random Direct To per FIR, at the first contact with the FIR's station in cruise
+ *   (more than 50 NM before TOD): 50 % (seeded), 1–5 min after the contact, to the FIR exit
+ *   point of the OFP route (the farthest route fix of the FIR within 250 NM and TOD − 50 NM,
+ *   not SID/STAR), saving ≥ 5 NM; never a fix already given, never one behind a given fix,
+ *   nothing new until the given fix is passed;
  * - step climbs of the OFP: `CLIMB TO` 2 min before the step fix, unless the pilot already
  *   asked for that level or it is not a cruising level there (T25 table);
  * - the descent clearance 20 NM before TOD (as the original did): the highest of the OFP
@@ -16,11 +20,15 @@ import { type RoutePosition, starEntryIndex } from './route.js';
  * The phrases are the FANS-A uplinks of T25 (`PROCEED DIRECT TO`, `CLIMB TO`, `DESCEND TO`).
  */
 
-export const AUTO_DIRECTS_MAX = 3;
-export const DIRECT_AHEAD_NM = [50, 250] as const;
-export const DIRECT_MIN_SAVING_NM = 2;
+/** Farthest fix a Direct To may name, ahead of the aircraft. */
+export const DIRECT_AHEAD_MAX_NM = 250;
+export const DIRECT_MIN_SAVING_NM = 5;
 /** No random Direct To closer than this to TOD. */
 export const DIRECT_TOD_MARGIN_NM = 50;
+/** Share of the FIRs that get a random Direct To. */
+export const DIRECT_CHANCE = 0.5;
+/** Delay after the first contact, s. */
+export const DIRECT_DELAY_S = [60, 300] as const;
 export const STEP_LEAD_MIN = 2;
 /** A step fix passed by more than this without a clearance is dropped. */
 export const STEP_LATE_NM = 20;
@@ -48,44 +56,45 @@ export function cruiseSpan(ofp: Ofp): { readonly toc: number; readonly tod: numb
   return toc === null || tod === null || tod <= toc ? null : { toc, tod };
 }
 
-/**
- * Where along the route random Direct To are tried (NM from the origin, ascending): 0–3
- * points, uniform in [TOC, TOD − 50 NM]. Depends on the seed and the OFP only.
- */
-export function directTriggers(ofp: Ofp, seed: string | number): number[] {
-  const span = cruiseSpan(ofp);
-  if (span === null) return [];
-  const lo = Math.ceil(span.toc);
-  const hi = Math.floor(span.tod - DIRECT_TOD_MARGIN_NM);
-  if (hi <= lo) return [];
-  const rng = createRng(`${seed}/#directs`);
-  const n = rng.int(0, AUTO_DIRECTS_MAX);
-  const out: number[] = [];
-  for (let i = 0; i < n; i++) out.push(rng.int(lo, hi));
-  return out.sort((a, b) => a - b);
+/** Whether the FIR gets a random Direct To, and after how many ms (seed and FIR only). */
+export function directDecision(
+  seed: string | number,
+  fir: string,
+): { readonly issue: boolean; readonly delayMs: number } {
+  const rng = createRng(`${seed}/#direct/${fir}`);
+  const issue = rng.chance(DIRECT_CHANCE);
+  return { issue, delayMs: rng.int(DIRECT_DELAY_S[0], DIRECT_DELAY_S[1]) * 1000 };
 }
 
-/** A fix for a random Direct To from `pos`, or null when none fits. */
-export function directCandidate(
+/**
+ * The FIR exit fix for a Direct To from `pos`, or null. Only fixes after `afterIdx` (the last
+ * one given); null when the exit is the next route fix (nothing to cut) or saves too little.
+ */
+export function directExit(
   ofp: Ofp,
   pos: LatLon,
   route: RoutePosition,
-  fir: string | null,
+  fir: string,
   firAt: (p: LatLon) => string | null,
-  rng: Rng,
-): OfpFix | null {
-  const list: OfpFix[] = [];
+  afterIdx: number,
+): { readonly fix: OfpFix; readonly idx: number } | null {
+  const span = cruiseSpan(ofp);
+  if (span === null) return null;
+  let nextIdx = -1;
+  let best: { fix: OfpFix; idx: number } | null = null;
   for (let i = route.next; i < ofp.navlog.length; i++) {
     const f = ofp.navlog[i] as OfpFix;
     if (f.type === 'ltlg' || f.isSidStar) continue;
-    const ahead = f.cumDistNm - route.alongNm;
-    if (ahead < DIRECT_AHEAD_NM[0] || ahead > DIRECT_AHEAD_NM[1]) continue;
-    if (ahead - distanceNm(pos, f) < DIRECT_MIN_SAVING_NM) continue;
+    if (nextIdx < 0) nextIdx = i;
     const there = firAt(f) ?? f.fir;
-    if (fir !== null && there !== null && there !== fir) continue;
-    list.push(f);
+    if (there !== fir) break;
+    const ahead = f.cumDistNm - route.alongNm;
+    if (ahead > DIRECT_AHEAD_MAX_NM || f.cumDistNm > span.tod - DIRECT_TOD_MARGIN_NM) break;
+    if (i > afterIdx) best = { fix: f, idx: i };
   }
-  return list.length === 0 ? null : rng.pick(list);
+  if (best === null || best.idx === nextIdx) return null;
+  const saving = best.fix.cumDistNm - route.alongNm - distanceNm(pos, best.fix);
+  return saving < DIRECT_MIN_SAVING_NM ? null : best;
 }
 
 export type StepStatus = 'wait' | 'due' | 'skip';
