@@ -1,5 +1,5 @@
-# ETA in flight: planned en-route time after the actual take-off (no wind model), the gate
-# and the transfer passengers.
+# ETA in flight: by ground speed and the distance left (T44); without telemetry the planned
+# en-route time after the actual take-off. The gate and the transfer passengers.
 id: cmd_eta
 version: 1
 category: ops
@@ -10,12 +10,13 @@ trigger:
   command: ETA
 conditions:
   - "flight.eta != null"
+  - "flight.dist_to_dest_nm == null or tm.gs_kt < 60 or flight.on != null"
 steps:
   - send:
       header: ETA {ofp.dest}
       body: |
         {ofp.callsign} {ofp.orig}-{ofp.dest}
-        ETA {flight.eta|hhmm}Z STA {ofp.sched_in|hhmm}Z
+        ETA {flight.eta_live|hhmm}Z STA {ofp.sched_in|hhmm}Z
         GATE {ops.arr_gate}
         TRANSFER PAX {ops.transfer_pax}
         CONNECTIONS ADVISED

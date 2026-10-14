@@ -21,7 +21,7 @@ ATC FLOW RESTRICTION
 CTOT 0818Z
 DELAY 8 MIN
 PLAN BOARDING TO SUIT",
-  "2026-10-08T07:20:00.000Z prelim_loadsheet
+  "2026-10-08T07:28:00.000Z prelim_loadsheet
 PRELIMINARY LOADSHEET
 ------------------------
 SJX822 RCTP-RJBB 08OCT
@@ -35,7 +35,7 @@ PAX 266 CGO 6.7
 ALL WEIGHTS IN TONNES
 ........................
 PREPARED BY P. HUANG",
-  "2026-10-08T07:25:00.000Z takeoff_data
+  "2026-10-08T07:33:00.000Z takeoff_data
 TAKEOFF DATA
 ------------------------
 SJX822 RCTP RWY 05R
@@ -50,7 +50,7 @@ WX RCTP 080630Z 05020KT
 Q1016 NOSIG RMK A3002
 ........................
 VERIFY PERF ON EFB",
-  "2026-10-08T07:33:00.000Z fuel_slip
+  "2026-10-08T07:41:00.000Z fuel_slip
 FUEL SLIP
 ------------------------
 SJX822 G-KXWB RCTP
@@ -65,7 +65,7 @@ EXTRA 2.4
 FUEL IN TONNES
 ........................
 FUELLER C. CHANG",
-  "2026-10-08T07:38:00.000Z final_loadsheet
+  "2026-10-08T07:46:00.000Z final_loadsheet
 FINAL LOADSHEET
 ------------------------
 SJX822 RCTP-RJBB 08OCT
@@ -94,7 +94,7 @@ NEXT LEG
 ------------------------
 NEXT SECTOR SJX823
 RJBB-RCTP
-STD 1155Z
+STD 1205Z
 SAME A/C G-KXWB
 TURNAROUND 95 MIN",
   "2026-10-08T09:26:30.000Z dest_weather
@@ -142,12 +142,12 @@ ON 1020 IN 1029
 BLOCK 164 MIN
 FLIGHT 129 MIN
 FOB 9.4",
-  "2026-10-08T10:31:23.000Z welcome_turnaround
+  "2026-10-08T10:31:27.000Z welcome_turnaround
 WELCOME TO RJBB
 ------------------------
 TURNAROUND 95 MIN
 NEXT SJX823
-STD 1155Z
+STD 1205Z
 CLEANING AND CATERING
 ON THE WAY
 ........................

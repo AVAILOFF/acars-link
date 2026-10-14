@@ -120,7 +120,8 @@ describe('replay through the core', () => {
   it('phase sequence of the normal synthetic flight (docs/04 snapshot)', () => {
     expect(r.phases).toMatchSnapshot();
     expect(r.finalPhase).toBe('ON_BLOCK');
-    expect(r.delayMs).toBe(0);
+    // No late start; the only delay is the slot of slot_ctot (T43, CTOT − planned OFF).
+    expect(r.delayMs).toBe(25 * 60_000);
   });
 
   it('timeline report (brief)', () => {

@@ -2,7 +2,7 @@
 
 exports[`the whole set with live data on the normal flight > snapshot 1`] = `
 [
-  "2026-10-08T07:25:00.000Z takeoff_data
+  "2026-10-08T07:41:00.000Z takeoff_data
 TAKEOFF DATA
 ------------------------
 SJX822 RCTP RWY 05R

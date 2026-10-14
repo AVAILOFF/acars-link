@@ -1,0 +1,24 @@
+# ETA in flight with telemetry (T44): ground speed and the distance left to the destination.
+id: cmd_eta_gs
+version: 1
+category: ops
+title: "Pilot command: ETA, by ground speed"
+enabled_by_default: true
+trigger:
+  on: command
+  command: ETA
+conditions:
+  - "flight.eta != null"
+  - "flight.dist_to_dest_nm != null"
+  - "tm.gs_kt >= 60"
+  - "flight.on == null"
+steps:
+  - send:
+      header: ETA {ofp.dest}
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        ETA {flight.eta_live|hhmm}Z STA {ofp.sched_in|hhmm}Z
+        GS {tm.gs_kt} KT {flight.dist_to_dest_nm} NM TO GO
+        GATE {ops.arr_gate}
+        TRANSFER PAX {ops.transfer_pax}
+        CONNECTIONS ADVISED

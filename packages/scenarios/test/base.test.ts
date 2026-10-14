@@ -172,6 +172,19 @@ describe('the whole set on one flight', () => {
     expect(textOf(r, 'arrival_info')).toContain(`GATE ${gate} CONFIRMED`);
   });
 
+  it('slot moves the schedule: delay = CTOT − planned OFF (T43)', () => {
+    const set = r.events.find((e) => e.type === 'SET' && e.name === 'flight.delay_min');
+    expect(set).toMatchObject({ id: 'slot_ctot', applied: true });
+    const planned =
+      kg.times.schedOffMs ?? kg.times.schedOutMs + (kg.times.taxiOutSec ?? 600) * 1000;
+    const ctot = /CTOT (\d{4})Z/.exec(textOf(r, 'slot_ctot'))?.[1] ?? '';
+    const slotMin = num(textOf(r, 'slot_ctot'), /DELAY (\d+) MIN/);
+    expect(new Date(planned + slotMin * 60_000).toISOString().slice(11, 16).replace(':', '')).toBe(
+      ctot,
+    );
+    expect((set as { value: unknown }).value).toBe(slotMin);
+  });
+
   it('next_leg and aircraft_change never both; each happens for some seeds', () => {
     const counts = { next_leg: 0, aircraft_change: 0 };
     for (let seed = 1; seed <= 30; seed++) {
@@ -237,6 +250,23 @@ describe('late start (docs/05 "Поздний старт")', () => {
     const ctot = /CTOT (\d{4})Z/.exec(textOf(r, 'slot_ctot'))?.[1] ?? '';
     const offMs = (kg.times.schedOffMs ?? STD) + 30 * MIN;
     expect(ctot > hhmm(offMs) || ctot < hhmm(STD)).toBe(true);
+  });
+
+  it('late arrival: welcome_turnaround shortens the turn to the time left (T43)', () => {
+    const r = lateRun(5);
+    const welcome = textOf(r, 'welcome_turnaround');
+    const target = /QUICK TURN, TARGET (\d+)\s+MIN/.exec(welcome);
+    expect(target, welcome).not.toBeNull();
+    // The message goes 2 min after IN.
+    const inMs = (r.out.find((m) => m.scenarioId === 'welcome_turnaround')?.t ?? 0) - 2 * MIN;
+    const std = /STD (\d{4})Z/.exec(welcome)?.[1] ?? '';
+    expect(Number(target?.[1])).toBeGreaterThan(0);
+    expect(Number(target?.[1])).toBeLessThan(75);
+    expect(hhmm(inMs + Number(target?.[1]) * MIN)).toBe(std);
+    // On time the turn is the usual one.
+    expect(textOf(fly(FLIGHTS[0] as Case, all), 'welcome_turnaround')).toMatch(
+      /TURNAROUND \d+ MIN|QUICK/,
+    );
   });
 
   it('started in time (35 min or more before STD): no delay, as before', () => {

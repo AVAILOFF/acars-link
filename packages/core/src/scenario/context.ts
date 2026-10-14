@@ -117,6 +117,7 @@ export const CONTEXT_VARIABLES = [
   'flight.delay_min',
   'flight.minutes_since_off',
   'flight.eta',
+  'flight.eta_live',
   'flight.block_min',
   'flight.air_min',
   'flight.divert',
@@ -204,6 +205,8 @@ export const CONTEXT_VARIABLES = [
   'ops.turnaround_min',
   'ops.next_flight',
   'ops.next_std',
+  'ops.turn_avail_min',
+  'ops.quick_turn',
   'ops.cabin_crew',
   // irregular-scenario data (T14, irregular-data.ts); `*_margin_min` against the estimates
   // (the delay included), negative = too late
@@ -439,6 +442,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
     ...specialVariables(input),
     ...aircraftVariables(ofp.aircraft.icao),
     ...irrVariables(input),
+    ...t4344Variables(input, toDest, gs),
     'load.pax': load.pax,
     'load.pax_lmc': load.paxLmc,
     'load.cargo_kg': load.cargoKg,
@@ -644,4 +648,29 @@ export function metarTempC(metar: string | null): number | null {
   if (m === null) return null;
   const v = m[1] as string;
   return v.startsWith('M') ? -Number(v.slice(1)) : Number(v);
+}
+
+/** T43/T44 variables (kept apart from the big literal in {@link buildContext}). */
+function t4344Variables(
+  input: ContextInput,
+  toDest: number | null,
+  gs: number | null,
+): Record<'flight.eta_live' | 'ops.turn_avail_min' | 'ops.quick_turn', Value> {
+  const { now, oooi, ofp } = input;
+  const ops = input.data.ops;
+  return {
+    // By ground speed and the distance left when both are known, else the planned one.
+    'flight.eta_live':
+      oooi.OFF === null
+        ? null
+        : toDest !== null && gs !== null && oooi.ON === null
+          ? now + Math.round((toDest / gs) * 3_600_000)
+          : oooi.OFF + ofp.times.estTimeEnrouteSec * 1000,
+    // Time from the actual IN to the next STD; a turn shorter than the usual one is "quick".
+    'ops.turn_avail_min': oooi.IN === null ? null : Math.round((ops.nextStd - oooi.IN) / 60_000),
+    'ops.quick_turn':
+      oooi.IN !== null &&
+      ops.nextStd > oooi.IN &&
+      ops.nextStd - oooi.IN < ops.turnaroundMin * 60_000,
+  };
 }

@@ -851,6 +851,13 @@ export class ScenarioEngine {
           value = icao;
           refresh = true;
         }
+      } else if (a.target === 'flight.delay_min') {
+        const min = typeof value === 'number' ? value : Number(value);
+        applied = input.oooi.OUT === null && Number.isFinite(min) && min >= 0 && min <= 600;
+        if (applied) {
+          this.setDelay(Math.max(this.st.delayMs ?? 0, Math.round(min) * 60_000));
+          refresh = true;
+        }
       } else if (a.target === 'ops.arr_gate') {
         const gate = typeof value === 'string' ? value.trim().toUpperCase() : '';
         applied = /^[A-Z0-9]{1,6}$/.test(gate);

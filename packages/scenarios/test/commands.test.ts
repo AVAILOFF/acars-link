@@ -210,7 +210,7 @@ describe('a conversation on the normal flight', () => {
     expect(answer('DELAY 15 LATE CATERING')).toEqual(['cmd_delay']);
     expect(answer('DIVERT RJOO')).toEqual([OPS_REPLY_ID]); // on the ground
     expect(answer('REQ REFUEL')).toEqual([OPS_REPLY_ID]);
-    expect(answer('ETA', 1)).toEqual(['cmd_eta']);
+    expect(answer('ETA', 1)).toEqual(['cmd_eta_gs']); // with telemetry: by ground speed (T44)
     expect(answer('REQ LS')).toEqual(['cmd_req_loadsheet']);
     expect(answer('DELAY 5')).toEqual([OPS_REPLY_ID]); // off block already
     expect(answer('DIVERT RJOO', 1)).toEqual(['cmd_divert']);

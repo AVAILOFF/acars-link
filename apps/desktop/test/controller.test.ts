@@ -261,7 +261,7 @@ describe('AppController', () => {
     const list = await app.listScenarios();
     // 15 base + 12 commands (T12) + 4 live-data (T13) + 2 launches (T28) + 22 irregular (T14)
     // + 1 sim (T22) + 10 special events (T29)
-    expect(list).toHaveLength(67);
+    expect(list).toHaveLength(68);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');

@@ -20,3 +20,6 @@ steps:
         CTOT {ops.ctot|hhmm}Z
         DELAY {ops.slot_delay_min} MIN
         PLAN BOARDING TO SUIT
+  # The slot moves the estimates like a pilot DELAY (T43): est_off = CTOT.
+  - set:
+      flight.delay_min: "{ops.slot_delay_min}"

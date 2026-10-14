@@ -1,4 +1,5 @@
-# Welcome at the destination and the turnaround plan.
+# Welcome at the destination and the turnaround plan. After a late arrival the turn is
+# shortened to the time left before the next STD (T43); past the STD the new time is open.
 id: welcome_turnaround
 version: 1
 category: ops
@@ -11,12 +12,38 @@ conditions:
   - "flight.divert == null"
 steps:
   - wait: { minutes: 2 }
-  - send:
-      header: "WELCOME TO {ofp.dest}"
-      body: |
-        TURNAROUND {ops.turnaround_min} MIN
-        NEXT {ops.next_flight}
-        STD {ops.next_std|hhmm}Z
-        CLEANING AND CATERING
-        ON THE WAY
-      footer: "STATION OPS {name:ops}"
+  - wait: { until: "ops.quick_turn", timeout_min: 0.02 }
+  - branch:
+      MET:
+        - send:
+            header: "WELCOME TO {ofp.dest}"
+            body: |
+              QUICK TURN, TARGET {ops.turn_avail_min} MIN
+              NEXT {ops.next_flight}
+              STD {ops.next_std|hhmm}Z
+              CLEANING AND CATERING
+              ON THE WAY
+            footer: "STATION OPS {name:ops}"
+      TIMEOUT:
+        - wait: { until: "ops.turn_avail_min <= 0", timeout_min: 0.02 }
+        - branch:
+            MET:
+              - send:
+                  header: "WELCOME TO {ofp.dest}"
+                  body: |
+                    NEXT {ops.next_flight}
+                    STD {ops.next_std|hhmm}Z PASSED
+                    NEW TIME WILL BE ADVISED
+                    CLEANING AND CATERING
+                    ON THE WAY
+                  footer: "STATION OPS {name:ops}"
+            TIMEOUT:
+              - send:
+                  header: "WELCOME TO {ofp.dest}"
+                  body: |
+                    TURNAROUND {ops.turnaround_min} MIN
+                    NEXT {ops.next_flight}
+                    STD {ops.next_std|hhmm}Z
+                    CLEANING AND CATERING
+                    ON THE WAY
+                  footer: "STATION OPS {name:ops}"
