@@ -23,6 +23,7 @@ export function SettingsView() {
         {!creds.secureStorage && <p className="hint warn">{t('set.noSecure')}</p>}
         <UsernameForm initial={creds.simbriefUsername} />
         <HoppieCodeForm isSet={creds.hoppieCodeSet} />
+        <AerodataboxKeyForm isSet={creds.aerodataboxKeySet} />
       </section>
       <section className="panel narrow" aria-labelledby="net-title">
         <h2 id="net-title" className="panel-title">
@@ -35,7 +36,7 @@ export function SettingsView() {
   );
 }
 
-function Saved({ what }: { what: 'username' | 'code' | 'settings' }) {
+function Saved({ what }: { what: 'username' | 'code' | 'adbKey' | 'settings' }) {
   const t = useT();
   const saved = useStore((s) => s.saved === what);
   return saved ? (
@@ -125,6 +126,61 @@ function HoppieCodeForm({ isSet }: { isSet: boolean }) {
         <Saved what="code" />
       </div>
       <p className="hint">{t('set.hoppieHint')}</p>
+    </form>
+  );
+}
+
+/** The user's RapidAPI key for AeroDataBox: onward flights (T30, docs/07 C1, C3, C4). */
+function AerodataboxKeyForm({ isSet }: { isSet: boolean }) {
+  const t = useT();
+  const [value, setValue] = useState('');
+  const busy = useStore((s) => s.busy);
+  const { setAerodataboxKey, clearAerodataboxKey } = useStore.getState();
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    void setAerodataboxKey(value).then((ok) => {
+      if (ok) setValue('');
+    });
+  };
+  return (
+    <form className="field" onSubmit={submit}>
+      <label htmlFor="adb-key">
+        {t('set.adbKey')}{' '}
+        <span className={isSet ? 'badge ok' : 'badge'}>
+          {t(isSet ? 'set.hoppieSet' : 'set.hoppieNotSet')}
+        </span>
+      </label>
+      <div className="row">
+        <input
+          id="adb-key"
+          type="password"
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={t('set.adbKeyPlaceholder')}
+          value={value}
+          onChange={(e) => setValue(e.currentTarget.value)}
+        />
+        <button type="submit" className="btn" disabled={busy !== null || value.trim() === ''}>
+          {t('set.save')}
+        </button>
+        {isSet && (
+          <button
+            type="button"
+            className="btn ghost"
+            disabled={busy !== null}
+            onClick={() => void clearAerodataboxKey()}
+          >
+            {t('set.clear')}
+          </button>
+        )}
+        <Saved what="adbKey" />
+      </div>
+      <p className="hint">
+        {t('set.adbKeyHint')}{' '}
+        <a href="https://aerodatabox.com/" target="_blank" rel="noreferrer">
+          aerodatabox.com
+        </a>
+      </p>
     </form>
   );
 }

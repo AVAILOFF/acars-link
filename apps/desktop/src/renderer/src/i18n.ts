@@ -219,6 +219,10 @@ const en = {
   'set.hoppieSet': 'Saved',
   'set.hoppieNotSet': 'Not set',
   'set.hoppiePlaceholder': 'Enter a new code',
+  'set.adbKey': 'AeroDataBox key (RapidAPI)',
+  'set.adbKeyPlaceholder': 'Enter a RapidAPI key',
+  'set.adbKeyHint':
+    'Optional: real onward flights of the airline at the destination. Your own key of the free Basic plan on RapidAPI (400 units a month, one request per flight), for personal non-commercial use only. Stored encrypted by the OS; needs Live data. Flight data by',
   'set.save': 'Save',
   'set.clear': 'Remove',
   'set.saved': 'Saved',
@@ -502,6 +506,10 @@ const ru: Record<MessageKey, string> = {
   'set.hoppieSet': 'Сохранён',
   'set.hoppieNotSet': 'Не задан',
   'set.hoppiePlaceholder': 'Введите новый код',
+  'set.adbKey': 'Ключ AeroDataBox (RapidAPI)',
+  'set.adbKeyPlaceholder': 'Введите ключ RapidAPI',
+  'set.adbKeyHint':
+    'Необязательно: реальные стыковочные рейсы авиакомпании в пункте назначения. Ваш собственный ключ бесплатного тарифа Basic на RapidAPI (400 единиц в месяц, один запрос за рейс), только для личного некоммерческого использования. Хранится зашифрованным средствами ОС; нужны «Живые данные». Данные о рейсах —',
   'set.save': 'Сохранить',
   'set.clear': 'Удалить',
   'set.saved': 'Сохранено',

@@ -142,7 +142,7 @@ REQ:M.<мах> FL<эшелон>[
 | VATSpy Data Project | границы FIR, префиксы позывных центров (ROPS, T23); FIR и страна аэропортов (T24) | нет | CC BY-SA 4.0, сверено 2026-10-09, ниже |
 | OurAirports | частоты аэропорта вылета (DCL/PDC, T24); страна аэропорта назначения (T29); координаты ВПП (T34, `runways.csv`); условные станции VHF (T31, `airports.csv`: large/medium со scheduled service, в коридоре 300 NM от маршрута, кэш 30 дней) | нет | public domain, сверено 2026-10-09 и 2026-10-15, выше |
 | FAA NOTAM API | NOTAM | да | только через бэкенд |
-| AeroDataBox (RapidAPI) | реальное расписание прилётов | да, платно | не используется: T30 отменена 2026-10-09 |
+| AeroDataBox (RapidAPI) | вылеты аэропорта назначения (FIDS) — стыковочные рейсы (T30) | да, ключ пользователя (бесплатный Basic: 400 единиц/мес) | условия ред. 2026-10-11, сверено 2026-10-15: атрибуция при бесплатном тарифе, хранение ≤ 7 дней, только некоммерческое использование; ниже |
 | OpenAI / Anthropic | оживление текста | да | только через бэкенд, см. CLAUDE.md инвариант 8 |
 
 Все адаптеры: таймаут, кэш, graceful degradation (сценарий, которому не хватило данных, пропускается или использует фолбэк-шаблон).
@@ -167,7 +167,8 @@ REQ:M.<мах> FL<эшелон>[
 - **Overpass**: `POST https://overpass-api.de/api/interpreter`, `data=[out:json][timeout:25];nw["aeroway"~"^(gate|parking_position)$"](around:4000,LAT,LON);out tags;`, берётся тег `ref` (`A12;A13` → два, `Gate 5` → `5`). Правила: < 10 000 запросов и < 1 ГБ в сутки. Во время T13 публичный сервер и зеркала отвечали 504/500 — **формат живого ответа `[ПРОВЕРИТЬ]`**, фикстура синтетическая.
 - **Расписание** (`ExternalDataService` тикает от главного цикла приложения, своих таймеров нет): погода аэропортов OFP — при загрузке OFP и каждые 10 мин (+ аэропорт из `REQ WX` сразу); VATSIM — при старте и каждые 5 мин от набора до захода; EONET — при старте и раз в час; стоянки — один раз. Кэш: погода 5 мин, VATSIM 1 мин, EONET 30 мин, стоянки 30 дней; в приложении — файлы в `<userData>/cache` (значения проверяются при чтении). После сбоя — повтор через 2/2/15/10 мин, стоянки — не более 3 попыток за рейс. Один запрос на источник одновременно. Сбой источника — одна запись в ленте (`data_failed`), восстановление — `data_restored`; сообщения при этом идут по OFP.
 - User-Agent: `ACARS-Sim/0.1 (flight simulator ACARS; personal use)`. Настройка «Живые данные» (по умолчанию включена); выключено — в сеть ходят только SimBrief и Hoppie.
-- Не сделано в T13: IVAO (`[ПРИ РЕЛИЗЕ]`), FAA NOTAM. TheSpaceDevs — T28. AeroDataBox — не будет (T30 отменена).
+- **AeroDataBox (T30)**, сверено по OpenAPI v1.15.4.0 2026-10-15: `GET https://aerodatabox.p.rapidapi.com/flights/airports/icao/{ICAO}/{fromLocal}/{toLocal}?direction=Departure&withLeg=false&withCancelled=false&withCodeshared=true&withCargo=false&withPrivate=false&withLocation=false` (местное время `YYYY-MM-DDTHH:mm`, окно ≤ 12 ч), заголовки `X-RapidAPI-Key` (ключ пользователя из `SecretStore`) и `X-RapidAPI-Host: aerodatabox.p.rapidapi.com`; Tier 2 — 2 единицы. Ответ `{departures: [{number, airline: {icao}, codeshareStatus, status, isCargo, movement: {airport: {icao}, scheduledTime: {utc}, terminal, gate}}]}`, **204** — вылетов нет. Один запрос за рейс при старте (окно STA+30 мин…STA+4 ч), без дискового кэша; повтор один — при 5xx/таймауте, 401/429 — до конца рейса без запросов. Выбор рейса и допущения — карточка T30 (`07`, C1–C11). Код — `packages/data-sources/src/aerodatabox.ts`.
+- Не сделано в T13: IVAO (`[ПРИ РЕЛИЗЕ]`), FAA NOTAM. TheSpaceDevs — T28. AeroDataBox — T30 (переоткрыта 2026-10-15).
 
 ### Границы FIR (T23)
 

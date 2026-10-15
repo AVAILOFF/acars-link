@@ -1,5 +1,12 @@
 import { airlineCountry, airlineType } from '../ext/airline.js';
 import {
+  CONNEX_ATTRIBUTION,
+  CONNEX_LIST_MAX,
+  connexCandidates,
+  connexGate,
+  pickConnection,
+} from '../ext/connex.js';
+import {
   ATC_MAX_AGE_MS,
   type ExtState,
   type LaunchStatus,
@@ -214,6 +221,9 @@ export const CONTEXT_VARIABLES = [
   'ext.launch_done',
   'ext.launch_ahead_nm',
   'ext.launch_off_nm',
+  // onward departures of the airline (T30, AeroDataBox)
+  'ext.connex_list',
+  'ext.connex_count',
   // special events (T29): `special-vars.ts`
   ...SPECIAL_VARIABLES,
   // final load (ops-data.ts)
@@ -265,6 +275,9 @@ export const CONTEXT_VARIABLES = [
   'irr.connect_pax',
   'irr.connect_margin_min',
   'irr.connect_left_min',
+  'irr.connect_dest',
+  'irr.connect_gate',
+  'irr.connect_src',
   'irr.tanker_kg',
   'irr.tanker_block_kg',
   'irr.tanker_ldw_kg',
@@ -699,7 +712,23 @@ function extVariables(input: ContextInput): Record<ExtVariable, Value> {
     'ext.launch_done': ln === null ? null : ln.status !== 'go',
     'ext.launch_ahead_nm': ln?.ahead ?? null,
     'ext.launch_off_nm': ln?.offNm ?? null,
+    ...connexVariables(input),
   };
+}
+
+/** `ext.connex_*` (T30): the first departures of the airline from the destination, one per line. */
+function connexVariables(
+  input: ContextInput,
+): Record<'ext.connex_list' | 'ext.connex_count', Value> {
+  const list = connexCandidates(input.ext?.connex, input.ofp).slice(0, CONNEX_LIST_MAX);
+  if (list.length === 0) return { 'ext.connex_list': null, 'ext.connex_count': 0 };
+  const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16).replace(':', '');
+  const lines = list.map((f) =>
+    [f.number.padEnd(7), f.dest, `${hhmm(f.std as number)}Z`, connexGate(f) ?? '']
+      .join(' ')
+      .trimEnd(),
+  );
+  return { 'ext.connex_list': lines.join('\n'), 'ext.connex_count': list.length };
 }
 
 type IrrVariable = Extract<
@@ -721,6 +750,9 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
   const i = input.irr;
   const t = ofp.times;
   const offset = ofp.destination.utcOffsetH;
+  // A real departure of the airline (T30, AeroDataBox) wins over the synthetic one.
+  const real = i === undefined ? null : pickConnection(input.ext?.connex, ofp, input.seed ?? 0);
+  const std = real?.std ?? i?.connectStd ?? null;
   return {
     'flight.nearest_altn': nearest?.icao ?? null,
     'flight.nearest_altn_nm': nearest?.nm ?? null,
@@ -730,11 +762,21 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
     // A confirmed flight (test hook) by its number; an airline route only (OpenFlights) as
     // `ONWARD FLT`; else none: no invented flights (T43).
     'irr.connect_flight':
-      i?.connectKnown === true ? i.connectFlight : i?.onwardRoute === true ? 'ONWARD FLT' : null,
-    'irr.connect_std': i?.connectStd ?? null,
+      real !== null
+        ? real.number
+        : i?.connectKnown === true
+          ? i.connectFlight
+          : i?.onwardRoute === true
+            ? 'ONWARD FLT'
+            : null,
+    'irr.connect_std': std,
     'irr.connect_pax': i?.connectPax ?? null,
-    'irr.connect_margin_min': i === undefined ? null : minutes(i.connectStd - t.estInMs),
-    'irr.connect_left_min': i === undefined ? null : minutes(i.connectStd - input.now),
+    'irr.connect_margin_min': std === null ? null : minutes(std - t.estInMs),
+    'irr.connect_left_min': std === null ? null : minutes(std - input.now),
+    'irr.connect_dest': real?.dest ?? null,
+    'irr.connect_gate': real === null ? null : connexGate(real),
+    // C4: attribution line of a message with AeroDataBox data; empty (dropped) otherwise.
+    'irr.connect_src': real === null ? '' : CONNEX_ATTRIBUTION,
     'irr.tanker_kg': i?.tankerKg ?? null,
     'irr.tanker_block_kg': i === undefined ? null : ofp.fuel.planRampKg + i.tankerKg,
     'irr.tanker_ldw_kg':

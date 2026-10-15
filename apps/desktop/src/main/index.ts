@@ -18,7 +18,7 @@ import { AppController } from './controller.js';
 import { FileDataCache } from './data-cache.js';
 import { FlagsStore } from './flags.js';
 import { registerIpc } from './ipc.js';
-import { fileRecordings } from './recording.js';
+import { fileRecordings, purgeOldConnex } from './recording.js';
 import { BASE_SCENARIOS } from './scenario-sources.js';
 import { type Cipher, SecretStore } from './secrets.js';
 import { defaultSettings, SettingsStore } from './settings.js';
@@ -112,6 +112,8 @@ async function main(): Promise<void> {
 
   const userData = app.getPath('userData');
   const recordings = join(userData, 'recordings');
+  // T30 C9: AeroDataBox data older than 7 days leave the recordings.
+  purgeOldConnex(recordings, Date.now());
   const http = fetchHttpClient();
   const clock = { now: () => Date.now() };
   let controller: AppController | null = null;

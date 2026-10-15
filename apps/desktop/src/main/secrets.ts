@@ -14,8 +14,9 @@ export interface Cipher {
   decrypt(data: Uint8Array): Promise<string>;
 }
 
-export type SecretKey = 'simbriefUsername' | 'hoppieLogon';
-const KEYS: readonly SecretKey[] = ['simbriefUsername', 'hoppieLogon'];
+/** `aerodataboxKey`: the user's RapidAPI key for AeroDataBox (T30). */
+export type SecretKey = 'simbriefUsername' | 'hoppieLogon' | 'aerodataboxKey';
+const KEYS: readonly SecretKey[] = ['simbriefUsername', 'hoppieLogon', 'aerodataboxKey'];
 
 interface SecretFile {
   readonly v: 1;

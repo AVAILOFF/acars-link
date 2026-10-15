@@ -25,3 +25,4 @@ steps:
         MARGIN {irr.connect_margin_min} MIN
         EXPEDITE ARRIVAL IF ABLE
         TRANSFER STAFF AT {ops.gate_place}
+        {irr.connect_src}
