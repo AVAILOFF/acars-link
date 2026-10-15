@@ -1,0 +1,30 @@
+# The hard landing confirmed on an earlier flight (hard_landing_check): before this flight of
+# the same aircraft maintenance reports the inspection done. The outcome text is a game
+# convention (no damage found); the AMM limits are not quoted.
+id: hard_landing_followup
+version: 1
+category: irregular
+title: Hard landing inspection done
+title_ru: "Осмотр после жёсткой посадки выполнен"
+description: "Before a flight on the same aircraft after a confirmed hard landing: maintenance reports the inspection done and the aircraft released."
+description_ru: "Перед рейсом на том же борту после подтверждённой жёсткой посадки: техслужба сообщает, что осмотр выполнен и борт выпущен."
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -40 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "flags.hardland_reg != null"
+  - "flags.hardland_reg == ofp.ac_reg"
+  - "flags.hardland_date != flight.date"
+steps:
+  - send:
+      header: MAINT CONTROL
+      body: |
+        {ofp.ac_reg}
+        HARD LANDING
+        {flags.hardland_date|ddmmm}
+        INSPECTION DONE
+        NO DAMAGE FOUND
+        ACFT RELEASED
+  - set: { flags.hardland_reg: null, flags.hardland_date: null }

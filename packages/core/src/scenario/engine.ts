@@ -287,6 +287,8 @@ export interface ScenarioEngineState {
   readonly forced: readonly string[];
   /** Fuel seen before OUT (T43, `fuel_slip`); absent in older states. */
   readonly fuel?: FuelTrack | null;
+  /** The touchdown of this flight, ft/min (T46); absent in older states. */
+  readonly touchdown?: { readonly fpm: number | null } | null;
   /** Part of the delay a `set: flight.delay_min` added (the slot), ms; absent in older states. */
   readonly delayRaisedMs?: number;
   /** What the delay is made of, with IATA delay codes (T43); absent in older states. */
@@ -377,6 +379,8 @@ export class ScenarioEngine {
     gate: string | null;
     forced: string[];
     fuel: FuelTrack | null;
+    /** The touchdown of this flight (T46): the descent rate the sim kept, ft/min; null = none. */
+    touchdown: { fpm: number | null } | null;
     delayRaisedMs: number;
     delayParts: DelayPart[];
   };
@@ -433,6 +437,7 @@ export class ScenarioEngine {
       gate: null,
       forced: [],
       fuel: null,
+      touchdown: null,
       delayRaisedMs: 0,
       delayParts: [],
     };
@@ -467,6 +472,8 @@ export class ScenarioEngine {
     e.st.forced = [...(copy.forced ?? [])];
     // Fields added with T43.
     e.st.fuel = copy.fuel ?? null;
+    // Fields added with T46.
+    e.st.touchdown = copy.touchdown ?? null;
     e.st.delayRaisedMs = copy.delayRaisedMs ?? 0;
     e.st.delayParts = [...(copy.delayParts ?? [])];
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
@@ -543,6 +550,18 @@ export class ScenarioEngine {
     }
   }
 
+  /**
+   * The sim's touchdown rate (T46), read once when ON is recorded: the SimVar keeps the last
+   * landing's value, so before that moment it may belong to an earlier flight. Zero or no field
+   * = no reading.
+   */
+  private trackTouchdown(input: EngineTickInput): void {
+    const tm = input.telemetry;
+    if (this.st.touchdown !== null || input.oooi.ON === null || tm === null) return;
+    const fpm = tm.touchdownFpm;
+    this.st.touchdown = { fpm: fpm !== undefined && fpm > 0 ? fpm : null };
+  }
+
   /** `flags.*` now (T14): hand them to the next flight. */
   get flags(): Readonly<Record<string, Value>> {
     return JSON.parse(JSON.stringify(this.st.flags)) as Record<string, Value>;
@@ -570,6 +589,7 @@ export class ScenarioEngine {
       if (this.st.ext.stands !== before) this.rebuildData();
     }
     this.trackFuel(input);
+    this.trackTouchdown(input);
     const inbox = [...this.st.inbox, ...(input.inbound ?? [])];
     const forced = [...this.st.forced, ...(input.force ?? [])];
     if (input.telemetryLost) {
@@ -653,6 +673,7 @@ export class ScenarioEngine {
       polyline: this.polyline,
       seed: this.seed,
       fuel: this.st.fuel,
+      touchdownFpm: this.st.touchdown?.fpm ?? null,
       irr: { ...this.irr, newGate: this.newGate, connectKnown: this.syntheticConnections },
     });
   }

@@ -1,0 +1,70 @@
+# Fuel against the plan (T46): in cruise the fuel on board is compared with the OFP's planned
+# fuel on board at the same place of the route (navlog `fuel_plan_onboard`, interpolated by the
+# distance flown). More than 5 % of the plan or 500 kg below (the larger; thresholds set by the
+# user 2026-10-15) -> dispatch asks for the reason. Once per flight. No plan in the OFP or no
+# telemetry - nothing is sent. The advice is generic: no numbers except the data.
+id: fuel_monitoring
+version: 1
+category: irregular
+title: Fuel below plan
+title_ru: "Топливо ниже плана"
+description: "In cruise, if the fuel on board is below the OFP plan at that place by more than 5 % (at least 500 kg), dispatch asks for the reason: WX, ATC, LEAK or NORMAL."
+description_ru: "В крейсере, если топливо на борту ниже плана OFP в этой точке больше чем на 5 % (не менее 500 кг), диспетчер спрашивает причину: WX, ATC, LEAK или NORMAL."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "flight.divert == null"
+steps:
+  - wait:
+      until: "phase == 'CRUISE' && flight.fuel_below_plan_kg != null && flight.fuel_below_plan_kg > flight.fuel_plan_tol_kg"
+      timeout_min: 720
+  - branch:
+      MET:
+        - send:
+            header: DISPATCH
+            body: |
+              FUEL BELOW PLAN
+              FOB {tm.fuel_kg} KG
+              {flight.fuel_below_plan_kg} KG LESS
+              THAN PLANNED HERE
+              REPLY REASON
+              WX ATC LEAK NORMAL
+        - wait:
+            reply: { options: [WX, ATC, LEAK, NORMAL], timeout_min: 15, default: NORMAL }
+        - branch:
+            WX:
+              - send:
+                  header: DISPATCH
+                  body: |
+                    NOTED WX
+                    RECHECK FUEL AT {ofp.dest}
+                    AND {ofp.altn}
+                    ADVISE IF BELOW REQ
+            ATC:
+              - send:
+                  header: DISPATCH
+                  body: |
+                    NOTED ATC
+                    REQUEST DIRECT OR
+                    BETTER LEVEL
+                    ADVISE IF BELOW REQ
+            LEAK:
+              - send:
+                  header: DISPATCH
+                  body: |
+                    FUEL LEAK SUSPECTED
+                    CHECK FUEL SYSTEM
+                    NEAREST ALTN
+                    {flight.nearest_altn|or:NONE}
+                    {flight.nearest_altn_nm|or:-} NM
+                    DIVERT IF CONFIRMED
+            NORMAL:
+              - send:
+                  header: DISPATCH
+                  body: |
+                    NOTED
+                    MONITOR FUEL
+                    ADVISE IF DEVIATION
+                    INCREASES

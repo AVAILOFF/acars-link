@@ -91,6 +91,7 @@ Clock: интерфейс `now(): number` (мс UTC). В ядре только `
 | `simRate` | SIMULATION RATE | number |
 | `paused` | системное событие Pause | bool |
 | `aircraftTitle` | TITLE | string |
+| `touchdownFpm` | PLANE TOUCHDOWN NORMAL VELOCITY (T46) | **feet per second** × 60 → ft/мин; сим держит значение до следующего касания; в TS поле необязательное (старые записи) |
 
 Пример — `reference/telemetry.sample.json`.
 

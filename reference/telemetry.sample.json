@@ -21,5 +21,6 @@
   "xpdrState": 1,
   "simRate": 1,
   "paused": false,
-  "aircraftTitle": "FenixA320_DLH"
+  "aircraftTitle": "FenixA320_DLH",
+  "touchdownFpm": 192
 }

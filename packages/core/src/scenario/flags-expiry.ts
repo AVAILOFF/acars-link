@@ -25,6 +25,8 @@ export const FLAG_FAMILIES: readonly {
   { prefix: 'crew_discretion', days: 30, names: ['crew_discretion', 'crew_discretion_date'] },
   { prefix: 'rush', days: 3, names: ['rush_bags', 'rush_from', 'rush_to', 'rush_date'] },
   // After a diversion (T44): the next flight from the diversion airport, within 3 days.
+  // An inspection after a confirmed hard landing (T46): done before the next flight; 3 days (game assumption).
+  { prefix: 'hardland', days: 3, names: ['hardland_reg', 'hardland_date'] },
   { prefix: 'recovery', days: 3, names: ['recovery_airport', 'recovery_flight', 'recovery_date'] },
 ];
 

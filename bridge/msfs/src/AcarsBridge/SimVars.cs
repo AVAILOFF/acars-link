@@ -18,6 +18,9 @@ public sealed record SimVarDef(string Name, string Unit);
 ///   Enum 0 Off, 1 Standby, 2 Test, 3 On, 4 Alt, 5 Ground. ":1" checked in MSFS 2024 (AUTO on the
 ///   ground → 5). [ПРОВЕРИТЬ человеком в 2020]</item>
 /// <item>SIMULATION RATE is an environment variable, unit Number.</item>
+/// <item>PLANE TOUCHDOWN NORMAL VELOCITY (T46): "speed according to ground normal from the last touchdown",
+///   feet per second, not settable (MSFS 2024 SDK docs, 2026-10-15). The sim keeps it until the next
+///   touchdown; the sign (down = positive?) is [ПРОВЕРИТЬ человеком], the mapper takes the magnitude.</item>
 /// </list>
 /// TITLE is requested separately as STRING256 (see SimConnectSource).
 /// </summary>
@@ -46,7 +49,8 @@ public static class SimVars
     public const int ExitFirst = Flaps + 1; // 23 .. 26
     public const int Xpdr = ExitFirst + Exits; // 27
     public const int SimRate = Xpdr + 1; // 28
-    public const int Count = SimRate + 1;
+    public const int Touchdown = SimRate + 1; // 29
+    public const int Count = Touchdown + 1;
 
     public static readonly IReadOnlyList<SimVarDef> Definitions = Build();
 
@@ -75,6 +79,7 @@ public static class SimVars
         for (var i = 0; i < Exits; i++) d.Add(new($"EXIT OPEN:{i}", "percent"));
         d.Add(new("TRANSPONDER STATE:1", "Enum"));
         d.Add(new("SIMULATION RATE", "number"));
+        d.Add(new("PLANE TOUCHDOWN NORMAL VELOCITY", "feet per second"));
         return d;
     }
 }
@@ -129,6 +134,7 @@ public static class TelemetryMapper
             XpdrState = (int)Math.Round(f[SimVars.Xpdr]),
             SimRate = Round(f[SimVars.SimRate], 3),
             Paused = paused,
+            TouchdownFpm = Round(Math.Abs(f[SimVars.Touchdown]) * 60, 0),
             AircraftTitle = CString(f.Title),
         };
     }

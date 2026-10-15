@@ -65,6 +65,11 @@ export interface OfpFix {
    * flight and airway limits applied (M750 in RJJJ: FL270 and up). Null when absent.
    */
   readonly validLevelsFt: readonly number[] | null;
+  /**
+   * The planned fuel on board at this fix (`fuel_plan_onboard`), kg (T46). Null when the OFP
+   * has none; absent in OFPs parsed before T46.
+   */
+  readonly planFobKg?: number | null;
 }
 
 /** A planned step climb (T26): at `ident`, climb to `levelFt`. */

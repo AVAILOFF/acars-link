@@ -120,3 +120,18 @@ export function withGap(
   const all = source(flight);
   return rebuild(flight, [...all.slice(0, options.atIndex), ...all.slice(options.atIndex + n)]);
 }
+
+/**
+ * The sim's "touchdown normal velocity" (T46): from the first sample on the ground after the
+ * flight was airborne, every sample carries `touchdownFpm` (the SimVar keeps the last value).
+ */
+export function withTouchdown(flight: SyntheticFlight, fpm: number): SyntheticFlight {
+  let airborne = false;
+  let landed = false;
+  const snapshots = flight.snapshots.map((s) => {
+    if (!s.onGround) airborne = true;
+    else if (airborne) landed = true;
+    return landed ? { ...s, touchdownFpm: fpm } : s;
+  });
+  return { snapshots, stages: flight.stages };
+}

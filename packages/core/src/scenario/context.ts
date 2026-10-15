@@ -8,7 +8,7 @@ import {
   sortStations,
 } from '../ext/data.js';
 import { distanceNm, type LatLon } from '../geo/geo.js';
-import type { Ofp } from '../ofp/types.js';
+import type { Ofp, OfpFix } from '../ofp/types.js';
 import type { FlightPhase, OooiKind } from '../phase/fsm.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import { aircraftVariables } from './aircraft.js';
@@ -235,6 +235,9 @@ export const CONTEXT_VARIABLES = [
   'flight.fuel_before_kg',
   'flight.fuel_uplift_kg',
   'flight.fuel_diff_kg',
+  'flight.fuel_below_plan_kg',
+  'flight.fuel_plan_tol_kg',
+  'flight.touchdown_fpm',
   'ops.turn_avail_min',
   'ops.ctot_ready',
   'ops.slot_missed',
@@ -335,6 +338,8 @@ export interface ContextInput {
   readonly ext?: ExtState;
   /** Fuel seen before OUT (T43). */
   readonly fuel?: FuelTrack | null;
+  /** Descent rate at the touchdown of this flight, ft/min (T46); null = none seen. */
+  readonly touchdownFpm?: number | null;
   /** Irregular-scenario data and the gate a reassignment would move to (T14). */
   readonly irr?: IrregularData & {
     readonly newGate: string | null;
@@ -530,6 +535,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       ...t4344Variables(input, toDest, gs),
       ...gateVariables(input),
       ...fuelVariables(input),
+      ...t46Variables(input),
       ...perfVariables(ofp),
       ...nameVariables(input),
       'ofp.airline_type': airlineType(ofp.airlineIcao),
@@ -848,6 +854,51 @@ function fuelVariables(
     'flight.fuel_before_kg': f?.first ?? null,
     'flight.fuel_uplift_kg': f === null || fob === null ? null : fob - f.first,
     'flight.fuel_diff_kg': fob === null ? null : fob - planned,
+  };
+}
+
+/** Fuel against the plan at the same point may differ by this share or this mass, whichever is more. */
+const FUEL_PLAN_TOL_SHARE = 0.05;
+const FUEL_PLAN_TOL_KG = 500;
+
+/**
+ * T46: `flight.touchdown_fpm` (the engine reads it at landing); `flight.fuel_below_plan_kg` =
+ * the OFP's planned fuel on board at the aircraft's place on the route (`planFobKg` of the
+ * navlog fixes, interpolated by the distance flown) minus the fuel on board, kg, positive =
+ * below the plan, in flight only; `flight.fuel_plan_tol_kg` = the tolerance at that place
+ * (5 % of the plan or 500 kg, the larger). Null without a plan or telemetry.
+ */
+function t46Variables(
+  input: ContextInput,
+): Record<'flight.fuel_below_plan_kg' | 'flight.fuel_plan_tol_kg' | 'flight.touchdown_fpm', Value> {
+  const none = {
+    'flight.fuel_below_plan_kg': null,
+    'flight.fuel_plan_tol_kg': null,
+    'flight.touchdown_fpm': input.touchdownFpm ?? null,
+  };
+  const tm = input.telemetry;
+  if (tm === null || tm.onGround || input.oooi.OFF === null || input.oooi.ON !== null) return none;
+  const fixes = input.ofp.navlog.filter((f) => typeof f.planFobKg === 'number');
+  if (fixes.length < 2) return none;
+  const along = input.route.totalNm - input.route.remainingNm(tm);
+  const first = fixes[0] as OfpFix;
+  const last = fixes[fixes.length - 1] as OfpFix;
+  // Only between the first and last fix with a plan: no extrapolation.
+  if (along < first.cumDistNm || along > last.cumDistNm) return none;
+  let plan = last.planFobKg as number;
+  for (let i = 1; i < fixes.length; i++) {
+    const a = fixes[i - 1] as OfpFix;
+    const b = fixes[i] as OfpFix;
+    if (along > b.cumDistNm) continue;
+    const span = b.cumDistNm - a.cumDistNm;
+    const k = span <= 0 ? 1 : (along - a.cumDistNm) / span;
+    plan = (a.planFobKg as number) + ((b.planFobKg as number) - (a.planFobKg as number)) * k;
+    break;
+  }
+  return {
+    'flight.fuel_below_plan_kg': Math.round(plan - tm.fuelKg),
+    'flight.fuel_plan_tol_kg': Math.round(Math.max(plan * FUEL_PLAN_TOL_SHARE, FUEL_PLAN_TOL_KG)),
+    'flight.touchdown_fpm': input.touchdownFpm ?? null,
   };
 }
 

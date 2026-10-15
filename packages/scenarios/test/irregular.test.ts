@@ -23,6 +23,7 @@ import {
   withGap,
   withPause,
   withSimRate,
+  withTouchdown,
 } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { loadScenarios } from '../src/index.js';
@@ -119,6 +120,10 @@ interface Setup {
   readonly cold?: boolean;
   /** The pilot declares a diversion to the first alternate in cruise. */
   readonly divert?: boolean;
+  /** The sim keeps this touchdown rate (ft/min) after landing (bridge field, T46). */
+  readonly touchdownFpm?: number;
+  /** The fuel on board is this much lower in flight than the synthetic burn (T46). */
+  readonly fuelDropKg?: number;
   /** The answers to try, one flight each; empty = no question. */
   readonly answers?: readonly string[];
 }
@@ -166,6 +171,12 @@ const SETUP: Readonly<Record<string, Setup>> = {
   },
   gate_reassignment: { with: ['gate_assignment'] },
   divert_arrival: { divert: true },
+  hard_landing_check: { touchdownFpm: 450, answers: ['CONFIRM', 'NEGATIVE'] },
+  hard_landing_followup: {
+    flags: (o) => ({ hardland_reg: o.aircraft.reg, hardland_date: daysBefore(o, 1) }),
+  },
+  fuel_monitoring: { fuelDropKg: 6000, answers: ['WX', 'ATC', 'LEAK', 'NORMAL'] },
+  ped_fire_cabin: { answers: ['CONTINUE', 'DIVERT'] },
   recovery_followup: {
     flags: (o) => ({
       recovery_airport: o.origin.icao,
@@ -255,6 +266,22 @@ function fly(
   return { core, out, events };
 }
 
+/** The flight with the sim data a scenario needs (T46): touchdown rate, fuel lower than planned. */
+function shaped(c: Case, setup: Setup): Case {
+  let flight = c.flight;
+  if (setup.touchdownFpm !== undefined) flight = withTouchdown(flight, setup.touchdownFpm);
+  const drop = setup.fuelDropKg;
+  if (drop !== undefined) {
+    flight = {
+      ...flight,
+      snapshots: flight.snapshots.map((x) =>
+        x.altFt > 20_000 ? { ...x, fuelKg: Math.max(0, x.fuelKg - drop) } : x,
+      ),
+    };
+  }
+  return flight === c.flight ? c : { ...c, flight };
+}
+
 /** A plain synthetic flight of `ofp` that starts boarding `min` minutes late. */
 function late(ofp: Ofp, min: number): Case {
   const startMs = ofp.times.schedOutMs - 35 * 60_000 + min * 60_000;
@@ -295,7 +322,7 @@ describe.each(FLIGHTS)('each irregular scenario alone on $name', (c) => {
   it.each(cases)('%s', (_, id, answer) => {
     const setup = SETUP[id] ?? {};
     const set = [byId(id), ...(setup.with ?? []).map(byId)];
-    const cc = setup.lateMin === undefined ? c : late(c.ofp, setup.lateMin);
+    const cc = shaped(setup.lateMin === undefined ? c : late(c.ofp, setup.lateMin), setup);
     for (const profile of [DEFAULT_PROFILE, B77X_PROFILE, B78X_PROFILE]) {
       const r = fly(cc, set, {
         profile,
@@ -709,5 +736,84 @@ describe('the whole set', () => {
     const b = fly(c, forced, { flags, answer: 'CONTINUE' });
     expect(b.out).toEqual(a.out);
     expect(b.core.flags).toEqual(a.core.flags);
+  });
+});
+
+describe('T46: hard landing, fuel against the plan, battery fire', () => {
+  const c = FLIGHTS[0] as Case;
+  const hard = (fpm: number | null): Case =>
+    fpm === null ? c : { ...c, flight: withTouchdown(c.flight, fpm) };
+  const check = (cc: Case, answer?: string) =>
+    fly(cc, [byId('hard_landing_check')], answer === undefined ? {} : { answer });
+
+  it('hard landing: only above 350 ft/min and only with the sim reading', () => {
+    expect(ids(check(hard(null)))).toEqual([]);
+    expect(ids(check(hard(350)))).toEqual([]);
+    expect(ids(check(hard(351), 'NEGATIVE')).length).toBeGreaterThan(0);
+    const text = textsOf(check(hard(480), 'CONFIRM'), 'hard_landing_check');
+    expect(text[0]).toContain('480 FPM');
+  });
+
+  it('CONFIRM leaves an inspection for the next flight of the same aircraft, NEGATIVE nothing', () => {
+    const set = ['hard_landing_check', 'hard_landing_followup'].map(byId);
+    const first = fly(hard(450), set, { answer: 'CONFIRM' });
+    expect(first.core.flags).toMatchObject({
+      hardland_reg: kg.aircraft.reg,
+      hardland_date: kg.times.schedOutMs,
+    });
+    const day2 = nextDay(kg);
+    const next: Case = { name: 'next', ofp: day2, flight: generateSyntheticFlight({ ofp: day2 }) };
+    const second = fly(next, set, { flags: first.core.flags });
+    expect(ids(second)).toEqual(['hard_landing_followup']);
+    expect(second.core.flags).toEqual({});
+    // Another aircraft: the flag waits.
+    const other = { ...nextDay(kg, 2), aircraft: { ...kg.aircraft, reg: 'JA01XJ' } };
+    const elsewhere: Case = {
+      name: 'other',
+      ofp: other,
+      flight: generateSyntheticFlight({ ofp: other }),
+    };
+    expect(ids(fly(elsewhere, set, { flags: first.core.flags }))).toEqual([]);
+    expect(fly(hard(450), set, { answer: 'NEGATIVE' }).core.flags).toEqual({});
+  });
+
+  it('the hard landing flags live 3 days', () => {
+    const flags = { hardland_reg: 'R', hardland_date: kg.times.schedOutMs - 4 * 86_400_000 };
+    expect(AcarsCore.create({ ofp: kg, scenarios: [], seed: 's', flags }).flags).toEqual({});
+  });
+
+  it('fuel monitoring: silent on the plan, asks when well below it, once', () => {
+    const fm = [byId('fuel_monitoring')];
+    expect(ids(fly(c, fm))).toEqual([]);
+    const low = shaped(c, { fuelDropKg: 6000 });
+    const r = fly(low, fm, { answer: 'LEAK' });
+    expect(ids(r)).toEqual(['fuel_monitoring', 'fuel_monitoring']);
+    expect(textsOf(r, 'fuel_monitoring')[0]).toMatch(/FUEL BELOW PLAN FOB \d+ KG \d+ KG LESS/);
+    expect(textsOf(r, 'fuel_monitoring')[1]).toContain('FUEL LEAK SUSPECTED');
+    // A drop inside the tolerance (5 % of the plan, at least 500 kg): nothing.
+    expect(ids(fly(shaped(c, { fuelDropKg: 300 }), fm))).toEqual([]);
+  });
+
+  it('an OFP without a fuel plan at the fixes: no message', () => {
+    const bare: Ofp = { ...kg, navlog: kg.navlog.map((f) => ({ ...f, planFobKg: null })) };
+    const flight = shaped({ name: 'bare', ofp: bare, flight: normal }, { fuelDropKg: 6000 });
+    expect(ids(fly({ ...flight, ofp: bare }, [byId('fuel_monitoring')]))).toEqual([]);
+  });
+
+  it('battery fire: DIVERT sets the diversion, CONTINUE does not; the advice is the SAFO one', () => {
+    const pf = [byId('ped_fire_cabin')];
+    const d = fly(c, pf, { answer: 'DIVERT' });
+    const first = textsOf(d, 'ped_fire_cabin')[0] as string;
+    expect(first).toContain('USE WATER OR HALON');
+    expect(first).toContain('NO BURN BAG');
+    expect(textsOf(d, 'ped_fire_cabin')[1]).toContain('ROGER DIVERT');
+    expect(
+      d.events.some((e) => e.type === 'SET' && (e as { name?: string }).name === 'flight.divert'),
+    ).toBe(true);
+    const k = fly(c, pf, { answer: 'CONTINUE' });
+    expect(textsOf(k, 'ped_fire_cabin')[1]).toContain('NOTED CONTINUE');
+    expect(k.events.some((e) => e.type === 'SET')).toBe(false);
+    // The default chance is 0.5 %, set in the file.
+    expect(irregular.find((s) => s.id === 'ped_fire_cabin')?.probability).toBe(0.005);
   });
 });

@@ -4,9 +4,11 @@ import { describe, expect, it } from 'vitest';
 import {
   distanceNm,
   generateSyntheticFlight,
+  isTelemetrySnapshot,
   parseSimbriefOfp,
   type SyntheticStage,
   type TelemetrySnapshot,
+  withTouchdown,
 } from '../src/index.js';
 
 const ofp = parseSimbriefOfp(
@@ -25,11 +27,15 @@ const inStage = (stage: SyntheticStage): TelemetrySnapshot[] => {
 };
 
 describe('generateSyntheticFlight — shape', () => {
-  it('produces snapshots with exactly the fields of reference/telemetry.sample.json', () => {
+  it('produces snapshots with the fields of reference/telemetry.sample.json (touchdownFpm is optional, T46)', () => {
     const sample = JSON.parse(
       readFileSync(join(import.meta.dirname, '../../../reference/telemetry.sample.json'), 'utf8'),
     );
-    expect(Object.keys(s[0] as object).sort()).toEqual(Object.keys(sample).sort());
+    expect(Object.keys(s[0] as object).sort()).toEqual(
+      Object.keys(sample)
+        .filter((k) => k !== 'touchdownFpm')
+        .sort(),
+    );
   });
 
   it('runs through every stage in order', () => {
@@ -59,6 +65,21 @@ describe('generateSyntheticFlight — shape', () => {
     expect(f.snapshots[0]?.t).toBe(0);
     expect(f.snapshots[1]?.t).toBe(5000);
     expect(f.stages.map((m) => m.stage)).toEqual(flight.stages.map((m) => m.stage));
+  });
+});
+
+describe('touchdownFpm (T46)', () => {
+  it('is optional, a number, and set by withTouchdown only after the landing', () => {
+    const base = generateSyntheticFlight({ ofp }).snapshots;
+    expect(base.every((x) => isTelemetrySnapshot(x))).toBe(true);
+    const t = withTouchdown(generateSyntheticFlight({ ofp }), 420).snapshots;
+    const first = t.findIndex((x) => x.touchdownFpm !== undefined);
+    expect(first).toBeGreaterThan(0);
+    expect(t.slice(first).every((x) => x.touchdownFpm === 420 && isTelemetrySnapshot(x))).toBe(
+      true,
+    );
+    expect(t[first - 1]?.onGround === false || t[first]?.onGround === true).toBe(true);
+    expect(isTelemetrySnapshot({ ...base[0], touchdownFpm: 'x' })).toBe(false);
   });
 });
 

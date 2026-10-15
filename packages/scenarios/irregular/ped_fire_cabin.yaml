@@ -1,0 +1,71 @@
+# Lithium battery fire of a passenger device in the cabin (T46), in cruise. Chance 0.5 % per
+# flight (set by the user 2026-10-15; adjustable in the app like the other irregular events).
+# The advice follows FAA SAFO 09013 (2009-06-23; still cited by the FAA in 2017): extinguish
+# with water, Halon or a replacement, cool the cells with water, never use a fire-resistant
+# burn bag. CONTINUE or DIVERT (default after 5 min: DIVERT, a cabin fire is not left alone);
+# DIVERT goes to the nearest of the origin and the alternates, as in medical_onboard.
+id: ped_fire_cabin
+version: 1
+category: irregular
+title: Lithium battery fire in the cabin
+title_ru: "Возгорание литиевой батареи в салоне"
+description: "In cruise the cabin reports a fire of a passenger device battery. Advice per FAA SAFO 09013. Reply CONTINUE or DIVERT (default DIVERT after 5 min)."
+description_ru: "В крейсере кабина сообщает о возгорании батареи пассажирского устройства. Рекомендации по FAA SAFO 09013. Ответ CONTINUE или DIVERT (через 5 мин — DIVERT)."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+conditions:
+  - "flight.minutes_to_tod != null"
+  - "flight.minutes_to_tod >= 20"
+  - "flight.divert == null"
+probability: 0.005
+excludes: [medical_onboard, unruly_passenger]
+steps:
+  - send:
+      header: OPS MSG FIRE
+      body: |
+        CABIN REPORTS FIRE
+        PED LITHIUM BATTERY
+        SEAT {seat}
+        USE WATER OR HALON
+        COOL CELLS WITH WATER
+        NO BURN BAG
+        REPLY CONTINUE
+        OR DIVERT
+  - wait:
+      reply: { options: [CONTINUE, DIVERT], timeout_min: 5, default: DIVERT }
+  - branch:
+      DIVERT:
+        - set: { flight.divert: "{flight.nearest_altn}" }
+        - send:
+            header: OPS MSG FIRE
+            body: |
+              ROGER DIVERT
+              {flight.divert|or:NEAREST SUITABLE}
+              {flight.nearest_altn_nm} NM FROM PRESENT POS
+              FIRE SERVICE ORDERED
+              SEND NEW ETA WHEN ABLE
+        - wait: { phase: ON_BLOCK }
+        - send:
+            header: OPS MSG FIRE
+            body: |
+              FIRE SERVICE AT
+              AIRCRAFT DOOR
+              DEVICE HANDED OVER
+      CONTINUE:
+        - send:
+            header: OPS MSG FIRE
+            body: |
+              NOTED CONTINUE
+              TO {ofp.dest}
+              MONITOR CABIN
+              ADVISE IF FIRE
+              RESTARTS
+        - wait: { phase: ON_BLOCK }
+        - send:
+            header: OPS MSG FIRE
+            body: |
+              FIRE SERVICE AT
+              AIRCRAFT DOOR
+              DEVICE HANDED OVER
