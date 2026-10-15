@@ -117,7 +117,7 @@ public class CommandDispatcherTests
     {
         var fake = new FakeSimSource(TimeProvider.System);
         var d = new CommandDispatcher(fake, TimeProvider.System);
-        Assert.Equal(["ping"], d.Commands);
+        Assert.Equal(["ping", "smoke_start", "smoke_stop"], d.Commands);
         var ack = Ack(await d.HandleAsync(Guid.NewGuid(), Ping, CancellationToken.None));
         Assert.True((bool)ack["ok"]!);
         Assert.Equal("p", (string)ack["id"]!);
@@ -241,7 +241,7 @@ public sealed class CommandServerTests : IAsyncLifetime
         using var ws = await Connect("?protocol=2");
         var hello = await Receive(ws, timeout.Token);
         Assert.Equal(2, (int)hello["protocol"]!);
-        Assert.Equal(["ping"], hello["commands"]!.AsArray().Select(n => (string)n!));
+        Assert.Equal(["ping", "smoke_start", "smoke_stop"], hello["commands"]!.AsArray().Select(n => (string)n!));
 
         await SendText(ws, """{"type":"command","id":"x1","command":"ping"}""");
         var ack = await Next(ws, "ack", timeout.Token);

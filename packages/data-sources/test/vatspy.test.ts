@@ -11,8 +11,10 @@ import {
   type HttpClient,
   NATTRAK_TRACKS_URL,
   OURAIRPORTS_FREQS_URL,
+  OURAIRPORTS_RUNWAYS_URL,
   parseAirportFrequencies,
   parseNatTracks,
+  parseRunwayPoint,
   parseVatsimCenters,
   routeFirs,
   VATSPY_BOUNDARIES_URL,
@@ -281,5 +283,48 @@ describe('T27: NAT tracks from natTrak', () => {
     expect(await step(T0 + 30 * 60_000)).toBeNull();
     expect((await step(T0 + 61 * 60_000))?.natTracks?.length).toBe(5);
     expect(calls).toEqual([NATTRAK_TRACKS_URL, NATTRAK_TRACKS_URL]);
+  });
+});
+
+describe('T34: runway coordinates from OurAirports', () => {
+  const csv = fixture('ourairports-runways.csv');
+
+  it('the middle of a runway, either end by name (trimmed real file)', () => {
+    // RJBB 06L (34.42850, 135.20616) .. 24R (34.45133, 135.24001)
+    const p = parseRunwayPoint(csv, 'RJBB', '24R');
+    expect(p?.lat).toBeCloseTo(34.43992, 4);
+    expect(p?.lon).toBeCloseTo(135.22308, 4);
+    expect(parseRunwayPoint(csv, 'RJBB', '06L')).toEqual(p);
+    expect(parseRunwayPoint(csv, 'RJBB', '24r')).toEqual(p);
+  });
+
+  it('null for an unknown runway or airport, never another runway', () => {
+    expect(parseRunwayPoint(csv, 'RJBB', '09')).toBeNull();
+    expect(parseRunwayPoint(csv, 'ZZZZ', '24R')).toBeNull();
+    expect(() => parseRunwayPoint('a,b\n1,2', 'RJBB', '24R')).toThrow(DataSourceError);
+  });
+
+  it('a runway without coordinates gives null', () => {
+    const bare =
+      '"id","airport_ident","le_ident","le_latitude_deg","le_longitude_deg","he_ident","he_latitude_deg","he_longitude_deg"\n1,"00AK","N",,,"S",,';
+    expect(parseRunwayPoint(bare, '00AK', 'N')).toBeNull();
+  });
+
+  it('the service fetches the file once and caches the answer', async () => {
+    let calls = 0;
+    const http: HttpClient = {
+      async request(req) {
+        if (req.url !== OURAIRPORTS_RUNWAYS_URL) return { status: 404, body: '' };
+        calls++;
+        return { status: 200, body: csv };
+      },
+    };
+    const svc = new ExternalDataService({ http, userAgent: 't', sources: ['freqs'] });
+    const T0 = Date.UTC(2026, 9, 15, 8, 0);
+    const a = await svc.runwayPoint('RJBB', '24R', T0);
+    expect(a?.lat).toBeCloseTo(34.43992, 4);
+    expect(await svc.runwayPoint('RJBB', '24R', T0 + 60_000)).toEqual(a);
+    expect(calls).toBe(1);
+    expect(await svc.runwayPoint('RJBB', '30', T0)).toBeNull();
   });
 });

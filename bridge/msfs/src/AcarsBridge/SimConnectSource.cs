@@ -8,12 +8,15 @@ namespace AcarsBridge;
 /// MSFS via managed SimConnect (MSFS SDK). Compiled only when the SDK is found (see the .csproj).
 /// No window: SimConnect signals an <see cref="EventWaitHandle"/>, and a dedicated thread calls
 /// ReceiveMessage. Reconnects with <see cref="ReconnectPolicy"/> when the sim is not running or quits.
-/// Commands (protocol v2): only <c>ping</c> so far — ok while a SimConnect session is open.
+/// Commands (protocol v2): <c>ping</c> — ok while a SimConnect session is open; <c>smoke_start</c> /
+/// <c>smoke_stop</c> (T34) — a smoke SimObject at a point, created by <c>AICreateSimulatedObject</c> when the
+/// aircraft is near (the EX1 variant is not in the managed wrapper of the SDK, so the smoke package is a
+/// non-modular SimObject, which the plain call supports).
 /// </summary>
 public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy = null) : ISimSource, ICommandTarget
 {
     private enum Def { Telemetry }
-    private enum Req { Telemetry }
+    private enum Req { Telemetry, Smoke, SmokeRemove }
     private enum Evt { Pause, Sim }
 
     /// <summary>Wire layout of the data definition: FLOAT64 × SimVars.Count, then TITLE as STRING256.</summary>
@@ -37,15 +40,65 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     /// <summary>A SimConnect session is open (set on the message thread, read by command handlers).</summary>
     private volatile bool _open;
 
-    public IReadOnlyCollection<string> Commands { get; } = ["ping"];
+    /// <summary>Container title of the smoke SimObject (<c>bridge/msfs/package</c>, T34): its <c>title=</c> in sim.cfg.</summary>
+    public const string SmokeTitle = "ACARS Smoke";
 
-    public Task<CommandResult> ExecuteAsync(SimCommand command, CancellationToken ct) =>
-        Task.FromResult(command.Name switch
+    private readonly SmokeController _smoke = new(clock);
+
+    /// <summary>Object id of the smoke SimObject (0 = none); set and read on the message thread only.</summary>
+    private uint _smokeId;
+    private bool _smokeAsked;
+    private bool _smokeRemoveWhenAssigned;
+
+    public IReadOnlyCollection<string> Commands { get; } = ["ping", "smoke_start", "smoke_stop"];
+
+    public Task<CommandResult> ExecuteAsync(SimCommand command, CancellationToken ct)
+    {
+        switch (command.Name)
         {
-            "ping" when _open => CommandResult.Success,
-            "ping" => CommandResult.Fail(CommandErrors.Unavailable, "sim not connected"),
-            _ => CommandResult.Fail(CommandErrors.UnknownCommand, command.Name),
-        });
+            case "ping":
+                return Task.FromResult(_open ? CommandResult.Success : CommandResult.Fail(CommandErrors.Unavailable, "sim not connected"));
+            case "smoke_start" when !_open:
+                return Task.FromResult(CommandResult.Fail(CommandErrors.Unavailable, "sim not connected"));
+            case "smoke_start":
+                // The object itself is made on the message thread, once the aircraft is near.
+                _smoke.Start(command.Args["lat"].GetValue<double>(), command.Args["lon"].GetValue<double>());
+                return Task.FromResult(CommandResult.Success);
+            case "smoke_stop":
+                _smoke.Stop();
+                return Task.FromResult(CommandResult.Success);
+            default:
+                return Task.FromResult(CommandResult.Fail(CommandErrors.UnknownCommand, command.Name));
+        }
+    }
+
+    /// <summary>Message thread: creates or removes the smoke object as <see cref="SmokeController"/> decides.</summary>
+    private void ApplySmoke(SimConnect sc, double lat, double lon)
+    {
+        switch (_smoke.OnPosition(lat, lon))
+        {
+            case SmokeAction.Spawn when _smoke.Target is { } t:
+                // OnGround = 1: the object stands on the terrain (the SDK does not say how Altitude then counts).
+                var at = new SIMCONNECT_DATA_INITPOSITION
+                {
+                    Latitude = t.Lat, Longitude = t.Lon, Altitude = 0, Pitch = 0, Bank = 0, Heading = 0,
+                    OnGround = 1, Airspeed = 0,
+                };
+                _smokeAsked = true;
+                _smokeRemoveWhenAssigned = false;
+                sc.AICreateSimulatedObject(SmokeTitle, at, Req.Smoke);
+                break;
+            case SmokeAction.Remove:
+                if (_smokeId != 0)
+                {
+                    sc.AIRemoveObject(_smokeId, Req.SmokeRemove);
+                    _smokeId = 0;
+                }
+                else if (_smokeAsked)
+                    _smokeRemoveWhenAssigned = true;
+                break;
+        }
+    }
 
     public Task RunAsync(ISimSink sink, CancellationToken ct) =>
         Task.Factory.StartNew(() => Loop(sink, ct), ct, TaskCreationOptions.LongRunning, TaskScheduler.Default);
@@ -116,6 +169,18 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             var before = pump.SimRate;
             pump.OnFrame(new SimFrame(raw.Values, raw.Title ?? ""));
             if (Math.Abs(pump.SimRate - before) > 1e-6) Publish();
+            ApplySmoke(sc, raw.Values[SimVars.Lat], raw.Values[SimVars.Lon]);
+        };
+        sc.OnRecvAssignedObjectId += (_, data) =>
+        {
+            if ((Req)data.dwRequestID != Req.Smoke) return;
+            _smokeAsked = false;
+            if (_smokeRemoveWhenAssigned)
+            {
+                _smokeRemoveWhenAssigned = false;
+                sc.AIRemoveObject(data.dwObjectID, Req.SmokeRemove);
+            }
+            else _smokeId = data.dwObjectID;
         };
 
         foreach (var v in SimVars.Definitions)
@@ -144,6 +209,11 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         finally
         {
             _open = false;
+            // The sim takes its objects with it; a standing request spawns again in the next session.
+            _smokeId = 0;
+            _smokeAsked = false;
+            _smokeRemoveWhenAssigned = false;
+            _smoke.SessionEnded();
         }
         return ended ?? "stopped";
     }

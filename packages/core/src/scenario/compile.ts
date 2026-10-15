@@ -69,6 +69,7 @@ export type CompiledStep =
   | { readonly kind: 'jump'; readonly to: number }
   | { readonly kind: 'resend'; readonly of: readonly string[] }
   | { readonly kind: 'set'; readonly assigns: readonly CompiledAssign[] }
+  | { readonly kind: 'smoke'; readonly action: 'start' | 'stop' }
   | {
       readonly kind: 'vdgs';
       readonly durationSec: number;
@@ -341,6 +342,12 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
           });
         }
         steps.push({ kind: 'set', assigns });
+        continue;
+      }
+      if ('smoke' in s) {
+        if (s.smoke !== 'start' && s.smoke !== 'stop')
+          fail(`${path}.smoke`, 'must be start or stop');
+        steps.push({ kind: 'smoke', action: s.smoke });
         continue;
       }
       if ('vdgs' in s) {

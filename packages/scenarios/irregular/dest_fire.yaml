@@ -29,6 +29,8 @@ steps:
         VIS REDUCED IN SMOKE, RESCUE ON SCENE
         PREPARE DIVERSION {ofp.altn}
         UPDATE IN 20 MIN, REPLY HOLD OR DIVERT
+  # A smoke column at the runway in the simulator (T34); the bridge shows it when we are near.
+  - smoke: start
   - wait:
       reply: { options: [HOLD, DIVERT], timeout_min: 8, default: HOLD }
   - branch:
@@ -50,6 +52,7 @@ steps:
                     FIRE NEAR RWY {ofp.dest_rwy} UNDER CONTROL
                     ARRIVALS RESUMED AT {ofp.dest}
                     EXPECT NORMAL APPROACH
+              - smoke: stop
       DIVERT:
         - set: { flight.divert: "{ofp.altn}" }
         - send:

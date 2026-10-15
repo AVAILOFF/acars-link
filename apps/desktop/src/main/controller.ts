@@ -2,6 +2,7 @@ import {
   type CompiledScenario,
   type Ofp,
   type SimCommand,
+  type SmokeCommand,
   selectProfile,
   stationCallsign,
   type TelemetrySnapshot,
@@ -101,6 +102,8 @@ export class AppController {
   private sessionFired: readonly string[] = [];
   /** External data (T13): prefetches for the loaded OFP, feeds the running flight. */
   private readonly data: ExternalDataService;
+  /** A `smoke_start` was sent and not yet taken down (T34). */
+  private smokeOn = false;
   private readonly flagStore: FlagsStore | { get(): Promise<Flags>; set(f: Flags): Promise<Flags> };
   /** Names of the stored flags, for the UI. */
   private memory: readonly string[] = [];
@@ -153,6 +156,7 @@ export class AppController {
     this.session?.stop(this.o.now());
     this.session = null;
     this.vdgs.clear();
+    this.stopSmoke();
   }
 
   /**
@@ -174,7 +178,46 @@ export class AppController {
       }
       return null;
     }
+    if (c.command === 'smoke') {
+      void this.sendSmoke(c);
+      return null;
+    }
     return this.bridge.sendCommand(c.command, c.args);
+  }
+
+  /**
+   * Smoke column (T34): the runway's middle comes from OurAirports (cached), the bridge gets
+   * plain coordinates. A runway without coordinates, or no network, is one line in the feed.
+   */
+  private async sendSmoke(c: SmokeCommand): Promise<void> {
+    const fail = (detail: string) => {
+      this.feed.system(this.o.now(), 'sim_command_failed', {
+        command: 'smoke',
+        error: 'failed',
+        detail,
+      });
+      this.o.onChange();
+    };
+    if (c.action === 'stop') {
+      this.stopSmoke();
+      return;
+    }
+    if (c.runway === null) return fail('no planned runway in the OFP');
+    const p = await this.data.runwayPoint(c.airport, c.runway, this.o.now());
+    if (p === null) return fail(`no coordinates for ${c.airport} RWY ${c.runway}`);
+    if (this.session === null) return; // the flight ended while the file was fetched
+    this.smokeOn = true;
+    this.bridge.sendCommand('smoke_start', {
+      lat: Math.round(p.lat * 1e6) / 1e6,
+      lon: Math.round(p.lon * 1e6) / 1e6,
+    });
+  }
+
+  /** Takes the smoke down (end of the flight, app exit); a no-op if none was started. */
+  private stopSmoke(): void {
+    if (!this.smokeOn) return;
+    this.smokeOn = false;
+    this.bridge.sendCommand('smoke_stop');
   }
 
   private onCommandResult(r: CommandResult): void {
@@ -413,6 +456,7 @@ export class AppController {
     s.stop(this.o.now());
     this.data.stopFlight();
     this.vdgs.clear();
+    this.stopSmoke();
     await this.saveMemory(s);
     this.sessionFired = s.sessionFired;
     this.session = null;

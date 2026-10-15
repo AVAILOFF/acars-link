@@ -215,6 +215,12 @@ export const SCENARIO_SCHEMA = {
           {
             type: 'object',
             additionalProperties: false,
+            required: ['smoke'],
+            properties: { smoke: { enum: ['start', 'stop'] } },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
             required: ['vdgs'],
             properties: {
               vdgs: {

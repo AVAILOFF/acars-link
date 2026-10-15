@@ -45,6 +45,72 @@ export function parseAirportFrequencies(csv: string, icao: string): AirportFrequ
   return out;
 }
 
+/**
+ * Runway coordinates for the smoke effect (T34): OurAirports `runways.csv`,
+ * https://davidmegginson.github.io/ourairports-data/runways.csv (same licence as above, columns
+ * checked 2026-10-15): `airport_ident`, `le_ident`, `le_latitude_deg`, `le_longitude_deg`,
+ * `he_ident`, `he_latitude_deg`, `he_longitude_deg`. Many small-field rows have no coordinates.
+ */
+export const OURAIRPORTS_RUNWAYS_URL =
+  'https://davidmegginson.github.io/ourairports-data/runways.csv';
+
+/** Middle of a runway, degrees; the middle of the strip between its two thresholds. */
+export interface RunwayPoint {
+  readonly lat: number;
+  readonly lon: number;
+}
+
+export async function fetchRunwayPoint(
+  ctx: FetchContext,
+  icao: string,
+  rwy: string,
+): Promise<RunwayPoint | null> {
+  const res = await request(ctx, OURAIRPORTS_RUNWAYS_URL);
+  expectOk(res, 'OurAirports');
+  return parseRunwayPoint(res.body, icao, rwy);
+}
+
+/**
+ * The middle of runway `rwy` (`24L`, either end) of `icao`; null when the airport has no such
+ * runway or no coordinates for both ends. Never guesses another runway.
+ */
+export function parseRunwayPoint(csv: string, icao: string, rwy: string): RunwayPoint | null {
+  const lines = csv.split(/\r?\n/);
+  const head = splitCsv(lines[0] ?? '');
+  const col = (name: string) => head.indexOf(name);
+  const idx = [
+    'airport_ident',
+    'le_ident',
+    'le_latitude_deg',
+    'le_longitude_deg',
+    'he_ident',
+    'he_latitude_deg',
+    'he_longitude_deg',
+  ].map(col);
+  if (idx.some((i) => i < 0)) throw new DataSourceError('OurAirports: unexpected CSV header');
+  const [ident, leId, leLat, leLon, heId, heLat, heLon] = idx as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
+  const want = rwy.trim().toUpperCase();
+  for (const line of lines.slice(1)) {
+    if (!line.includes(`"${icao}"`)) continue;
+    const c = splitCsv(line);
+    if (c[ident] !== icao) continue;
+    if (c[leId]?.toUpperCase() !== want && c[heId]?.toUpperCase() !== want) continue;
+    const [a, b, d, e] = [leLat, leLon, heLat, heLon].map((i) => Number(c[i]));
+    if ([c[leLat], c[leLon], c[heLat], c[heLon]].some((v) => v === undefined || v === '')) continue;
+    if (![a, b, d, e].every(Number.isFinite)) continue;
+    return { lat: ((a as number) + (d as number)) / 2, lon: ((b as number) + (e as number)) / 2 };
+  }
+  return null;
+}
+
 /** One CSV line: commas, double-quoted fields with `""` escapes. */
 export function splitCsv(line: string): string[] {
   const out: string[] = [];

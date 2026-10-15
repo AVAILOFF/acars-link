@@ -558,6 +558,64 @@ describe('live data (T13)', () => {
     );
   });
 
+  it('smoke (T34): runway coordinates from OurAirports go to the bridge; stopping the flight takes it down', async () => {
+    const simbrief = await readFile(OFP_FIXTURE, 'utf8');
+    const runways = await readFile(
+      join(
+        import.meta.dirname,
+        '../../../packages/data-sources/test/fixtures/ourairports-runways.csv',
+      ),
+      'utf8',
+    );
+    const http = new FakeHttp((req) =>
+      req.url.includes('runways.csv')
+        ? { status: 200, body: runways }
+        : { status: 200, body: simbrief },
+    );
+    const s = await setup({ http });
+    const { app } = s;
+    await app.setSimbriefUsername('pilot42');
+    await app.updateSettings({ transport: 'offline' });
+    await app.loadOfp();
+    const socket = s.sockets.last();
+    socket.hello(2, 1, ['ping', 'smoke_start', 'smoke_stop']);
+    await app.startFlight();
+    const smoke = (action: 'start' | 'stop', runway: string | null) =>
+      ({
+        command: 'smoke',
+        action,
+        airport: 'RJBB',
+        runway,
+        scenarioId: 'dest_fire',
+        t: T0,
+      }) as const;
+
+    expect(app.sendSimCommand(smoke('start', '24R'))).toBeNull();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(socket.sent).toMatchObject([
+      { type: 'command', command: 'smoke_start', args: { lat: 34.439917, lon: 135.223083 } },
+    ]);
+
+    // A runway the file does not have: one line in the feed, nothing sent.
+    app.sendSimCommand(smoke('start', '09'));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(socket.sent).toHaveLength(1);
+    expect(
+      app.state().feed.filter((e) => e.kind === 'system' && e.code === 'sim_command_failed'),
+    ).toMatchObject([
+      {
+        code: 'sim_command_failed',
+        params: { command: 'smoke', detail: 'no coordinates for RJBB RWY 09' },
+      },
+    ]);
+
+    await app.stopFlight();
+    expect(socket.sent.map((m) => (m as { command?: string }).command)).toEqual([
+      'smoke_start',
+      'smoke_stop',
+    ]);
+  });
+
   it('fetches after the OFP loads, feeds the core, is recorded and replays the same', async () => {
     const http = await dataHttp();
     const s = await setup({ http });

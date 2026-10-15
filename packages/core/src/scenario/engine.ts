@@ -1238,6 +1238,17 @@ export class ScenarioEngine {
         }
         continue;
       }
+      if (step.kind === 'smoke') {
+        this.commands.push({
+          command: 'smoke',
+          scenarioId: sc.id,
+          t: input.now,
+          action: step.action,
+          airport: this.ofp.destination.icao,
+          runway: this.ofp.destination.planRwy ?? null,
+        });
+        continue;
+      }
       if (step.kind === 'vdgs') {
         try {
           const look = this.lookFor(run.vars);

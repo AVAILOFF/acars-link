@@ -47,6 +47,7 @@ public interface ICommandTarget
 /// Whitelist of commands and their arguments. Only names listed here are ever passed to a source.
 /// <list type="bullet">
 /// <item><c>ping</c>, no arguments: is the sim side ready for commands (ok, or <c>unavailable</c>).</item>
+/// <item><c>smoke_start</c> (<c>lat</c>, <c>lon</c>) / <c>smoke_stop</c> (T34): a smoke column at a point, see <see cref="SmokeController"/>.</item>
 /// </list>
 /// New commands (T22 VDGS text, T34 effects) are added here with a validator, then implemented by a source.
 /// </summary>
@@ -60,9 +61,21 @@ public static class CommandCatalog
     private static readonly Dictionary<string, Func<IReadOnlyDictionary<string, JsonValue>, string?>> Validators = new()
     {
         ["ping"] = args => args.Count == 0 ? null : "ping takes no arguments",
+        ["smoke_start"] = ValidateSmokeStart,
+        ["smoke_stop"] = args => args.Count == 0 ? null : "smoke_stop takes no arguments",
     };
 
     public static IReadOnlyCollection<string> Names => Validators.Keys;
+
+    /// <summary><c>smoke_start</c>: exactly <c>lat</c> (-90..90) and <c>lon</c> (-180..180) as numbers.</summary>
+    private static string? ValidateSmokeStart(IReadOnlyDictionary<string, JsonValue> args)
+    {
+        if (args.Count != 2 || !args.TryGetValue("lat", out var lat) || !args.TryGetValue("lon", out var lon))
+            return "smoke_start needs lat and lon only";
+        if (!lat.TryGetValue<double>(out var la) || !(la >= -90 && la <= 90)) return "lat must be a number -90..90";
+        if (!lon.TryGetValue<double>(out var lo) || !(lo >= -180 && lo <= 180)) return "lon must be a number -180..180";
+        return null;
+    }
 
     private static readonly Regex IdRe = new("^[A-Za-z0-9._-]{1,64}$", RegexOptions.CultureInvariant);
     private static readonly Regex NameRe = new("^[a-z][a-z0-9_.]{0,47}$", RegexOptions.CultureInvariant);

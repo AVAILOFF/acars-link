@@ -1,0 +1,5 @@
+<VisualEffectLibrary Version="1.0.0">
+    <!-- acars_smoke.xml is made in the Visual Effects Editor (a column of dark smoke, ~50 m wide,
+         ~300 m high, slow, affected by wind); it is not in the repository yet. See ../../../README.md. -->
+    <VisualEffect File="acars_smoke.xml"/>
+</VisualEffectLibrary>

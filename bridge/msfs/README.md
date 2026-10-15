@@ -78,9 +78,11 @@ accepts a v1 bridge: telemetry then works and commands end with `unavailable`.
 | Command | Args | `simconnect` | `fake` |
 |---|---|---|---|
 | `ping` | none | ok while a SimConnect session is open, else `unavailable` | ok |
+| `smoke_start` | `lat` (-90..90), `lon` (-180..180) | T34: remembers the point (`unavailable` without a session); the smoke object is created when the aircraft is within 40 NM, removed beyond 60 NM, after 90 min or on `smoke_stop` (`SmokeController`) | ok |
+| `smoke_stop` | none | removes the object and forgets the point | ok |
 
 The fake source accepts every whitelisted command, confirms it, and logs it to the console.
-Sim effects (T34) will be added to the whitelist. VDGS text (T22) does not use the bridge: GSX reads it from a file that the app writes (docs/06, "GSX VDGS").
+The smoke object comes from the package in `package/` (draft, unverified, see its README). VDGS text (T22) does not use the bridge: GSX reads it from a file that the app writes (docs/06, "GSX VDGS").
 
 Access rules (CLAUDE.md, invariant 10): the bridge listens on `127.0.0.1` only. The `Host` header must be `127.0.0.1` or `localhost`.
 `Origin` must be absent, `file://`, `null`, or an http(s) loopback origin. Anything else gets 403, so web pages

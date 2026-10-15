@@ -29,7 +29,7 @@ import { fetchEonetEvents } from './eonet.js';
 import { fetchAirportCountries, fetchHolidays } from './holidays.js';
 import { fetchLaunches } from './launches.js';
 import { fetchNatTracks } from './nattrak.js';
-import { fetchAirportFrequencies } from './ourairports.js';
+import { fetchAirportFrequencies, fetchRunwayPoint, type RunwayPoint } from './ourairports.js';
 import { fetchQuakes } from './quakes.js';
 import { fetchAshSigmets } from './sigmet.js';
 import { fetchAurora, fetchSpaceWeather } from './spacewx.js';
@@ -675,6 +675,27 @@ export class ExternalDataService {
   async airportCountry(icao: string, now: number): Promise<string | null> {
     try {
       return (await this.countryMap(now, 'holidays'))[icao] ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Middle of a runway (OurAirports, T34), cached 30 days; null when the runway is not in the
+   * file or has no coordinates, or the file cannot be had (no network). Never throws.
+   */
+  async runwayPoint(icao: string, rwy: string, now: number): Promise<RunwayPoint | null> {
+    const key = `runway:${icao}:${rwy.toUpperCase()}`;
+    try {
+      const hit = (await this.cached(key, now, 'freqs', (v) => {
+        const p = v as RunwayPoint | null;
+        if (p !== null && !(Number.isFinite(p?.lat) && Number.isFinite(p?.lon)))
+          throw new Error('bad');
+      })) as RunwayPoint | null | undefined;
+      if (hit !== undefined) return hit;
+      const p = await fetchRunwayPoint(this.ctx, icao, rwy);
+      await this.store(key, now, p);
+      return p;
     } catch {
       return null;
     }

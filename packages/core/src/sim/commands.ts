@@ -4,6 +4,8 @@
  * - `ping` (no arguments) goes to the sim bridge (bridge/msfs/README.md, protocol v2), which
  *   runs only whitelisted names ({@link SIM_COMMANDS}) and acknowledges each one. The argument
  *   rules here mirror the bridge's `CommandCatalog`; both sides check.
+ * - `smoke_start` (`lat`, `lon`) / `smoke_stop` (T34): a smoke column at a point; the bridge
+ *   spawns it when the aircraft is near (see `bridge/msfs/README.md`).
  * - `vdgs` (T22) is text for the GSX docking display (`sim/vdgs.ts`). The app writes it to
  *   GSX's message folder itself; it never goes to the bridge.
  */
@@ -11,7 +13,7 @@
 import type { VdgsMessage } from './vdgs.js';
 
 /** Commands the sim bridge runs (its whitelist). */
-export const SIM_COMMANDS = ['ping'] as const;
+export const SIM_COMMANDS = ['ping', 'smoke_start', 'smoke_stop'] as const;
 export type SimCommandName = (typeof SIM_COMMANDS)[number];
 
 export type SimCommandArg = string | number | boolean;
@@ -36,7 +38,20 @@ export interface VdgsCommand extends CommandBase {
   readonly vdgs: VdgsMessage;
 }
 
-export type SimCommand = BridgeCommand | VdgsCommand;
+/**
+ * Smoke column at a runway of the destination (T34, scenario step `smoke`). The app looks up the
+ * runway's coordinates (OurAirports) and sends the bridge `smoke_start` / `smoke_stop`; the core
+ * only names the airport and the runway, so a recording replays without the lookup.
+ */
+export interface SmokeCommand extends CommandBase {
+  readonly command: 'smoke';
+  readonly action: 'start' | 'stop';
+  readonly airport: string;
+  /** Planned runway (`24R`), null when the OFP has none. */
+  readonly runway: string | null;
+}
+
+export type SimCommand = BridgeCommand | VdgsCommand | SmokeCommand;
 
 /** Limits shared with the bridge (`CommandCatalog`). */
 export const SIM_COMMAND_LIMITS = { maxArgs: 16, maxStringArg: 512 } as const;
@@ -45,6 +60,15 @@ const ARG_NAME_RE = /^[a-z][A-Za-z0-9_]{0,31}$/;
 
 const VALIDATORS: Readonly<Record<SimCommandName, (args: SimCommandArgs) => string | null>> = {
   ping: (args) => (Object.keys(args).length === 0 ? null : 'ping takes no arguments'),
+  smoke_start: (args) => {
+    const keys = Object.keys(args);
+    if (keys.length !== 2 || !('lat' in args) || !('lon' in args)) return 'needs lat and lon only';
+    const { lat, lon } = args;
+    if (typeof lat !== 'number' || !(lat >= -90 && lat <= 90)) return 'lat must be -90..90';
+    if (typeof lon !== 'number' || !(lon >= -180 && lon <= 180)) return 'lon must be -180..180';
+    return null;
+  },
+  smoke_stop: (args) => (Object.keys(args).length === 0 ? null : 'smoke_stop takes no arguments'),
 };
 
 export function isSimCommandName(name: unknown): name is SimCommandName {

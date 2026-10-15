@@ -8,10 +8,20 @@ import {
 
 describe('sim commands (T21)', () => {
   it('whitelist', () => {
-    expect(SIM_COMMANDS).toEqual(['ping']);
+    expect(SIM_COMMANDS).toEqual(['ping', 'smoke_start', 'smoke_stop']);
     expect(isSimCommandName('ping')).toBe(true);
     expect(isSimCommandName('set_lvar')).toBe(false);
     expect(isSimCommandName(1)).toBe(false);
+  });
+
+  it('checks the smoke arguments like the bridge (T34)', () => {
+    expect(checkSimCommand('smoke_start', { lat: 34.44, lon: 135.22 })).toBeNull();
+    expect(checkSimCommand('smoke_start', { lat: 34.44 })).toMatch(/lat and lon/);
+    expect(checkSimCommand('smoke_start', { lat: 91, lon: 0 })).toMatch(/lat/);
+    expect(checkSimCommand('smoke_start', { lat: 0, lon: 181 })).toMatch(/lon/);
+    expect(checkSimCommand('smoke_start', { lat: '34', lon: 135 })).toMatch(/lat/);
+    expect(checkSimCommand('smoke_stop', {})).toBeNull();
+    expect(checkSimCommand('smoke_stop', { x: 1 })).toMatch(/no arguments/);
   });
 
   it('accepts ping without arguments', () => {

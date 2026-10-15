@@ -571,7 +571,12 @@ function outLine(m: CoreOutput['outbound'][number]): RecordingEvent {
 
 function cmdLine(c: SimCommand): RecordingEvent {
   const { scenarioId, t, command, ...rest } = c;
-  const data = 'vdgs' in rest ? rest.vdgs : rest.args;
+  const data =
+    'vdgs' in rest
+      ? rest.vdgs
+      : 'args' in rest
+        ? rest.args
+        : { action: rest.action, airport: rest.airport, runway: rest.runway };
   return { type: 'cmd', t, scenarioId, command, data: JSON.parse(JSON.stringify(data)) };
 }
 

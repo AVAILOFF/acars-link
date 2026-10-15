@@ -157,7 +157,15 @@ export interface VdgsStep {
   };
 }
 
-export type Step = SendStep | WaitStep | BranchStep | ResendStep | SetStep | VdgsStep;
+/**
+ * Smoke column in the simulator at the planned runway of the destination (T34): `start` or
+ * `stop`. Needs the bridge and the smoke package (docs/06); without them nothing happens.
+ */
+export interface SmokeStep {
+  readonly smoke: 'start' | 'stop';
+}
+
+export type Step = SendStep | WaitStep | BranchStep | ResendStep | SetStep | VdgsStep | SmokeStep;
 
 export interface ScenarioDef {
   readonly id: string;
