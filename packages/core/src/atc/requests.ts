@@ -24,7 +24,13 @@ export type AtcRequest =
       readonly asFl: boolean;
     }
   | { readonly kind: 'speed'; readonly mach: number | null; readonly kt: number | null }
-  | { readonly kind: 'direct'; readonly fix: string };
+  | { readonly kind: 'direct'; readonly fix: string }
+  /** DM27 `REQUEST WEATHER DEVIATION UP TO 15NM LEFT OF ROUTE` (T47). */
+  | {
+      readonly kind: 'deviation';
+      readonly nm: number;
+      readonly side: 'LEFT' | 'RIGHT';
+    };
 
 const REASON = '(?: DUE TO [A-Z ]+)?';
 const LEVEL_RE = new RegExp(
@@ -32,6 +38,9 @@ const LEVEL_RE = new RegExp(
 );
 const SPEED_RE = new RegExp(
   `^REQUEST (?:M ?(\\.\\d{1,2})|(\\.\\d{1,2})|(\\d{2,3}) ?(?:KT)?)${REASON}$`,
+);
+const DEVIATION_RE = new RegExp(
+  `^REQUEST WEATHER DEVIATION UP TO (\\d{1,3}) ?NM (LEFT|RIGHT)(?: OF ROUTE)?${REASON}$`,
 );
 const DIRECT_RE = new RegExp(`^REQUEST DIRECT TO ([A-Z0-9]{2,7})${REASON}$`);
 
@@ -54,6 +63,10 @@ export function parseRequest(text: string): AtcRequest | null {
   }
   const direct = DIRECT_RE.exec(text);
   if (direct !== null) return { kind: 'direct', fix: direct[1] as string };
+  const dev = DEVIATION_RE.exec(text);
+  if (dev !== null) {
+    return { kind: 'deviation', nm: Number(dev[1]), side: dev[2] as 'LEFT' | 'RIGHT' };
+  }
   return null;
 }
 
@@ -115,7 +128,20 @@ function leg(ctx: RequestContext): OfpFix | null {
 export function decide(req: AtcRequest, ctx: RequestContext): RequestDecision {
   if (req.kind === 'level') return decideLevel(req, ctx);
   if (req.kind === 'speed') return decideSpeed(req, ctx);
+  if (req.kind === 'deviation') return decideDeviation(req);
   return decideDirect(req, ctx);
+}
+
+/**
+ * Weather deviation (T47, approved 2026-10-15): up to 10 NM either side; a larger request is
+ * cleared for 10 NM. No traffic or airspace data to refuse on, so it is always cleared.
+ * Uplink: UM82 `CLEARED TO DEVIATE UP TO [distance] [direction] OF ROUTE`.
+ */
+export const DEVIATION_MAX_NM = 10;
+
+function decideDeviation(req: Extract<AtcRequest, { kind: 'deviation' }>): RequestDecision {
+  const nm = Math.max(1, Math.min(req.nm, DEVIATION_MAX_NM));
+  return clear(`CLEARED TO DEVIATE UP TO @${nm}NM@ @${req.side}@ OF ROUTE`);
 }
 
 function decideLevel(

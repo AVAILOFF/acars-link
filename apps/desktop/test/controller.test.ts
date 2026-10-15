@@ -232,8 +232,8 @@ describe('AppController', () => {
     await app.loadOfp();
     const list = await app.listScenarios();
     // 15 base + 12 commands (T12) + 8 command scenarios (T44) + slot_missed (T43) + 4 live-data (T13) + 2 launches (T28) + 24 irregular (T14, T44)
-    // + 1 sim (T22) + 10 special events (T29) + atis_update and vdgs_divert (T45)
-    expect(list).toHaveLength(81);
+    // + 1 sim (T22) + 10 special events (T29) + atis_update and vdgs_divert (T45) + emergency_mayday and emergency_pan (T47)
+    expect(list).toHaveLength(83);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -904,7 +904,7 @@ describe('irregular events by hand', () => {
     });
     await s.app.startFlight();
     const list = s.app.state().irregular;
-    expect(list.length).toBe(25);
+    expect(list.length).toBe(27);
     expect(list.find((x) => x.id === 'vip_onboard')?.title).toEqual({
       en: 'VIP on board',
       ru: 'VIP на борту',

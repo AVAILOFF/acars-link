@@ -34,6 +34,8 @@ const SENT: Readonly<Record<SystemCode, Readonly<Record<string, string>>>> = {
   atc_logoff: { station: 'XFIN', by: 'station' },
   atc_live: { fir: 'EFIN', callsign: 'EFIN_CTR', frequency: '124.000' },
   atc_unsupported: { station: 'XFIN', text: 't' },
+  atc_emergency: { station: 'XFIN', kind: 'MAYDAY' },
+  atc_level_check: { station: 'XFIN', level: '39000', why: 'departed' },
   atc_misrouted_pdc: { station: 'XFIN', target: 'XFHK' },
   atc_misrouted_pdc_closed: { station: 'XFIN', target: '' },
   atc_misrouted_logon: { station: 'XFHK', target: 'XFIN' },

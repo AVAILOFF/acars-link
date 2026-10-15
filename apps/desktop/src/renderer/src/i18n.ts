@@ -99,6 +99,9 @@ const en = {
   'sys.atc_live':
     'ROPS: live VATSIM ATC in {fir} — {callsign} {frequency}; the station steps aside',
   'sys.atc_unsupported': 'ROPS: {station} does not handle "{text}" yet',
+  'sys.atc_emergency':
+    'ROPS: {kind} received by {station} — the airline emergency desk is notified',
+  'sys.atc_level_check': 'ROPS: {station} asks to confirm the assigned level ({level} ft, {why})',
   'sys.atc_logon_wrong':
     'ROPS: {station} is not the station of your FIR — log on (CPDLC) to {expected}',
   'sys.atc_misrouted_pdc':
@@ -361,6 +364,9 @@ const ru: Record<MessageKey, string> = {
   'sys.atc_logoff': 'ROPS: {station} — logoff ({by})',
   'sys.atc_live': 'ROPS: в {fir} живой диспетчер VATSIM — {callsign} {frequency}; станция уступает',
   'sys.atc_unsupported': 'ROPS: {station} пока не обрабатывает «{text}»',
+  'sys.atc_emergency':
+    'ROPS: {kind} принят станцией {station} — аварийный центр авиакомпании уведомлён',
+  'sys.atc_level_check': 'ROPS: {station} просит подтвердить выданный эшелон ({level} ft, {why})',
   'sys.atc_logon_wrong':
     'ROPS: {station} — не станция вашего FIR; логон (CPDLC) нужен на {expected}',
   'sys.atc_misrouted_pdc':

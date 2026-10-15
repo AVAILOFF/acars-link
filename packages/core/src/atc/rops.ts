@@ -67,6 +67,12 @@ export const TRAFFIC_REFUSAL = 0.1;
 /** The same request within this time after a traffic refusal is refused again. */
 export const TRAFFIC_HOLD_MS = 5 * 60_000;
 
+/** Minutes after the WILCO to a level clearance before the station asks to confirm it (T47, approved 2026-10-15). */
+export const LEVEL_CHECK_MIN = 5;
+/** The aircraft is "at" the assigned level within this, ft; beyond `LEVEL_DEPART_FT` it left it. */
+export const LEVEL_AT_FT = 200;
+export const LEVEL_DEPART_FT = 300;
+
 export interface RopsOptions {
   readonly enabled: boolean;
   /** Step aside where a live VATSIM centre covers the FIR (default true). */
@@ -134,6 +140,21 @@ export type AtcEvent =
       readonly kind: 'direct' | 'step' | 'descent';
       readonly text: string;
     }
+  /** MAYDAY / PAN received (T47): the airline's emergency chain starts. */
+  | {
+      readonly type: 'ATC_EMERGENCY';
+      readonly t: number;
+      readonly station: string;
+      readonly kind: 'MAYDAY' | 'PAN';
+    }
+  /** The station asked the aircraft to confirm its assigned level (T47). */
+  | {
+      readonly type: 'ATC_LEVEL_CHECK';
+      readonly t: number;
+      readonly station: string;
+      readonly levelFt: number;
+      readonly why: 'not_started' | 'departed';
+    }
   /** A CPDLC message the station does not handle (answered "not supported"). */
   | {
       readonly type: 'ATC_UNSUPPORTED';
@@ -180,6 +201,15 @@ export interface AutoState {
   readonly descent: boolean;
   /** Levels the pilot asked for. */
   readonly asked: readonly number[];
+  /** Level clearance sent, waiting for the pilot's WILCO (T47). */
+  readonly levelAwait?: { readonly min: number; readonly levelFt: number } | null;
+  /** Level clearance accepted, watched for (T47). */
+  readonly levelWatch?: {
+    readonly levelFt: number;
+    readonly startFt: number;
+    readonly at: number;
+    readonly reached: boolean;
+  } | null;
   /** Last level cleared (pilot request or step climb). */
   readonly cleared: number | null;
 }
@@ -194,6 +224,8 @@ export interface PendingReply {
   readonly request: string;
   readonly approved: boolean;
   readonly why: RefusalReason | null;
+  /** A CLIMB/DESCEND clearance to this level: watched after the WILCO (T47). */
+  readonly levelFt?: number;
 }
 
 export interface RequestState {
@@ -263,6 +295,8 @@ export class RopsStation {
       descent: boolean;
       asked: number[];
       cleared: number | null;
+      levelAwait: { min: number; levelFt: number } | null;
+      levelWatch: { levelFt: number; startFt: number; at: number; reached: boolean } | null;
     };
   };
   private readonly dcl: DclService;
@@ -306,6 +340,8 @@ export class RopsStation {
         descent: copy.auto?.descent ?? false,
         asked: [...(copy.auto?.asked ?? [])],
         cleared: copy.auto?.cleared ?? null,
+        levelAwait: copy.auto?.levelAwait ?? null,
+        levelWatch: copy.auto?.levelWatch ?? null,
       },
     };
     this.dcl = new DclService(ofp, deps.seed, deps.profile ?? DEFAULT_PROFILE, copy.dcl);
@@ -477,6 +513,7 @@ export class RopsStation {
 
     // T26: clearances on the station's own.
     this.autoClearances(input, map, send, events);
+    this.watchLevel(input, send, events);
 
     // 4. On block: the service ends.
     if (ENDED.has(input.phase)) {
@@ -497,7 +534,7 @@ export class RopsStation {
     m: PilotMessage,
     input: RopsTickInput,
     map: FirMap | null,
-    send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => void,
+    send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => number,
     events: AtcEvent[],
     ocl: OclContext,
   ): void {
@@ -575,6 +612,23 @@ export class RopsStation {
     }
     const rcl = parseRcl(p.text);
     if (rcl !== null && this.ocl.receive(rcl, to, ocl)) return;
+    // T47: the WILCO to a level clearance of ours starts the watch on the level.
+    const wait = this.st.auto.levelAwait;
+    if (wait !== null && p.mrn === wait.min) {
+      this.st.auto.levelAwait = null;
+      const alt = input.telemetry?.altFt ?? null;
+      if (/^WILCO\b/.test(p.text) && alt !== null) {
+        this.st.auto.levelWatch = { levelFt: wait.levelFt, startFt: alt, at: now, reached: false };
+      }
+    }
+    // T47: MAYDAY / PAN (DM56 / DM55) is answered at once and starts the airline's chain.
+    const emergency = p.mrn === null ? /^(MAYDAY|PAN)\b/.exec(p.text) : null;
+    if (emergency !== null) {
+      const kind = emergency[1] as 'MAYDAY' | 'PAN';
+      send(to, 'NE', p.min, `ROGER ${kind}`);
+      events.push({ type: 'ATC_EMERGENCY', t: now, station: to, kind });
+      return;
+    }
     // Answers to our messages need nothing (no open dialogues in T23). Fenix A320 answers
     // `STDBY` for STANDBY (test flight 2026-10-10, docs/07 T38).
     if (p.mrn !== null && /^(WILCO|UNABLE|ROGER|STANDBY|STDBY|AFFIRM|NEGATIVE)\b/.test(p.text))
@@ -646,7 +700,16 @@ export class RopsStation {
       text: reply.text,
       ra: reply.ra,
       why: reply.why,
+      ...(req.kind === 'level' && /^(CLIMB|DESCEND) TO /.test(reply.text)
+        ? { levelFt: req.levelFt }
+        : {}),
     });
+  }
+
+  /** A CLIMB/DESCEND clearance went out as `min`: its WILCO starts the watch (T47). */
+  private awaitLevel(min: number, levelFt: number): void {
+    this.st.auto.levelAwait = { min, levelFt };
+    this.st.auto.levelWatch = null;
   }
 
   /**
@@ -666,9 +729,10 @@ export class RopsStation {
     const a = this.st.auto;
     const route = routePosition(this.ofp, tm);
     const now = input.now;
-    const uplink = (kind: 'direct' | 'step' | 'descent', text: string) => {
-      send(station, 'WU', null, text);
+    const uplink = (kind: 'direct' | 'step' | 'descent', text: string, levelFt?: number) => {
+      const min = send(station, 'WU', null, text);
       events.push({ type: 'ATC_AUTO', t: now, station, kind, text });
+      if (levelFt !== undefined) this.awaitLevel(min, levelFt);
     };
     const span = cruiseSpan(this.ofp);
 
@@ -678,7 +742,7 @@ export class RopsStation {
       const level = descentLevel(this.ofp, route);
       const below = a.cleared !== null && a.cleared < tm.altFt - 500;
       if (level !== null && !below && level.levelFt < tm.altFt - 1000) {
-        uplink('descent', `DESCEND TO @${level.text}@`);
+        uplink('descent', `DESCEND TO @${level.text}@`, level.levelFt);
         a.cleared = level.levelFt;
       }
       a.directDue = null;
@@ -697,7 +761,7 @@ export class RopsStation {
         (a.cleared !== null && a.cleared >= step.levelFt) ||
         tm.altFt >= step.levelFt - 200;
       if (status === 'due' && !done) {
-        uplink('step', `CLIMB TO @${levelText(step.levelFt, true)}@`);
+        uplink('step', `CLIMB TO @${levelText(step.levelFt, true)}@`, step.levelFt);
         a.cleared = step.levelFt;
       }
     }
@@ -734,10 +798,53 @@ export class RopsStation {
     }
   }
 
+  /**
+   * Level watch (T47): five minutes after the WILCO the aircraft has not begun to change level,
+   * or it left the assigned level after reaching it → `CONFIRM ASSIGNED ALTITUDE` (UM135), once
+   * per clearance. The watch ends with the logon (handover, logoff).
+   */
+  private watchLevel(
+    input: RopsTickInput,
+    send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => number,
+    events: AtcEvent[],
+  ): void {
+    const a = this.st.auto;
+    const w = a.levelWatch;
+    if (w === null) return;
+    const station = this.st.connected;
+    if (station === null) {
+      a.levelWatch = null;
+      return;
+    }
+    const tm = input.telemetry;
+    if (tm === null) return;
+    const off = Math.abs(tm.altFt - w.levelFt);
+    if (off <= LEVEL_AT_FT) w.reached = true;
+    let why: 'not_started' | 'departed' | null = null;
+    if (w.reached) {
+      if (off > LEVEL_DEPART_FT) why = 'departed';
+    } else if (
+      input.now - w.at >= LEVEL_CHECK_MIN * 60_000 &&
+      Math.abs(tm.altFt - w.startFt) < LEVEL_DEPART_FT
+    ) {
+      why = 'not_started';
+    }
+    if (why === null) return;
+    a.levelWatch = null;
+    send(station, 'Y', null, 'CONFIRM ASSIGNED ALTITUDE');
+    events.push({
+      type: 'ATC_LEVEL_CHECK',
+      t: input.now,
+      station,
+      levelFt: w.levelFt,
+      why,
+    });
+  }
+
   /** Sends the replies whose delay is over, oldest first. */
   private flushReplies(
     now: number,
-    send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => void,
+    send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => number,
     events: AtcEvent[],
   ): void {
     const r = this.st.req;
@@ -745,7 +852,8 @@ export class RopsStation {
     if (due.length === 0) return;
     r.pending = r.pending.filter((x) => x.due > now);
     for (const x of due) {
-      send(x.station, x.ra, x.mrn, x.text);
+      const min = send(x.station, x.ra, x.mrn, x.text);
+      if (x.levelFt !== undefined && x.approved) this.awaitLevel(min, x.levelFt);
       events.push({
         type: 'ATC_REQUEST',
         t: now,

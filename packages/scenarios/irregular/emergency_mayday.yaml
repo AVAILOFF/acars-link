@@ -1,0 +1,44 @@
+# MAYDAY sent to the ROPS station (DM56, T47): the station answers ROGER MAYDAY at once and
+# the airline's emergency desk follows. It starts by hand only (the core forces it after the
+# MAYDAY); probability 0 keeps it from starting on its own. DIVERT (default after 5 min) goes
+# to the nearest of the origin and the alternates, and so reaches the ROPS station (T48).
+id: emergency_mayday
+version: 1
+category: irregular
+title: MAYDAY declared
+title_ru: "Объявлен MAYDAY"
+description: "The crew declared MAYDAY to ATC through the ROPS station. The airline emergency desk offers DIVERT to the nearest suitable airport (default DIVERT after 5 min) and alerts rescue and medical services there. Starts only after a MAYDAY to ROPS."
+description_ru: "Экипаж объявил MAYDAY станции ROPS. Аварийный центр авиакомпании предлагает диверсию на ближайший подходящий аэропорт (через 5 мин — DIVERT) и поднимает пожарных и медиков. Запускается только после MAYDAY на станцию ROPS."
+enabled_by_default: true
+trigger:
+  on: phase
+  phase: CRUISE
+probability: 0
+steps:
+  - send:
+      header: OPS MSG EMERGENCY
+      body: |
+        MAYDAY RCVD VIA ATC
+        EMERGENCY DESK ACTIVATED
+        NEAREST SUITABLE {flight.nearest_altn|or:AIRPORT}
+        {flight.nearest_altn_nm} NM FROM PRESENT POS
+        REPLY DIVERT OR CONTINUE
+  - wait:
+      reply: { options: [DIVERT, CONTINUE], timeout_min: 5, default: DIVERT }
+  - branch:
+      DIVERT:
+        - set: { flight.divert: "{flight.nearest_altn}" }
+        - send:
+            header: OPS MSG EMERGENCY
+            body: |
+              ROGER DIVERT {flight.divert|or:NEAREST SUITABLE}
+              RESCUE AND FIRE SERVICES ALERTED
+              MEDICAL AND HANDLING ORDERED
+              SEND NEW ETA WHEN ABLE
+      CONTINUE:
+        - send:
+            header: OPS MSG EMERGENCY
+            body: |
+              ROGER CONTINUE TO {ofp.dest}
+              RESCUE AND FIRE SERVICES ALERTED
+              ADVISE IF PLAN CHANGES

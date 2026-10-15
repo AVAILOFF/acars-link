@@ -194,6 +194,8 @@ export type SystemCode =
   | 'atc_logoff'
   | 'atc_live'
   | 'atc_unsupported'
+  | 'atc_emergency'
+  | 'atc_level_check'
   | 'atc_misrouted_pdc'
   | 'atc_misrouted_pdc_closed'
   | 'atc_misrouted_logon'

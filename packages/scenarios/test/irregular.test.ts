@@ -128,6 +128,8 @@ const daysBefore = (ofp: Ofp, days: number) => ofp.times.schedOutMs - days * 86_
 
 const SETUP: Readonly<Record<string, Setup>> = {
   medical_onboard: { answers: ['CONTINUE', 'DIVERT'] },
+  emergency_mayday: { answers: ['DIVERT', 'CONTINUE'] },
+  emergency_pan: { answers: ['DIVERT', 'CONTINUE'] },
   unruly_passenger: { answers: ['RESTRAIN', 'DIVERT', 'CONTINUE'] },
   unruly_followup: {
     flags: (o) => ({ unruly_seat: '23C', unruly_flight: 'SJX821', unruly_date: daysBefore(o, 1) }),

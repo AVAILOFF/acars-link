@@ -113,6 +113,8 @@ export interface OutboxState {
 export class AcarsCore {
   private queue: OutboundMessage[] = [];
   private lastAt: number | null = null;
+  /** Scenarios to start by hand on the next tick (T47: the emergency chain after MAYDAY/PAN). */
+  private emergencies: string[] = [];
   private readonly gapMs: number;
   /** The airline's station callsign: messages to it go to the scenarios. */
   private readonly airline: string;
@@ -242,6 +244,8 @@ export class AcarsCore {
     // Messages to a ROPS station go to it, the rest to the airline (T23).
     const toAtc = (m: PilotMessage) =>
       this.rops !== null && m.to !== undefined && m.to !== this.airline && ROPS_CALLSIGN.test(m.to);
+    const forceAll = [...this.emergencies, ...(force ?? [])];
+    this.emergencies = [];
     const out = this.engine.tick({
       now,
       phase: this.fsm.phase,
@@ -252,7 +256,7 @@ export class AcarsCore {
       telemetryLost: this.fsm.telemetryLost,
       inbound: inbound.filter((m) => !toAtc(m)),
       ...(data === undefined ? {} : { data }),
-      ...(force === undefined || force.length === 0 ? {} : { force }),
+      ...(forceAll.length === 0 ? {} : { force: forceAll }),
     });
     // ATC uplinks are not airline telexes: they skip the outbox gap.
     const atc = this.rops?.tick({
@@ -262,6 +266,12 @@ export class AcarsCore {
       inbound: inbound.filter(toAtc),
       ext: this.engine.ext,
     }) ?? { outbound: [], events: [] };
+    // MAYDAY / PAN to ROPS: the airline's chain starts on the next tick (T47).
+    for (const e of atc.events) {
+      if (e.type !== 'ATC_EMERGENCY') continue;
+      const id = e.kind === 'MAYDAY' ? 'emergency_mayday' : 'emergency_pan';
+      if (this.engine.has(id) && !this.emergencies.includes(id)) this.emergencies.push(id);
+    }
     return {
       outbound: [...atc.outbound, ...this.pace(now, out.outbound)],
       commands: out.commands,

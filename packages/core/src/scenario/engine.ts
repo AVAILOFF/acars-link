@@ -481,6 +481,11 @@ export class ScenarioEngine {
   }
 
   /** Ids started in this session (persist them to honour `per_session` across flights). */
+  /** Whether a scenario with this id is loaded (enabled). */
+  has(id: string): boolean {
+    return this.byId.has(id);
+  }
+
   get sessionFired(): readonly string[] {
     return [...this.st.sessionFired];
   }

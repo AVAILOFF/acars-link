@@ -403,6 +403,16 @@ export class FlightSession {
             text: e.text.replaceAll('@', ''),
           });
           break;
+        case 'ATC_EMERGENCY':
+          this.feed.system(e.t, 'atc_emergency', { station: e.station, kind: e.kind });
+          break;
+        case 'ATC_LEVEL_CHECK':
+          this.feed.system(e.t, 'atc_level_check', {
+            station: e.station,
+            level: String(e.levelFt),
+            why: e.why,
+          });
+          break;
         case 'ATC_MISROUTED':
           this.feed.system(e.t, misroutedCode(e), {
             station: e.station,

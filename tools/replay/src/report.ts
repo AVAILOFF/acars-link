@@ -112,6 +112,10 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
           return ['ATC', `${ev.station}: ${ev.kind} ${ev.text}`];
         case 'ATC_UNSUPPORTED':
           return ['ATC', `${ev.station}: not supported "${ev.text}"`];
+        case 'ATC_EMERGENCY':
+          return ['ATC', `${ev.station}: ${ev.kind} received, airline chain starts`];
+        case 'ATC_LEVEL_CHECK':
+          return ['ATC', `${ev.station}: confirm assigned level ${ev.levelFt} ft (${ev.why})`];
         case 'ATC_MISROUTED':
           return [
             'ATC',
