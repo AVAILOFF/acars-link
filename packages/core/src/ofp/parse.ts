@@ -264,7 +264,13 @@ function parseAirport(r: Reader): OfpAirport {
   };
 }
 
-function parseNavlog(root: Reader): OfpFix[] {
+/** `fuel_plan_onboard` of a fix (the plan's fuel on board there, OFP units), kg; null if absent. */
+function planFob(f: Reader, kg: (n: number) => number): number | null {
+  const n = f.optNum('fuel_plan_onboard');
+  return n === null ? null : Math.round(kg(n));
+}
+
+function parseNavlog(root: Reader, kg: (n: number) => number): OfpFix[] {
   const fixes = root.list('navlog');
   if (fixes.length === 0) throw new OfpParseError('navlog', 'navlog is empty');
   let cum = 0;
@@ -293,6 +299,7 @@ function parseNavlog(root: Reader): OfpFix[] {
       moraFt: f.optNum('mora'),
       fir: f.optStr('fir'),
       validLevelsFt: levels(f, 'fir_valid_levels'),
+      planFobKg: planFob(f, kg),
     };
   });
 }
@@ -507,7 +514,7 @@ export function parseSimbriefOfp(json: unknown): Ofp {
     weights: parseWeights(root.section('weights'), kg),
     fuel: parseFuel(root.section('fuel'), kg),
     times: parseTimes(root.section('times')),
-    navlog: parseNavlog(root),
+    navlog: parseNavlog(root, kg),
     takeoffPerf: parseTakeoffPerf(root.optSection('tlr')),
     landingPerf: parseLandingPerf(root.optSection('tlr')),
     crew: parseCrew(root.optSection('crew')),

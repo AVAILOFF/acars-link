@@ -21,6 +21,7 @@ public class TelemetryMapperTests
         Assert.Equal("EXIT OPEN:0", SimVars.Definitions[SimVars.ExitFirst].Name);
         Assert.Equal("TRANSPONDER STATE:1", SimVars.Definitions[SimVars.Xpdr].Name);
         Assert.Equal("SIMULATION RATE", SimVars.Definitions[SimVars.SimRate].Name);
+        Assert.Equal(new SimVarDef("PLANE TOUCHDOWN NORMAL VELOCITY", "feet per second"), SimVars.Definitions[SimVars.Touchdown]);
     }
 
     [Fact]

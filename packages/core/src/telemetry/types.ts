@@ -45,6 +45,12 @@ export interface TelemetrySnapshot {
   readonly paused: boolean;
   /** Aircraft TITLE string, used to pick a DisplayProfile. */
   readonly aircraftTitle: string;
+  /**
+   * Descent rate at the last touchdown, ft/min, positive = down (T46; SimVar PLANE TOUCHDOWN
+   * NORMAL VELOCITY, ft/s × 60). The sim keeps it until the next touchdown, so it is only
+   * meaningful right after landing. Absent in older recordings and sources without the SimVar.
+   */
+  readonly touchdownFpm?: number;
 }
 
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
@@ -80,6 +86,7 @@ export function isTelemetrySnapshot(x: unknown): x is TelemetrySnapshot {
     isArr(s['engRunning'], isBool) &&
     isArr(s['engN2'], isNum) &&
     isArr(s['doorsOpen'], isNum) &&
-    typeof s['aircraftTitle'] === 'string'
+    typeof s['aircraftTitle'] === 'string' &&
+    (s['touchdownFpm'] === undefined || isNum(s['touchdownFpm']))
   );
 }

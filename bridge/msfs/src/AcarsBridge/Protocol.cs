@@ -36,6 +36,8 @@ public sealed record TelemetrySnapshot
     [JsonPropertyName("simRate")] public double SimRate { get; init; }
     [JsonPropertyName("paused")] public bool Paused { get; init; }
     [JsonPropertyName("aircraftTitle")] public string AircraftTitle { get; init; } = "";
+    /// <summary>Descent rate at the last touchdown, ft/min (T46); 0 until the sim has one.</summary>
+    [JsonPropertyName("touchdownFpm")] public double TouchdownFpm { get; init; }
 }
 
 /// <summary>Connection state of the bridge towards the simulator.</summary>

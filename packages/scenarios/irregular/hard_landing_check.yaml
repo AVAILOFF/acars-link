@@ -1,0 +1,50 @@
+# Hard landing (T46): the descent rate the sim kept at touchdown (SimVar PLANE TOUCHDOWN
+# NORMAL VELOCITY, bridge -> telemetry `touchdownFpm`) is above 350 ft/min (threshold set by
+# the user 2026-10-15; the AMM criteria of Airbus/Boeing are not public, so this is a game
+# value). On block maintenance asks the commander. CONFIRM leaves an inspection for the next
+# flight of the same aircraft (flags, like mel_carry_over); without the SimVar - no message.
+id: hard_landing_check
+version: 1
+category: irregular
+title: Hard landing check
+title_ru: "Проверка после жёсткой посадки"
+description: "On block, if the touchdown rate was above 350 ft/min (needs the bridge reading): maintenance asks to CONFIRM a hard landing. CONFIRM puts an inspection before the next flight of the same aircraft."
+description_ru: "На стоянке, если вертикальная скорость касания была выше 350 фут/мин (нужно значение от моста): техслужба просит подтвердить жёсткую посадку. CONFIRM — осмотр перед следующим рейсом на этом борту."
+enabled_by_default: true
+trigger:
+  on: phase_enter
+  phase: ON_BLOCK
+conditions:
+  - "flight.touchdown_fpm != null"
+  - "flight.touchdown_fpm > 350"
+  - "flags.hardland_reg == null"
+steps:
+  - send:
+      header: MAINT CONTROL
+      body: |
+        FDM TOUCHDOWN
+        {flight.touchdown_fpm} FPM
+        DID CREW OBSERVE
+        HARD LANDING
+        REPLY CONFIRM OR NEGATIVE
+  - wait:
+      reply: { options: [CONFIRM, NEGATIVE], timeout_min: 15, default: NEGATIVE }
+  - branch:
+      CONFIRM:
+        - set:
+            flags.hardland_reg: "{ofp.ac_reg}"
+            flags.hardland_date: "{flight.date}"
+        - send:
+            header: MAINT CONTROL
+            body: |
+              ENTER HARD LANDING
+              IN TECH LOG
+              INSPECTION PER AMM
+              BEFORE NEXT FLIGHT
+              MX AT {ofp.dest}
+      NEGATIVE:
+        - send:
+            header: MAINT CONTROL
+            body: |
+              NOTED NO CREW REPORT
+              FDM DATA FILED
