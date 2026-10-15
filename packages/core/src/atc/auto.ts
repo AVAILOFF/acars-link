@@ -1,5 +1,5 @@
 import { distanceNm, type LatLon } from '../geo/geo.js';
-import type { Ofp, OfpFix, OfpStepClimb } from '../ofp/types.js';
+import type { Ofp, OfpAirport, OfpFix, OfpStepClimb } from '../ofp/types.js';
 import { createRng } from '../random/rng.js';
 import { checkLevel, levelText } from './levels.js';
 import { type RoutePosition, starEntryIndex } from './route.js';
@@ -43,6 +43,11 @@ const NORTH_AMERICA_TRANSITION_FT = 18_000;
 
 function defaultTransitionFt(icao: string): number {
   return /^(K|PA|PH|C)/.test(icao) ? NORTH_AMERICA_TRANSITION_FT : 0;
+}
+
+/** The airport's transition: level, else altitude, else the default above (ft). */
+export function transitionFt(apt: OfpAirport): number {
+  return apt.transLevelFt ?? apt.transAltFt ?? defaultTransitionFt(apt.icao);
 }
 
 function cumOf(ofp: Ofp, ident: string): number | null {
@@ -142,7 +147,5 @@ export function descentLevel(ofp: Ofp, route: RoutePosition): DescentLevel | nul
   const raw = Math.max(atEntry, mora > 0 ? mora + MORA_MARGIN_FT : 0);
   if (raw <= 0) return null;
   const levelFt = Math.ceil(raw / 1000) * 1000;
-  const d = ofp.destination;
-  const tl = d.transLevelFt ?? d.transAltFt ?? defaultTransitionFt(d.icao);
-  return { levelFt, text: levelText(levelFt, levelFt >= tl) };
+  return { levelFt, text: levelText(levelFt, levelFt >= transitionFt(ofp.destination)) };
 }

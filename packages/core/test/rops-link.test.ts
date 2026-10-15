@@ -9,6 +9,8 @@ import {
   distanceNm,
   EMPTY_EXT,
   type FirArea,
+  type LatLon,
+  type Ofp,
   type OutboundMessage,
   type PilotMessage,
   parseSimbriefOfp,
@@ -51,10 +53,11 @@ const OPTIONS = { enabled: true, randomDirects: false } as const;
 const altn = ofp.alternates[0];
 if (altn === undefined) throw new Error('fixture: no alternate');
 
-const tm = (t: number, altFt: number): TelemetrySnapshot => ({
+const tm = (t: number, altFt: number, at: LatLon = pos): TelemetrySnapshot => ({
   v: 1,
   t,
-  ...pos,
+  lat: at.lat,
+  lon: at.lon,
   altFt,
   aglFt: altFt,
   iasKt: 260,
@@ -90,22 +93,30 @@ interface Link {
 
 function run(
   ticks: number,
-  altFt: number,
+  altFt: number | ((i: number) => number),
   link: (i: number) => Link,
-  o: { logon?: boolean; resumeAt?: number; seed?: string } = {},
+  o: {
+    logon?: boolean;
+    resumeAt?: number;
+    seed?: string;
+    say?: ReadonlyMap<number, readonly PilotMessage[]>;
+    ofp?: Ofp;
+    at?: (i: number) => LatLon;
+  } = {},
 ) {
   const seed = o.seed ?? 'link';
-  let st = new RopsStation(ofp, OPTIONS, { seed });
+  const plan = o.ofp ?? ofp;
+  let st = new RopsStation(plan, OPTIONS, { seed });
   const out: OutboundMessage[] = [];
   const events: AtcEvent[] = [];
   for (let i = 0; i < ticks; i++) {
-    if (i === o.resumeAt) st = new RopsStation(ofp, OPTIONS, { seed }, st.getState());
+    if (i === o.resumeAt) st = new RopsStation(plan, OPTIONS, { seed }, st.getState());
     const now = T0 + i * STEP;
     const r = st.tick({
       now,
       phase: 'CRUISE',
-      telemetry: tm(now, altFt),
-      inbound: i === 1 && o.logon !== false ? [logon] : [],
+      telemetry: tm(now, typeof altFt === 'number' ? altFt : altFt(i), o.at?.(i)),
+      inbound: [...(i === 1 && o.logon !== false ? [logon] : []), ...(o.say?.get(i) ?? [])],
       ext,
       ...link(i),
     });
@@ -161,6 +172,18 @@ describe('diversion through the station (T48)', () => {
     expect(p.some((x) => x.includes('DESCEND'))).toBe(false);
   });
 
+  it('the descent is named by the transition of the diversion airport', () => {
+    // Without a transition in the OFP, outside North America: always a flight level.
+    const noTl: Ofp = {
+      ...ofp,
+      alternates: [{ ...altn, transAltFt: null, transLevelFt: null }],
+    };
+    const r = run(120, NEAR_FT, (i) => (i >= divertAt ? { divert: altn.icao } : {}), {
+      ofp: noTl,
+    });
+    expect(packets(r.out).some((x) => x.includes('DESCEND TO @FL100@'))).toBe(true);
+  });
+
   it('is deterministic and survives a state round trip', () => {
     const link = (i: number): Link => (i >= divertAt ? { divert: altn.icao } : {});
     const whole = run(120, NEAR_FT, link);
@@ -200,9 +223,93 @@ describe('holding through the station (T48)', () => {
     expect(packets(hi.out).some((x) => x.includes('MAINTAIN @FL240@'))).toBe(true);
   });
 
+  it('the holding level is named by the destination transition (RJBB: 14000 ft)', () => {
+    expect(ofp.destination.transLevelFt).toBe(14000);
+    const p = packets(run(100, 16000, holdOn).out);
+    expect(p.some((x) => x.includes('MAINTAIN @FL160@'))).toBe(true);
+  });
+
   it('survives a state round trip mid-hold', () => {
     const whole = run(100, 11000, holdOn);
     const split = run(100, 11000, holdOn, { resumeAt: 30 });
     expect(packets(split.out)).toEqual(packets(whole.out));
+  });
+});
+
+describe('a level clearance of the airline link replaces the level watch (T47, T48)', () => {
+  const pilot = (min: number, text: string, mrn: number | null = null): PilotMessage => ({
+    from: ofp.callsign,
+    type: 'cpdlc',
+    text: `/data2/${min}/${mrn ?? ''}/${mrn === null ? 'Y' : 'N'}/${text}`,
+    to: 'XJJJ',
+  });
+  const WILCO_AT = 30;
+  const DIVERT_AT = 60;
+  const DESCEND_FROM = 90;
+  /** Climb FL370 → FL390 after the WILCO, then (from `DESCEND_FROM`) down 100 ft a tick. */
+  const alt = (bottom: number) => (i: number) =>
+    i < DESCEND_FROM
+      ? Math.min(39000, 37000 + Math.max(0, i - WILCO_AT) * 100)
+      : Math.max(bottom, 39000 - (i - DESCEND_FROM) * 100);
+  const climb = (): Map<number, PilotMessage[]> =>
+    new Map([
+      [2, [pilot(1, 'REQUEST CLIMB TO FL390')]],
+      [WILCO_AT, [pilot(2, 'WILCO', 3)]],
+    ]);
+  /** A seed whose climb request is cleared (10 % are refused due to traffic). */
+  const seed = (() => {
+    for (let k = 0; k < 100; k++) {
+      const s = `lw-${k}`;
+      const r = run(20, 37000, () => ({}), { seed: s, say: climb() });
+      if (packets(r.out).includes('/data2/3/1/WU/CLIMB TO @FL390@')) return s;
+    }
+    throw new Error('no seed');
+  })();
+  const checks = (events: readonly AtcEvent[]) =>
+    events.filter((e) => e.type === 'ATC_LEVEL_CHECK');
+  const divert = (i: number): Link => (i >= DIVERT_AT ? { divert: altn.icao } : {});
+
+  /** On the route, then (the diversion) about 70 NM north of the alternate: within the
+   * descent distance from FL390. */
+  const near = (i: number): LatLon =>
+    i < DIVERT_AT ? pos : { lat: altn.lat + 70 / 60, lon: altn.lon };
+
+  it('the descent after the diversion DESCEND TO is no departure from the old level', () => {
+    const r = run(DESCEND_FROM + 400, alt(DIVERT_DESCENT_FT), divert, {
+      seed,
+      say: climb(),
+      at: near,
+    });
+    const p = packets(r.out);
+    expect(p.findIndex((x) => x.includes('DESCEND TO @10000FT@'))).toBeGreaterThan(-1);
+    expect(checks(r.events)).toEqual([]);
+  });
+
+  it('the diversion descent is watched after its WILCO; reached, the watch ends', () => {
+    const first = run(DIVERT_AT + 20, 39000, divert, { seed, say: climb(), at: near });
+    const out = first.out.find((m) => m.message.lines.join(' ').includes('DESCEND TO'));
+    const min = out?.cpdlc?.min as number;
+    expect(min).toBeGreaterThan(3);
+    const say = climb();
+    say.set(DIVERT_AT + 25, [pilot(4, 'WILCO', min)]);
+    // Not begun 5 min after the WILCO: asked about 10000 ft.
+    const stay = run(DIVERT_AT + 25 + 70, (i) => alt(DIVERT_DESCENT_FT)(Math.min(i, 80)), divert, {
+      seed,
+      say,
+      at: near,
+    });
+    expect(checks(stay.events)).toMatchObject([{ levelFt: DIVERT_DESCENT_FT, why: 'not_started' }]);
+    // Down to 10000 ft and below it later (approach control by voice): no question.
+    const down = run(DESCEND_FROM + 400, alt(3000), divert, { seed, say, at: near });
+    expect(checks(down.events)).toEqual([]);
+  });
+
+  it('HOLD … MAINTAIN replaces the watched level', () => {
+    const since = T0 + DIVERT_AT * STEP;
+    const hold = (i: number): Link =>
+      i >= DIVERT_AT && i < DESCEND_FROM ? { hold: { since, min: 15 } } : {};
+    const r = run(DESCEND_FROM + 100, alt(30000), hold, { seed, say: climb() });
+    expect(packets(r.out).some((x) => x.includes('HOLD AT @'))).toBe(true);
+    expect(checks(r.events)).toEqual([]);
   });
 });

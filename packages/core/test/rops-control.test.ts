@@ -7,6 +7,7 @@ import {
   DEVIATION_MAX_NM,
   EMPTY_EXT,
   type FirArea,
+  type FlightPhase,
   LEVEL_CHECK_MIN,
   type OutboundMessage,
   type PilotMessage,
@@ -83,7 +84,14 @@ const down = (min: number, text: string, mrn: number | null = null): PilotMessag
 
 type Say = ReadonlyMap<number, readonly PilotMessage[]>;
 
-function run(say: Say, ticks: number, altAt: (i: number) => number, seed: string, resumeAt = -1) {
+function run(
+  say: Say,
+  ticks: number,
+  altAt: (i: number) => number,
+  seed: string,
+  resumeAt = -1,
+  phaseAt: (i: number) => FlightPhase = () => 'CRUISE',
+) {
   let st = new RopsStation(ofp, OPTIONS, { seed });
   const out: OutboundMessage[] = [];
   const events: AtcEvent[] = [];
@@ -93,7 +101,7 @@ function run(say: Say, ticks: number, altAt: (i: number) => number, seed: string
     const now = T0 + i * STEP;
     const r = st.tick({
       now,
-      phase: 'CRUISE',
+      phase: phaseAt(i),
       telemetry: tm(now, altAt(i)),
       inbound: say.get(i) ?? [],
       ext,
@@ -180,6 +188,70 @@ describe('level watch after a WILCO (T47)', () => {
     const say = base();
     say.set(WILCO_AT, [down(20, 'WILCO', 2)]);
     expect(checks(run(say, after(10), () => 37000, SEED).events)).toEqual([]);
+  });
+
+  it('ends at the approach: the descent below the level comes from approach control by voice', () => {
+    const reachedAt = WILCO_AT + 20;
+    const approachAt = reachedAt + 60;
+    const alt = (i: number) =>
+      i < reachedAt
+        ? Math.min(39000, 37000 + Math.max(0, i - WILCO_AT) * 100)
+        : i < approachAt
+          ? 39000
+          : 3000;
+    const phase = (i: number): FlightPhase => (i < approachAt ? 'CRUISE' : 'APPROACH');
+    const r = run(base(), approachAt + 120, alt, SEED, -1, phase);
+    expect(checks(r.events)).toEqual([]);
+    // The same profile still in cruise is a departure.
+    expect(checks(run(base(), approachAt + 120, alt, SEED).events)).toMatchObject([
+      { levelFt: 39000, why: 'departed' },
+    ]);
+    // A WILCO that arrives in the approach starts no watch either.
+    const late = run(
+      base(),
+      after(10),
+      () => 37000,
+      SEED,
+      -1,
+      (i) => (i < WILCO_AT ? 'CRUISE' : 'APPROACH'),
+    );
+    expect(checks(late.events)).toEqual([]);
+  });
+
+  it('the T26 descent clearance reached: lower levels come by voice, no question', () => {
+    const tod = ofp.navlog.find((f) => f.ident === 'TOD');
+    if (tod === undefined) throw new Error('fixture: no TOD');
+    const st = new RopsStation(ofp, OPTIONS, { seed: SEED });
+    const out: OutboundMessage[] = [];
+    const events: AtcEvent[] = [];
+    let levelFt = 0;
+    let alt = 37000;
+    for (let i = 0; i < 600; i++) {
+      const now = T0 + i * STEP;
+      const inbound = i === 1 ? [down(0, 'REQUEST LOGON')] : [];
+      if (i === 10) {
+        const p = packets(out).find((x) => x.includes('DESCEND TO'));
+        const m = /^\/data2\/(\d+)\/\/WU\/DESCEND TO @(?:FL(\d+)|(\d+)FT)@$/.exec(p ?? '');
+        if (m === null) throw new Error(`no descent clearance: ${String(p)}`);
+        levelFt = m[2] === undefined ? Number(m[3]) : Number(m[2]) * 100;
+        inbound.push(down(1, 'WILCO', Number(m[1])));
+      }
+      // Down to the cleared level, 30 ticks there, then on down to 3000 ft (DESCENT).
+      if (i > 10 && levelFt > 0)
+        alt = i < 300 ? Math.max(levelFt, alt - 100) : Math.max(3000, alt - 100);
+      const r = st.tick({
+        now,
+        phase: i < 20 ? 'CRUISE' : 'DESCENT',
+        telemetry: { ...tm(now, alt), lat: tod.lat, lon: tod.lon },
+        inbound,
+        ext,
+      });
+      out.push(...r.outbound);
+      events.push(...r.events);
+    }
+    expect(levelFt).toBeGreaterThan(3000);
+    expect(alt).toBe(3000);
+    expect(checks(events)).toEqual([]);
   });
 
   it('survives a state round trip mid-watch', () => {
