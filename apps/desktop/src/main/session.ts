@@ -17,7 +17,13 @@ import {
 import type { DataSourceKind, ExternalDataService } from '@acars/data-sources';
 import { encodeLine, type RecordingEvent, recordingHeader } from '@acars/replay';
 import type { Transport, TransportStatus } from '@acars/transport';
-import type { AtcView, ForceableScenario, TelemetryView, TransportView } from '../shared/api.js';
+import type {
+  AtcView,
+  ForceableScenario,
+  SystemCode,
+  TelemetryView,
+  TransportView,
+} from '../shared/api.js';
 import type { Feed } from './feed.js';
 import type { RecordingSink } from './recording.js';
 
@@ -323,6 +329,10 @@ export class FlightSession {
         case 'OOOI_ON':
         case 'OOOI_IN':
           this.feed.system(e.t, 'oooi', { kind: e.type.slice(5) });
+          // The FMS drops the flight number after landing; the aircraft then stops fetching
+          // telexes (T49, human check 2026-10-10): tell the pilot to enter it again.
+          if (e.type === 'OOOI_IN')
+            this.feed.system(e.t, 'flt_nbr_hint', { callsign: this.callsign });
           break;
         case 'TELEMETRY_LOST':
           this.feed.system(e.t, 'telemetry_lost');
@@ -356,7 +366,9 @@ export class FlightSession {
           break;
         case 'ATC_LOGON':
           if (e.accepted) this.feed.system(e.t, 'atc_logon', { station: e.station });
-          else {
+          else if (e.reason === 'wrong_station' && e.expected != null) {
+            this.feed.system(e.t, 'atc_logon_wrong', { station: e.station, expected: e.expected });
+          } else {
             this.feed.system(e.t, 'atc_logon_refused', {
               station: e.station,
               reason: e.reason ?? '',
@@ -389,6 +401,12 @@ export class FlightSession {
           this.feed.system(e.t, 'atc_auto', {
             station: e.station,
             text: e.text.replaceAll('@', ''),
+          });
+          break;
+        case 'ATC_MISROUTED':
+          this.feed.system(e.t, misroutedCode(e), {
+            station: e.station,
+            target: e.target ?? '',
           });
           break;
         case 'ATC_UNSUPPORTED':
@@ -516,6 +534,17 @@ export class FlightSession {
     }
     this.feedHasProblem = status === 'degraded' || status === 'halted';
   }
+}
+
+/** Feed code of a message that went to the wrong ROPS station (T49). */
+function misroutedCode(
+  e: Extract<CoreOutput['events'][number], { type: 'ATC_MISROUTED' }>,
+): SystemCode {
+  if (e.what === 'pdc_request')
+    return e.target === null ? 'atc_misrouted_pdc_closed' : 'atc_misrouted_pdc';
+  if (e.what === 'logon')
+    return e.target === null ? 'atc_misrouted_logon_fir' : 'atc_misrouted_logon';
+  return e.role === 'fir' ? 'atc_misrouted_fir' : 'atc_misrouted_dcl';
 }
 
 function outLine(m: CoreOutput['outbound'][number]): RecordingEvent {

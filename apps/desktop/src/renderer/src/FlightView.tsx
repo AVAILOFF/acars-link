@@ -1,6 +1,7 @@
 import { FLIGHT_PHASES, type FlightPhase } from '@acars/core';
 import { type FormEvent, useState } from 'react';
 import type { AppState, FlightSummary } from '../../shared/api.js';
+import { atcHints } from '../../shared/atc-hints.js';
 import { FeedList } from './FeedList.js';
 import { phaseKey } from './i18n.js';
 import { useStore } from './store.js';
@@ -297,6 +298,17 @@ function StatusCard({ app }: { app: AppState }) {
           />
         )}
       </ul>
+      {app.session === 'running' &&
+        atcHints({
+          atc,
+          aircraftTitle: tm?.aircraftTitle,
+          phase: app.phase,
+          callsign: app.flight?.callsign ?? null,
+        }).map((h) => (
+          <p key={h.key} className="hint">
+            {t(h.key, h.params)}
+          </p>
+        ))}
       {app.session === 'running' && (
         <p className="telemetry mono">
           {tm === null

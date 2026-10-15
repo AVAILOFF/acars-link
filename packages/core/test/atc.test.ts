@@ -473,3 +473,100 @@ describe('ROPS station', () => {
     expect(out.map((m) => m.message.text)).toEqual(whole.out.map((m) => m.message.text));
   });
 });
+
+describe('messages to the wrong ROPS station (T49)', () => {
+  const pdc = (to: string): PilotMessage => ({
+    from: ofp.callsign,
+    type: 'telex',
+    text: `REQUEST PREDEP CLEARANCE ${ofp.callsign} ${ofp.aircraft.icao} TO ${ofp.destination.icao} AT ${ofp.origin.icao} ATIS A`,
+    to,
+  });
+  const telex = (to: string, text: string): PilotMessage => ({
+    from: ofp.callsign,
+    type: 'telex',
+    text,
+    to,
+  });
+  const cpdlc = (to: string, text: string): PilotMessage => ({
+    from: ofp.callsign,
+    type: 'cpdlc',
+    text,
+    to,
+  });
+  const misrouted = (r: Run) => r.events.filter((e) => e.type === 'ATC_MISROUTED');
+
+  it('a PDC request to the FIR station on the ground: the airport station is named, nothing is sent', () => {
+    const r = fly(new Map([[10, [pdc('XCAA')]]]));
+    expect(misrouted(r)).toEqual([
+      {
+        type: 'ATC_MISROUTED',
+        t: flight.snapshots[10]?.t,
+        station: 'XCAA',
+        role: 'fir',
+        packet: 'telex',
+        what: 'pdc_request',
+        target: 'XCTP',
+      },
+    ]);
+    expect(r.out).toEqual([]);
+  });
+
+  it('a PDC request to the FIR station in flight: no airport station to name', () => {
+    const r = fly(new Map([[crossing - 100, [pdc('XCAA')]]]));
+    expect(misrouted(r)).toMatchObject([{ what: 'pdc_request', target: null, role: 'fir' }]);
+  });
+
+  it('any other telex to the FIR station is reported too', () => {
+    const r = fly(new Map([[10, [telex('XCAA', 'HELLO')]]]));
+    expect(misrouted(r)).toMatchObject([
+      { role: 'fir', packet: 'telex', what: 'other', target: null },
+    ]);
+    expect(r.out).toEqual([]);
+  });
+
+  it('a logon to the airport station: the FIR station is named', () => {
+    const r = fly(new Map([[10, [logon('XCTP')]]]));
+    expect(misrouted(r)).toMatchObject([
+      { station: 'XCTP', role: 'dcl', packet: 'cpdlc', what: 'logon', target: 'XCAA' },
+    ]);
+    expect(r.out).toEqual([]);
+  });
+
+  it('other messages to the airport station are reported; answers with an mrn are not', () => {
+    const r = fly(
+      new Map([
+        [
+          10,
+          [
+            telex('XCTP', 'WHAT'),
+            cpdlc('XCTP', '/data2/5//Y/REQUEST FL350'),
+            cpdlc('XCTP', '/data2/6/1/N/WILCO'),
+          ],
+        ],
+      ]),
+    );
+    expect(misrouted(r)).toMatchObject([
+      { station: 'XCTP', role: 'dcl', packet: 'telex', what: 'other', target: null },
+      { station: 'XCTP', role: 'dcl', packet: 'cpdlc', what: 'other', target: null },
+    ]);
+  });
+
+  it('the right addressing gives no hint: PDC to the airport, a logon to the FIR', () => {
+    const r = fly(new Map([[10, [pdc('XCTP'), logon('XCAA')]]]));
+    expect(misrouted(r)).toEqual([]);
+  });
+
+  it('a logon to the wrong FIR station says which one is right', () => {
+    // The handover leaves the old station listening for a while: a logon there is redirected.
+    const r = fly(
+      new Map([
+        [10, [logon('XCAA')]],
+        [crossing + 5, [logon('XCAA', 4)]],
+      ]),
+    );
+    expect(atcEvents(r).find((e) => e.type === 'ATC_LOGON' && !e.accepted)).toMatchObject({
+      reason: 'wrong_station',
+      expected: 'XJJJ',
+    });
+  });
+});

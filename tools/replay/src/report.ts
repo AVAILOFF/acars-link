@@ -112,6 +112,11 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
           return ['ATC', `${ev.station}: ${ev.kind} ${ev.text}`];
         case 'ATC_UNSUPPORTED':
           return ['ATC', `${ev.station}: not supported "${ev.text}"`];
+        case 'ATC_MISROUTED':
+          return [
+            'ATC',
+            `${ev.station}: ${ev.packet} not taken (${ev.what})${ev.target === null ? '' : `, send to ${ev.target}`}`,
+          ];
         case 'ATC_DCL':
           return ['DCL', `${ev.station}: ${ev.what}`];
         case 'ATC_DCL_CLEARANCE':

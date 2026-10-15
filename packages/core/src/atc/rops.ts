@@ -18,7 +18,13 @@ import {
   stepStatus,
 } from './auto.js';
 import { type CpdlcHeader, type CpdlcResponse, formatCpdlc, parseCpdlc } from './cpdlc.js';
-import { type DclContext, type DclEvent, DclService, type DclState } from './dcl.js';
+import {
+  type DclContext,
+  type DclEvent,
+  DclService,
+  type DclState,
+  parseDclRequest,
+} from './dcl.js';
 import { atcUnitName, FirMap, ropsStation } from './fir.js';
 import { levelText } from './levels.js';
 import { type OclContext, type OclEvent, OclService, type OclState, parseRcl } from './oceanic.js';
@@ -87,6 +93,8 @@ export type AtcEvent =
       readonly accepted: boolean;
       /** Why a logon was refused. */
       readonly reason: 'live_atc' | 'wrong_station' | null;
+      /** The station to log on to instead (T49: a wrong station), else null. */
+      readonly expected?: string | null;
     }
   | {
       readonly type: 'ATC_HANDOVER';
@@ -382,6 +390,7 @@ export class RopsStation {
       phase: input.phase,
       ext: input.ext,
       standAside: this.standAside,
+      firStation: this.station,
       sendCpdlc: send,
       sendTelex,
       events,
@@ -494,7 +503,23 @@ export class RopsStation {
   ): void {
     const to = m.to ?? '';
     if (m.from.toUpperCase() !== this.ofp.callsign.toUpperCase()) return;
-    if (m.type.toLowerCase() !== 'cpdlc') return;
+    if (m.type.toLowerCase() !== 'cpdlc') {
+      // T49: a telex to a FIR station (the PDC request meant for the airport's, mostly) is not
+      // taken; tell the pilot instead of dropping it silently.
+      if (m.type.toLowerCase() === 'telex' && this.listen.includes(to)) {
+        const pdc = parseDclRequest(m.text) !== null;
+        events.push({
+          type: 'ATC_MISROUTED',
+          t: input.now,
+          station: to,
+          role: 'fir',
+          packet: 'telex',
+          what: pdc ? 'pdc_request' : 'other',
+          target: pdc ? this.dclStation : null,
+        });
+      }
+      return;
+    }
     const p = parseCpdlc(m.text);
     // Only stations we run now answer (the transport polls no others).
     if (p === null || !this.listen.includes(to)) return;
@@ -510,6 +535,7 @@ export class RopsStation {
           station: to,
           accepted: false,
           reason: 'wrong_station',
+          expected: station,
         });
         return;
       }

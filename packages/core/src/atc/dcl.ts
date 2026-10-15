@@ -57,6 +57,22 @@ export type DclEvent =
       readonly squawk: string;
       readonly squawkSource: Squawk['source'];
     }
+  /**
+   * A message reached a station that does not take it (T49): the aircraft's FMS sent it to the
+   * wrong ROPS station. Nothing goes to the network; the app tells the pilot where to send it.
+   */
+  | {
+      readonly type: 'ATC_MISROUTED';
+      readonly t: number;
+      /** The station the message was sent to. */
+      readonly station: string;
+      /** Its role: the FIR station takes CPDLC only, the airport station takes the PDC only. */
+      readonly role: 'fir' | 'dcl';
+      readonly packet: 'telex' | 'cpdlc';
+      readonly what: 'pdc_request' | 'logon' | 'other';
+      /** The station to send it to (PDC request: the airport's; logon: the FIR's), or null. */
+      readonly target: string | null;
+    }
   | {
       readonly type: 'ATC_DCL_REJECTED';
       readonly t: number;
@@ -90,6 +106,8 @@ export interface DclContext {
   readonly phase: FlightPhase;
   readonly ext: ExtState;
   readonly standAside: boolean;
+  /** The FIR station the aircraft should log on to now (T49 hints), null before the FIR is known. */
+  readonly firStation: string | null;
   readonly sendCpdlc: (
     from: string,
     ra: CpdlcResponse,
@@ -194,7 +212,24 @@ export class DclService {
     const type = m.type.toLowerCase();
     if (type === 'cpdlc') {
       const p = parseCpdlc(m.text);
-      if (p === null || this.st.awaiting === null || p.mrn !== this.st.awaiting) return;
+      if (p === null) return;
+      if (this.st.awaiting === null || p.mrn !== this.st.awaiting) {
+        // An opening message (a logon, a request) is meant for the FIR station (T49); a stray
+        // answer with an `mrn` is not.
+        if (p.mrn === null) {
+          const logon = p.text === 'REQUEST LOGON';
+          c.events.push({
+            type: 'ATC_MISROUTED',
+            t: c.now,
+            station: this.station,
+            role: 'dcl',
+            packet: 'cpdlc',
+            what: logon ? 'logon' : 'other',
+            target: logon ? c.firStation : null,
+          });
+        }
+        return;
+      }
       if (p.text.startsWith('WILCO')) {
         c.sendCpdlc(
           this.station,
@@ -215,7 +250,18 @@ export class DclService {
     }
     if (type !== 'telex') return;
     const req = parseDclRequest(m.text);
-    if (req === null) return;
+    if (req === null) {
+      c.events.push({
+        type: 'ATC_MISROUTED',
+        t: c.now,
+        station: this.station,
+        role: 'dcl',
+        packet: 'telex',
+        what: 'other',
+        target: null,
+      });
+      return;
+    }
     c.events.push({ type: 'ATC_DCL', t: c.now, station: this.station, what: 'request' });
     const o = this.ofp;
     if (

@@ -99,6 +99,29 @@ const en = {
   'sys.atc_live':
     'ROPS: live VATSIM ATC in {fir} — {callsign} {frequency}; the station steps aside',
   'sys.atc_unsupported': 'ROPS: {station} does not handle "{text}" yet',
+  'sys.atc_logon_wrong':
+    'ROPS: {station} is not the station of your FIR — log on (CPDLC) to {expected}',
+  'sys.atc_misrouted_pdc':
+    'ROPS: {station} takes CPDLC only (logon, requests). Send the PDC request as a telex to {target}',
+  'sys.atc_misrouted_pdc_closed':
+    'ROPS: {station} takes CPDLC only; the PDC request is not available now (PDC works on the ground before take-off)',
+  'sys.atc_misrouted_logon':
+    'ROPS: {station} is the PDC station — it takes the PDC request (telex) only. Log on (CPDLC) to {target}',
+  'sys.atc_misrouted_logon_fir':
+    'ROPS: {station} is the PDC station — it takes the PDC request (telex) only. Log on to the FIR station shown in Status',
+  'sys.atc_misrouted_fir':
+    'ROPS: {station} takes CPDLC only (logon, requests); the telex was ignored',
+  'sys.atc_misrouted_dcl':
+    'ROPS: {station} takes the PDC request (telex) and WILCO to its clearance only; the message was ignored',
+  'sys.flt_nbr_hint':
+    'After landing the aircraft drops INIT: enter FLT NBR {callsign} again to receive the messages at the gate',
+  'atc.hint': 'CPDLC logon → {fir} · PDC (telex) → {dcl}',
+  'atc.hintFir': 'CPDLC logon → {fir}',
+  'atc.hintDcl': 'PDC (telex) → {dcl}',
+  'atc.noCpdlc':
+    'This aircraft has no CPDLC: only the PDC request (telex to X…) works, logon and ATC requests do not',
+  'atc.fltNbr':
+    'After landing: enter FLT NBR {callsign} again, or the aircraft will not fetch the messages',
   'sys.atc_request': 'ROPS: {station} — "{request}" → {reply}',
   'sys.atc_auto': 'ROPS: {station} — {text}',
   'sys.atc_needs_data': 'ROPS needs live data (FIR boundaries): turn on "Live data" in Settings',
@@ -338,6 +361,29 @@ const ru: Record<MessageKey, string> = {
   'sys.atc_logoff': 'ROPS: {station} — logoff ({by})',
   'sys.atc_live': 'ROPS: в {fir} живой диспетчер VATSIM — {callsign} {frequency}; станция уступает',
   'sys.atc_unsupported': 'ROPS: {station} пока не обрабатывает «{text}»',
+  'sys.atc_logon_wrong':
+    'ROPS: {station} — не станция вашего FIR; логон (CPDLC) нужен на {expected}',
+  'sys.atc_misrouted_pdc':
+    'ROPS: {station} принимает только CPDLC (логон, запросы). Запрос PDC отправьте telex на {target}',
+  'sys.atc_misrouted_pdc_closed':
+    'ROPS: {station} принимает только CPDLC; запрос PDC сейчас недоступен (PDC работает на земле до взлёта)',
+  'sys.atc_misrouted_logon':
+    'ROPS: {station} — станция PDC, она принимает только запрос PDC (telex). Логон (CPDLC) — на {target}',
+  'sys.atc_misrouted_logon_fir':
+    'ROPS: {station} — станция PDC, она принимает только запрос PDC (telex). Логон — на станцию FIR из «Состояния»',
+  'sys.atc_misrouted_fir':
+    'ROPS: {station} принимает только CPDLC (логон, запросы); telex проигнорирован',
+  'sys.atc_misrouted_dcl':
+    'ROPS: {station} принимает только запрос PDC (telex) и WILCO на её клиренс; сообщение проигнорировано',
+  'sys.flt_nbr_hint':
+    'После посадки самолёт сбрасывает INIT: введите FLT NBR {callsign} снова, чтобы получить сообщения на стоянке',
+  'atc.hint': 'Логон CPDLC → {fir} · PDC (telex) → {dcl}',
+  'atc.hintFir': 'Логон CPDLC → {fir}',
+  'atc.hintDcl': 'PDC (telex) → {dcl}',
+  'atc.noCpdlc':
+    'У этого самолёта нет CPDLC: доступен только запрос PDC (telex на X…), логон и запросы УВД — нет',
+  'atc.fltNbr':
+    'После посадки введите FLT NBR {callsign} снова, иначе самолёт не заберёт сообщения',
   'sys.atc_request': 'ROPS: {station} — «{request}» → {reply}',
   'sys.atc_auto': 'ROPS: {station} — {text}',
   'sys.atc_needs_data':

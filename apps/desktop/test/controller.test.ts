@@ -200,6 +200,15 @@ describe('AppController', () => {
       'TAXI_IN',
       'ON_BLOCK',
     ]);
+    // T49: the FMS drops INIT after landing: one reminder, right after the OOOI IN entry.
+    const sys = st.feed.flatMap((e) => (e.kind === 'system' ? [e] : []));
+    const inIdx = sys.findIndex((e) => e.code === 'oooi' && e.params['kind'] === 'IN');
+    expect(inIdx).toBeGreaterThan(-1);
+    expect(sys.filter((e) => e.code === 'flt_nbr_hint')).toHaveLength(1);
+    expect(sys[inIdx + 1]).toMatchObject({
+      code: 'flt_nbr_hint',
+      params: { callsign: ofp.callsign },
+    });
     const out = outbound(st.feed);
     expect(out.length).toBeGreaterThanOrEqual(10);
     expect(out.every((m) => m.delivery === 'sent')).toBe(true);
