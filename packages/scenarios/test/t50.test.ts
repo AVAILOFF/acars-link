@@ -436,7 +436,7 @@ describe('where the aircraft is sent (T50 part B)', () => {
         },
       ],
       seed: 't50b',
-      ...(needs ? { runwayNeeds: NEEDS } : {}),
+      runwayNeeds: needs ? NEEDS : {},
     });
     core.startFlight();
     let pending: PilotMessage[] = [];
@@ -468,7 +468,7 @@ describe('where the aircraft is sent (T50 part B)', () => {
     expect(['RCTP', 'RJGG']).toContain((set as { value: string }).value);
   });
 
-  it('without a runway need for the type nothing changes', () => {
+  it('without a runway need for the type nothing changes (an empty table)', () => {
     const set = diverted('ped_fire_cabin', 'DIVERT', false);
     expect(['RCTP', 'RJGG']).toContain((set as { value: string }).value);
   });

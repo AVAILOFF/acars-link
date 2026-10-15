@@ -33,16 +33,42 @@ export interface RunwayNeed {
 }
 
 /**
- * Runway needs by aircraft family: the landing distance at maximum landing weight, sea level, of
- * the manufacturers' airport-planning documents (Airbus AC, Boeing D6-58326-x), and the width the
- * documents give for the type's code letter.
+ * Runway needs by aircraft family (approved by the user 2026-10-15, docs/07 T50):
+ * - length: the landing field length of the manufacturers' airport-planning documents for the
+ *   family's member with the longest one — dry runway, sea level (ISA), at its maximum landing
+ *   weight, Boeing with flaps 30 — read off the chart and rounded up to 50 m. The documents give
+ *   these curves "for information only"; the readings were taken on 2026-10-15 (Airbus: from the
+ *   vector curves of the PDF, Boeing: from the pixels of the chart image, about ±10 m);
+ * - width: a game rule, not Annex 14 (not openly available): 45 m for wide-bodies, 30 m for the
+ *   rest; the A380 also needs a `large_airport`.
  *
- * `[ПРОВЕРИТЬ]` EMPTY on purpose (2026-10-15): the figures are read from charts of those PDFs and
- * were not checked yet — none is written from memory. A family without an entry gets no reserve
- * airport: the OFP's airports only, as before T50. Add `family: { lengthM, widthM }` here with the
- * document, revision and date next to each.
+ * The regional families (E-Jet, CRJ, ATR, DH8) have no entry: no open document was checked, so
+ * they get the OFP's airports only, as before T50. The 777X (B778, B779) is not in the 777 figure
+ * (its ACAP was not read).
  */
-export const RUNWAY_NEEDS: Readonly<Partial<Record<AircraftFamily, RunwayNeed>>> = {};
+export const RUNWAY_NEEDS: Readonly<Partial<Record<AircraftFamily, RunwayNeed>>> = {
+  // Airbus AC A321 Rev. 35 (Jul 01/26), FIGURE-3-4-1-991-007-A01: A321-200 CFM56, MLW 77.8 t,
+  // ≈ 1749 m (A321neo LEAP, MLW 79.2 t: ≈ 1598 m).
+  A320: { lengthM: 1750, widthM: 30 },
+  // Airbus AC A330 Rev. 34 (Dec 01/25), FIGURE-3-4-1-991-017-A01: A330-900, MLW 191 t, ≈ 1950 m
+  // (A330-300, 187 t: ≤ 1752 m; A330-800, 186 t: ≈ 1877 m).
+  A330: { lengthM: 1950, widthM: 45 },
+  // Airbus AC A350 Rev. 17 (Jul 01/26), FIGURE-3-4-0-991-002-B01: A350-1000, MLW 236 t, ≈ 2112 m.
+  A350: { lengthM: 2150, widthM: 45 },
+  // Airbus AC A380 Rev. 20 (Dec 01/25), FIGURE-3-4-1-991-001-A01: A380-800, MLW 395 t, ≈ 1930 m.
+  A380: { lengthM: 1950, widthM: 45, large: true },
+  // Boeing D6-38A004 (737 MAX) Rev K (Jul 2025), 3.4.11, 737-10 flaps 30, MLW 75 931 kg: ≈ 1787 m
+  // (D6-58325-7 (737NG) Rev C (Oct 2025), 3.4.5, 737-900ER flaps 30, MLW 71 350 kg: ≈ 1700 m).
+  B737: { lengthM: 1800, widthM: 30 },
+  // Boeing D6-58326-3 (747-8) Rev E (Jan 2026), 3.4.1, 747-8F flaps 30, MLW 346 091 kg: ≈ 2242 m
+  // (747-8, MLW 312 072 kg: ≈ 1978 m).
+  B747: { lengthM: 2250, widthM: 45 },
+  // Boeing D6-58329-2 (777-200LR/-300ER/F) Rev G (Dec 2024), 3.4.6, 777-300ER flaps 30, MLW 251 290 kg:
+  // ≈ 1859 m (777F GE90-115BL, MLW 260 815 kg: ≈ 1758 m).
+  B777: { lengthM: 1900, widthM: 45 },
+  // Boeing D6-58333 (787) Rev Q (Oct 2025), 3.4.5, 787-10 flaps 30, MLW 201 848 kg: ≈ 1850 m.
+  B787: { lengthM: 1900, widthM: 45 },
+};
 
 export interface Place {
   readonly lat: number;

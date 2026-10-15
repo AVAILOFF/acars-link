@@ -500,6 +500,8 @@ describe('live data (T13)', () => {
       isigmet: await fx('isigmet-va.json'),
       'earthquake.usgs': await fx('usgs-4.5-day.geojson'),
       'airports.csv': await fx('ourairports-airports.csv'),
+      // Reserve airports to divert to (T50): the A35K of the OFP has a runway need.
+      'runways.csv': await fx('ourairports-runways.csv'),
       'date.nager.at': await fx('nager-2026-de.json'),
       'jolpi.ca': await fx('jolpica-f1-last.json'),
       'nhle.com': await fx('nhl-score.json'),

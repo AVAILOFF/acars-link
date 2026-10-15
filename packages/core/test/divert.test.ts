@@ -43,10 +43,28 @@ describe('candidates', () => {
     expect(ofpCandidates(withDest).map((a) => a.icao)).toEqual(['RCTP', 'RJGG']);
   });
 
-  it('the table of needs is empty until the figures are checked', () => {
-    expect(RUNWAY_NEEDS).toEqual({});
-    expect(runwayNeedFor('A35K')).toBeUndefined();
+  it('the table of needs: checked families only, by type designator', () => {
+    expect(Object.keys(RUNWAY_NEEDS).sort()).toEqual(
+      ['A320', 'A330', 'A350', 'A380', 'B737', 'B747', 'B777', 'B787'].sort(),
+    );
+    expect(runwayNeedFor('A35K')).toEqual({ lengthM: 2150, widthM: 45 });
+    expect(runwayNeedFor('A21N')).toEqual({ lengthM: 1750, widthM: 30 });
+    expect(runwayNeedFor('A388')).toMatchObject({ widthM: 45, large: true });
+    // Regional families were not checked: no reserve for them.
+    expect(runwayNeedFor('E190')).toBeUndefined();
     expect(runwayNeedFor('ZZZZ')).toBeUndefined();
+  });
+
+  it('an A380 is not sent to a short, narrow or medium airport', () => {
+    const need = runwayNeedFor('A388');
+    const here = { lat: 25, lon: 150 };
+    const list = [
+      apt('SHRT', north(here, 10), { rwyM: 1900, widthM: 60 }),
+      apt('NARO', north(here, 20), { rwyM: 3500, widthM: 30 }),
+      apt('MEDM', north(here, 30), { rwyM: 3500, widthM: 60, large: false }),
+      apt('GOOD', north(here, 40), { rwyM: 3500, widthM: 60 }),
+    ];
+    expect(suitableReserve(list, need, new Set()).map((a) => a.icao)).toEqual(['GOOD']);
   });
 });
 

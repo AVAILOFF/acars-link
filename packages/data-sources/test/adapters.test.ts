@@ -69,6 +69,11 @@ const live: Route = (url) => {
   if (url.includes('eonet')) return { status: 200, body: fixture('eonet.json') };
   if (url.includes('overpass')) return { status: 200, body: fixture('overpass-stands.json') };
   if (url.includes('thespacedevs')) return { status: 200, body: fixture('launches.json') };
+  // Reserve airports to divert to (T50): the A35K of the OFP has a runway need.
+  if (url.endsWith('/airports.csv'))
+    return { status: 200, body: fixture('ourairports-airports.csv') };
+  if (url.endsWith('/runways.csv'))
+    return { status: 200, body: fixture('ourairports-runways.csv') };
   return { status: 404, body: '' };
 };
 
