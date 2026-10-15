@@ -10,6 +10,7 @@ import {
 } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { loadScenarios } from '../src/index.js';
+import { withHoldMin } from './hold.js';
 
 /** T34: the `smoke` step of dest_fire reaches the app as a command naming the runway. */
 
@@ -20,7 +21,10 @@ const read = (name: string) =>
     .sort()
     .map((file) => ({ file, source: readFileSync(join(dir(name), file), 'utf8') }));
 const fire: CompiledScenario = {
-  ...(loadScenarios([...read('irregular')]).find((s) => s.id === 'dest_fire') as CompiledScenario),
+  ...withHoldMin(
+    loadScenarios([...read('irregular')]).find((s) => s.id === 'dest_fire') as CompiledScenario,
+    5,
+  ),
   probability: 1,
 };
 

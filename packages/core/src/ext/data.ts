@@ -179,6 +179,23 @@ export interface AirportFrequency {
  * `wx` per airport (null = fetched, no report), `atc` per airport of the flight, `events`
  * the whole list, `stands` the destination's list.
  */
+/**
+ * An airport a diverting aircraft may be sent to besides those of the OFP (T50): a large or
+ * medium airport with scheduled service near the route, with the longest open hard-surface runway
+ * (OurAirports `airports.csv` + `runways.csv`).
+ */
+export interface DivertAirport {
+  readonly icao: string;
+  readonly lat: number;
+  readonly lon: number;
+  /** Length of the longest open hard-surface runway, m. */
+  readonly rwyM: number;
+  /** Its width, m; null when the file has none. */
+  readonly widthM: number | null;
+  /** `large_airport` (else `medium_airport`). */
+  readonly large: boolean;
+}
+
 export interface ExtDataUpdate {
   /** When the data was fetched, epoch ms UTC (app clock). */
   readonly t: number;
@@ -196,6 +213,8 @@ export interface ExtDataUpdate {
   readonly freqs?: { readonly icao: string; readonly list: readonly AirportFrequency[] };
   /** Conditional VHF stations (airports) near the route (T31); replaces the list. */
   readonly vhf?: readonly VhfStation[];
+  /** Airports to divert to besides the OFP's (T50); replaces the list. */
+  readonly divertApts?: readonly DivertAirport[];
   /** Space launches in the time window of the flight (T28); replaces the list. */
   readonly launches?: readonly SpaceLaunch[];
   /** Active NAT tracks (T27); replaces the list. */
@@ -272,6 +291,8 @@ export interface ExtState {
   readonly freqs?: { readonly icao: string; readonly list: readonly AirportFrequency[] } | null;
   /** T31; absent in states saved before T31. */
   readonly vhf?: readonly VhfStation[];
+  /** T50; absent in states saved before T50. */
+  readonly divertApts?: readonly DivertAirport[];
   /** T28; absent in states saved before T28. */
   readonly launches?: readonly RoutedLaunch[];
   /** T27; absent in states saved before T27. */
@@ -442,6 +463,26 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
         Math.abs(v['lon'] as number) > 180
       ) {
         bad('vhf item');
+      }
+    }
+  }
+  if (x['divertApts'] !== undefined) {
+    if (!Array.isArray(x['divertApts'])) bad('divertApts');
+    for (const v of x['divertApts'] as unknown[]) {
+      if (
+        !isObj(v) ||
+        typeof v['icao'] !== 'string' ||
+        !ICAO.test(v['icao']) ||
+        !isNum(v['lat']) ||
+        !isNum(v['lon']) ||
+        Math.abs(v['lat'] as number) > 90 ||
+        Math.abs(v['lon'] as number) > 180 ||
+        !isNum(v['rwyM']) ||
+        (v['rwyM'] as number) <= 0 ||
+        !(v['widthM'] === null || (isNum(v['widthM']) && (v['widthM'] as number) > 0)) ||
+        typeof v['large'] !== 'boolean'
+      ) {
+        bad('divertApts item');
       }
     }
   }
@@ -691,6 +732,9 @@ export function applyExtData(
   }
   if (u.natTracks !== undefined) next = { ...next, natTracks: [...u.natTracks] };
   if (u.vhf !== undefined) next = { ...next, vhf: u.vhf.map((v) => ({ ...v })) };
+  if (u.divertApts !== undefined) {
+    next = { ...next, divertApts: u.divertApts.map((v) => ({ ...v })) };
+  }
   next = applySpecial(next, u, route);
   if (u.firs !== undefined) next = { ...next, firs: [...u.firs] };
   if (u.centers !== undefined) next = { ...next, centers: [...u.centers], centersT: u.t };

@@ -9,7 +9,7 @@ import type { FlightPhase, PhaseEvent } from '../phase/fsm.js';
  * (`minutes`, `phase`). T12: `wait: reply`, `branch`, `resend`, trigger `command` (pilot
  * commands, `scenario/pilot.ts`). T14: `set` (flags that outlive the flight, the run's
  * diversion and arrival gate). T22: `vdgs` (text for the GSX docking display). T39:
- * `wait: until` and `group`.
+ * `wait: until` and `group`. T50: `draw`, `loop`, `break`, `if`.
  */
 
 export type ScenarioCategory = 'docs' | 'ops' | 'irregular' | 'external' | 'fun';
@@ -83,7 +83,9 @@ export interface SendStep {
 export interface ReplyWait {
   /** One word each: `A–Z0–9`, starting with a letter. */
   readonly options: readonly string[];
-  readonly timeout_min: number;
+  /** Exactly one of these: minutes from now, or (in a `loop` with `every_min`) to its next round. */
+  readonly timeout_min?: number;
+  readonly timeout_round?: true;
   readonly default: string;
 }
 
@@ -165,7 +167,67 @@ export interface SmokeStep {
   readonly smoke: 'start' | 'stop';
 }
 
-export type Step = SendStep | WaitStep | BranchStep | ResendStep | SetStep | VdgsStep | SmokeStep;
+/** A value `draw` gives a run variable: a literal, or `[min, max]` — a uniform integer. */
+export type DrawValue = string | number | boolean | null | readonly [number, number];
+
+/**
+ * Random values for this run (T50): one of `options` by weight (default 1), then each of its
+ * `run.<name>` gets its value. Drawn from the scenario's seeded Rng when the step runs, so the
+ * same seed gives the same flight; the values live in the run state. Read them as
+ * `run.<name>` in conditions and templates. A name an option does not set is null.
+ */
+export interface DrawStep {
+  readonly draw: readonly {
+    readonly weight?: number;
+    readonly set: Readonly<Record<string, DrawValue>>;
+  }[];
+}
+
+/**
+ * Repeats `steps` until `until` holds (the end: `reply.option` = `MET`) or `stop` holds
+ * (`STOP`); both are checked on every tick, also while a wait inside waits, and when a round
+ * ends. `break` leaves the loop with the last answer. `loop.min` — flight minutes since the
+ * loop was entered. No loop inside a loop (T50).
+ */
+export interface LoopStep {
+  readonly loop: {
+    readonly until: string;
+    readonly stop?: string;
+    /**
+     * Rounds of this many minutes of flight time from the entry (T50): a `wait: reply` with
+     * `timeout_round` ends at the next round, however often the pilot answered in between.
+     */
+    readonly every_min?: number;
+    readonly steps: readonly Step[];
+  };
+}
+
+/** Runs `steps` only when the condition holds when the step is reached (T50). */
+export interface IfStep {
+  readonly if: string;
+  readonly steps: readonly Step[];
+}
+
+/** Leaves the innermost `loop` at once. */
+export interface BreakStep {
+  readonly break: true;
+}
+
+export type Step =
+  | SendStep
+  | WaitStep
+  | BranchStep
+  | ResendStep
+  | SetStep
+  | VdgsStep
+  | SmokeStep
+  | DrawStep
+  | LoopStep
+  | BreakStep
+  | IfStep;
+
+/** Outcomes of a `loop` besides the answers of its body: the arms of a `branch` after it. */
+export const LOOP_OUTCOMES = ['MET', 'STOP'] as const;
 
 export interface ScenarioDef {
   readonly id: string;

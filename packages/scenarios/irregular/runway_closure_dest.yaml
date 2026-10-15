@@ -1,11 +1,14 @@
-# Planned destination runway closed during the descent: hold or divert to the alternate.
+# Planned destination runway closed during the descent: hold or divert to the alternate. How long
+# it stays closed depends on the reason and is drawn at the start (T50): inspections 30-60 min, a
+# disabled aircraft 60-180 min or, in 3 of 10 such cases, until further notice. An update every
+# 20 min; closed until further notice sends the aircraft to the alternate at the first update.
 id: runway_closure_dest
 version: 1
 category: irregular
 title: Destination runway closed
 title_ru: "Закрыта ВПП назначения"
-description: "At the start of the descent the planned runway is closed. HOLD (default) or DIVERT to the alternate."
-description_ru: "В начале снижения плановая ВПП закрыта. HOLD (по умолчанию) — ожидание или DIVERT — на запасной."
+description: "At the start of the descent the planned runway is closed (30 min to 3 h, rarely until further notice), with an update every 20 min. HOLD (default) or DIVERT to the alternate."
+description_ru: "В начале снижения плановая ВПП закрыта (от 30 мин до 3 ч, изредка — на неопределённый срок), обновления каждые 20 мин. HOLD (по умолчанию) — ожидание или DIVERT — на запасной."
 enabled_by_default: true
 trigger:
   on: phase_enter
@@ -17,28 +20,76 @@ conditions:
 probability: 0.04
 excludes: [drone_activity]
 steps:
+  - draw:
+      - weight: 10
+        set: { run.reason: FOD INSPECTION, run.hold_min: [30, 60], run.ufn: false }
+      - weight: 10
+        set: { run.reason: BIRD STRIKE CHECK, run.hold_min: [30, 60], run.ufn: false }
+      - weight: 7
+        set: { run.reason: DISABLED ACFT, run.hold_min: [60, 180], run.ufn: false }
+      - weight: 3
+        set: { run.reason: DISABLED ACFT, run.hold_min: null, run.ufn: true }
   - send:
       header: OPS MSG {ofp.dest}
       body: |
         RWY {ofp.dest_rwy} CLOSED
-        {pick:[FOD INSPECTION,DISABLED ACFT,BIRD STRIKE CHECK]}
-        EXPECT OTHER RWY OR HOLDING
+        {run.reason}
+        NO ESTIMATE, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
         CHECK FUEL, REPLY HOLD OR DIVERT
   - wait:
       reply: { options: [HOLD, DIVERT], timeout_min: 8, default: HOLD }
   - branch:
       HOLD:
-        # The ROPS station gives the holding clearance (T48); null below ends it.
-        - set: { flight.hold: 15 }
+        # The ROPS station gives the holding clearance and a new time at every update (T48, T50);
+        # null below ends it.
+        - set: { flight.hold: 20 }
         - send:
             header: OPS MSG {ofp.dest}
             body: |
-              NOTED, EXPECT 15 MIN HOLDING
+              NOTED, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
               STAND AND HANDLING UNCHANGED
-        - wait: { until: "phase in ['LANDED','TAXI_IN','ON_BLOCK']", timeout_min: 15 }
+        - loop:
+            until: "loop.min >= run.hold_min"
+            stop: "flight.divert != null or phase in ['LANDED','TAXI_IN','ON_BLOCK']"
+            every_min: 20
+            steps:
+              - wait:
+                  reply: { options: [HOLD, DIVERT], timeout_round: true, default: HOLD }
+              - branch:
+                  # The update comes when the round ends; the pilot's own HOLD only confirms.
+                  HOLD:
+                    # Closed until further notice: nothing to wait for, divert at the first update.
+                    - if: "run.ufn and reply.timeout"
+                      steps:
+                        - set: { flight.divert: "{ofp.altn}" }
+                        - send:
+                            header: OPS MSG {ofp.dest}
+                            body: |
+                              {ofp.dest} AD CLSD UFN
+                              DIVERT {ofp.altn}
+                              HANDLING AND FUEL ORDERED
+                        - break: true
+                    - if: "reply.timeout"
+                      steps:
+                        - set: { flight.hold: 20 }
+                        - send:
+                            header: OPS MSG {ofp.dest}
+                            body: |
+                              RWY {ofp.dest_rwy} STILL CLOSED
+                              ARRIVALS STILL SUSPENDED, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
+                              REPLY HOLD OR DIVERT
+                  DIVERT:
+                    - set: { flight.divert: "{ofp.altn}" }
+                    - send:
+                        header: OPS MSG {ofp.dest}
+                        body: |
+                          DIVERT {ofp.altn} NOTED
+                          HANDLING AND FUEL ORDERED
+                          SEND ETA WHEN ABLE
+                    - break: true
         - set: { flight.hold: null }
         - branch:
-            TIMEOUT:
+            MET:
               - send:
                   header: OPS MSG {ofp.dest}
                   body: |

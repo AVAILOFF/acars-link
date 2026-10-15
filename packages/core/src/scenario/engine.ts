@@ -19,6 +19,7 @@ import { createRng, type Rng, type RngState, rngFromState } from '../random/rng.
 import type { SimCommand } from '../sim/commands.js';
 import { buildVdgsMessage, type VdgsDisplay, VdgsError, type VdgsLine } from '../sim/vdgs.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
+import type { AircraftFamily } from './aircraft.js';
 import type { CompiledScenario, CompiledStep } from './compile.js';
 import {
   buildContext,
@@ -28,6 +29,7 @@ import {
   type ScenarioContext,
 } from './context.js';
 import { type DelayPart, LATE_START_CODE, reasonCode, SLOT_CODE } from './delay-codes.js';
+import { airportPlace, type RunwayNeed } from './divert.js';
 import type { Lookup, Value } from './expr.js';
 import { pruneExpiredFlags } from './flags-expiry.js';
 import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
@@ -234,6 +236,8 @@ export interface ScenarioEngineOptions {
    * `short_connection` does not start (no invented flights).
    */
   readonly syntheticConnections?: boolean;
+  /** Test hook (T50): runway needs by family instead of {@link RUNWAY_NEEDS} (`divert.ts`). */
+  readonly runwayNeeds?: Readonly<Partial<Record<AircraftFamily, RunwayNeed>>>;
   /** `flags.*` left by earlier flights (T14). */
   readonly flags?: Readonly<Record<string, Value>>;
 }
@@ -256,8 +260,10 @@ interface Run {
   reply: { options: string[]; default: string; untilFlightMs: number } | null;
   /** Waiting for a condition (`wait: until`, T39): the step and the flight time to give up at. */
   until: { step: number; deadlineMs: number } | null;
-  /** `reply.*` and `cmd.*` of this run. */
-  vars: Partial<Record<RunVariable, Value>>;
+  /** `reply.*`, `cmd.*`, `loop.min` and the `run.*` a `draw` gave this run. */
+  vars: Partial<Record<RunVariable | `run.${string}`, Value>>;
+  /** Inside a `loop` (T50): its step and the flight time it was entered at; absent in older states. */
+  loop: { step: number; startMs: number } | null;
 }
 
 interface Sent {
@@ -356,6 +362,7 @@ export class ScenarioEngine {
   private readonly polyline: RoutePolyline;
   private readonly dataWaitMs: number;
   private readonly syntheticConnections: boolean;
+  private readonly runwayNeeds: ScenarioEngineOptions['runwayNeeds'];
   private readonly seed: number | string;
   private readonly leadMs: number;
   /** Derived from OFP + seed (+ delay), so not part of the serialized state. */
@@ -405,6 +412,7 @@ export class ScenarioEngine {
     this.polyline = new RoutePolyline(options.ofp);
     this.dataWaitMs = options.dataWaitMs ?? 0;
     this.syntheticConnections = options.syntheticConnections ?? false;
+    this.runwayNeeds = options.runwayNeeds;
     if (!(this.dataWaitMs >= 0)) throw new RangeError('dataWaitMs must be ≥ 0');
     this.seed = options.seed;
     this.namesVersion = options.namesVersion ?? 2;
@@ -465,7 +473,13 @@ export class ScenarioEngine {
     // Fields added with T12 are absent in older states: defaults.
     e.st.runs = copy.runs
       .filter((r) => e.byId.has(r.id))
-      .map((r) => ({ ...r, reply: r.reply ?? null, until: r.until ?? null, vars: r.vars ?? {} }));
+      .map((r) => ({
+        ...r,
+        reply: r.reply ?? null,
+        until: r.until ?? null,
+        vars: r.vars ?? {},
+        loop: r.loop ?? null,
+      }));
     e.st.sessionFired = [...copy.sessionFired];
     e.st.sent = { ...(copy.sent ?? {}) };
     e.st.divert = copy.divert ?? null;
@@ -667,6 +681,8 @@ export class ScenarioEngine {
 
   private readonly look: Lookup = (path) => {
     if (path.startsWith('flags.')) return this.st.flags[path.slice(6)] ?? null;
+    // `run.*` of a run that has not drawn the name (T50): the shared context has none.
+    if (path.startsWith('run.')) return null;
     const ctx = this.context;
     return path in ctx ? ctx[path as keyof ScenarioContext] : undefined;
   };
@@ -691,6 +707,7 @@ export class ScenarioEngine {
       oooi: input.oooi,
       data: this.data,
       divert: this.st.divert,
+      hold: this.st.hold,
       sent: Object.keys(this.st.sent),
       ext: this.st.ext,
       polyline: this.polyline,
@@ -698,6 +715,7 @@ export class ScenarioEngine {
       fuel: this.st.fuel,
       touchdownFpm: this.st.touchdown?.fpm ?? null,
       irr: { ...this.irr, newGate: this.newGate, connectKnown: this.syntheticConnections },
+      ...(this.runwayNeeds === undefined ? {} : { runwayNeeds: this.runwayNeeds }),
     });
   }
 
@@ -755,6 +773,7 @@ export class ScenarioEngine {
       reply: null,
       until: null,
       vars: { ...vars },
+      loop: null,
     };
     this.st.runs.push(run);
     this.advance(run, input, outbound, events);
@@ -953,8 +972,8 @@ export class ScenarioEngine {
   ): Partial<Record<RunVariable, Value>> {
     const tm = input.telemetry;
     const o = this.ofp;
-    const apt = [o.origin, ...o.alternates].find((a) => a.icao === icao);
-    if (apt === undefined || tm === null) return { 'cmd.divert_nm': null, 'cmd.divert_eta': null };
+    const apt = icao === null ? null : airportPlace(o, this.st.ext.divertApts, icao);
+    if (apt === null || tm === null) return { 'cmd.divert_nm': null, 'cmd.divert_eta': null };
     const nm = distanceNm(tm, apt);
     return {
       'cmd.divert_nm': Math.round(nm),
@@ -1034,8 +1053,12 @@ export class ScenarioEngine {
           this.st.hold = null;
         } else {
           applied = airborne && Number.isFinite(min) && min >= 1 && min <= 120;
-          if (applied) this.st.hold = { since: input.now, min: Math.round(min) };
+          if (applied) {
+            this.st.hold = { since: input.now, min: Math.round(min) };
+            refresh = true;
+          }
         }
+        if (value === null) refresh = true;
       } else if (a.target === 'flight.delay_min') {
         const min = typeof value === 'number' ? value : Number(value);
         applied = input.oooi.OUT === null && Number.isFinite(min) && min >= 0 && min <= 600;
@@ -1162,6 +1185,37 @@ export class ScenarioEngine {
     events.push({ type: 'WAIT_UNTIL', id, t: input.now, result });
   }
 
+  /**
+   * Inside a `loop` (T50): refreshes `loop.min` and leaves the loop when its `stop` or
+   * `until` holds — whatever the run waits for is dropped, `reply.option` is `STOP` or `MET`
+   * and the run goes on after the loop.
+   */
+  private checkLoop(run: Run, sc: CompiledScenario, input: EngineTickInput): void {
+    const loop = run.loop as NonNullable<Run['loop']>;
+    const lp = sc.steps[loop.step] as Extract<CompiledStep, { kind: 'loop' }>;
+    run.vars = {
+      ...run.vars,
+      'loop.min': Math.floor((input.flightTimeMs - loop.startMs) / 60_000),
+    };
+    const look = this.lookFor(run.vars);
+    const outcome = lp.stop?.test(look) === true ? 'STOP' : lp.until.test(look) ? 'MET' : null;
+    if (outcome === null) return;
+    run.reply = null;
+    run.until = null;
+    run.untilFlightMs = null;
+    run.untilPhase = null;
+    run.vars = {
+      ...run.vars,
+      'reply.option': outcome,
+      'reply.text': null,
+      'reply.arg': null,
+      'reply.timeout': false,
+      'loop.min': null,
+    };
+    run.loop = null;
+    run.step = lp.end;
+  }
+
   /** Executes steps of a run until it waits or finishes. */
   private advance(
     run: Run,
@@ -1175,6 +1229,7 @@ export class ScenarioEngine {
       this.st.runs = this.st.runs.filter((r) => r !== run);
       events.push({ type: 'SCENARIO_ERROR', id: sc.id, t: input.now, error });
     };
+    if (run.loop !== null) this.checkLoop(run, sc, input);
     if (run.reply !== null) {
       if (input.flightTimeMs < run.reply.untilFlightMs) return;
       const option = run.reply.default;
@@ -1216,7 +1271,16 @@ export class ScenarioEngine {
         return;
       }
       if (step.kind === 'wait_reply') {
-        const timeoutMs = step.timeoutMin * 60_000;
+        let timeoutMs: number;
+        if (step.timeoutMin === 'round') {
+          const loop = run.loop as NonNullable<Run['loop']>;
+          const everyMs =
+            ((sc.steps[loop.step] as { everyMin: number }).everyMin as number) * 60_000;
+          const k = Math.floor((input.flightTimeMs - loop.startMs) / everyMs) + 1;
+          timeoutMs = loop.startMs + k * everyMs - input.flightTimeMs;
+        } else {
+          timeoutMs = step.timeoutMin * 60_000;
+        }
         run.reply = {
           options: [...step.options],
           default: step.default,
@@ -1260,6 +1324,41 @@ export class ScenarioEngine {
           fail(e.message);
           return;
         }
+        continue;
+      }
+      if (step.kind === 'draw') {
+        const total = step.options.reduce((n, o) => n + o.weight, 0);
+        let roll = rng.int(0, total - 1);
+        let pick = step.options[0];
+        for (const o of step.options) {
+          if (roll < o.weight) {
+            pick = o;
+            break;
+          }
+          roll -= o.weight;
+        }
+        const names = new Set(step.options.flatMap((o) => o.values.map(([n]) => n)));
+        const vars: Run['vars'] = { ...run.vars };
+        for (const n of names) vars[n as `run.${string}`] = null;
+        for (const [n, v] of pick?.values ?? []) {
+          vars[n as `run.${string}`] = v.k === 'lit' ? v.v : rng.int(v.min, v.max);
+        }
+        run.vars = vars;
+        continue;
+      }
+      if (step.kind === 'loop') {
+        if (run.loop === null) run.loop = { step: run.step - 1, startMs: input.flightTimeMs };
+        this.checkLoop(run, sc, input);
+        continue;
+      }
+      if (step.kind === 'if') {
+        if (!step.cond.test(this.lookFor(run.vars))) run.step = step.end;
+        continue;
+      }
+      if (step.kind === 'break') {
+        run.loop = null;
+        run.vars = { ...run.vars, 'loop.min': null };
+        run.step = step.end;
         continue;
       }
       if (step.kind === 'smoke') {

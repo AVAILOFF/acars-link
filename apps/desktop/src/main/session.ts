@@ -80,6 +80,7 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
   firs: 'VATSpy (FIR boundaries)',
   freqs: 'OurAirports (frequencies)',
   vhf: 'OurAirports (VHF stations)',
+  divert: 'OurAirports (diversion airports)',
   launches: 'TheSpaceDevs (launches)',
   nattracks: 'natTrak (NAT tracks)',
   spacewx: 'NOAA SWPC (space weather)',

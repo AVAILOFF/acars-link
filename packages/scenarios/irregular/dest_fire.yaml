@@ -1,13 +1,14 @@
 # Fire near the destination runway: smoke over the field, advice to prepare a diversion, an
-# update after about 20 minutes. Conditions are real: the planned runway (OFP) and the wind of
-# the destination METAR (live, else the OFP one) for the direction the smoke drifts to.
+# update every 20 minutes (T50) until it is under control, 20 min to 2 h after the message.
+# Conditions are real: the planned runway (OFP) and the wind of the destination METAR (live, else
+# the OFP one) for the direction the smoke drifts to.
 id: dest_fire
 version: 1
 category: irregular
 title: Fire near destination runway
 title_ru: "Пожар у ВПП назначения"
-description: "About 120 NM out: fire near the planned runway, smoke drifting downwind. HOLD (default) or DIVERT to the alternate."
-description_ru: "Примерно за 120 NM: пожар у плановой ВПП, дым сносит по ветру. HOLD (по умолчанию) — ожидание или DIVERT — на запасной."
+description: "About 120 NM out: fire near the planned runway, smoke drifting downwind, under control in 20 min to 2 h, with an update every 20 min. HOLD (default) or DIVERT to the alternate."
+description_ru: "Примерно за 120 NM: пожар у плановой ВПП, дым сносит по ветру, потушат за 20 мин – 2 ч, обновления каждые 20 мин. HOLD (по умолчанию) — ожидание или DIVERT — на запасной."
 enabled_by_default: true
 trigger:
   on: distance
@@ -21,6 +22,8 @@ conditions:
 probability: 0.02
 excludes: [drone_activity, runway_closure_dest]
 steps:
+  - draw:
+      - set: { run.hold_min: [20, 120] }
   - send:
       header: OPS MSG {ofp.dest}
       body: |
@@ -28,24 +31,53 @@ steps:
         SMOKE DRIFTING {wx.dest_smoke_drift}, WIND {wx.dest_wind_from}/{wx.dest_wind_kt}KT
         VIS REDUCED IN SMOKE, RESCUE ON SCENE
         PREPARE DIVERSION {ofp.altn}
-        UPDATE IN 20 MIN, REPLY HOLD OR DIVERT
+        NO ESTIMATE, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
+        REPLY HOLD OR DIVERT
   # A smoke column at the runway in the simulator (T34); the bridge shows it when we are near.
   - smoke: start
   - wait:
       reply: { options: [HOLD, DIVERT], timeout_min: 8, default: HOLD }
   - branch:
       HOLD:
-        # The ROPS station gives the holding clearance (T48); null below ends it.
+        # The ROPS station gives the holding clearance and a new time at every update (T48, T50);
+        # null below ends it.
         - set: { flight.hold: 20 }
         - send:
             header: OPS MSG {ofp.dest}
             body: |
-              NOTED, EXPECT 20 MIN HOLDING
+              NOTED, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
               ADVISE IF FUEL BECOMES CRITICAL
-        - wait: { until: "phase in ['LANDED','TAXI_IN','ON_BLOCK']", timeout_min: 20 }
+        - loop:
+            until: "loop.min >= run.hold_min"
+            stop: "flight.divert != null or phase in ['LANDED','TAXI_IN','ON_BLOCK']"
+            every_min: 20
+            steps:
+              - wait:
+                  reply: { options: [HOLD, DIVERT], timeout_round: true, default: HOLD }
+              - branch:
+                  # The update comes when the round ends; the pilot's own HOLD only confirms.
+                  HOLD:
+                    - if: "reply.timeout"
+                      steps:
+                        - set: { flight.hold: 20 }
+                        - send:
+                            header: OPS MSG {ofp.dest}
+                            body: |
+                              FIRE NEAR RWY {ofp.dest_rwy} STILL BURNING
+                              NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
+                              REPLY HOLD OR DIVERT
+                  DIVERT:
+                    - set: { flight.divert: "{ofp.altn}" }
+                    - send:
+                        header: OPS MSG {ofp.dest}
+                        body: |
+                          DIVERT {ofp.altn} NOTED
+                          HANDLING AND FUEL ORDERED
+                          SEND ETA WHEN ABLE
+                    - break: true
         - set: { flight.hold: null }
         - branch:
-            TIMEOUT:
+            MET:
               - send:
                   header: OPS MSG {ofp.dest}
                   body: |

@@ -3,7 +3,7 @@
 # The advice follows FAA SAFO 09013 (2009-06-23; still cited by the FAA in 2017): extinguish
 # with water, Halon or a replacement, cool the cells with water, never use a fire-resistant
 # burn bag. CONTINUE or DIVERT (default after 5 min: DIVERT, a cabin fire is not left alone);
-# DIVERT goes to the nearest of the origin and the alternates, as in medical_onboard.
+# DIVERT goes to the nearest suitable airport of the OFP or a reserve one (T50).
 id: ped_fire_cabin
 version: 1
 category: irregular
@@ -37,13 +37,13 @@ steps:
       reply: { options: [CONTINUE, DIVERT], timeout_min: 5, default: DIVERT }
   - branch:
       DIVERT:
-        - set: { flight.divert: "{flight.nearest_altn}" }
+        - set: { flight.divert: "{flight.nearest_any}" }
         - send:
             header: OPS MSG FIRE
             body: |
               ROGER DIVERT
               {flight.divert|or:NEAREST SUITABLE}
-              {flight.nearest_altn_nm} NM FROM PRESENT POS
+              {flight.nearest_any_nm} NM FROM PRESENT POS
               FIRE SERVICE ORDERED
               SEND NEW ETA WHEN ABLE
         - wait: { phase: ON_BLOCK }

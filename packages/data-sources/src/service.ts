@@ -6,6 +6,7 @@ import {
   type AuroraForecast,
   type CenterStation,
   checkExtDataUpdate,
+  type DivertAirport,
   type Earthquake,
   type ExtDataUpdate,
   type F1Race,
@@ -20,6 +21,7 @@ import {
   type ParkingStand,
   type PublicHoliday,
   RoutePolyline,
+  runwayNeedFor,
   type SpaceLaunch,
   type SpaceWeather,
   type VhfStation,
@@ -32,6 +34,7 @@ import { fetchLaunches } from './launches.js';
 import { fetchNatTracks } from './nattrak.js';
 import {
   fetchAirportFrequencies,
+  fetchDivertAirports,
   fetchRunwayPoint,
   fetchVhfStations,
   type RunwayPoint,
@@ -86,6 +89,7 @@ export type DataSourceKind =
   | 'firs'
   | 'freqs'
   | 'vhf'
+  | 'divert'
   | 'launches'
   | 'nattracks'
   | 'spacewx'
@@ -103,6 +107,7 @@ export const DATA_SOURCES: readonly DataSourceKind[] = [
   'firs',
   'freqs',
   'vhf',
+  'divert',
   'launches',
   'nattracks',
   'spacewx',
@@ -129,7 +134,14 @@ const ROPS_ONCE: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs']);
 /** Source of the data link simulation only (`startFlight(…, { datalink: true })`, T31). */
 const DATALINK_SOURCES: ReadonlySet<DataSourceKind> = new Set(['vhf']);
 /** Fetched once per flight. */
-const ONCE: ReadonlySet<DataSourceKind> = new Set(['stands', 'firs', 'freqs', 'vhf', 'holidays']);
+const ONCE: ReadonlySet<DataSourceKind> = new Set([
+  'stands',
+  'firs',
+  'freqs',
+  'vhf',
+  'divert',
+  'holidays',
+]);
 
 export interface CacheEntry {
   /** When the value was fetched, epoch ms. */
@@ -182,6 +194,7 @@ export const DATA_POLICY: Readonly<Record<DataSourceKind, Policy>> = {
   firs: { refreshMs: null, cacheMs: 7 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   freqs: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   vhf: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
+  divert: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   launches: { refreshMs: 60 * MIN, cacheMs: 30 * MIN, retryMs: 15 * MIN, maxTries: null },
   nattracks: { refreshMs: 60 * MIN, cacheMs: 30 * MIN, retryMs: 15 * MIN, maxTries: null },
   spacewx: { refreshMs: 30 * MIN, cacheMs: 15 * MIN, retryMs: 15 * MIN, maxTries: null },
@@ -253,6 +266,7 @@ export class ExternalDataService {
     airports: Record<string, AirportInfo> | null;
     freqs: { icao: string; list: AirportFrequency[] } | null;
     vhf: VhfStation[] | null;
+    divertApts: DivertAirport[] | null;
     launches: SpaceLaunch[] | null;
     natTracks: NatTrack[] | null;
     spaceWx: SpaceWeather | null;
@@ -383,6 +397,7 @@ export class ExternalDataService {
       p.airports !== null ||
       p.freqs !== null ||
       p.vhf !== null ||
+      p.divertApts !== null ||
       p.launches !== null ||
       p.natTracks !== null ||
       p.spaceWx !== null ||
@@ -405,6 +420,7 @@ export class ExternalDataService {
         ...(p.airports === null ? {} : { airports: p.airports }),
         ...(p.freqs === null ? {} : { freqs: p.freqs }),
         ...(p.vhf === null ? {} : { vhf: p.vhf }),
+        ...(p.divertApts === null ? {} : { divertApts: p.divertApts }),
         ...(p.launches === null ? {} : { launches: p.launches }),
         ...(p.natTracks === null ? {} : { natTracks: p.natTracks }),
         ...(p.spaceWx === null ? {} : { spaceWx: p.spaceWx }),
@@ -551,6 +567,20 @@ export class ExternalDataService {
         const v = await this.cachedOr(key, now, kind, 'vhf', () => fetchVhfStations(this.ctx, o));
         return () => {
           this.pending.vhf = v as VhfStation[];
+        };
+      }
+      case 'divert': {
+        // Reserve airports to divert to (T50): only for a type with a runway need (the table
+        // is empty until checked); without one nothing is fetched.
+        const o = flight.ofp;
+        const need = runwayNeedFor(o.aircraft.icao);
+        if (need === undefined) return () => {};
+        const key = `divert:${o.aircraft.icao}-${o.origin.icao}-${o.destination.icao}-${hashSeed(o.route ?? '')}`;
+        const v = await this.cachedOr(key, now, kind, 'divertApts', () =>
+          fetchDivertAirports(this.ctx, o, need),
+        );
+        return () => {
+          this.pending.divertApts = v as DivertAirport[];
         };
       }
       case 'eonet': {
@@ -790,6 +820,7 @@ function empty() {
     airports: null,
     freqs: null,
     vhf: null,
+    divertApts: null,
     launches: null,
     natTracks: null,
     spaceWx: null,

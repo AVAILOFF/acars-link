@@ -14,6 +14,7 @@ import {
 } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { loadScenarios } from '../src/index.js';
+import { withHoldMin } from './hold.js';
 
 /** T48: the airline's diversion and holding reach the aircraft through the ROPS station. */
 
@@ -28,7 +29,9 @@ const only = (...ids: string[]): CompiledScenario[] =>
   everything
     .filter((s) => ids.includes(s.id))
     // The emergency chains start only after a MAYDAY / PAN (probability 0).
-    .map((s) => (s.id.startsWith('emergency_') ? s : { ...s, probability: 1 }));
+    .map((s) => (s.id.startsWith('emergency_') ? s : { ...s, probability: 1 }))
+    // T50: the length of the holding is drawn; here it is short so that the flight sees it end.
+    .map((s) => (s.id === 'drone_activity' ? withHoldMin(s, 5) : s));
 
 const ofp: Ofp = parseSimbriefOfp(
   JSON.parse(

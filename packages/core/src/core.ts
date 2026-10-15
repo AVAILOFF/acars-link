@@ -22,6 +22,7 @@ import {
   DEFAULT_STATION,
   type OutboundMessage,
   ScenarioEngine,
+  type ScenarioEngineOptions,
   type ScenarioEngineState,
   type ScenarioEvent,
   stationCallsign,
@@ -82,6 +83,8 @@ export interface CoreOptions {
   readonly dataWaitMs?: number;
   /** Test hook, see `ScenarioEngineOptions.syntheticConnections` (T43). */
   readonly syntheticConnections?: boolean;
+  /** Test hook, see `ScenarioEngineOptions.runwayNeeds` (T50). */
+  readonly runwayNeeds?: ScenarioEngineOptions['runwayNeeds'];
   /** Generator of person names, see `ScenarioEngineOptions.namesVersion` (T43); default 2. */
   readonly namesVersion?: 1 | 2;
   /** `flags.*` left by earlier flights (T14); read back with {@link AcarsCore.flags}. */
@@ -384,6 +387,7 @@ function engineOptions(o: CoreOptions) {
     ...(o.sessionFired === undefined ? {} : { sessionFired: o.sessionFired }),
     ...(o.dataWaitMs === undefined ? {} : { dataWaitMs: o.dataWaitMs }),
     ...(o.flags === undefined ? {} : { flags: o.flags }),
+    ...(o.runwayNeeds === undefined ? {} : { runwayNeeds: o.runwayNeeds }),
     ...(o.syntheticConnections === undefined
       ? {}
       : { syntheticConnections: o.syntheticConnections }),
