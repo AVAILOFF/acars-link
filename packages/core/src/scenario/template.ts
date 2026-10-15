@@ -11,7 +11,7 @@ import { NAME_KINDS, type NameKind, personName } from './names.js';
  *
  * Formatters: `kg1` (12345 → 12.3), `hhmm` and `ddmmm` (epoch ms, UTC), `pad:N`
  * (right-pad to N), `lpad:N` (left-pad), `int` (round), `sign` (+3, -120, 0), `upper`,
- * `or:TEXT` (TEXT when the value is missing), `qnh` (the `Q1013` / `A2992` group of a METAR,
+ * `plusmin:N` (epoch ms plus N minutes), `or:TEXT` (TEXT when the value is missing), `qnh` (the `Q1013` / `A2992` group of a METAR,
  * T13).
  * A missing value renders as {@link MISSING}. Numbers are data: templates never invent
  * them (invariant 8) — `rand`/`pick` use the scenario's seeded Rng.
@@ -84,6 +84,17 @@ const FORMATTERS: Readonly<Record<string, (v: Value | string, f: Fmt) => Value |
     const r = Math.round(n);
     return r > 0 ? `+${r}` : String(r);
   },
+  // Epoch ms moved by N minutes, for `{flight.now|plusmin:20|hhmm}` (T50).
+  plusmin: (v, f) => {
+    const n = asNumber(v, f.name);
+    const m = Number(f.arg);
+    if (!Number.isFinite(m))
+      throw new TemplateError(`|plusmin needs minutes, got ${String(f.arg)}`);
+    return n === null ? null : n + m * 60_000;
+  },
+  // `{reply.icao|else:flight.nearest_altn}`: the other variable when the value is missing (T51);
+  // resolved in the render loop, which has the lookup.
+  else: (v) => v,
   qnh: (v) => (v === null ? null : metarQnh(text(v))),
   upper: (v) => (v === null ? null : text(v).toUpperCase()),
   // A missing value as this text instead of ----: `{cmd.reason|or:NOT GIVEN}`.
@@ -92,7 +103,8 @@ const FORMATTERS: Readonly<Record<string, (v: Value | string, f: Fmt) => Value |
   lpad: (v, f) => text(v).padStart(intArg(f)),
 };
 
-const ARG_FORMATTERS = new Set(['pad', 'lpad', 'or']);
+const ARG_FORMATTERS = new Set(['pad', 'lpad', 'or', 'plusmin', 'else']);
+const VAR_PATH = /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/;
 
 function text(v: Value | string): string {
   if (v === null) return MISSING;
@@ -147,6 +159,9 @@ function parseFmt(s: string): Fmt {
   const f = { name, arg };
   if (name === 'or' && arg?.trim() === '') throw new TemplateError('|or needs a text');
   if (name === 'pad' || name === 'lpad') intArg(f);
+  if (name === 'else' && !VAR_PATH.test(arg ?? '')) {
+    throw new TemplateError(`|else needs a variable, got ${String(arg)}`);
+  }
   return f;
 }
 
@@ -157,7 +172,39 @@ export interface CompiledTemplate {
   render(look: Lookup, rng: Rng): string;
 }
 
+/**
+ * A line that starts with `~` is optional (T51): it is left out when a placeholder of it has no
+ * value, instead of showing `----`. The `~` itself is never printed.
+ */
 export function compileTemplate(source: string): CompiledTemplate {
+  if (!/^~/m.test(source)) return compileLine(source);
+  const lines = source
+    .split('\n')
+    .map((l) =>
+      l.startsWith('~')
+        ? { optional: true, t: compileLine(l.slice(1)) }
+        : { optional: false, t: compileLine(l) },
+    );
+  return {
+    source,
+    vars: [...new Set(lines.flatMap((l) => l.t.vars))],
+    render: (look, rng) => {
+      const out: string[] = [];
+      for (const l of lines) {
+        if (!l.optional) {
+          out.push(l.t.render(look, rng));
+          continue;
+        }
+        if (!l.t.vars.every((v) => look(v) !== null && look(v) !== undefined)) continue;
+        const text = l.t.render(look, rng);
+        if (!text.includes(MISSING)) out.push(text);
+      }
+      return out.join('\n');
+    },
+  };
+}
+
+function compileLine(source: string): CompiledTemplate {
   const parts: Part[] = [];
   const vars = new Set<string>();
   let i = 0;
@@ -184,7 +231,9 @@ export function compileTemplate(source: string): CompiledTemplate {
       vars.add('names.region');
       vars.add('names.mix');
     }
-    parts.push({ src, fmts: rest.map((s) => parseFmt(s.trim())) });
+    const fmts = rest.map((s) => parseFmt(s.trim()));
+    for (const f of fmts) if (f.name === 'else') vars.add(f.arg as string);
+    parts.push({ src, fmts });
     i = end + 1;
   }
   return {
@@ -195,7 +244,12 @@ export function compileTemplate(source: string): CompiledTemplate {
         .map((p) => {
           if (typeof p === 'string') return p;
           let v: Value | string = resolve(p.src, look, rng);
-          for (const f of p.fmts) v = (FORMATTERS[f.name] as (typeof FORMATTERS)[string])(v, f);
+          for (const f of p.fmts) {
+            v =
+              f.name === 'else'
+                ? (v ?? look(f.arg as string) ?? null)
+                : (FORMATTERS[f.name] as (typeof FORMATTERS)[string])(v, f);
+          }
           return text(v);
         })
         .join(''),

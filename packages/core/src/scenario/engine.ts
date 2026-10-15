@@ -19,6 +19,7 @@ import { createRng, type Rng, type RngState, rngFromState } from '../random/rng.
 import type { SimCommand } from '../sim/commands.js';
 import { buildVdgsMessage, type VdgsDisplay, VdgsError, type VdgsLine } from '../sim/vdgs.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
+import type { AircraftFamily } from './aircraft.js';
 import type { CompiledScenario, CompiledStep } from './compile.js';
 import {
   buildContext,
@@ -28,6 +29,8 @@ import {
   type ScenarioContext,
 } from './context.js';
 import { type DelayPart, LATE_START_CODE, reasonCode, SLOT_CODE } from './delay-codes.js';
+import { airportPlace, type RunwayNeed } from './divert.js';
+
 import type { Lookup, Value } from './expr.js';
 import { pruneExpiredFlags } from './flags-expiry.js';
 import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
@@ -39,7 +42,7 @@ import {
   parseCommand,
 } from './pilot.js';
 import { TemplateError } from './template.js';
-import type { PilotCommand, TimeRef } from './types.js';
+import type { PilotCommand, StartWindow, TimeRef } from './types.js';
 
 /**
  * Scenario runtime v0 (docs/05 "Исполнение").
@@ -132,7 +135,8 @@ export type ScenarioEvent =
   | {
       /** The app should fetch weather for `icao` and pass it in `CoreInput.data` (T13). */
       readonly type: 'DATA_REQUEST';
-      readonly kind: 'wx';
+      /** `wx`: weather of the airport; `place`: where the airport the pilot named is (T51). */
+      readonly kind: 'wx' | 'place';
       readonly icao: string;
       readonly t: number;
     }
@@ -172,7 +176,13 @@ export type ScenarioEvent =
       readonly type: 'SCENARIO_SKIPPED';
       readonly id: string;
       readonly t: number;
-      readonly reason: 'probability' | 'cooldown' | 'excluded' | 'running';
+      readonly reason:
+        | 'probability'
+        | 'cooldown'
+        | 'excluded'
+        | 'running'
+        | 'window'
+        | 'conditions';
     }
   | { readonly type: 'SCENARIO_DONE'; readonly id: string; readonly t: number }
   | {
@@ -241,6 +251,8 @@ export interface ScenarioEngineOptions {
    * `short_connection` does not start (no invented flights).
    */
   readonly syntheticConnections?: boolean;
+  /** Test hook (T50): runway needs by family instead of {@link RUNWAY_NEEDS} (`divert.ts`). */
+  readonly runwayNeeds?: Readonly<Partial<Record<AircraftFamily, RunwayNeed>>>;
   /** `flags.*` left by earlier flights (T14). */
   readonly flags?: Readonly<Record<string, Value>>;
 }
@@ -250,6 +262,11 @@ interface ScenarioState {
   starts: number;
   lastStartMs: number | null;
   rng: RngState;
+  /**
+   * Waiting for the random moment of a `trigger.window` (T51): `flight.minutes_to_tod` at the
+   * trigger and the drawn share of the way; absent in older states.
+   */
+  pending?: { t0: number; f: number } | null;
 }
 
 interface Run {
@@ -263,8 +280,10 @@ interface Run {
   reply: { options: string[]; default: string; untilFlightMs: number } | null;
   /** Waiting for a condition (`wait: until`, T39): the step and the flight time to give up at. */
   until: { step: number; deadlineMs: number } | null;
-  /** `reply.*` and `cmd.*` of this run. */
-  vars: Partial<Record<RunVariable, Value>>;
+  /** `reply.*`, `cmd.*`, `loop.min` and the `run.*` a `draw` gave this run. */
+  vars: Partial<Record<RunVariable | `run.${string}`, Value>>;
+  /** Inside a `loop` (T50): its step and the flight time it was entered at; absent in older states. */
+  loop: { step: number; startMs: number } | null;
 }
 
 interface Sent {
@@ -308,6 +327,8 @@ export interface ScenarioEngineState {
 }
 
 interface PendingWx {
+  /** Absent in older states: weather. */
+  readonly kind?: 'wx' | 'place';
   readonly message: PilotMessage;
   readonly icao: string;
   readonly until: number;
@@ -364,6 +385,7 @@ export class ScenarioEngine {
   private readonly dataWaitMs: number;
   private readonly syntheticConnections: boolean;
   private readonly nextLeg: NextLegOptions;
+  private readonly runwayNeeds: ScenarioEngineOptions['runwayNeeds'];
   private readonly seed: number | string;
   private readonly leadMs: number;
   /** Derived from OFP + seed (+ delay), so not part of the serialized state. */
@@ -414,6 +436,7 @@ export class ScenarioEngine {
     this.dataWaitMs = options.dataWaitMs ?? 0;
     this.syntheticConnections = options.syntheticConnections ?? false;
     this.nextLeg = { version: options.nextLegVersion ?? 2, hub: options.hub ?? null };
+    this.runwayNeeds = options.runwayNeeds;
     if (!(this.dataWaitMs >= 0)) throw new RangeError('dataWaitMs must be ≥ 0');
     this.seed = options.seed;
     this.namesVersion = options.namesVersion ?? 2;
@@ -474,7 +497,13 @@ export class ScenarioEngine {
     // Fields added with T12 are absent in older states: defaults.
     e.st.runs = copy.runs
       .filter((r) => e.byId.has(r.id))
-      .map((r) => ({ ...r, reply: r.reply ?? null, until: r.until ?? null, vars: r.vars ?? {} }));
+      .map((r) => ({
+        ...r,
+        reply: r.reply ?? null,
+        until: r.until ?? null,
+        vars: r.vars ?? {},
+        loop: r.loop ?? null,
+      }));
     e.st.sessionFired = [...copy.sessionFired];
     e.st.sent = { ...(copy.sent ?? {}) };
     e.st.divert = copy.divert ?? null;
@@ -640,7 +669,10 @@ export class ScenarioEngine {
       // 0. `REQ WX` whose weather arrived (or that waited long enough), then new pilot
       // messages: answers to waiting scenarios, then commands.
       const due = this.st.pendingWx.filter(
-        (p) => this.wxFresh(p.icao, input.now) || input.now >= p.until,
+        (p) =>
+          (p.kind === 'place'
+            ? this.st.ext.places?.[p.icao] !== undefined
+            : this.wxFresh(p.icao, input.now)) || input.now >= p.until,
       );
       this.st.pendingWx = this.st.pendingWx.filter((p) => !due.includes(p));
       this.answering = true;
@@ -654,6 +686,9 @@ export class ScenarioEngine {
       // 1. Running scenarios.
       for (const run of [...this.st.runs]) this.advance(run, input, outbound, events);
 
+      // 1b. Scenarios that wait for the random moment of their window (T51).
+      this.dueWindows(input, outbound, events);
+
       // 2. New candidates (`on: command` scenarios start in step 0 only).
       for (const sc of this.ordered) {
         const s = this.st.scenarios[sc.id] as ScenarioState;
@@ -661,7 +696,13 @@ export class ScenarioEngine {
           this.triggered(sc, input, this.context) && sc.conditions.every((c) => c.test(this.look));
         const fresh = active && !s.candidate;
         s.candidate = active;
-        if (fresh) this.start(sc, {}, input, outbound, events);
+        if (fresh) {
+          if (sc.def.trigger.on === 'phase' && sc.def.trigger.window !== undefined) {
+            this.defer(sc, input, events);
+          } else {
+            this.start(sc, {}, input, outbound, events);
+          }
+        }
       }
 
       // 3. Forced by the user.
@@ -679,6 +720,8 @@ export class ScenarioEngine {
 
   private readonly look: Lookup = (path) => {
     if (path.startsWith('flags.')) return this.st.flags[path.slice(6)] ?? null;
+    // `run.*` of a run that has not drawn the name (T50): the shared context has none.
+    if (path.startsWith('run.')) return null;
     const ctx = this.context;
     return path in ctx ? ctx[path as keyof ScenarioContext] : undefined;
   };
@@ -703,6 +746,7 @@ export class ScenarioEngine {
       oooi: input.oooi,
       data: this.data,
       divert: this.st.divert,
+      hold: this.st.hold,
       sent: Object.keys(this.st.sent),
       ext: this.st.ext,
       polyline: this.polyline,
@@ -710,7 +754,58 @@ export class ScenarioEngine {
       fuel: this.st.fuel,
       touchdownFpm: this.st.touchdown?.fpm ?? null,
       irr: { ...this.irr, newGate: this.newGate, connectKnown: this.syntheticConnections },
+      ...(this.runwayNeeds === undefined ? {} : { runwayNeeds: this.runwayNeeds }),
     });
+  }
+
+  /**
+   * The trigger of a scenario with a window fired (T51): cooldown, exclusions and the dice as for a
+   * start, then the share of the way to start at is drawn and the scenario waits for it.
+   */
+  private defer(sc: CompiledScenario, input: EngineTickInput, events: ScenarioEvent[]): void {
+    const s = this.st.scenarios[sc.id] as ScenarioState;
+    const w = (sc.def.trigger as { window: StartWindow }).window;
+    if (s.pending != null) return;
+    const skip = (reason: 'probability' | 'cooldown' | 'excluded' | 'running' | 'window') =>
+      events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason });
+    const blocked = this.blocker(sc, s, input.now);
+    if (blocked !== null) return void skip(blocked);
+    const rng = this.rngs.get(sc.id) as Rng;
+    if (!rng.chance(sc.probability)) return void skip('probability');
+    const t0 = this.context['flight.minutes_to_tod'];
+    if (typeof t0 !== 'number' || t0 - w.after_min <= w.before_tod_min) return void skip('window');
+    s.pending = { t0, f: rng.next() };
+  }
+
+  /** The moment of a window has come (T51): the start, after a new look at the conditions. */
+  private dueWindows(
+    input: EngineTickInput,
+    outbound: OutboundMessage[],
+    events: ScenarioEvent[],
+  ): void {
+    for (const sc of this.ordered) {
+      const s = this.st.scenarios[sc.id] as ScenarioState;
+      const p = s.pending;
+      if (p == null) continue;
+      const tr = sc.def.trigger as { phase: FlightPhase; window: StartWindow };
+      const skip = (reason: 'window' | 'conditions') =>
+        events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason });
+      if (input.phase !== tr.phase) {
+        s.pending = null;
+        skip('window');
+        continue;
+      }
+      const m = this.context['flight.minutes_to_tod'];
+      if (typeof m !== 'number') continue;
+      const span = p.t0 - tr.window.after_min - tr.window.before_tod_min;
+      if (m > p.t0 - tr.window.after_min - p.f * span) continue;
+      s.pending = null;
+      if (!sc.conditions.every((c) => c.test(this.look))) {
+        skip('conditions');
+        continue;
+      }
+      this.start(sc, {}, input, outbound, events, false, true);
+    }
   }
 
   /** A start by hand: conditions only (see the class comment). */
@@ -744,6 +839,7 @@ export class ScenarioEngine {
     outbound: OutboundMessage[],
     events: ScenarioEvent[],
     forced = false,
+    rolled = false,
   ): boolean {
     const s = this.st.scenarios[sc.id] as ScenarioState;
     const skip = forced ? null : this.blocker(sc, s, input.now);
@@ -751,7 +847,7 @@ export class ScenarioEngine {
       events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason: skip });
       return false;
     }
-    if (!forced && !(this.rngs.get(sc.id) as Rng).chance(sc.probability)) {
+    if (!(forced || rolled) && !(this.rngs.get(sc.id) as Rng).chance(sc.probability)) {
       events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason: 'probability' });
       return false;
     }
@@ -767,6 +863,7 @@ export class ScenarioEngine {
       reply: null,
       until: null,
       vars: { ...vars },
+      loop: null,
     };
     this.st.runs.push(run);
     this.advance(run, input, outbound, events);
@@ -811,12 +908,30 @@ export class ScenarioEngine {
     const [word, ...rest] = text.split(' ');
     const run = this.st.runs.find((r) => r.reply?.options.includes(word as string) === true);
     if (run !== undefined) {
+      // `DIVERT <ICAO> …` (T51): the airport, when the core knows it.
+      const named =
+        word === 'DIVERT' && /^[A-Z]{4}$/.test(rest[0] ?? '') ? (rest[0] as string) : null;
+      if (named !== null && mayWait && this.dataWaitMs > 0 && this.needsPlace(named, input)) {
+        this.st.pendingWx.push({
+          kind: 'place',
+          message: m,
+          icao: named,
+          until: input.now + this.dataWaitMs,
+        });
+        events.push({ type: 'DATA_REQUEST', kind: 'place', icao: named, t: input.now });
+        return;
+      }
+      const icao = named !== null && this.knownDivert(named, input) ? named : null;
+      const unknown = named !== null && icao === null && named === 'ZZZZ' ? named : null;
+      const arg = (icao !== null || unknown !== null ? rest.slice(1) : rest).join(' ');
       run.reply = null;
       run.vars = {
         ...run.vars,
         'reply.option': word as string,
         'reply.text': text,
-        'reply.arg': rest.length === 0 ? null : rest.join(' '),
+        'reply.arg': arg === '' ? null : arg,
+        'reply.icao': icao,
+        'reply.unknown': unknown,
         'reply.timeout': false,
       };
       note('reply', { scenarioId: run.id });
@@ -860,6 +975,26 @@ export class ScenarioEngine {
     }
     // Every command gets an answer, even with its scenarios switched off.
     if (!started) this.opsReply(`RCVD ${clip(text)}`, input.now, outbound, events);
+  }
+
+  /** An airport named in a reply can be used as a diversion: in the air, not the destination. */
+  private divertable(icao: string, input: EngineTickInput): boolean {
+    return icao !== this.ofp.destination.icao && input.oooi.OFF !== null && input.oooi.ON === null;
+  }
+
+  /** The core knows where `icao` is: an airport of the OFP, a reserve one or one looked up. */
+  private knownDivert(icao: string, input: EngineTickInput): boolean {
+    if (!this.divertable(icao, input)) return false;
+    return airportPlace(this.ofp, this.st.ext.divertApts, icao, this.st.ext.places) !== null;
+  }
+
+  /** The app should be asked where `icao` is: a possible diversion that is not known yet. */
+  private needsPlace(icao: string, input: EngineTickInput): boolean {
+    return (
+      this.divertable(icao, input) &&
+      airportPlace(this.ofp, this.st.ext.divertApts, icao, this.st.ext.places) === null &&
+      this.st.ext.places?.[icao] === undefined
+    );
   }
 
   /**
@@ -965,8 +1100,9 @@ export class ScenarioEngine {
   ): Partial<Record<RunVariable, Value>> {
     const tm = input.telemetry;
     const o = this.ofp;
-    const apt = [o.origin, ...o.alternates].find((a) => a.icao === icao);
-    if (apt === undefined || tm === null) return { 'cmd.divert_nm': null, 'cmd.divert_eta': null };
+    const apt =
+      icao === null ? null : airportPlace(o, this.st.ext.divertApts, icao, this.st.ext.places);
+    if (apt === null || tm === null) return { 'cmd.divert_nm': null, 'cmd.divert_eta': null };
     const nm = distanceNm(tm, apt);
     return {
       'cmd.divert_nm': Math.round(nm),
@@ -1046,8 +1182,12 @@ export class ScenarioEngine {
           this.st.hold = null;
         } else {
           applied = airborne && Number.isFinite(min) && min >= 1 && min <= 120;
-          if (applied) this.st.hold = { since: input.now, min: Math.round(min) };
+          if (applied) {
+            this.st.hold = { since: input.now, min: Math.round(min) };
+            refresh = true;
+          }
         }
+        if (value === null) refresh = true;
       } else if (a.target === 'flight.delay_min') {
         const min = typeof value === 'number' ? value : Number(value);
         applied = input.oooi.OUT === null && Number.isFinite(min) && min >= 0 && min <= 600;
@@ -1169,9 +1309,44 @@ export class ScenarioEngine {
       'reply.option': result,
       'reply.text': null,
       'reply.arg': null,
+      'reply.icao': null,
+      'reply.unknown': null,
       'reply.timeout': !met,
     };
     events.push({ type: 'WAIT_UNTIL', id, t: input.now, result });
+  }
+
+  /**
+   * Inside a `loop` (T50): refreshes `loop.min` and leaves the loop when its `stop` or
+   * `until` holds — whatever the run waits for is dropped, `reply.option` is `STOP` or `MET`
+   * and the run goes on after the loop.
+   */
+  private checkLoop(run: Run, sc: CompiledScenario, input: EngineTickInput): void {
+    const loop = run.loop as NonNullable<Run['loop']>;
+    const lp = sc.steps[loop.step] as Extract<CompiledStep, { kind: 'loop' }>;
+    run.vars = {
+      ...run.vars,
+      'loop.min': Math.floor((input.flightTimeMs - loop.startMs) / 60_000),
+    };
+    const look = this.lookFor(run.vars);
+    const outcome = lp.stop?.test(look) === true ? 'STOP' : lp.until.test(look) ? 'MET' : null;
+    if (outcome === null) return;
+    run.reply = null;
+    run.until = null;
+    run.untilFlightMs = null;
+    run.untilPhase = null;
+    run.vars = {
+      ...run.vars,
+      'reply.option': outcome,
+      'reply.text': null,
+      'reply.arg': null,
+      'reply.icao': null,
+      'reply.unknown': null,
+      'reply.timeout': false,
+      'loop.min': null,
+    };
+    run.loop = null;
+    run.step = lp.end;
   }
 
   /** Executes steps of a run until it waits or finishes. */
@@ -1187,6 +1362,7 @@ export class ScenarioEngine {
       this.st.runs = this.st.runs.filter((r) => r !== run);
       events.push({ type: 'SCENARIO_ERROR', id: sc.id, t: input.now, error });
     };
+    if (run.loop !== null) this.checkLoop(run, sc, input);
     if (run.reply !== null) {
       if (input.flightTimeMs < run.reply.untilFlightMs) return;
       const option = run.reply.default;
@@ -1196,6 +1372,8 @@ export class ScenarioEngine {
         'reply.option': option,
         'reply.text': null,
         'reply.arg': null,
+        'reply.icao': null,
+        'reply.unknown': null,
         'reply.timeout': true,
       };
       events.push({ type: 'REPLY_TIMEOUT', id: sc.id, t: input.now, option });
@@ -1228,7 +1406,16 @@ export class ScenarioEngine {
         return;
       }
       if (step.kind === 'wait_reply') {
-        const timeoutMs = step.timeoutMin * 60_000;
+        let timeoutMs: number;
+        if (step.timeoutMin === 'round') {
+          const loop = run.loop as NonNullable<Run['loop']>;
+          const everyMs =
+            ((sc.steps[loop.step] as { everyMin: number }).everyMin as number) * 60_000;
+          const k = Math.floor((input.flightTimeMs - loop.startMs) / everyMs) + 1;
+          timeoutMs = loop.startMs + k * everyMs - input.flightTimeMs;
+        } else {
+          timeoutMs = step.timeoutMin * 60_000;
+        }
         run.reply = {
           options: [...step.options],
           default: step.default,
@@ -1272,6 +1459,41 @@ export class ScenarioEngine {
           fail(e.message);
           return;
         }
+        continue;
+      }
+      if (step.kind === 'draw') {
+        const total = step.options.reduce((n, o) => n + o.weight, 0);
+        let roll = rng.int(0, total - 1);
+        let pick = step.options[0];
+        for (const o of step.options) {
+          if (roll < o.weight) {
+            pick = o;
+            break;
+          }
+          roll -= o.weight;
+        }
+        const names = new Set(step.options.flatMap((o) => o.values.map(([n]) => n)));
+        const vars: Run['vars'] = { ...run.vars };
+        for (const n of names) vars[n as `run.${string}`] = null;
+        for (const [n, v] of pick?.values ?? []) {
+          vars[n as `run.${string}`] = v.k === 'lit' ? v.v : rng.int(v.min, v.max);
+        }
+        run.vars = vars;
+        continue;
+      }
+      if (step.kind === 'loop') {
+        if (run.loop === null) run.loop = { step: run.step - 1, startMs: input.flightTimeMs };
+        this.checkLoop(run, sc, input);
+        continue;
+      }
+      if (step.kind === 'if') {
+        if (!step.cond.test(this.lookFor(run.vars))) run.step = step.end;
+        continue;
+      }
+      if (step.kind === 'break') {
+        run.loop = null;
+        run.vars = { ...run.vars, 'loop.min': null };
+        run.step = step.end;
         continue;
       }
       if (step.kind === 'smoke') {

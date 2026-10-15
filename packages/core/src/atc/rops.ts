@@ -2,9 +2,10 @@ import { ATC_MAX_AGE_MS, type CenterStation, type ExtState, type FirArea } from 
 import type { FormattedMessage } from '../format/formatter.js';
 import { DEFAULT_PROFILE, type DisplayProfile } from '../format/profile.js';
 import { distanceNm, type LatLon } from '../geo/geo.js';
-import type { Ofp } from '../ofp/types.js';
+import type { Ofp, OfpAirport } from '../ofp/types.js';
 import type { FlightPhase } from '../phase/fsm.js';
 import { createRng } from '../random/rng.js';
+import { airportPlace } from '../scenario/divert.js';
 import type { OutboundMessage } from '../scenario/engine.js';
 import type { PilotMessage } from '../scenario/pilot.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
@@ -12,6 +13,7 @@ import {
   cruiseSpan,
   DESCENT_BEFORE_TOD_NM,
   DIRECT_TOD_MARGIN_NM,
+  defaultTransitionFt,
   descentLevel,
   directDecision,
   directExit,
@@ -920,16 +922,17 @@ export class RopsStation {
         uplink('divert', `PROCEED DIRECT TO @${dv.icao}@`);
       }
       if (dv.directSent && !dv.descentSent) {
-        const apt = [this.ofp.origin, this.ofp.destination, ...this.ofp.alternates].find(
-          (a) => a.icao === dv.icao,
-        );
-        // An airport the OFP does not know has no position: no descent is computed for it.
-        if (apt === undefined || tm.altFt <= DIVERT_DESCENT_FT + 1000) dv.descentSent = true;
+        const apt = airportPlace(this.ofp, input.ext?.divertApts, dv.icao, input.ext?.places);
+        // An airport the core does not know has no position: no descent is computed for it.
+        if (apt === null || tm.altFt <= DIVERT_DESCENT_FT + 1000) dv.descentSent = true;
         else {
           const need = ((tm.altFt - DIVERT_DESCENT_FT) / 1000) * 3 + DIVERT_DESCENT_MARGIN_NM;
           if (distanceNm(tm, apt) <= need) {
             dv.descentSent = true;
-            const tl = transitionFt(apt);
+            const tl =
+              'transLevelFt' in apt
+                ? transitionFt(apt as OfpAirport)
+                : defaultTransitionFt(apt.icao);
             const min = uplink(
               'divert',
               `DESCEND TO @${levelText(DIVERT_DESCENT_FT, DIVERT_DESCENT_FT >= tl)}@`,
@@ -973,6 +976,15 @@ export class RopsStation {
         // aircraft is at it already, and the descent after the holding comes by voice).
         this.dropLevelWatch();
         this.st.auto.cleared = level;
+        uplink('hold', `EXPECT FURTHER CLEARANCE AT @${hhmm}@`);
+      }
+    } else if (l.hold !== null && l.hold.since !== hold.since) {
+      // The airline renewed the holding (T50: an update every 20 minutes with a new time): the
+      // station says the new time, the holding itself stays.
+      l.hold.since = hold.since;
+      if (l.hold.sent && station !== null && tm !== null && !tm.onGround) {
+        const efc = new Date(now + hold.min * 60_000);
+        const hhmm = `${String(efc.getUTCHours()).padStart(2, '0')}${String(efc.getUTCMinutes()).padStart(2, '0')}`;
         uplink('hold', `EXPECT FURTHER CLEARANCE AT @${hhmm}@`);
       }
     }

@@ -55,6 +55,7 @@ exports[`parseSimbriefOfp — real OFP planned in kg (A35K RCTP-RJBB) > is stabl
     "transLevelFt": 14000,
     "utcOffsetH": 9,
   },
+  "etops": null,
   "flightNumber": "822",
   "fuel": {
     "alternateBurnKg": 3897,

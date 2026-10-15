@@ -203,4 +203,32 @@ export interface Ofp {
   readonly takeoffPerf: OfpTakeoffPerf | null;
   readonly landingPerf: OfpLandingPerf | null;
   readonly crew: OfpCrew | null;
+  /**
+   * ETOPS planning (T50); null when the flight is not planned ETOPS (SimBrief gives `etops: []`).
+   * Recordings made before T50 have no such field: readers treat `undefined` as null.
+   */
+  readonly etops: OfpEtops | null;
+}
+
+/** An ETOPS airport of the OFP: entry, exit or en-route suitable airport. */
+export interface OfpEtopsAirport {
+  readonly icao: string;
+  readonly name: string;
+  readonly lat: number;
+  readonly lon: number;
+}
+
+/**
+ * `etops` of the SimBrief OFP, structure checked on a real OFP (RJTT–KLAX A35K, rule 370,
+ * 2026-10-15): `rule` (minutes), `entry` / `exit` (`icao_code`, `pos_lat_apt`, `pos_long_apt`, …),
+ * `suitable_airport[]` (`icao_code`, `name`, `pos_lat`, `pos_long`, …), `equal_time_point[]`,
+ * `critical_point`. Only what diversion needs is kept.
+ */
+export interface OfpEtops {
+  /** Maximum diversion time, minutes (`rule`). */
+  readonly ruleMin: number | null;
+  readonly entry: OfpEtopsAirport | null;
+  readonly exit: OfpEtopsAirport | null;
+  /** En-route suitable airports in OFP order. */
+  readonly suitable: readonly OfpEtopsAirport[];
 }

@@ -10,7 +10,7 @@ import {
  * JSON Schema (2020-12) of a scenario file (docs/05-scenario-engine.md; T06, T12: `wait: reply`,
  * `branch`, `resend`, `on: command`). Structure only; semantics (expressions, templates,
  * variables, branch keys, `set` targets) are checked by `compileScenario` in `@acars/core`.
- * `set` — T14. `vdgs` — T22 (line widths are checked by `compileScenario`). `wait: until`, `group` — T39.
+ * `set` — T14. `vdgs` — T22 (line widths are checked by `compileScenario`). `wait: until`, `group` — T39. `draw`, `loop`, `break`, `if` — T50.
  */
 
 const phase = { enum: [...FLIGHT_PHASES] } as const;
@@ -54,7 +54,19 @@ export const SCENARIO_SCHEMA = {
         {
           additionalProperties: false,
           required: ['on', 'phase'],
-          properties: { on: { enum: ['phase_enter', 'phase'] }, phase },
+          properties: {
+            on: { enum: ['phase_enter', 'phase'] },
+            phase,
+            window: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['after_min', 'before_tod_min'],
+              properties: {
+                after_min: { type: 'number', minimum: 0 },
+                before_tod_min: { type: 'number', minimum: 0 },
+              },
+            },
+          },
         },
         {
           additionalProperties: false,
@@ -173,10 +185,11 @@ export const SCENARIO_SCHEMA = {
                       reply: {
                         type: 'object',
                         additionalProperties: false,
-                        required: ['options', 'timeout_min', 'default'],
+                        required: ['options', 'default'],
                         properties: {
                           options: { type: 'array', minItems: 1, uniqueItems: true, items: option },
                           timeout_min: { type: 'number', exclusiveMinimum: 0 },
+                          timeout_round: { const: true },
                           default: option,
                         },
                       },
@@ -211,6 +224,74 @@ export const SCENARIO_SCHEMA = {
                 properties: { of: { type: 'array', minItems: 1, items: id } },
               },
             },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            required: ['draw'],
+            properties: {
+              draw: {
+                type: 'array',
+                minItems: 1,
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  required: ['set'],
+                  properties: {
+                    weight: { type: 'integer', minimum: 1, maximum: 1000 },
+                    set: {
+                      type: 'object',
+                      minProperties: 1,
+                      propertyNames: { type: 'string', pattern: '^run\\.[a-z][a-z0-9_]*$' },
+                      additionalProperties: {
+                        anyOf: [
+                          { type: 'string' },
+                          { type: 'number' },
+                          { type: 'boolean' },
+                          { type: 'null' },
+                          {
+                            type: 'array',
+                            minItems: 2,
+                            maxItems: 2,
+                            items: { type: 'integer' },
+                          },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            required: ['loop'],
+            properties: {
+              loop: {
+                type: 'object',
+                additionalProperties: false,
+                required: ['until', 'steps'],
+                properties: {
+                  until: text,
+                  stop: text,
+                  every_min: { type: 'number', exclusiveMinimum: 0 },
+                  steps: { $ref: '#/$defs/steps' },
+                },
+              },
+            },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            required: ['if', 'steps'],
+            properties: { if: text, steps: { $ref: '#/$defs/steps' } },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            required: ['break'],
+            properties: { break: { const: true } },
           },
           {
             type: 'object',

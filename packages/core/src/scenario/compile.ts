@@ -6,11 +6,12 @@ import {
   VDGS_DURATION,
   type VdgsDisplay,
 } from '../sim/vdgs.js';
-import { isContextVariable, isFlagVariable } from './context.js';
+import { isContextVariable, isFlagVariable, isRunVariable } from './context.js';
 import { type CompiledExpr, compileExpr, ExprError } from './expr.js';
 import { type CompiledTemplate, compileTemplate, TemplateError } from './template.js';
 import {
   DISTANCE_TARGETS,
+  LOOP_OUTCOMES,
   PILOT_COMMANDS,
   type ScenarioDef,
   SET_TARGETS,
@@ -53,7 +54,8 @@ export type CompiledStep =
   | {
       readonly kind: 'wait_reply';
       readonly options: readonly string[];
-      readonly timeoutMin: number;
+      /** Minutes, or `round`: to the next round of the loop (T50). */
+      readonly timeoutMin: number | 'round';
       readonly default: string;
     }
   | {
@@ -70,11 +72,35 @@ export type CompiledStep =
   | { readonly kind: 'resend'; readonly of: readonly string[] }
   | { readonly kind: 'set'; readonly assigns: readonly CompiledAssign[] }
   | { readonly kind: 'smoke'; readonly action: 'start' | 'stop' }
+  | { readonly kind: 'draw'; readonly options: readonly CompiledDrawOption[] }
+  | {
+      readonly kind: 'loop';
+      readonly until: CompiledExpr;
+      readonly stop: CompiledExpr | null;
+      /** Minutes of a round, null = no rounds. */
+      readonly everyMin: number | null;
+      /** First step after the loop. */
+      readonly end: number;
+    }
+  | { readonly kind: 'break'; readonly end: number }
+  | { readonly kind: 'if'; readonly cond: CompiledExpr; readonly end: number }
   | {
       readonly kind: 'vdgs';
       readonly durationSec: number;
       readonly displays: Readonly<Partial<Record<VdgsDisplay, readonly CompiledVdgsLine[]>>>;
     };
+
+/** One option of a `draw`: its weight and the values to give (a range is drawn). */
+export interface CompiledDrawOption {
+  readonly weight: number;
+  readonly values: readonly (readonly [
+    string,
+    (
+      | { readonly k: 'lit'; readonly v: string | number | boolean | null }
+      | { readonly k: 'range'; readonly min: number; readonly max: number }
+    ),
+  ])[];
+}
 
 export interface CompiledVdgsLine {
   readonly t: CompiledTemplate;
@@ -139,6 +165,13 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
     case 'phase_enter':
     case 'phase':
       if (!isPhase(tr.phase)) fail('trigger.phase', `unknown phase ${String(tr.phase)}`);
+      if ('window' in tr && tr.window !== undefined) {
+        if (tr.on !== 'phase') fail('trigger.window', 'only for on: phase');
+        const w = tr.window;
+        if (!(w.after_min >= 0 && w.before_tod_min >= 0)) {
+          fail('trigger.window', 'after_min and before_tod_min must be numbers >= 0');
+        }
+      }
       break;
     case 'event':
       if (!TRIGGER_EVENTS.includes(tr.event)) fail('trigger.event', `unknown event ${tr.event}`);
@@ -205,6 +238,10 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
   };
 
   const steps: CompiledStep[] = [];
+  /** Indexes of the `break` steps of the loop being compiled; null outside a loop. */
+  let breaks: number[] | null = null;
+  /** `every_min` of the loop being compiled. */
+  let every: number | null = null;
   /**
    * Appends `list` to `steps`. `reply` = options of the answer a `branch` here would see:
    * null before any `wait: reply`, MIXED after a branch whose arms asked different questions.
@@ -244,14 +281,23 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
           if (new Set(r.options).size !== r.options.length) {
             fail(`${path}.wait.reply.options`, 'must be unique');
           }
-          if (!(r.timeout_min > 0)) fail(`${path}.wait.reply.timeout_min`, 'must be > 0');
+          const round = r.timeout_round === true;
+          if (round === (r.timeout_min !== undefined)) {
+            fail(`${path}.wait.reply`, 'needs timeout_min or timeout_round, not both');
+          }
+          if (round && every === null) {
+            fail(`${path}.wait.reply.timeout_round`, 'needs a loop with every_min');
+          }
+          if (!round && !((r.timeout_min as number) > 0)) {
+            fail(`${path}.wait.reply.timeout_min`, 'must be > 0');
+          }
           if (!r.options.includes(r.default)) {
             fail(`${path}.wait.reply.default`, `"${r.default}" is not one of the options`);
           }
           steps.push({
             kind: 'wait_reply',
             options: [...r.options],
-            timeoutMin: r.timeout_min,
+            timeoutMin: round ? 'round' : (r.timeout_min as number),
             default: r.default,
           });
           reply = r.options;
@@ -342,6 +388,100 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
           });
         }
         steps.push({ kind: 'set', assigns });
+        continue;
+      }
+      if ('draw' in s) {
+        if (s.draw.length === 0) fail(`${path}.draw`, 'must not be empty');
+        const options: CompiledDrawOption[] = [];
+        for (const [j, o] of s.draw.entries()) {
+          const at = `${path}.draw[${j}]`;
+          const weight = o.weight ?? 1;
+          if (!(Number.isInteger(weight) && weight >= 1 && weight <= 1000)) {
+            fail(`${at}.weight`, 'must be an integer 1..1000');
+          }
+          const entries = Object.entries(o.set ?? {});
+          if (entries.length === 0) fail(`${at}.set`, 'must not be empty');
+          options.push({
+            weight,
+            values: entries.map(([name, v]) => {
+              if (!isRunVariable(name))
+                fail(`${at}.set.${name}`, 'name must be run.<name> (a-z0-9_)');
+              if (Array.isArray(v)) {
+                const [min, max] = v as readonly [number, number];
+                if (
+                  !(v.length === 2 && Number.isInteger(min) && Number.isInteger(max) && min <= max)
+                ) {
+                  fail(`${at}.set.${name}`, 'a range is [min, max], integers, min <= max');
+                }
+                return [name, { k: 'range' as const, min, max }] as const;
+              }
+              if (typeof v === 'number' && !Number.isFinite(v)) fail(`${at}.set.${name}`, 'finite');
+              return [
+                name,
+                { k: 'lit' as const, v: v as string | number | boolean | null },
+              ] as const;
+            }),
+          });
+        }
+        steps.push({ kind: 'draw', options });
+        continue;
+      }
+      if ('loop' in s) {
+        if (breaks !== null) fail(`${path}.loop`, 'a loop inside a loop is not supported');
+        const expr = (src: string, at: string): CompiledExpr => {
+          try {
+            const e = compileExpr(src);
+            vars(at, e.vars);
+            return e;
+          } catch (e) {
+            if (e instanceof ExprError) return fail(at, e.message);
+            throw e;
+          }
+        };
+        const until = expr(s.loop.until, `${path}.loop.until`);
+        const stop = s.loop.stop === undefined ? null : expr(s.loop.stop, `${path}.loop.stop`);
+        if (s.loop.every_min !== undefined && !(s.loop.every_min > 0)) {
+          fail(`${path}.loop.every_min`, 'must be > 0');
+        }
+        const at0 = steps.length;
+        steps.push({ kind: 'jump', to: -1 }); // replaced by the loop below
+        breaks = [];
+        every = s.loop.every_min ?? null;
+        const out = emit(s.loop.steps, `${path}.loop.steps`, reply);
+        const mine: number[] = breaks;
+        breaks = null;
+        const everyMin = every;
+        every = null;
+        if (!steps.slice(at0 + 1).some((x) => x.kind.startsWith('wait'))) {
+          fail(`${path}.loop.steps`, 'needs a wait step, or the loop would never yield');
+        }
+        steps.push({ kind: 'jump', to: at0 });
+        const end = steps.length;
+        steps[at0] = { kind: 'loop', until, stop, everyMin, end };
+        for (const b of mine) steps[b] = { kind: 'break', end };
+        reply = out === MIXED ? MIXED : [...new Set([...(out ?? []), ...LOOP_OUTCOMES])];
+        continue;
+      }
+      if ('if' in s) {
+        let cond: CompiledExpr;
+        try {
+          cond = compileExpr(s.if);
+        } catch (e) {
+          if (e instanceof ExprError) return fail(`${path}.if`, e.message);
+          throw e;
+        }
+        vars(`${path}.if`, cond.vars);
+        const at0 = steps.length;
+        steps.push({ kind: 'jump', to: -1 }); // replaced by the if below
+        const out = emit(s.steps, `${path}.steps`, reply);
+        steps[at0] = { kind: 'if', cond, end: steps.length };
+        reply = out;
+        continue;
+      }
+      if ('break' in s) {
+        if (breaks === null) fail(`${path}.break`, 'only inside a loop');
+        (breaks as number[]).push(steps.length);
+        steps.push({ kind: 'break', end: -1 });
         continue;
       }
       if ('smoke' in s) {

@@ -1,7 +1,7 @@
 # MAYDAY sent to the ROPS station (DM56, T47): the station answers ROGER MAYDAY at once and
 # the airline's emergency desk follows. It starts by hand only (the core forces it after the
 # MAYDAY); probability 0 keeps it from starting on its own. DIVERT (default after 5 min) goes
-# to the nearest of the origin and the alternates, and so reaches the ROPS station (T48).
+# to the nearest suitable airport (T50: the OFP's, or a reserve one), and so reaches the ROPS station (T48).
 id: emergency_mayday
 version: 1
 category: irregular
@@ -20,18 +20,20 @@ steps:
       body: |
         MAYDAY RCVD VIA ATC
         EMERGENCY DESK ACTIVATED
-        NEAREST SUITABLE {flight.nearest_altn|or:AIRPORT}
-        {flight.nearest_altn_nm} NM FROM PRESENT POS
+        NEAREST SUITABLE {flight.nearest_any|or:AIRPORT}
+        {flight.nearest_any_nm} NM FROM PRESENT POS
         REPLY DIVERT OR CONTINUE
   - wait:
       reply: { options: [DIVERT, CONTINUE], timeout_min: 5, default: DIVERT }
   - branch:
       DIVERT:
-        - set: { flight.divert: "{flight.nearest_altn}" }
+        - set: { flight.divert: "{reply.icao|else:flight.nearest_any}" }
         - send:
             header: OPS MSG EMERGENCY
             body: |
+              ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
               ROGER DIVERT {flight.divert|or:NEAREST SUITABLE}
+              ~{flight.divert_nm} NM FROM PRESENT POS
               RESCUE AND FIRE SERVICES ALERTED
               MEDICAL AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE

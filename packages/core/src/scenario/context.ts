@@ -18,8 +18,9 @@ import { distanceNm, type LatLon } from '../geo/geo.js';
 import type { Ofp, OfpFix } from '../ofp/types.js';
 import type { FlightPhase, OooiKind } from '../phase/fsm.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
-import { aircraftVariables } from './aircraft.js';
+import { type AircraftFamily, aircraftInfo, aircraftVariables } from './aircraft.js';
 import { type DelayPart, delayLine } from './delay-codes.js';
+import { airportPlace, pickDivert, type RunwayNeed } from './divert.js';
 import type { Value } from './expr.js';
 import type { IrregularData } from './irregular-data.js';
 import { countryRegion, MULTINATIONAL_AIRLINES } from './names.js';
@@ -149,14 +150,30 @@ export const CONTEXT_VARIABLES = [
   'flight.air_min',
   'flight.divert',
   'flight.sent',
-  // nearest of the origin and the alternates to the aircraft (T14), null without position
+  // distance to the diversion airport when its position is known (T51), NM
+  'flight.divert_nm',
+  // holding announced by a scenario (`set: flight.hold`, T48) and whether the fuel has come down
+  // to the diversion minimum (T50); false when not holding
+  'flight.holding',
+  'flight.hold_fuel_low',
+  // nearest airport of the OFP (origin, alternates) to the aircraft (T14), a reserve airport when
+  // that one is far (T50, divert.ts), null without position
   'flight.nearest_altn',
   'flight.nearest_altn_nm',
+  // nearest of those and the reserve airports (T50): MAYDAY, fire
+  'flight.nearest_any',
+  'flight.nearest_any_nm',
   // the run's last pilot answer (`wait: reply`), null before one
   'reply.option',
   'reply.text',
   'reply.arg',
   'reply.timeout',
+  // the airport a DIVERT reply named, if the core knows it (T51); the rest of the reply is reply.arg
+  'reply.icao',
+  // a DIVERT reply named the placeholder ZZZZ: an airport that does not exist (T51)
+  'reply.unknown',
+  // minutes of flight time since the run entered its `loop` (T50), null outside one
+  'loop.min',
   // the pilot command that started the run (`on: command`), null otherwise
   'cmd.name',
   'cmd.text',
@@ -299,7 +316,11 @@ const KNOWN: ReadonlySet<string> = new Set(CONTEXT_VARIABLES);
 /** `flags.<name>` (T14): set by scenarios, kept across flights; null when not set. */
 const FLAG = /^flags\.[a-z][a-z0-9_]{0,39}$/;
 export const isFlagVariable = (path: string): boolean => FLAG.test(path);
-export const isContextVariable = (path: string): boolean => KNOWN.has(path) || FLAG.test(path);
+/** `run.<name>` (T50): values a `draw` step gave this run; null for a name not drawn. */
+const RUN = /^run\.[a-z][a-z0-9_]{0,39}$/;
+export const isRunVariable = (path: string): boolean => RUN.test(path);
+export const isContextVariable = (path: string): boolean =>
+  KNOWN.has(path) || FLAG.test(path) || RUN.test(path);
 
 /**
  * Remaining route distance: min over navlog fixes of (direct to the fix + route after
@@ -352,6 +373,10 @@ export interface ContextInput {
   readonly delayParts?: readonly DelayPart[];
   /** Diversion airport the pilot declared (`DIVERT`), engine. */
   readonly divert?: string | null;
+  /** Runway needs by family instead of the table of `divert.ts` (tests, T50). */
+  readonly runwayNeeds?: Readonly<Partial<Record<AircraftFamily, RunwayNeed>>>;
+  /** Holding announced by a scenario (T48), engine. */
+  readonly hold?: { readonly since: number; readonly min: number } | null;
   /** Ids of the scenarios that sent something in this flight, first send first. */
   readonly sent?: readonly string[];
   /** External data (T13). */
@@ -387,6 +412,9 @@ export const RUN_VARIABLES = [
   'reply.text',
   'reply.arg',
   'reply.timeout',
+  'reply.icao',
+  'reply.unknown',
+  'loop.min',
   'cmd.name',
   'cmd.text',
   'cmd.icao',
@@ -404,6 +432,33 @@ export const RUN_VARIABLES = [
   'cmd.divert_eta',
 ] as const satisfies readonly ContextVariable[];
 export type RunVariable = (typeof RUN_VARIABLES)[number];
+
+/** Diversion fuel minimum is this much more than `alternate_burn + reserve` (T50, game number). */
+const HOLD_FUEL_MARGIN = 1.1;
+
+/**
+ * The aircraft in a holding has come down to the diversion minimum (T50): the fuel on board is at
+ * most `alternate_burn + reserve` of the OFP plus 10 %. Without a fuel reading — the plan's
+ * margin for the holding, `extra + contingency` at the average en-route burn, used up. False when
+ * not holding; null when the OFP lacks the figures.
+ */
+export function holdFuelLow(
+  ofp: Ofp,
+  tm: TelemetrySnapshot | null,
+  hold: { readonly since: number } | null,
+  now: number,
+): boolean | null {
+  if (hold === null) return false;
+  const f = ofp.fuel;
+  if (tm !== null && tm.fuelKg > 0) {
+    if (f.alternateBurnKg === null || f.reserveKg === null) return null;
+    return tm.fuelKg <= (f.alternateBurnKg + f.reserveKg) * HOLD_FUEL_MARGIN;
+  }
+  const hours = ofp.times.estTimeEnrouteSec / 3600;
+  if (hours <= 0 || f.enrouteBurnKg <= 0) return null;
+  const spare = (f.extraKg ?? 0) + (f.contingencyKg ?? 0);
+  return (now - hold.since) / 3_600_000 >= spare / (f.enrouteBurnKg / hours);
+}
 
 const r1 = (x: number) => Math.round(x * 10) / 10;
 const minutes = (ms: number) => Math.round(ms / 60_000);
@@ -526,6 +581,8 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'flight.block_min': span(oooi.OUT, oooi.IN),
       'flight.air_min': span(oooi.OFF, oooi.ON),
       'flight.divert': input.divert ?? null,
+      'flight.holding': input.hold != null,
+      'flight.hold_fuel_low': holdFuelLow(ofp, tm, input.hold ?? null, now),
       'flight.sent': [...(input.sent ?? [])],
       'reply.option': null,
       'reply.text': null,
@@ -533,6 +590,9 @@ export function buildContext(input: ContextInput): ScenarioContext {
     {
       'reply.arg': null,
       'reply.timeout': null,
+      'reply.icao': null,
+      'reply.unknown': null,
+      'loop.min': null,
       'cmd.name': null,
       'cmd.text': null,
       'cmd.icao': null,
@@ -737,20 +797,35 @@ function connexVariables(
 
 type IrrVariable = Extract<
   ContextVariable,
-  `irr.${string}` | 'flight.nearest_altn' | 'flight.nearest_altn_nm'
+  | `irr.${string}`
+  | 'flight.nearest_altn'
+  | 'flight.nearest_altn_nm'
+  | 'flight.nearest_any'
+  | 'flight.nearest_any_nm'
+  | 'flight.divert_nm'
 >;
 
 /** `irr.*` (T14) and the nearest alternate; margins use the delayed estimates of the context. */
 function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
   const { ofp, telemetry: tm } = input;
-  let nearest: { icao: string; nm: number } | null = null;
-  if (tm !== null) {
-    for (const a of [ofp.origin, ...ofp.alternates]) {
-      if (a.icao === ofp.destination.icao) continue;
-      const nm = distanceNm(tm, a);
-      if (nearest === null || nm < nearest.nm) nearest = { icao: a.icao, nm: Math.round(nm) };
-    }
-  }
+  const family = aircraftInfo(ofp.aircraft.icao)?.family ?? null;
+  const pick = (mode: 'ofp' | 'any') =>
+    tm === null
+      ? null
+      : pickDivert({
+          pos: tm,
+          ofp,
+          reserve: input.ext?.divertApts,
+          family,
+          mode,
+          ...(input.runwayNeeds === undefined ? {} : { needs: input.runwayNeeds }),
+        });
+  const divert = input.divert ?? null;
+  const dest =
+    divert === null ? null : airportPlace(ofp, input.ext?.divertApts, divert, input.ext?.places);
+  const divertNm = tm === null || dest === null ? null : Math.round(distanceNm(tm, dest));
+  const nearest = pick('ofp');
+  const nearestAny = pick('any');
   const i = input.irr;
   const t = ofp.times;
   const offset = ofp.destination.utcOffsetH;
@@ -760,6 +835,9 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
   return {
     'flight.nearest_altn': nearest?.icao ?? null,
     'flight.nearest_altn_nm': nearest?.nm ?? null,
+    'flight.nearest_any': nearestAny?.icao ?? null,
+    'flight.nearest_any_nm': nearestAny?.nm ?? null,
+    'flight.divert_nm': divertNm,
     'irr.curfew': i?.curfew ?? null,
     'irr.curfew_local': i === undefined || offset === null ? null : i.curfew + offset * 3_600_000,
     'irr.curfew_margin_min': i === undefined ? null : minutes(i.curfew - (t.estOnMs ?? t.estInMs)),

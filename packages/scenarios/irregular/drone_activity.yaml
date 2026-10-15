@@ -1,11 +1,12 @@
-# Drone sighting at the destination: arrivals stopped, hold or divert.
+# Drone sighting at the destination: arrivals stopped, hold or divert. The airline does not know
+# how long it lasts (T50): 30 min to 3 h drawn at the start, an update every 20 min until it ends.
 id: drone_activity
 version: 1
 category: irregular
 title: Drone activity at destination
 title_ru: "Дрон у аэропорта назначения"
-description: "About 90 NM out: arrivals suspended because of a drone. HOLD (default) or DIVERT to the alternate."
-description_ru: "Примерно за 90 NM: прилёты приостановлены из-за дрона. HOLD (по умолчанию) или DIVERT — на запасной."
+description: "About 90 NM out: arrivals suspended because of a drone for 30 min to 3 h, with an update every 20 min. HOLD (default) or DIVERT to the alternate."
+description_ru: "Примерно за 90 NM: прилёты приостановлены из-за дрона на срок от 30 мин до 3 ч, обновления каждые 20 мин. HOLD (по умолчанию) или DIVERT — на запасной."
 enabled_by_default: true
 trigger:
   on: distance
@@ -17,28 +18,59 @@ conditions:
 probability: 0.03
 excludes: [runway_closure_dest]
 steps:
+  - draw:
+      - set: { run.hold_min: [30, 180] }
   - send:
       header: OPS MSG {ofp.dest}
       body: |
         DRONE ACTIVITY REPORTED
         ARRIVALS SUSPENDED AT {ofp.dest}
-        EXPECT HOLDING 15 MIN
+        NO ESTIMATE, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
         REPLY HOLD OR DIVERT
   - wait:
       reply: { options: [HOLD, DIVERT], timeout_min: 8, default: HOLD }
   - branch:
       HOLD:
-        # The ROPS station gives the holding clearance (T48); null below ends it.
-        - set: { flight.hold: 15 }
+        # The ROPS station gives the holding clearance and a new time at every update (T48, T50);
+        # null below ends it.
+        - set: { flight.hold: 20 }
         - send:
             header: OPS MSG {ofp.dest}
             body: |
-              NOTED, UPDATE WHEN ARRIVALS RESUME
+              NOTED, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
               ADVISE IF FUEL BECOMES CRITICAL
-        - wait: { until: "phase in ['LANDED','TAXI_IN','ON_BLOCK']", timeout_min: 15 }
+        - loop:
+            until: "loop.min >= run.hold_min"
+            stop: "flight.divert != null or phase in ['LANDED','TAXI_IN','ON_BLOCK']"
+            every_min: 20
+            steps:
+              - wait:
+                  reply: { options: [HOLD, DIVERT], timeout_round: true, default: HOLD }
+              - branch:
+                  # The update comes when the round ends; the pilot's own HOLD only confirms.
+                  HOLD:
+                    - if: "reply.timeout"
+                      steps:
+                        - set: { flight.hold: 20 }
+                        - send:
+                            header: OPS MSG {ofp.dest}
+                            body: |
+                              ARRIVALS STILL SUSPENDED AT {ofp.dest}
+                              NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
+                              REPLY HOLD OR DIVERT
+                  DIVERT:
+                    - set: { flight.divert: "{reply.icao|else:ofp.altn}" }
+                    - send:
+                        header: OPS MSG {ofp.dest}
+                        body: |
+                          ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
+                          DIVERT {flight.divert} NOTED
+                          ~{flight.divert_nm} NM FROM PRESENT POS
+                          HANDLING ORDERED, PAX INFO SENT
+                    - break: true
         - set: { flight.hold: null }
         - branch:
-            TIMEOUT:
+            MET:
               - send:
                   header: OPS MSG {ofp.dest}
                   body: |
@@ -46,9 +78,11 @@ steps:
                     DRONE ACTIVITY CLEARED
                     EXPECT NORMAL APPROACH
       DIVERT:
-        - set: { flight.divert: "{ofp.altn}" }
+        - set: { flight.divert: "{reply.icao|else:ofp.altn}" }
         - send:
             header: OPS MSG {ofp.dest}
             body: |
-              DIVERT {ofp.altn} NOTED
+              ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
+              DIVERT {flight.divert} NOTED
+              ~{flight.divert_nm} NM FROM PRESENT POS
               HANDLING ORDERED, PAX INFO SENT

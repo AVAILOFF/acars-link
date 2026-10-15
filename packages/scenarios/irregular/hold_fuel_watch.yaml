@@ -1,0 +1,51 @@
+# A holding the airline announced (drone, runway closed, fire) has used the fuel up to the
+# diversion minimum (T50): alternate burn plus reserve of the OFP, plus 10 %. Without a fuel
+# reading the plan's margin for the holding (extra + contingency) is the measure.
+id: hold_fuel_watch
+version: 1
+category: irregular
+title: Minimum diversion fuel in the holding
+title_ru: "Минимальный остаток для ухода в ожидании"
+description: "While holding for an airline-announced closure the fuel comes down to the diversion minimum: DIVERT is recommended (reply STAY to stay in the holding), and without an answer in 5 min the flight is sent to the alternate."
+description_ru: "Топливо в ожидании (дрон, закрытая ВПП, пожар) дошло до минимума для ухода: рекомендуется DIVERT (ответ STAY — остаться в ожидании), без ответа за 5 мин рейс уходит на запасной."
+enabled_by_default: true
+# Any distance: the scenario starts the moment its conditions turn true.
+trigger:
+  on: distance
+  dist: { to: dest, gte_nm: 0 }
+conditions:
+  - "flight.holding == true"
+  - "flight.hold_fuel_low == true"
+  - "flight.divert == null"
+  - "ofp.altn != null"
+# STAY, not HOLD: the answer HOLD of the closure scenarios would take it (the oldest question gets
+# the word first). A diversion made meanwhile by anyone ends the question.
+steps:
+  - send:
+      header: OPS MSG {ofp.dest}
+      body: |
+        MIN DIVERSION FUEL
+        RECOMMEND DIVERT {ofp.altn}
+        REPLY DIVERT OR STAY
+  - loop:
+      until: "flight.divert != null"
+      steps:
+        - wait:
+            reply: { options: [DIVERT, STAY], timeout_min: 5, default: DIVERT }
+        - branch:
+            DIVERT:
+              - set: { flight.divert: "{ofp.altn}" }
+              - send:
+                  header: OPS MSG {ofp.dest}
+                  body: |
+                    DIVERT {ofp.altn} NOTED
+                    HANDLING AND FUEL ORDERED
+                    SEND ETA WHEN ABLE
+              - break: true
+            STAY:
+              - send:
+                  header: OPS MSG {ofp.dest}
+                  body: |
+                    HOLD NOTED, CAPTAIN DECISION
+                    ADVISE FUEL STATE
+              - break: true

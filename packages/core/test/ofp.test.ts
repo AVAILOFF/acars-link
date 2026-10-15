@@ -277,3 +277,37 @@ describe('parseSimbriefOfp — TLR and crew (T43)', () => {
     expect(ofp.landingPerf).toBeNull();
   });
 });
+
+describe('parseSimbriefOfp — ETOPS (T50)', () => {
+  // A real ETOPS OFP (RJTT–KLAX A35K, rule 370, generated 2026-10-15), anonymized with
+  // tools/anonymize-ofp.mjs --with-etops.
+  const ofp = parseSimbriefOfp(load('rjtt-klax-a35k-etops.json'));
+
+  it('takes the rule, the entry and exit airports and the suitable airports in OFP order', () => {
+    expect(ofp.etops?.ruleMin).toBe(370);
+    expect(ofp.etops?.entry).toMatchObject({ icao: 'RJSS' });
+    expect(ofp.etops?.exit).toMatchObject({ icao: 'KRDD' });
+    expect(ofp.etops?.suitable.map((a) => a.icao)).toEqual(['RJCM', 'PACD', 'KRDD']);
+    expect(ofp.etops?.suitable[1]).toEqual({
+      icao: 'PACD',
+      name: 'COLD BAY',
+      lat: 55.205917,
+      lon: -162.72625,
+    });
+    // The entry point gives the airport's position, not the fix's.
+    expect(ofp.etops?.entry?.lat).toBeCloseTo(38.142272, 5);
+  });
+
+  it('is null when the flight is not planned ETOPS (`etops: []`) or the key is missing', () => {
+    expect(parseSimbriefOfp(load(KGS)).etops).toBeNull();
+    const raw = load(KGS);
+    delete raw.etops;
+    expect(parseSimbriefOfp(raw).etops).toBeNull();
+  });
+
+  it('one suitable airport given as an object, not a list', () => {
+    const raw = load('rjtt-klax-a35k-etops.json');
+    raw.etops.suitable_airport = raw.etops.suitable_airport[0];
+    expect(parseSimbriefOfp(raw).etops?.suitable.map((a) => a.icao)).toEqual(['RJCM']);
+  });
+});

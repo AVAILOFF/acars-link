@@ -1,7 +1,10 @@
 import {
   type AirportFrequency,
+  type AirportPlace,
+  type DivertAirport,
   type Ofp,
   RoutePolyline,
+  type RunwayNeed,
   VHF_CORRIDOR_NM,
   type VhfStation,
 } from '@acars/core';
@@ -172,5 +175,163 @@ export function splitCsv(line: string): string[] {
     } else cur += ch;
   }
   out.push(cur);
+  return out;
+}
+
+/**
+ * Airports to divert to besides the OFP's (T50, docs/07 T50 part B): the large and medium
+ * airports with scheduled service of `airports.csv` within {@link DIVERT_CORRIDOR_NM} of the
+ * route, each with its longest open hard-surface runway from `runways.csv` (columns checked
+ * 2026-10-15: `airport_ident`, `length_ft`, `width_ft`, `surface`, `closed`). Only those whose
+ * runway is as long and wide as `need`. Fetched when the type has a runway need (the table in
+ * `@acars/core` `divert.ts`); public domain, as above.
+ */
+export const DIVERT_CORRIDOR_NM = 300;
+const FT_M = 0.3048;
+
+export async function fetchDivertAirports(
+  ctx: FetchContext,
+  ofp: Ofp,
+  need: RunwayNeed,
+): Promise<DivertAirport[]> {
+  const air = await request(ctx, OURAIRPORTS_AIRPORTS_URL);
+  expectOk(air, 'OurAirports');
+  const route = new RoutePolyline(ofp);
+  const near = parseDivertCandidates(air.body).filter(
+    (a) => route.locate(a).offNm <= DIVERT_CORRIDOR_NM,
+  );
+  const rwy = await request(ctx, OURAIRPORTS_RUNWAYS_URL);
+  expectOk(rwy, 'OurAirports');
+  return joinRunways(near, parseBestRunways(rwy.body, new Set(near.map((a) => a.icao)))).filter(
+    (a) =>
+      a.rwyM >= need.lengthM &&
+      (a.widthM === null || a.widthM >= need.widthM) &&
+      (need.large !== true || a.large),
+  );
+}
+
+export interface DivertCandidate {
+  readonly icao: string;
+  readonly lat: number;
+  readonly lon: number;
+  readonly large: boolean;
+}
+
+/** Large and medium airports with scheduled service and a four-letter ident (file order). */
+export function parseDivertCandidates(csv: string): DivertCandidate[] {
+  const lines = csv.split(/\r?\n/);
+  const head = splitCsv(lines[0] ?? '');
+  const col = (name: string) => head.indexOf(name);
+  const idx = ['ident', 'type', 'latitude_deg', 'longitude_deg', 'scheduled_service'].map(col);
+  if (idx.some((i) => i < 0)) throw new DataSourceError('OurAirports: unexpected CSV header');
+  const [ident, type, lat, lon, sched] = idx as [number, number, number, number, number];
+  const out: DivertCandidate[] = [];
+  for (const line of lines.slice(1)) {
+    if (line === '') continue;
+    const c = splitCsv(line);
+    if (c[type] !== 'large_airport' && c[type] !== 'medium_airport') continue;
+    if (c[sched] !== 'yes' || !/^[A-Z]{4}$/.test(c[ident] ?? '')) continue;
+    const [la, lo] = [Number(c[lat]), Number(c[lon])];
+    if (!(Math.abs(la) <= 90 && Math.abs(lo) <= 180) || c[lat] === '' || c[lon] === '') continue;
+    out.push({ icao: c[ident] as string, lat: la, lon: lo, large: c[type] === 'large_airport' });
+  }
+  return out;
+}
+
+/**
+ * A runway surface that takes an airliner: asphalt, concrete, pavement, bitumen. The file's
+ * `surface` is free text (`ASP`, `CON`, `ASPH-G`, `ASPH/ CONC`, `TURF` …); a mixed or unpaved
+ * value (turf, grass, gravel, dirt, sand, water, `ASPH-TURF`) is not hard.
+ */
+export function isHardSurface(surface: string): boolean {
+  const s = surface.trim().toUpperCase();
+  if (/(TURF|GRS|GRASS|GRE|GVL|GRVL|GRAVEL|DIRT|EARTH|SAND|WATER|WAT|SOD|MATS|WOOD)/.test(s)) {
+    return false;
+  }
+  return /^(ASP|CON|PEM|BIT|TAR|PAVED)/.test(s);
+}
+
+/** The longest open hard-surface runway of each airport in `icaos`: length and width, m. */
+export function parseBestRunways(
+  csv: string,
+  icaos: ReadonlySet<string>,
+): Map<string, { rwyM: number; widthM: number | null }> {
+  const lines = csv.split(/\r?\n/);
+  const head = splitCsv(lines[0] ?? '');
+  const col = (name: string) => head.indexOf(name);
+  const idx = ['airport_ident', 'length_ft', 'width_ft', 'surface', 'closed'].map(col);
+  if (idx.some((i) => i < 0)) throw new DataSourceError('OurAirports: unexpected CSV header');
+  const [ident, len, wid, surf, closed] = idx as [number, number, number, number, number];
+  const best = new Map<string, { rwyM: number; widthM: number | null }>();
+  for (const line of lines.slice(1)) {
+    if (line === '') continue;
+    const c = splitCsv(line);
+    const icao = c[ident] as string;
+    if (!icaos.has(icao) || c[closed] === '1' || !isHardSurface(c[surf] ?? '')) continue;
+    const lengthFt = Number(c[len]);
+    if (!(lengthFt > 0)) continue;
+    const rwyM = Math.round(lengthFt * FT_M);
+    const widthFt = Number(c[wid]);
+    const widthM = widthFt > 0 ? Math.round(widthFt * FT_M) : null;
+    const cur = best.get(icao);
+    if (cur === undefined || rwyM > cur.rwyM) best.set(icao, { rwyM, widthM });
+  }
+  return best;
+}
+
+function joinRunways(
+  list: readonly DivertCandidate[],
+  rwy: ReadonlyMap<string, { rwyM: number; widthM: number | null }>,
+): DivertAirport[] {
+  const out: DivertAirport[] = [];
+  for (const a of list) {
+    const r = rwy.get(a.icao);
+    if (r !== undefined) out.push({ ...a, ...r });
+  }
+  return out;
+}
+
+/**
+ * Where an airport is (T51): every airport of `airports.csv` that has a runway (large, medium,
+ * small) by its four-letter code (`icao_code`, else `ident`, else `gps_code`) — the airports a pilot
+ * may name in `DIVERT <ICAO>`. Fetched on request, the whole file once per app session.
+ */
+export async function fetchAirportPlaces(ctx: FetchContext): Promise<Map<string, AirportPlace>> {
+  const res = await request(ctx, OURAIRPORTS_AIRPORTS_URL);
+  expectOk(res, 'OurAirports');
+  return parseAirportPlaces(res.body);
+}
+
+export function parseAirportPlaces(csv: string): Map<string, AirportPlace> {
+  const lines = csv.split(/\r?\n/);
+  const head = splitCsv(lines[0] ?? '');
+  const col = (name: string) => head.indexOf(name);
+  const idx = ['ident', 'type', 'latitude_deg', 'longitude_deg', 'icao_code', 'gps_code'].map(col);
+  if (idx.some((i) => i < 0)) throw new DataSourceError('OurAirports: unexpected CSV header');
+  const [ident, type, lat, lon, icaoCode, gps] = idx as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
+  const out = new Map<string, AirportPlace>();
+  for (const line of lines.slice(1)) {
+    if (line === '') continue;
+    const c = splitCsv(line);
+    if (
+      c[type] !== 'large_airport' &&
+      c[type] !== 'medium_airport' &&
+      c[type] !== 'small_airport'
+    ) {
+      continue;
+    }
+    const code = [c[icaoCode], c[ident], c[gps]].find((x) => /^[A-Z]{4}$/.test(x ?? ''));
+    if (code === undefined || out.has(code) || c[lat] === '' || c[lon] === '') continue;
+    const [la, lo] = [Number(c[lat]), Number(c[lon])];
+    if (!(Math.abs(la) <= 90 && Math.abs(lo) <= 180)) continue;
+    out.set(code, { lat: la, lon: lo });
+  }
   return out;
 }

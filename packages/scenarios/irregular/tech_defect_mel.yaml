@@ -11,8 +11,12 @@ enabled_by_default: true
 trigger:
   on: phase
   phase: CRUISE
+  # A random moment of the cruise (T51): from 10 min in to 30 min before the top of descent.
+  window: { after_min: 10, before_tod_min: 30 }
 conditions:
   - "flags.mel_reg == null"
+  - "flight.minutes_to_tod != null"
+  - "flight.minutes_to_tod >= 30"
 probability: 0.04
 steps:
   # By the aircraft family (T42): items of the FAA MMEL, repair category C. "If" idiom:

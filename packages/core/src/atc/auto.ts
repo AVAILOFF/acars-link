@@ -41,7 +41,7 @@ const MORA_MARGIN_FT = 1000;
  */
 const NORTH_AMERICA_TRANSITION_FT = 18_000;
 
-function defaultTransitionFt(icao: string): number {
+export function defaultTransitionFt(icao: string): number {
   return /^(K|PA|PH|C)/.test(icao) ? NORTH_AMERICA_TRANSITION_FT : 0;
 }
 

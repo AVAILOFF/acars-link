@@ -233,8 +233,8 @@ describe('AppController', () => {
     const list = await app.listScenarios();
     // 15 base + 12 commands (T12) + 8 command scenarios (T44) + slot_missed (T43) + 4 live-data (T13) + 2 launches (T28) + 24 irregular (T14, T44)
     // + 1 sim (T22) + 10 special events (T29) + atis_update and vdgs_divert (T45) + emergency_mayday and emergency_pan (T47)
-    // + 4 irregular (T46) + connex_list (T30)
-    expect(list).toHaveLength(89);
+    // + 4 irregular (T46) + connex_list (T30) + hold_fuel_watch (T50)
+    expect(list).toHaveLength(90);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -500,6 +500,8 @@ describe('live data (T13)', () => {
       isigmet: await fx('isigmet-va.json'),
       'earthquake.usgs': await fx('usgs-4.5-day.geojson'),
       'airports.csv': await fx('ourairports-airports.csv'),
+      // Reserve airports to divert to (T50): the A35K of the OFP has a runway need.
+      'runways.csv': await fx('ourairports-runways.csv'),
       'date.nager.at': await fx('nager-2026-de.json'),
       'jolpi.ca': await fx('jolpica-f1-last.json'),
       'nhle.com': await fx('nhl-score.json'),
@@ -1034,7 +1036,7 @@ describe('irregular events by hand', () => {
     });
     await s.app.startFlight();
     const list = s.app.state().irregular;
-    expect(list.length).toBe(32);
+    expect(list.length).toBe(33);
     expect(list.find((x) => x.id === 'vip_onboard')?.title).toEqual({
       en: 'VIP on board',
       ru: 'VIP на борту',

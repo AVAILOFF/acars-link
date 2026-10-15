@@ -27,6 +27,7 @@ import {
 } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { loadScenarios } from '../src/index.js';
+import { withHoldMin } from './hold.js';
 import { standsFor } from './stands.js';
 
 /**
@@ -124,6 +125,8 @@ interface Setup {
   readonly touchdownFpm?: number;
   /** The fuel on board is this much lower in flight than the synthetic burn (T46). */
   readonly fuelDropKg?: number;
+  /** The same in every airborne sample, also below 20000 ft (T50: fuel low in a holding). */
+  readonly fuelDropLowKg?: number;
   /** The answers to try, one flight each; empty = no question. */
   readonly answers?: readonly string[];
 }
@@ -164,6 +167,8 @@ const SETUP: Readonly<Record<string, Setup>> = {
     flags: (o) => ({ crew_discretion: 'SJX821', crew_discretion_date: daysBefore(o, 1) }),
   },
   drone_activity: { answers: ['HOLD', 'DIVERT'] },
+  // Needs a holding of drone_activity (answered HOLD) and fuel down to the minimum.
+  hold_fuel_watch: { with: ['drone_activity'], fuelDropLowKg: 6000, answers: ['STAY'] },
   rush_bags_followup: {
     flags: (o) => ({
       rush_bags: 4,
@@ -277,6 +282,15 @@ function shaped(c: Case, setup: Setup): Case {
   let flight = c.flight;
   if (setup.touchdownFpm !== undefined) flight = withTouchdown(flight, setup.touchdownFpm);
   const drop = setup.fuelDropKg;
+  const dropLow = setup.fuelDropLowKg;
+  if (dropLow !== undefined) {
+    flight = {
+      ...flight,
+      snapshots: flight.snapshots.map((x) =>
+        x.onGround ? x : { ...x, fuelKg: Math.max(0, x.fuelKg - dropLow) },
+      ),
+    };
+  }
   if (drop !== undefined) {
     flight = {
       ...flight,
@@ -480,30 +494,33 @@ describe('continuations (T41)', () => {
   const c = FLIGHTS[0] as Case;
   const med = (seed: string, answer: string) => fly(c, [byId('medical_onboard')], { seed, answer });
 
-  it('HOLD: arrivals / the runway reopen after the promised time', () => {
+  it('HOLD: arrivals / the runway reopen when the drawn time is over (T50)', () => {
     for (const id of ['drone_activity', 'runway_closure_dest']) {
-      const r = fly(c, [byId(id)], { answer: 'HOLD' });
+      const r = fly(c, [withHoldMin(byId(id), 5)], { answer: 'HOLD' });
       const t = textsOf(r, id);
       expect(t, id).toHaveLength(3);
-      expect(t.slice(0, 2).join(' ')).toContain('15 MIN');
+      expect(t.slice(0, 2).join(' ')).toMatch(/NO ESTIMATE, NEXT UPDATE \d{4}Z/);
       expect(t[2]).toContain('ARRIVALS RESUMED');
       // DIVERT: no continuation.
-      expect(textsOf(fly(c, [byId(id)], { answer: 'DIVERT' }), id)).toHaveLength(2);
+      expect(textsOf(fly(c, [withHoldMin(byId(id), 5)], { answer: 'DIVERT' }), id)).toHaveLength(2);
     }
     const closed = textsOf(
-      fly(c, [byId('runway_closure_dest')], { answer: 'HOLD' }),
+      fly(c, [withHoldMin(byId('runway_closure_dest'), 5)], { answer: 'HOLD' }),
       'runway_closure_dest',
     );
     expect(closed[2]).toContain(`RWY ${kg.destination.planRwy} REOPENED`);
   });
 
   it('dest_fire: smoke drift from the METAR wind, 20 min hold, DIVERT ends the chain (T33)', () => {
-    const hold = textsOf(fly(c, [byId('dest_fire')], { answer: 'HOLD' }), 'dest_fire');
+    const hold = textsOf(
+      fly(c, [withHoldMin(byId('dest_fire'), 5)], { answer: 'HOLD' }),
+      'dest_fire',
+    );
     expect(hold).toHaveLength(3);
     expect(hold[0]).toContain(`FIRE REPORTED NEAR RWY ${kg.destination.planRwy}`);
     expect(hold[0]).toMatch(/SMOKE DRIFTING [NSEW]{1,2}, WIND \d{3}\/\d+KT/);
     expect(hold[0]).toContain('PREPARE DIVERSION');
-    expect(hold[1]).toContain('20 MIN');
+    expect(hold[1]).toMatch(/NEXT UPDATE \d{4}Z/);
     expect(hold[2]).toContain('UNDER CONTROL');
     const div = fly(c, [byId('dest_fire')], { answer: 'DIVERT' });
     expect(textsOf(div, 'dest_fire')).toHaveLength(2);
