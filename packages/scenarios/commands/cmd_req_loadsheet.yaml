@@ -3,6 +3,9 @@ id: cmd_req_loadsheet
 version: 1
 category: docs
 title: "Pilot command: REQ LOADSHEET"
+title_ru: "Команда пилота: REQ LOADSHEET"
+description: "REQ LOADSHEET command: repeats the loadsheet."
+description_ru: "Команда REQ LOADSHEET: повтор лоадшита."
 enabled_by_default: true
 trigger:
   on: command

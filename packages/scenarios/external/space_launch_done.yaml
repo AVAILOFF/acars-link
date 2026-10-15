@@ -7,6 +7,7 @@ version: 1
 category: external
 title: Space launch near the route (launched)
 title_ru: Пуск ракеты рядом с маршрутом (состоялся)
+description: "A space launch that happened after take-off near the route."
 description_ru: Пуск, состоявшийся после взлёта (TheSpaceDevs), в пределах 300 NM от маршрута впереди.
 enabled_by_default: true
 trigger:

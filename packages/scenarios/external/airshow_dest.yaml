@@ -6,6 +6,7 @@ version: 1
 category: external
 title: Air show at the destination
 title_ru: Авиашоу в пункте назначения
+description: "An air show at the destination on the day."
 description_ru: "Авиашоу в пределах 50 км от аэропорта назначения в день прилёта (справочник с официальных сайтов)."
 enabled_by_default: true
 trigger:

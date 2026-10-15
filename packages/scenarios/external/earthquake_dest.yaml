@@ -7,6 +7,7 @@ version: 1
 category: external
 title: Earthquake near the destination
 title_ru: Землетрясение у аэропорта назначения
+description: "A recent earthquake near the destination."
 description_ru: "Землетрясение M ≥ 5,0 в пределах 100 км от аэропорта назначения за последние сутки (USGS)."
 enabled_by_default: true
 trigger:

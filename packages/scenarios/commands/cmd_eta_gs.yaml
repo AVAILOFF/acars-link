@@ -3,6 +3,9 @@ id: cmd_eta_gs
 version: 1
 category: ops
 title: "Pilot command: ETA, by ground speed"
+title_ru: "Команда пилота: ETA по скорости"
+description: "ETA command by ground speed and the distance left."
+description_ru: "Команда ETA по путевой скорости и оставшемуся расстоянию."
 enabled_by_default: true
 trigger:
   on: command

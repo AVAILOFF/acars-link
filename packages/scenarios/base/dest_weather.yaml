@@ -4,6 +4,9 @@ id: dest_weather
 version: 1
 category: ops
 title: Destination weather before TOD
+title_ru: "Погода назначения до TOD"
+description: "Destination and alternate weather from the OFP METAR before TOD."
+description_ru: "Погода назначения и запасного по METAR из OFP перед TOD."
 enabled_by_default: true
 trigger:
   on: distance

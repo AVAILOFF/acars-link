@@ -3,6 +3,9 @@ id: cmd_help
 version: 1
 category: ops
 title: "Pilot command: HELP"
+title_ru: "Команда пилота: HELP"
+description: "HELP command: the list of pilot commands."
+description_ru: "Команда HELP: список команд пилота."
 enabled_by_default: true
 trigger:
   on: command

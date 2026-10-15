@@ -4,6 +4,9 @@ id: cmd_divert
 version: 1
 category: irregular
 title: "Pilot command: DIVERT"
+title_ru: "Команда пилота: DIVERT"
+description: "DIVERT command: acknowledges the diversion."
+description_ru: "Команда DIVERT: подтверждение ухода на запасной."
 enabled_by_default: true
 trigger:
   on: command

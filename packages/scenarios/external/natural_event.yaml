@@ -4,6 +4,9 @@ id: natural_event
 version: 1
 category: external
 title: Natural event near the route
+title_ru: "Природное явление у маршрута"
+description: "A natural event (NASA EONET) near the route ahead."
+description_ru: "Природное явление (NASA EONET) рядом с маршрутом впереди."
 enabled_by_default: true
 trigger:
   on: phase

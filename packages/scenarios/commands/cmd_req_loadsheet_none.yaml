@@ -3,6 +3,9 @@ id: cmd_req_loadsheet_none
 version: 1
 category: docs
 title: "Pilot command: REQ LOADSHEET, none yet"
+title_ru: "Команда пилота: REQ LOADSHEET, ещё нет"
+description: "REQ LOADSHEET command before any loadsheet exists."
+description_ru: "Команда REQ LOADSHEET, когда лоадшита ещё нет."
 enabled_by_default: true
 trigger:
   on: command

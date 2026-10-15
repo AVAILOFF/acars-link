@@ -4,6 +4,9 @@ id: welcome_turnaround
 version: 1
 category: ops
 title: Welcome and turnaround
+title_ru: "Приветствие и оборот"
+description: "Welcome message with the turnaround plan."
+description_ru: "Приветствие и план оборота самолёта."
 enabled_by_default: true
 trigger:
   on: event

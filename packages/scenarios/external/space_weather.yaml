@@ -7,6 +7,7 @@ version: 1
 category: external
 title: Space weather advisory
 title_ru: Космическая погода
+description: "Space weather at a high NOAA scale."
 description_ru: "Шкала NOAA R3+, S2+ (маршрут выше 60° широты) или G3+ (сейчас или в прогнозе на сутки)."
 enabled_by_default: true
 trigger:

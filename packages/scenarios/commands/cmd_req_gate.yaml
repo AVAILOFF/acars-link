@@ -3,6 +3,9 @@ id: cmd_req_gate
 version: 1
 category: ops
 title: "Pilot command: REQ GATE"
+title_ru: "Команда пилота: REQ GATE"
+description: "REQ GATE command: the arrival gate."
+description_ru: "Команда REQ GATE: гейт прилёта."
 enabled_by_default: true
 trigger:
   on: command

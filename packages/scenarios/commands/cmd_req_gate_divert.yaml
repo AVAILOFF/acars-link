@@ -3,6 +3,9 @@ id: cmd_req_gate_divert
 version: 1
 category: ops
 title: "Pilot command: REQ GATE, diverting"
+title_ru: "Команда пилота: REQ GATE при диверсии"
+description: "REQ GATE command while diverting."
+description_ru: "Команда REQ GATE во время ухода на запасной."
 enabled_by_default: true
 trigger:
   on: command

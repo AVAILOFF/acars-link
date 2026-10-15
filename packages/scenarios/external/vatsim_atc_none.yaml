@@ -3,6 +3,9 @@ id: vatsim_atc_none
 version: 1
 category: external
 title: VATSIM no ATC at destination
+title_ru: "Нет диспетчеров VATSIM в точке назначения"
+description: "No VATSIM ATC online at the destination before TOD."
+description_ru: "В аэропорту назначения нет онлайн-диспетчеров VATSIM перед TOD."
 enabled_by_default: true
 trigger:
   on: distance

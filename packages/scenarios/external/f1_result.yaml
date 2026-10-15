@@ -6,6 +6,7 @@ version: 1
 category: external
 title: Formula 1 result
 title_ru: Результат Формулы-1
+description: "The latest Formula 1 race result."
 description_ru: "Гран-при, завершившийся во время полёта: тройка призёров (Jolpica)."
 enabled_by_default: true
 trigger:

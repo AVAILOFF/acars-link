@@ -54,7 +54,9 @@ const SPECIAL_IDS = new Set([
   'holiday_dest',
   'earthquake_dest',
 ]);
-const external = loadScenarios(read('external')).filter((s) => !SPECIAL_IDS.has(s.id));
+const external = loadScenarios(read('external')).filter(
+  (s) => !SPECIAL_IDS.has(s.id) && s.id !== 'atis_update',
+);
 const byId = (id: string) => all.find((s) => s.id === id) as CompiledScenario;
 
 const OFPS = join(import.meta.dirname, '../../core/test/fixtures/ofp');
@@ -133,7 +135,7 @@ function launches(c: Case): readonly SpaceLaunch[] {
 }
 
 /** What the app would pass: everything at start, weather/VATSIM/EONET again every 10 min. */
-function liveData(c: Case, t: number, first: boolean, atc = true): ExtDataUpdate {
+function liveData(c: Case, t: number, first: boolean, atc = true, atisCode = 'C'): ExtDataUpdate {
   const ofp = c.ofp;
   const mid = ofp.navlog[Math.floor(ofp.navlog.length / 2)] as { lat: number; lon: number };
   const metar = (icao: string, q: number) =>
@@ -159,7 +161,7 @@ function liveData(c: Case, t: number, first: boolean, atc = true): ExtDataUpdate
         ? [
             { callsign: 'RJBB_TWR', facility: 'TWR', frequency: '118.200', atisCode: null },
             { callsign: 'KIX_APP', facility: 'APP', frequency: '120.250', atisCode: null },
-            { callsign: 'RJBB_ATIS', facility: 'ATIS', frequency: '128.600', atisCode: 'C' },
+            { callsign: 'RJBB_ATIS', facility: 'ATIS', frequency: '128.600', atisCode },
           ]
         : [],
     },
@@ -192,6 +194,8 @@ function fly(
     profile?: DisplayProfile;
     data?: boolean;
     atc?: boolean;
+    /** The ATIS letter of RJBB in the live data update number `i` (T45). */
+    atis?: (i: number) => string;
     say?: ReadonlyMap<number, readonly PilotMessage[]>;
   } = {},
 ): Run {
@@ -207,7 +211,9 @@ function fly(
   const events: CoreEvent[] = [];
   c.flight.snapshots.forEach((s, i) => {
     const data =
-      o.data === true && i % 600 === 0 ? liveData(c, s.t, i === 0, o.atc ?? true) : undefined;
+      o.data === true && i % 600 === 0
+        ? liveData(c, s.t, i === 0, o.atc ?? true, o.atis?.(i))
+        : undefined;
     const inbound = o.say?.get(i);
     const r = core.tick({
       now: s.t,
@@ -362,5 +368,47 @@ describe('the whole set with live data on the normal flight', () => {
         )
         .map((m) => `${new Date(m.t).toISOString()} ${m.scenarioId}\n${m.message.text}`),
     ).toMatchSnapshot();
+  });
+});
+
+describe('atis_update (T45)', () => {
+  const ids1 = (r: Run) => ids(r).filter((x) => x === 'atis_update');
+  const atisOnly = [{ ...byId('atis_update'), probability: 1 }];
+
+  it.each(FLIGHTS)('a changed letter on the way down is sent once, $name', (c) => {
+    const snaps = c.flight.snapshots;
+    const lastCruise = snaps.findLastIndex((x) => x.altFt > 30_000);
+    for (const profile of [DEFAULT_PROFILE, B77X_PROFILE, B78X_PROFILE]) {
+      const r = fly(c, atisOnly, {
+        profile,
+        data: true,
+        atis: (i) => (i > lastCruise ? 'D' : 'C'),
+      });
+      expect(errors(r)).toEqual([]);
+      expect(ids1(r), profile.id).toEqual(['atis_update']);
+      const text = flat(textOf(r, 'atis_update'));
+      expect(text).toContain('NEW INFO D');
+      expect(text).toContain('REPLACES C');
+      expect(text).toContain('Q1018');
+      for (const m of r.out) {
+        expect(checkText(m.message.text, profile)).toEqual([]);
+        expect(m.message.text).not.toMatch(missing);
+      }
+    }
+  });
+
+  it('same letter, no ATIS online, or no data: nothing is sent', () => {
+    const c = FLIGHTS[0] as Case;
+    expect(ids1(fly(c, atisOnly, { data: true }))).toEqual([]);
+    expect(ids1(fly(c, atisOnly, { data: true, atc: false }))).toEqual([]);
+    expect(ids1(fly(c, atisOnly, { atis: () => 'D' }))).toEqual([]);
+  });
+
+  it('the scratch flag is removed at the end', () => {
+    const c = FLIGHTS[0] as Case;
+    const lastCruise = c.flight.snapshots.findLastIndex((x) => x.altFt > 30_000);
+    const r = fly(c, atisOnly, { data: true, atis: (i) => (i > lastCruise ? 'D' : 'C') });
+    const sets = r.events.filter((e) => e.type === 'SET');
+    expect(sets.map((e) => (e as unknown as { value: unknown }).value)).toEqual(['C', null]);
   });
 });

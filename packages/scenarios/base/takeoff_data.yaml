@@ -5,6 +5,9 @@ id: takeoff_data
 version: 1
 category: docs
 title: Takeoff data
+title_ru: "Данные для взлёта"
+description: "Departure data from the OFP: runway, weather, flaps, thrust and V-speeds when the OFP has them."
+description_ru: "Данные вылета из OFP: ВПП, погода, закрылки, тяга и V-скорости, если они есть в OFP."
 enabled_by_default: true
 trigger:
   on: time

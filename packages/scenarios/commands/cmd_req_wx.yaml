@@ -4,6 +4,9 @@ id: cmd_req_wx
 version: 1
 category: ops
 title: "Pilot command: REQ WX"
+title_ru: "Команда пилота: REQ WX"
+description: "REQ WX command: weather from the OFP METAR."
+description_ru: "Команда REQ WX: погода по METAR из OFP."
 enabled_by_default: true
 trigger:
   on: command

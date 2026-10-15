@@ -4,6 +4,9 @@ id: departure_report
 version: 1
 category: ops
 title: Departure report (OUT/OFF)
+title_ru: "Отчёт о вылете (OUT/OFF)"
+description: "Off-block and take-off times with delay codes."
+description_ru: "Время выруливания и взлёта с кодами задержки."
 enabled_by_default: true
 trigger:
   on: event

@@ -3,6 +3,9 @@ id: slot_ctot
 version: 1
 category: ops
 title: Slot / CTOT
+title_ru: "Слот / CTOT"
+description: "ATC flow slot with a CTOT that delays the departure."
+description_ru: "Слот управления потоками с CTOT, задерживающий вылет."
 enabled_by_default: true
 trigger:
   on: time

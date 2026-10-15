@@ -6,6 +6,7 @@ version: 1
 category: external
 title: NHL results
 title_ru: Результаты NHL
+description: "Last night NHL results."
 description_ru: "Матчи NHL, завершившиеся во время полёта (регулярный сезон и плей-офф)."
 enabled_by_default: true
 trigger:

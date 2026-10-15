@@ -6,6 +6,7 @@ version: 1
 category: external
 title: On this day in aviation history
 title_ru: В этот день в истории авиации
+description: "A fact from aviation history for today."
 description_ru: "Факт из истории авиации с сегодняшней датой (справочник с источниками)."
 enabled_by_default: true
 trigger:

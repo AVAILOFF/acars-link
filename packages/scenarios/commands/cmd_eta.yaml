@@ -4,6 +4,9 @@ id: cmd_eta
 version: 1
 category: ops
 title: "Pilot command: ETA"
+title_ru: "Команда пилота: ETA"
+description: "ETA command in flight by the planned time."
+description_ru: "Команда ETA в полёте по плановому времени."
 enabled_by_default: true
 trigger:
   on: command

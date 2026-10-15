@@ -4,6 +4,9 @@ id: block_report
 version: 1
 category: ops
 title: Block times (OOOI)
+title_ru: "Время блоков (OOOI)"
+description: "Block times and delay codes after on-block."
+description_ru: "Время блоков и коды задержки после постановки на стоянку."
 enabled_by_default: true
 trigger:
   on: event

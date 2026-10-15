@@ -4,6 +4,9 @@ id: cmd_delay
 version: 1
 category: ops
 title: "Pilot command: DELAY"
+title_ru: "Команда пилота: DELAY"
+description: "DELAY command: confirms the new off-block time."
+description_ru: "Команда DELAY: подтверждает новое время выруливания."
 enabled_by_default: true
 trigger:
   on: command

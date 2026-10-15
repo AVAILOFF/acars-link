@@ -6,6 +6,7 @@ version: 1
 category: external
 title: Aurora on the route
 title_ru: Северное сияние на маршруте
+description: "Aurora forecast on the route."
 description_ru: "Вероятность сияния ≥ 30 % в точке маршрута в ближайший час, ночью (NOAA OVATION)."
 enabled_by_default: true
 trigger:

@@ -4,6 +4,9 @@ id: dest_weather_live
 version: 1
 category: ops
 title: Destination weather before TOD (live)
+title_ru: "Погода назначения до TOD (живая)"
+description: "Destination and alternate weather from live METAR/TAF before TOD."
+description_ru: "Погода назначения и запасного по живым METAR/TAF перед TOD."
 enabled_by_default: true
 trigger:
   on: distance

@@ -7,6 +7,7 @@ version: 1
 category: external
 title: Volcanic ash near the route
 title_ru: Вулканический пепел у маршрута
+description: "A valid SIGMET VA near the route ahead."
 description_ru: "Действующий SIGMET VA в пределах 300 NM от маршрута впереди."
 enabled_by_default: true
 trigger:

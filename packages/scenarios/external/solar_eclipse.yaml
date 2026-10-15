@@ -7,6 +7,7 @@ version: 1
 category: external
 title: Solar eclipse on the route
 title_ru: Солнечное затмение на маршруте
+description: "A solar eclipse visible on the route."
 description_ru: "Точка маршрута впереди в полосе затмения (фаза ≥ 0,5) в момент пролёта, солнце над горизонтом (NASA)."
 enabled_by_default: true
 trigger:

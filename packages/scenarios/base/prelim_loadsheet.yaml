@@ -3,6 +3,9 @@ id: prelim_loadsheet
 version: 1
 category: docs
 title: Preliminary loadsheet
+title_ru: "Предварительный лоадшит"
+description: "Preliminary loadsheet with the planned figures from the OFP."
+description_ru: "Предварительный лоадшит по плановым цифрам из OFP."
 enabled_by_default: true
 trigger:
   on: time

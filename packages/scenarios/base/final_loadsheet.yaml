@@ -5,6 +5,9 @@ id: final_loadsheet
 version: 1
 category: docs
 title: Final loadsheet
+title_ru: "Окончательный лоадшит"
+description: "Final loadsheet with the last-minute change against the preliminary one."
+description_ru: "Окончательный лоадшит с изменениями относительно предварительного."
 enabled_by_default: true
 trigger:
   on: time

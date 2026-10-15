@@ -1,0 +1,22 @@
+# Docking display after a diversion (T45): the flight number and a red DIVERTED line at the
+# diversion airport (GSX shows it there only). No gate: the diversion stand is not known
+# (docs/05, the gate is never invented). The red line is a VGDS feature (docs/06).
+id: vdgs_divert
+version: 1
+category: ops
+title: Docking display, diversion (GSX)
+title_ru: Табло стоянки при диверсии (GSX)
+description: "Flight, a red DIVERTED line and the origin on the GSX VDGS at the diversion airport."
+description_ru: "Номер рейса, красная строка DIVERTED и аэропорт вылета на табло VDGS от GSX в аэропорту диверсии."
+enabled_by_default: true
+trigger:
+  on: phase_enter
+  phase: LANDED
+conditions:
+  - "flight.divert != null"
+  - "ofp.airline != null"
+steps:
+  - vdgs:
+      narrow: ["{ofp.airline}", "{ofp.flight}", { red: "DIVERT" }, "FROM", "{ofp.orig}"]
+      wide: ["{ofp.airline} {ofp.flight}", { red: "DIVERTED" }, "FROM {ofp.orig}"]
+      x: ["{ofp.airline} {ofp.flight}", { red: "DIVERTED" }, "FROM {ofp.orig}"]

@@ -3,6 +3,9 @@ id: aircraft_change
 version: 1
 category: ops
 title: Aircraft change
+title_ru: "Смена самолёта"
+description: "Aircraft change for the next leg."
+description_ru: "Смена воздушного судна на следующий рейс."
 enabled_by_default: true
 trigger:
   on: time

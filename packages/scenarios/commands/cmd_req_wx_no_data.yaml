@@ -4,6 +4,9 @@ id: cmd_req_wx_no_data
 version: 1
 category: ops
 title: "Pilot command: REQ WX, no data"
+title_ru: "Команда пилота: REQ WX, нет данных"
+description: "REQ WX command when there is no weather for the airport."
+description_ru: "Команда REQ WX, когда для аэропорта нет погоды."
 enabled_by_default: true
 trigger:
   on: command

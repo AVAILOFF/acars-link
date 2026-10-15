@@ -6,6 +6,7 @@ version: 1
 category: external
 title: Public holiday at the destination
 title_ru: Праздник в стране назначения
+description: "A public holiday at the destination."
 description_ru: "Общенациональный праздник в стране назначения в день прилёта по местному времени (Nager.Date)."
 enabled_by_default: true
 trigger:

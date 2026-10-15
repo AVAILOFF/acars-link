@@ -3,6 +3,9 @@ id: arrival_info
 version: 1
 category: ops
 title: Arrival info
+title_ru: "Информация о прилёте"
+description: "Gate, baggage belt, transfer passengers and ground support on the way down."
+description_ru: "Гейт, лента багажа, трансферные пассажиры и наземное обслуживание на снижении."
 enabled_by_default: true
 trigger:
   on: distance

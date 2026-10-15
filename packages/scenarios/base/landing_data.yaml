@@ -4,6 +4,9 @@ id: landing_data
 version: 1
 category: docs
 title: Landing data
+title_ru: "Данные для посадки"
+description: "Landing data from the OFP: runway, weather, flaps and VREF when the OFP has them."
+description_ru: "Данные посадки из OFP: ВПП, погода, закрылки и VREF, если они есть в OFP."
 enabled_by_default: true
 trigger:
   on: distance

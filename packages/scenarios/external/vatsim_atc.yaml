@@ -4,6 +4,9 @@ id: vatsim_atc
 version: 1
 category: external
 title: VATSIM ATC online at destination
+title_ru: "Диспетчеры VATSIM в точке назначения"
+description: "Online VATSIM ATC at the destination before TOD."
+description_ru: "Онлайн-диспетчеры VATSIM в аэропорту назначения перед TOD."
 enabled_by_default: true
 trigger:
   on: distance

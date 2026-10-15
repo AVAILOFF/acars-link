@@ -5,6 +5,9 @@ id: fuel_slip
 version: 1
 category: docs
 title: Fuel slip
+title_ru: "Топливная квитанция"
+description: "Fuel slip after refuelling: uplift and difference to plan."
+description_ru: "Топливо после заправки: залито и разница с планом."
 enabled_by_default: true
 trigger:
   on: time

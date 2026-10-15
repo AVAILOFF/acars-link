@@ -3,6 +3,9 @@ id: next_leg
 version: 1
 category: ops
 title: Next leg
+title_ru: "Следующий рейс"
+description: "Next leg with the same aircraft."
+description_ru: "Следующий рейс на том же самолёте."
 enabled_by_default: true
 trigger:
   on: time

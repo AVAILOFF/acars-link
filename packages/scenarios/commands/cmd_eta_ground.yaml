@@ -3,6 +3,9 @@ id: cmd_eta_ground
 version: 1
 category: ops
 title: "Pilot command: ETA, before take-off"
+title_ru: "Команда пилота: ETA до взлёта"
+description: "ETA command before take-off."
+description_ru: "Команда ETA до взлёта."
 enabled_by_default: true
 trigger:
   on: command

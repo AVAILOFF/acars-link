@@ -1,0 +1,37 @@
+# The ATIS letter of the destination changed while the aircraft is on the way down (T45): the
+# new letter and the METAR. VATSIM online ATIS only (as `cmd_req_atis`, T44): a real D-ATIS
+# has no open source. Starts 150 NM before the destination if the ATIS is online then; the
+# letter at that moment is kept in `flags.atis_seen` (a scratch flag, removed when it ends).
+id: atis_update
+version: 1
+category: external
+title: Destination ATIS changed
+title_ru: Сменилась ATIS назначения
+description: "On the way down the VATSIM ATIS letter of the destination changed: the new letter and the METAR."
+description_ru: "На снижении сменилась буква онлайн-ATIS VATSIM аэропорта назначения: новая буква и METAR."
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: dest, lte_nm: 150 }
+conditions:
+  - "flight.divert == null"
+  - "phase in ['CRUISE','DESCENT','APPROACH']"
+  - "ext.dest_atis != null"
+priority: 0
+steps:
+  - set: { flags.atis_seen: "{ext.dest_atis}" }
+  - wait:
+      until: "ext.dest_atis != null && ext.dest_atis != flags.atis_seen && phase in ['CRUISE','DESCENT','APPROACH']"
+      timeout_min: 60
+  - branch:
+      MET:
+        - send:
+            header: ATIS {ofp.dest}
+            body: |
+              NEW INFO {ext.dest_atis}
+              REPLACES {flags.atis_seen}
+              {wx.dest_metar|or:NO METAR AVBL}
+            footer: SOURCE VATSIM
+        - set: { flags.atis_seen: null }
+      TIMEOUT:
+        - set: { flags.atis_seen: null }

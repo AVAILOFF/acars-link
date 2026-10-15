@@ -4,6 +4,9 @@ id: cmd_req_wx_live
 version: 1
 category: ops
 title: "Pilot command: REQ WX (live)"
+title_ru: "Команда пилота: REQ WX (живая)"
+description: "REQ WX command with live weather."
+description_ru: "Команда REQ WX с живой погодой."
 enabled_by_default: true
 trigger:
   on: command
