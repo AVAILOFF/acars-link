@@ -29,3 +29,4 @@ Trimmed real responses of the data sources (docs/06 "Внешние данные
 - T38, taken 2026-10-14: `ourairports-drone-airports.csv` — the header and the UUEE, EDDM, EKCH, OMDB, KJFK and RJBB rows of OurAirports `airports.csv` (public domain).
 
 - T34, taken 2026-10-15: `ourairports-runways.csv` — the header and the EDDF, KSFO and RJBB rows of OurAirports `runways.csv` (public domain).
+- T30, 2026-10-15: `aerodatabox-fids.json` — **synthetic**, not a live answer (none without a key): the shape of the AeroDataBox FIDS answer (`AirportFidsContract`) as the OpenAPI spec v1.15.4.0 describes it (`doc.aerodatabox.com/docs/openapi-rapidapi-v1.json`); the time form `2026-10-08 11:35Z` and how codeshares are filled are `[ПРОВЕРИТЬ]` on a live answer (docs/07 T30 C6).

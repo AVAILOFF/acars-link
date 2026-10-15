@@ -20,3 +20,4 @@ steps:
         {irr.connect_flight} CLOSED
         {irr.connect_pax} PAX REBOOKED
         TRANSFER DESK WILL MEET PAX
+        {irr.connect_src}

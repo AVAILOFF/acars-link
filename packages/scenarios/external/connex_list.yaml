@@ -1,0 +1,26 @@
+# Onward departures of the airline from the destination (T30, docs/07 C8): AeroDataBox FIDS with
+# the user's key; without the key or the data nothing is sent. 120 NM before TOD as the arrival
+# schedule of the original (docs/01). Source as the last line (C4: attribution, free channel).
+id: connex_list
+version: 1
+category: external
+title: Onward connections at destination
+title_ru: "Стыковочные рейсы в пункте назначения"
+description: "Before TOD: up to 4 departures of the airline from the destination with destination, STD and gate (AeroDataBox, your RapidAPI key)."
+description_ru: "Перед TOD: до 4 вылетов авиакомпании из пункта назначения — направление, STD, гейт (AeroDataBox, ваш ключ RapidAPI)."
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 120 }
+conditions:
+  - "flight.divert == null"
+  - "phase in ['CLIMB','CRUISE']"
+  - "ext.connex_count > 0"
+priority: 0
+steps:
+  - send:
+      header: CONNEX {ofp.dest}
+      body: |
+        FLT     TO   STD   GATE
+        {ext.connex_list}
+        SRC AERODATABOX

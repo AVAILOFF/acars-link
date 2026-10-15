@@ -1,6 +1,7 @@
 import type { VhfStation } from '../datalink/link.js';
 import { distanceNm, interpolate, type LatLon } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';
+import type { ConnexData } from './connex.js';
 import {
   type AshSigmet,
   type AuroraForecast,
@@ -214,6 +215,8 @@ export interface ExtDataUpdate {
   readonly f1?: F1Race | null;
   /** NHL games of the current days (T29); merged per game id. */
   readonly nhl?: readonly NhlGame[];
+  /** Departures of the airline from the destination (AeroDataBox, T30); replaces the list. */
+  readonly connex?: ConnexData;
 }
 
 /** A natural event placed against the planned route (once, when it arrives). */
@@ -284,6 +287,8 @@ export interface ExtState {
   readonly holidays?: Holidays | null;
   readonly f1?: F1Race | null;
   readonly nhl?: Readonly<Record<string, SeenNhlGame>>;
+  /** T30; absent in states saved before T30. */
+  readonly connex?: ConnexData | null;
 }
 
 export const EMPTY_EXT: ExtState = {
@@ -329,6 +334,7 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
   if (!isObj(x) || !isNum(x['t'])) return bad('t');
   const { wx, atc, events, stands, firs, centers, airports, freqs, launches, natTracks } = x;
   checkSpecial(x, bad);
+  checkConnex(x['connex'], bad);
   if (wx !== undefined) {
     if (!isObj(wx)) bad('wx');
     for (const [icao, r] of Object.entries(wx as object)) {
@@ -496,6 +502,27 @@ const isStr = (v: unknown): v is string => typeof v === 'string';
 const numOrNull = (v: unknown) => v === null || isNum(v);
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const level = (v: unknown) => isNum(v) && Number.isInteger(v) && v >= 0 && v <= 5;
+
+const CONNEX_NUMBER = /^[A-Z0-9]{3,8}$/;
+const CONNEX_GATE = /^[A-Z0-9]{1,6}$/;
+
+/** The T30 field of an update. */
+function checkConnex(c: unknown, bad: (why: string) => never): void {
+  if (c === undefined) return;
+  if (!isObj(c) || !ICAO.test(String(c['icao'])) || !Array.isArray(c['list'])) bad('connex');
+  for (const f of (c as { list: unknown[] }).list) {
+    if (
+      !isObj(f) ||
+      !CONNEX_NUMBER.test(String(f['number'])) ||
+      !ICAO.test(String(f['dest'])) ||
+      !numOrNull(f['std']) ||
+      !(f['terminal'] === null || CONNEX_GATE.test(String(f['terminal']))) ||
+      !(f['gate'] === null || CONNEX_GATE.test(String(f['gate']))) ||
+      typeof f['codeshare'] !== 'boolean'
+    )
+      bad('connex item');
+  }
+}
 
 /** T29 fields of an update. */
 function checkSpecial(x: Record<string, unknown>, bad: (why: string) => never): void {
@@ -690,6 +717,9 @@ export function applyExtData(
     next = { ...next, launches };
   }
   if (u.natTracks !== undefined) next = { ...next, natTracks: [...u.natTracks] };
+  if (u.connex !== undefined && u.connex.icao === ofp.destination.icao) {
+    next = { ...next, connex: { icao: u.connex.icao, list: [...u.connex.list] } };
+  }
   if (u.vhf !== undefined) next = { ...next, vhf: u.vhf.map((v) => ({ ...v })) };
   next = applySpecial(next, u, route);
   if (u.firs !== undefined) next = { ...next, firs: [...u.firs] };

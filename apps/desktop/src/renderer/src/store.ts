@@ -22,6 +22,7 @@ export type Busy =
   | 'end'
   | 'username'
   | 'code'
+  | 'adbKey'
   | 'settings'
   | 'scenario'
   | 'recordings'
@@ -55,6 +56,8 @@ interface Store {
   setUsername(u: string): Promise<boolean>;
   setHoppieCode(code: string): Promise<boolean>;
   clearHoppieCode(): Promise<void>;
+  setAerodataboxKey(key: string): Promise<boolean>;
+  clearAerodataboxKey(): Promise<void>;
   openRecordings(): Promise<void>;
   clearMemory(): Promise<void>;
 }
@@ -166,6 +169,19 @@ export const useStore = create<Store>()((set, get) => {
       await run(
         'code',
         () => api().clearHoppieCode(),
+        (creds) => set({ creds }),
+      );
+    },
+    setAerodataboxKey: (key) =>
+      run(
+        'adbKey',
+        () => api().setAerodataboxKey(key),
+        (creds) => set({ creds }),
+      ),
+    async clearAerodataboxKey() {
+      await run(
+        'adbKey',
+        () => api().clearAerodataboxKey(),
         (creds) => set({ creds }),
       );
     },

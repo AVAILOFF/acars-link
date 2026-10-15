@@ -87,6 +87,8 @@ export const DATA_USER_AGENT = 'ACARS-Sim/0.1 (flight simulator ACARS; personal 
 
 /** Hoppie logon codes: printable ASCII without spaces (they go into a URL/form field). */
 const LOGON_RE = /^[\x21-\x7e]{4,64}$/;
+/** A RapidAPI key: letters and digits (T30). */
+const RAPIDAPI_KEY_RE = /^[A-Za-z0-9]{20,100}$/;
 /** Longer than any MCDU free text; the core reads words of A–Z0–9 only. */
 const MAX_PILOT_TEXT = 200;
 
@@ -323,6 +325,7 @@ export class AppController {
     return {
       simbriefUsername: (await secrets.get('simbriefUsername')) ?? '',
       hoppieCodeSet: await secrets.has('hoppieLogon'),
+      aerodataboxKeySet: await secrets.has('aerodataboxKey'),
       secureStorage: await secrets.available(),
     };
   }
@@ -346,6 +349,21 @@ export class AppController {
     return this.credentials();
   }
 
+  /** The user's RapidAPI key for AeroDataBox (T30, docs/07 C1); used from the next OFP load. */
+  async setAerodataboxKey(input: unknown): Promise<CredentialsView> {
+    const key = typeof input === 'string' ? input.trim() : '';
+    if (!RAPIDAPI_KEY_RE.test(key)) {
+      throw new AppFailure('invalid_input', 'RapidAPI key: 20..100 letters and digits');
+    }
+    await this.o.secrets.set('aerodataboxKey', key);
+    return this.credentials();
+  }
+
+  async clearAerodataboxKey(): Promise<CredentialsView> {
+    await this.o.secrets.delete('aerodataboxKey');
+    return this.credentials();
+  }
+
   // --- flight ---
 
   async loadOfp(): Promise<FlightSummary> {
@@ -356,18 +374,21 @@ export class AppController {
     const summary = this.summary(ofp, await this.o.settings.get());
     this.ofp = ofp;
     this.flight = summary;
-    this.prefetch(ofp, await this.o.settings.get());
+    await this.prefetch(ofp, await this.o.settings.get());
     this.o.onChange();
     return summary;
   }
 
   /** Starts fetching the live data of an OFP before the flight starts (T13), if enabled. */
-  private prefetch(ofp: Ofp, settings: Settings): void {
+  private async prefetch(ofp: Ofp, settings: Settings): Promise<void> {
     if (settings.liveData) {
+      // T30: onward departures only with the user's own AeroDataBox key (C1, C10).
+      const connexKey = await this.o.secrets.get('aerodataboxKey').catch(() => null);
       this.data.startFlight(ofp, this.o.now(), {
         firs: settings.rops,
         datalink: settings.datalink,
         special: specialGroups(settings),
+        connexKey,
       });
     } else this.data.stopFlight();
   }
@@ -406,7 +427,7 @@ export class AppController {
           c.id === DRONE_SCENARIO_ID ? droneProbability(base, droneTable, droneCountry) : base;
         return probability === c.probability ? c : { ...c, probability };
       });
-    this.prefetch(ofp, settings);
+    await this.prefetch(ofp, settings);
     const flags = await this.flagStore.get();
     let recording: RecordingSink | null = null;
     if (settings.recordFlights && this.o.openRecording !== null) {

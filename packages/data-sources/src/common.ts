@@ -19,6 +19,12 @@ export interface HttpClient {
 
 export class DataSourceError extends Error {
   override readonly name = 'DataSourceError';
+  /** No retry in this flight (a rejected key, an exhausted quota; T30). */
+  readonly final: boolean;
+  constructor(message: string, final = false) {
+    super(message);
+    this.final = final;
+  }
 }
 
 /** docs/06: every adapter has a timeout. */

@@ -49,6 +49,8 @@ export function registerIpc(
   on(IPC.setSimbriefUsername, (u) => guard(() => app.setSimbriefUsername(u)));
   on(IPC.setHoppieCode, (code) => guard(() => app.setHoppieCode(code)));
   on(IPC.clearHoppieCode, () => guard(() => app.clearHoppieCode()));
+  on(IPC.setAerodataboxKey, (key) => guard(() => app.setAerodataboxKey(key)));
+  on(IPC.clearAerodataboxKey, () => guard(() => app.clearAerodataboxKey()));
   on(IPC.loadOfp, () => guard(() => app.loadOfp()));
   on(IPC.startFlight, () => guard(() => app.startFlight()));
   on(IPC.stopFlight, () => guard(() => app.stopFlight()));

@@ -12,6 +12,7 @@ import {
   parseSimbriefOfpText,
 } from '@acars/core';
 import { encodeRecording, parseJsonl, type Recording, snapshotsOf } from './format.js';
+import { hasPurgedConnex } from './purge.js';
 import { formatReport } from './report.js';
 import { compareOutbound, replay } from './run.js';
 import { defaultEnabled, pickScenarios, type ScenarioFile } from './scenarios.js';
@@ -232,8 +233,15 @@ function readRecording(
   base: readonly ScenarioFile[],
   io: Io,
 ): Recording {
-  const parsed = parseJsonl(readFileSync(file, 'utf8'));
+  const text = readFileSync(file, 'utf8');
+  const parsed = parseJsonl(text);
   for (const w of parsed.warnings) io.err(`warning: ${w}\n`);
+  if (hasPurgedConnex(text)) {
+    io.err(
+      'warning: AeroDataBox data of this recording were purged (older than 7 days, T30): ' +
+        'onward-flight telexes replay without them and differ from the live run\n',
+    );
+  }
   if (parsed.kind === 'recording') {
     if (ofpFile === undefined) return parsed.recording;
     return { ...parsed.recording, header: { ...parsed.recording.header, ofp: readOfp(ofpFile) } };

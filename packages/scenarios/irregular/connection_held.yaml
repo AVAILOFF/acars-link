@@ -22,3 +22,4 @@ steps:
         STD {irr.connect_std|hhmm}Z, DEPARTURE WILL BE LATE
         TRANSFER BUS AT {ops.gate_place}
         DEPLANE TRANSFER PAX FIRST
+        {irr.connect_src}

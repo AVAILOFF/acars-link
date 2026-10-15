@@ -1,5 +1,17 @@
-import { closeSync, mkdirSync, openSync, readdirSync, rmSync, writeSync } from 'node:fs';
+import {
+  closeSync,
+  mkdirSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+  writeSync,
+} from 'node:fs';
 import { join } from 'node:path';
+import { CONNEX_RETENTION_MS, purgeConnex } from '@acars/replay';
 
 /**
  * Flight recordings on disk (T11): one JSONL file per flight in the user-data folder, replayed
@@ -43,6 +55,7 @@ export function fileRecordings(dir: string, keep = KEEP_RECORDINGS): OpenRecordi
       }
     }
     prune(dir, keep);
+    purgeOldConnex(dir, now);
     const handle = fd;
     let open = true;
     return {
@@ -57,6 +70,31 @@ export function fileRecordings(dir: string, keep = KEEP_RECORDINGS): OpenRecordi
       },
     };
   };
+}
+
+/**
+ * AeroDataBox data of recordings last written more than 7 days ago are purged (T30, docs/07 C9:
+ * terms p. 5.5); the file being written now is never older. Errors leave a file as it is.
+ */
+export function purgeOldConnex(dir: string, now: number): void {
+  let names: string[];
+  try {
+    names = readdirSync(dir).filter((f) => FILE_RE.test(f));
+  } catch {
+    return;
+  }
+  for (const f of names) {
+    const file = join(dir, f);
+    try {
+      if (now - statSync(file).mtimeMs <= CONNEX_RETENTION_MS) continue;
+      const purged = purgeConnex(readFileSync(file, 'utf8'));
+      if (purged === null) continue;
+      writeFileSync(`${file}.tmp`, purged, { mode: 0o600 });
+      renameSync(`${file}.tmp`, file);
+    } catch {
+      // Next start tries again.
+    }
+  }
 }
 
 /** Keeps the newest `keep` recordings; never touches other files. */

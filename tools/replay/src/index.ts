@@ -5,6 +5,7 @@
 export const REPLAY_PACKAGE = '@acars/replay';
 
 export * from './format.js';
+export * from './purge.js';
 export * from './report.js';
 export * from './run.js';
 export * from './synthetic.js';

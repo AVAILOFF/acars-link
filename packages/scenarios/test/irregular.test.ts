@@ -212,6 +212,8 @@ function fly(
     seed?: string;
     /** The synthetic onward flight (test hook); default on. */
     synthetic?: boolean;
+    /** AeroDataBox departures of the destination (T30), passed at start. */
+    connex?: ExtDataUpdate['connex'];
   } = {},
 ): Run {
   const core = AcarsCore.create({
@@ -253,6 +255,7 @@ function fly(
             t: s.t,
             ...(gates === undefined ? {} : { stands: gates }),
             ...(o.cold === true ? cold : {}),
+            ...(o.connex === undefined ? {} : { connex: o.connex }),
           }
         : undefined;
     const r = core.tick({
@@ -418,6 +421,39 @@ describe('chains inside a flight', () => {
     expect(textsOf(r, 'short_connection')[0]).toMatch(/\d+ PAX TO ONWARD FLT/);
     expect(textsOf(r, 'connection_made')[0]).toContain('ONWARD FLT WILL WAIT');
     for (const m of r.out) expect(m.message.text).not.toMatch(/ANA\d{3}/);
+  });
+
+  it('a real departure (T30, AeroDataBox) replaces the synthetic one, with the source line', () => {
+    const set = ['short_connection', 'connection_made', 'connection_held', 'connection_missed'].map(
+      byId,
+    );
+    const sta = kg.times.schedInMs;
+    const connex = {
+      icao: kg.destination.icao,
+      list: [
+        {
+          number: 'SJX862',
+          dest: 'RCTP',
+          std: sta + 50 * 60_000,
+          terminal: '1',
+          gate: 'B12',
+          codeshare: false,
+        },
+      ],
+    };
+    for (const synthetic of [true, false]) {
+      const r = fly(late(kg, 30), set, { synthetic, connex });
+      expect(ids(r).filter((x) => x !== '#ops')).toEqual(['short_connection', 'connection_missed']);
+      const text = textsOf(r, 'short_connection')[0] ?? '';
+      expect(text).toMatch(/\d+ PAX TO SJX862/);
+      const std = new Date(sta + 50 * 60_000).toISOString().slice(11, 16).replace(':', '');
+      expect(text).toContain(`STD ${std}Z`);
+      // textsOf joins the lines: the source is the end of the text.
+      expect(text).toMatch(/ SRC AERODATABOX$/);
+      expect(textsOf(r, 'connection_missed')[0]).toMatch(/ SRC AERODATABOX$/);
+    }
+    // The synthetic flight carries no source line.
+    for (const m of fly(late(kg, 30), set).out) expect(m.message.text).not.toContain('AERODATABOX');
   });
 
   it('the curfew needs a delay; UNABLE diverts to the alternate', () => {

@@ -5,6 +5,7 @@ import {
   type AtcStation,
   type AuroraForecast,
   type CenterStation,
+  type ConnexData,
   checkExtDataUpdate,
   type Earthquake,
   type ExtDataUpdate,
@@ -25,6 +26,7 @@ import {
   type VhfStation,
   type WxReport,
 } from '@acars/core';
+import { fetchConnex } from './aerodatabox.js';
 import { DataSourceError, type FetchContext, type HttpClient, ICAO_RE } from './common.js';
 import { fetchEonetEvents } from './eonet.js';
 import { fetchAirportCountries, fetchHolidays } from './holidays.js';
@@ -76,6 +78,10 @@ import { fetchWx } from './wx.js';
  * USGS earthquakes every 30 min, the destination's country (OurAirports, cached 30 days) and its
  * public holidays (Nager.Date, cached 30 days) once; sport — the last F1 result every 30 min, NHL
  * scores of the current days every 15 min.
+ *
+ * Onward departures (T30, `startFlight(…, { connexKey })`, docs/07 C5): one AeroDataBox request
+ * per flight with the user's key, no disk cache (C9); one retry after a network error, timeout or
+ * 5xx; a rejected key or an exhausted quota ends the source for the flight.
  */
 
 export type DataSourceKind =
@@ -94,7 +100,8 @@ export type DataSourceKind =
   | 'quakes'
   | 'holidays'
   | 'f1'
-  | 'nhl';
+  | 'nhl'
+  | 'connex';
 export const DATA_SOURCES: readonly DataSourceKind[] = [
   'wx',
   'vatsim',
@@ -112,6 +119,7 @@ export const DATA_SOURCES: readonly DataSourceKind[] = [
   'holidays',
   'f1',
   'nhl',
+  'connex',
 ];
 
 /** Groups of the special events (T29); each is switched on in the app's settings. */
@@ -129,7 +137,14 @@ const ROPS_ONCE: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs']);
 /** Source of the data link simulation only (`startFlight(…, { datalink: true })`, T31). */
 const DATALINK_SOURCES: ReadonlySet<DataSourceKind> = new Set(['vhf']);
 /** Fetched once per flight. */
-const ONCE: ReadonlySet<DataSourceKind> = new Set(['stands', 'firs', 'freqs', 'vhf', 'holidays']);
+const ONCE: ReadonlySet<DataSourceKind> = new Set([
+  'stands',
+  'firs',
+  'freqs',
+  'vhf',
+  'holidays',
+  'connex',
+]);
 
 export interface CacheEntry {
   /** When the value was fetched, epoch ms. */
@@ -191,6 +206,8 @@ export const DATA_POLICY: Readonly<Record<DataSourceKind, Policy>> = {
   holidays: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   f1: { refreshMs: 30 * MIN, cacheMs: 15 * MIN, retryMs: 15 * MIN, maxTries: null },
   nhl: { refreshMs: 15 * MIN, cacheMs: 10 * MIN, retryMs: 10 * MIN, maxTries: null },
+  // T30 C5: once, never from a cache, one retry.
+  connex: { refreshMs: null, cacheMs: 0, retryMs: 2 * MIN, maxTries: 2 },
 };
 
 /** VATSIM refreshes only here (the first fetch at start goes in any phase). */
@@ -231,6 +248,8 @@ interface Flight {
   readonly special: string;
   /** When the flight started (`startFlight`), epoch ms. */
   readonly startedAt: number;
+  /** The user's AeroDataBox key (T30); null = no onward departures. Memory only. */
+  readonly connexKey: string | null;
 }
 
 export class ExternalDataService {
@@ -262,6 +281,7 @@ export class ExternalDataService {
     holidays: Holidays | null;
     f1: F1Race | null | undefined;
     nhl: NhlGame[] | null;
+    connex: ConnexData | null;
   } = empty();
   /** VATSpy data of the flight (T23) and the ids of the route's FIRs. */
   private vatspy: { data: VatspyData; route: ReadonlySet<string> } | null = null;
@@ -292,17 +312,21 @@ export class ExternalDataService {
       readonly firs?: boolean;
       readonly datalink?: boolean;
       readonly special?: readonly SpecialGroup[];
+      /** The user's AeroDataBox (RapidAPI) key: onward departures (T30). */
+      readonly connexKey?: string | null;
     } = {},
   ): void {
     const firs = opts.firs === true;
     const datalink = opts.datalink === true;
     const special = new Set((opts.special ?? []).flatMap((g) => SPECIAL_GROUPS[g]));
     const key = [...special].sort().join(',');
+    const connexKey = opts.connexKey?.trim() || null;
     if (
       this.flight?.ofp === ofp &&
       this.flight.firs === firs &&
       this.flight.datalink === datalink &&
-      this.flight.special === key
+      this.flight.special === key &&
+      this.flight.connexKey === connexKey
     )
       return;
     this.generation++;
@@ -314,6 +338,7 @@ export class ExternalDataService {
       datalink,
       special: key,
       startedAt: now,
+      connexKey,
     };
     this.src = new Map(
       DATA_SOURCES.filter(
@@ -321,7 +346,8 @@ export class ExternalDataService {
           this.enabled.has(k) &&
           (!ROPS_SOURCES.has(k) || firs) &&
           (!DATALINK_SOURCES.has(k) || datalink) &&
-          (!SPECIAL_SOURCES.has(k) || special.has(k)),
+          (!SPECIAL_SOURCES.has(k) || special.has(k)) &&
+          (k !== 'connex' || connexKey !== null),
       ).map((k) => [k, { inFlight: false, nextAt: now, fails: 0, fetched: false, failing: false }]),
     );
     this.wxExtra.clear();
@@ -391,7 +417,8 @@ export class ExternalDataService {
       p.quakes !== null ||
       p.holidays !== null ||
       p.f1 !== undefined ||
-      p.nhl !== null;
+      p.nhl !== null ||
+      p.connex !== null;
     if (!has) return { update: null, notes };
     return {
       update: {
@@ -414,6 +441,7 @@ export class ExternalDataService {
         ...(p.holidays === null ? {} : { holidays: p.holidays }),
         ...(p.f1 === undefined ? {} : { f1: p.f1 }),
         ...(p.nhl === null ? {} : { nhl: p.nhl }),
+        ...(p.connex === null ? {} : { connex: p.connex }),
       },
       notes,
     };
@@ -444,6 +472,7 @@ export class ExternalDataService {
         (e: unknown) => {
           if (gen !== this.generation) return;
           s.fails++;
+          if (e instanceof DataSourceError && e.final) s.fails = Number.POSITIVE_INFINITY;
           s.nextAt = now + DATA_POLICY[kind].retryMs;
           // Pilot's airports are asked again with the next try.
           for (const i of extra) this.wxExtra.add(i);
@@ -669,6 +698,13 @@ export class ExternalDataService {
           this.pending.holidays = holidays;
         };
       }
+      case 'connex': {
+        // Straight from the network: no copy outlives the flight (C9).
+        const v = await fetchConnex(this.ctx, flight.connexKey ?? '', flight.ofp);
+        return () => {
+          if (v !== null) this.pending.connex = v;
+        };
+      }
       case 'stands': {
         const icao = flight.ofp.destination.icao;
         let list = (await this.cached(`stands:${icao}`, now, kind, (v) =>
@@ -799,6 +835,7 @@ function empty() {
     holidays: null,
     f1: undefined,
     nhl: null,
+    connex: null,
   };
 }
 

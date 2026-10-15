@@ -184,8 +184,25 @@ function liveData(
     ],
     launches: launches(c, doneStatus),
     ...(first
-      ? { stands: { icao: 'RJBB', list: STANDS.map((ref) => ({ ref, kind: 'stand' as const })) } }
+      ? {
+          stands: { icao: 'RJBB', list: STANDS.map((ref) => ({ ref, kind: 'stand' as const })) },
+          connex: connex(c),
+        }
       : {}),
+  };
+}
+
+/** Onward departures of the airline from RJBB (T30): a codeshare twin, a gate, a terminal. */
+function connex(c: Case): NonNullable<ExtDataUpdate['connex']> {
+  const sta = c.ofp.times.schedInMs;
+  const at = (min: number) => sta + min * 60_000;
+  return {
+    icao: 'RJBB',
+    list: [
+      { number: 'SJX862', dest: 'RCTP', std: at(75), terminal: '1', gate: '12', codeshare: false },
+      { number: 'SJX9862', dest: 'RCTP', std: at(75), terminal: null, gate: null, codeshare: true },
+      { number: 'SJX868', dest: 'RCKH', std: at(150), terminal: '1', gate: null, codeshare: false },
+    ],
   };
 }
 
@@ -245,6 +262,7 @@ const missing = new RegExp(`(^|[^-])${MISSING}($|[^-])`, 'm');
 describe('external scenario files', () => {
   it('are the live-data scenarios, file name = id', () => {
     expect(external.map((s) => s.id)).toEqual([
+      'connex_list',
       'dest_weather_live',
       'natural_event',
       'space_launch',
@@ -314,6 +332,15 @@ describe('the whole set with live data on the normal flight', () => {
     expect(flat(textOf(live, 'space_launch_done'))).toMatch(/LAUNCHED \d{4}Z SUCCESSFUL/);
   });
 
+  it('connex_list (T30): operating flights only, STD and gate, the source as the last line', () => {
+    const text = textOf(live, 'connex_list');
+    expect(text).toContain('SJX862');
+    expect(text).not.toContain('SJX9862');
+    expect(flat(text)).toMatch(/SJX862 RCTP \d{4}Z 12/);
+    expect(flat(text)).toMatch(/SJX868 RCKH \d{4}Z TERM 1/);
+    expect(text.trimEnd().split('\n').at(-1)).toBe('SRC AERODATABOX');
+  });
+
   it('a Go launch: T-0 and window; the one that happened is excluded after it', () => {
     const go = fly(
       c,
@@ -335,6 +362,7 @@ describe('the whole set with live data on the normal flight', () => {
     expect(errors(offline)).toEqual([]);
     expect(ids(offline)).toContain('dest_weather');
     for (const id of [
+      'connex_list',
       'dest_weather_live',
       'vatsim_atc',
       'vatsim_atc_none',

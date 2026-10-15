@@ -89,6 +89,7 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
   holidays: 'Nager.Date (public holidays)',
   f1: 'Jolpica (F1)',
   nhl: 'NHL',
+  connex: 'AeroDataBox (onward flights)',
 };
 
 /** Person names of new flights (core `namesVersion`, T43); recorded in the header. */

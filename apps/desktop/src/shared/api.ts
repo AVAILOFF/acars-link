@@ -80,6 +80,8 @@ export type SettingsPatch = Partial<Omit<Settings, 'scenarios' | 'chances'>>;
 export interface CredentialsView {
   readonly simbriefUsername: string;
   readonly hoppieCodeSet: boolean;
+  /** The AeroDataBox (RapidAPI) key of onward flights is saved (T30). */
+  readonly aerodataboxKeySet: boolean;
   /** False when the OS store (DPAPI / Keychain / libsecret) is not available. */
   readonly secureStorage: boolean;
 }
@@ -346,6 +348,9 @@ export interface AcarsApi {
   /** The code goes one way only: renderer → main → OS store. */
   setHoppieCode(code: string): Promise<Result<CredentialsView>>;
   clearHoppieCode(): Promise<Result<CredentialsView>>;
+  /** The user's RapidAPI key for AeroDataBox (T30); one way only, like the Hoppie code. */
+  setAerodataboxKey(key: string): Promise<Result<CredentialsView>>;
+  clearAerodataboxKey(): Promise<Result<CredentialsView>>;
 
   loadOfp(): Promise<Result<FlightSummary>>;
   startFlight(): Promise<Result<null>>;
@@ -378,6 +383,8 @@ export const IPC = {
   setSimbriefUsername: 'acars:set-simbrief-username',
   setHoppieCode: 'acars:set-hoppie-code',
   clearHoppieCode: 'acars:clear-hoppie-code',
+  setAerodataboxKey: 'acars:set-aerodatabox-key',
+  clearAerodataboxKey: 'acars:clear-aerodatabox-key',
   loadOfp: 'acars:load-ofp',
   startFlight: 'acars:start-flight',
   stopFlight: 'acars:stop-flight',

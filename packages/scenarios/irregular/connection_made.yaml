@@ -20,3 +20,4 @@ steps:
         {irr.connect_flight} WILL WAIT
         TRANSFER BUS AT {ops.gate_place}
         THANK YOU FOR THE EFFORT
+        {irr.connect_src}

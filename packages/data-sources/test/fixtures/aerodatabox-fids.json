@@ -1,0 +1,80 @@
+{
+  "departures": [
+    {
+      "movement": {
+        "airport": { "icao": "RCTP", "iata": "TPE", "name": "Taipei" },
+        "scheduledTime": { "utc": "2026-10-08 11:35Z", "local": "2026-10-08 20:35+09:00" },
+        "terminal": "1",
+        "gate": "12",
+        "quality": ["Basic"]
+      },
+      "number": "JX 862",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "airline": { "name": "Starlux", "iata": "JX", "icao": "SJX" }
+    },
+    {
+      "movement": {
+        "airport": { "icao": "RCTP", "iata": "TPE", "name": "Taipei" },
+        "scheduledTime": { "utc": "2026-10-08 11:35Z", "local": "2026-10-08 20:35+09:00" },
+        "quality": ["Basic"]
+      },
+      "number": "JX 9862",
+      "status": "Expected",
+      "codeshareStatus": "IsCodeshared",
+      "isCargo": false,
+      "airline": { "name": "Starlux", "iata": "JX", "icao": "SJX" }
+    },
+    {
+      "movement": {
+        "airport": { "icao": "RCKH", "iata": "KHH", "name": "Kaohsiung" },
+        "scheduledTime": { "utc": "2026-10-08 12:50Z", "local": "2026-10-08 21:50+09:00" },
+        "terminal": "T1",
+        "quality": ["Basic"]
+      },
+      "number": "JX 868",
+      "status": "Expected",
+      "codeshareStatus": "Unknown",
+      "isCargo": false,
+      "airline": { "name": "Starlux", "iata": "JX", "icao": "SJX" }
+    },
+    {
+      "movement": {
+        "airport": { "icao": "RCTP", "iata": "TPE", "name": "Taipei" },
+        "scheduledTime": { "utc": "2026-10-08 13:00Z", "local": "2026-10-08 22:00+09:00" },
+        "quality": ["Basic"]
+      },
+      "number": "JX 870",
+      "status": "Canceled",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "airline": { "name": "Starlux", "iata": "JX", "icao": "SJX" }
+    },
+    {
+      "movement": {
+        "airport": { "icao": "RCTP", "iata": "TPE", "name": "Taipei" },
+        "scheduledTime": { "utc": "2026-10-08 12:00Z", "local": "2026-10-08 21:00+09:00" },
+        "quality": ["Basic"]
+      },
+      "number": "JX 5862",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": true,
+      "airline": { "name": "Starlux", "iata": "JX", "icao": "SJX" }
+    },
+    {
+      "movement": {
+        "airport": { "icao": "RJTT", "iata": "HND", "name": "Tokyo" },
+        "scheduledTime": { "utc": "2026-10-08 11:40Z", "local": "2026-10-08 20:40+09:00" },
+        "gate": "Gate 5",
+        "quality": ["Basic", "Live"]
+      },
+      "number": "NH 30",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "airline": { "name": "ANA", "iata": "NH", "icao": "ANA" }
+    }
+  ]
+}

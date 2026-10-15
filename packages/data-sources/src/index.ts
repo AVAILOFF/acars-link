@@ -2,12 +2,13 @@
  * @acars/data-sources — external data adapters (T13, docs/06 "Внешние данные"): METAR/TAF
  * (aviationweather.gov), VATSIM ATC, NASA EONET, OSM stands (Overpass), space launches
  * (TheSpaceDevs Launch Library, T28), special events (T29: NOAA SWPC, SIGMET VA, USGS,
- * Nager.Date, Jolpica F1, NHL). HTTP through the
- * injected `HttpClient`, results as the core's `ExtDataUpdate`. No keys: free APIs only
- * (docs/08, decision 4).
+ * Nager.Date, Jolpica F1, NHL), onward departures (T30: AeroDataBox with the user's key). HTTP
+ * through the injected `HttpClient`, results as the core's `ExtDataUpdate`. No keys of ours:
+ * free APIs, or a key the user enters (AeroDataBox, invariant 2).
  */
 export const DATA_SOURCES_PACKAGE = '@acars/data-sources';
 
+export * from './aerodatabox.js';
 export * from './common.js';
 export * from './eonet.js';
 export * from './holidays.js';
