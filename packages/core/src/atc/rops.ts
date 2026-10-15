@@ -16,6 +16,7 @@ import {
   directDecision,
   directExit,
   stepStatus,
+  transitionFt,
 } from './auto.js';
 import { type CpdlcHeader, type CpdlcResponse, formatCpdlc, parseCpdlc } from './cpdlc.js';
 import {
@@ -228,13 +229,19 @@ export interface AutoState {
   /** Levels the pilot asked for. */
   readonly asked: readonly number[];
   /** Level clearance sent, waiting for the pilot's WILCO (T47). */
-  readonly levelAwait?: { readonly min: number; readonly levelFt: number } | null;
+  readonly levelAwait?: {
+    readonly min: number;
+    readonly levelFt: number;
+    readonly final?: boolean;
+  } | null;
   /** Level clearance accepted, watched for (T47). */
   readonly levelWatch?: {
     readonly levelFt: number;
     readonly startFt: number;
     readonly at: number;
     readonly reached: boolean;
+    /** The last level of the station before the approach: once reached, the watch ends. */
+    readonly final?: boolean;
   } | null;
   /** Last level cleared (pilot request or step climb). */
   readonly cleared: number | null;
@@ -289,6 +296,8 @@ export interface RopsTickOutput {
 }
 
 const ENDED: ReadonlySet<FlightPhase> = new Set(['ON_BLOCK', 'TURNAROUND', 'DONE']);
+/** Phases with a level watch (T47); from the approach on, levels come by voice. */
+const WATCHED: ReadonlySet<FlightPhase> = new Set(['CLIMB', 'CRUISE', 'DESCENT']);
 /** Station callsigns ROPS may own: `X` + 3 letters (FIRs, T23; airports, T24). */
 export const ROPS_CALLSIGN = /^X[A-Z]{3}$/;
 
@@ -325,8 +334,14 @@ export class RopsStation {
       descent: boolean;
       asked: number[];
       cleared: number | null;
-      levelAwait: { min: number; levelFt: number } | null;
-      levelWatch: { levelFt: number; startFt: number; at: number; reached: boolean } | null;
+      levelAwait: { min: number; levelFt: number; final?: boolean } | null;
+      levelWatch: {
+        levelFt: number;
+        startFt: number;
+        at: number;
+        reached: boolean;
+        final?: boolean;
+      } | null;
     };
     link: {
       divert: { icao: string; dueAt: number; directSent: boolean; descentSent: boolean } | null;
@@ -659,7 +674,13 @@ export class RopsStation {
       this.st.auto.levelAwait = null;
       const alt = input.telemetry?.altFt ?? null;
       if (/^WILCO\b/.test(p.text) && alt !== null) {
-        this.st.auto.levelWatch = { levelFt: wait.levelFt, startFt: alt, at: now, reached: false };
+        this.st.auto.levelWatch = {
+          levelFt: wait.levelFt,
+          startFt: alt,
+          at: now,
+          reached: false,
+          ...(wait.final === true ? { final: true } : {}),
+        };
       }
     }
     // T47: MAYDAY / PAN (DM56 / DM55) is answered at once and starts the airline's chain.
@@ -747,9 +768,19 @@ export class RopsStation {
     });
   }
 
-  /** A CLIMB/DESCEND clearance went out as `min`: its WILCO starts the watch (T47). */
-  private awaitLevel(min: number, levelFt: number): void {
-    this.st.auto.levelAwait = { min, levelFt };
+  /**
+   * A level clearance went out as `min`: it replaces the one watched, and its WILCO starts the
+   * watch (T47). `final` — the station's last level before the approach (the T26 descent, the
+   * T48 diversion descent): lower levels come from approach control by voice.
+   */
+  private awaitLevel(min: number, levelFt: number, final = false): void {
+    this.st.auto.levelAwait = { min, levelFt, ...(final ? { final: true } : {}) };
+    this.st.auto.levelWatch = null;
+  }
+
+  /** A level clearance with nothing to watch (HOLD … MAINTAIN): the old one ends (T47). */
+  private dropLevelWatch(): void {
+    this.st.auto.levelAwait = null;
     this.st.auto.levelWatch = null;
   }
 
@@ -778,7 +809,7 @@ export class RopsStation {
     const uplink = (kind: 'direct' | 'step' | 'descent', text: string, levelFt?: number) => {
       const min = send(station, 'WU', null, text);
       events.push({ type: 'ATC_AUTO', t: now, station, kind, text });
-      if (levelFt !== undefined) this.awaitLevel(min, levelFt);
+      if (levelFt !== undefined) this.awaitLevel(min, levelFt, kind === 'descent');
     };
     const span = cruiseSpan(this.ofp);
 
@@ -864,9 +895,10 @@ export class RopsStation {
     const hold = input.hold ?? null;
     const station = this.st.connected;
     const tm = input.telemetry;
-    const uplink = (kind: 'divert' | 'hold', text: string) => {
-      send(station as string, 'WU', null, text);
+    const uplink = (kind: 'divert' | 'hold', text: string): number => {
+      const min = send(station as string, 'WU', null, text);
       events.push({ type: 'ATC_AUTO', t: now, station: station as string, kind, text });
+      return min;
     };
 
     // Diversion.
@@ -897,7 +929,12 @@ export class RopsStation {
           const need = ((tm.altFt - DIVERT_DESCENT_FT) / 1000) * 3 + DIVERT_DESCENT_MARGIN_NM;
           if (distanceNm(tm, apt) <= need) {
             dv.descentSent = true;
-            uplink('divert', `DESCEND TO @${levelText(DIVERT_DESCENT_FT, false)}@`);
+            const tl = transitionFt(apt);
+            const min = uplink(
+              'divert',
+              `DESCEND TO @${levelText(DIVERT_DESCENT_FT, DIVERT_DESCENT_FT >= tl)}@`,
+            );
+            this.awaitLevel(min, DIVERT_DESCENT_FT, true);
             this.st.auto.cleared = DIVERT_DESCENT_FT;
           }
         }
@@ -925,12 +962,17 @@ export class RopsStation {
       if (fix !== undefined) {
         l.hold.sent = true;
         const level = Math.round(tm.altFt / 1000) * 1000;
+        const tl = transitionFt(this.ofp.destination);
         const efc = new Date(now + hold.min * 60_000);
         const hhmm = `${String(efc.getUTCHours()).padStart(2, '0')}${String(efc.getUTCMinutes()).padStart(2, '0')}`;
         uplink(
           'hold',
-          `HOLD AT @${fix.ident}@ AS PUBLISHED MAINTAIN @${levelText(level, level >= 18_000)}@`,
+          `HOLD AT @${fix.ident}@ AS PUBLISHED MAINTAIN @${levelText(level, level >= tl)}@`,
         );
+        // The holding level replaces the clearance watched; it is not watched itself (the
+        // aircraft is at it already, and the descent after the holding comes by voice).
+        this.dropLevelWatch();
+        this.st.auto.cleared = level;
         uplink('hold', `EXPECT FURTHER CLEARANCE AT @${hhmm}@`);
       }
     }
@@ -939,7 +981,9 @@ export class RopsStation {
   /**
    * Level watch (T47): five minutes after the WILCO the aircraft has not begun to change level,
    * or it left the assigned level after reaching it → `CONFIRM ASSIGNED ALTITUDE` (UM135), once
-   * per clearance. The watch ends with the logon (handover, logoff).
+   * per clearance. The watch ends with the logon (handover, logoff), outside CLIMB / CRUISE /
+   * DESCENT (approach control has the aircraft by voice), and when a `final` level (the T26
+   * descent, the T48 diversion descent) is reached.
    */
   private watchLevel(
     input: RopsTickInput,
@@ -947,6 +991,10 @@ export class RopsStation {
     events: AtcEvent[],
   ): void {
     const a = this.st.auto;
+    if (!WATCHED.has(input.phase)) {
+      this.dropLevelWatch();
+      return;
+    }
     const w = a.levelWatch;
     if (w === null) return;
     const station = this.st.connected;
@@ -957,7 +1005,13 @@ export class RopsStation {
     const tm = input.telemetry;
     if (tm === null) return;
     const off = Math.abs(tm.altFt - w.levelFt);
-    if (off <= LEVEL_AT_FT) w.reached = true;
+    if (off <= LEVEL_AT_FT) {
+      if (w.final === true) {
+        a.levelWatch = null;
+        return;
+      }
+      w.reached = true;
+    }
     let why: 'not_started' | 'departed' | null = null;
     if (w.reached) {
       if (off > LEVEL_DEPART_FT) why = 'departed';
