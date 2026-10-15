@@ -183,6 +183,11 @@ export const CONTEXT_VARIABLES = [
   // temperature °C from the METAR above (live or OFP), T14
   'wx.orig_temp_c',
   'wx.dest_temp_c',
+  // wind of the destination METAR (T33): `from` degrees true, speed kt, and the compass point
+  // smoke drifts to (the reciprocal); null for calm, variable (VRB) or no METAR
+  'wx.dest_wind_from',
+  'wx.dest_wind_kt',
+  'wx.dest_smoke_drift',
   // VATSIM (T13): `*_atc` lines `CALLSIGN FREQ`, null when none online or no data;
   // `*_atc_count` null without data
   'ext.orig_atc',
@@ -664,6 +669,9 @@ function extVariables(input: ContextInput): Record<ExtVariable, Value> {
     'wx.altn_obs': a.obs,
     'wx.orig_temp_c': metarTempC(o.metar),
     'wx.dest_temp_c': metarTempC(d.metar),
+    'wx.dest_wind_from': metarWind(d.metar)?.from ?? null,
+    'wx.dest_wind_kt': metarWind(d.metar)?.kt ?? null,
+    'wx.dest_smoke_drift': smokeDrift(d.metar),
     'ext.orig_atc': oAtc.lines,
     'ext.orig_atc_count': oAtc.count,
     'ext.dest_atc': dAtc.lines,
@@ -744,6 +752,32 @@ export function metarTempC(metar: string | null): number | null {
   if (m === null) return null;
   const v = m[1] as string;
   return v.startsWith('M') ? -Number(v.slice(1)) : Number(v);
+}
+
+/**
+ * Wind group of a METAR (`27015KT`, `27015G25KT`, `27015MPS`, `27030KMH`) as direction the wind
+ * blows from (degrees true) and mean speed in knots. Null for calm (`00000KT`), variable
+ * (`VRB`), no group or no METAR.
+ */
+export function metarWind(metar: string | null): { from: number; kt: number } | null {
+  if (metar === null) return null;
+  const body = metar.split(/\sRMK\s/)[0] as string;
+  const m = /(?:^|\s)(\d{3})(\d{2,3})(?:G\d{2,3})?(KT|MPS|KMH)(?=\s|$)/.exec(body);
+  if (m === null) return null;
+  const speed = Number(m[2]);
+  const kt = m[3] === 'KT' ? speed : m[3] === 'MPS' ? speed * 1.943844 : speed / 1.852;
+  if (speed === 0) return null;
+  return { from: Number(m[1]), kt: Math.round(kt) };
+}
+
+const COMPASS_8 = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
+
+/** Compass point the wind carries smoke to: the reciprocal of the METAR wind direction. */
+export function smokeDrift(metar: string | null): string | null {
+  const w = metarWind(metar);
+  if (w === null) return null;
+  const to = (w.from + 180) % 360;
+  return COMPASS_8[Math.round(to / 45) % 8] as string;
 }
 
 /** T43/T44 variables (kept apart from the big literal in {@link buildContext}). */

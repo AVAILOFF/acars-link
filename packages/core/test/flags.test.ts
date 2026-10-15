@@ -8,12 +8,14 @@ import {
   compileScenario,
   generateSyntheticFlight,
   metarTempC,
+  metarWind,
   type OutboundMessage,
   parseSimbriefOfp,
   reassignedGate,
   type ScenarioDef,
   ScenarioError,
   type ScenarioEvent,
+  smokeDrift,
   type Value,
 } from '../src/index.js';
 
@@ -282,6 +284,22 @@ describe('irregular data', () => {
     expect(metarTempC('UUEE 081350Z 36010KT 2000 -SN M02/M04 Q1002')).toBe(-2);
     expect(metarTempC('XXXX 081350Z 36010KT 9999 Q1002 RMK 10/05')).toBeNull();
     expect(metarTempC(null)).toBeNull();
+  });
+
+  it('METAR wind and the direction smoke drifts to (T33)', () => {
+    expect(metarWind('EDDF 081350Z 32012KT 9999 16/09 Q1013')).toEqual({ from: 320, kt: 12 });
+    expect(metarWind('EDDF 081350Z 27015G25KT 9999 16/09 Q1013')).toEqual({ from: 270, kt: 15 });
+    expect(metarWind('ULLI 081350Z 18005MPS 9999 16/09 Q1013')).toEqual({ from: 180, kt: 10 });
+    expect(metarWind('LSZH 081350Z 00000KT CAVOK 16/09 Q1013')).toBeNull();
+    expect(metarWind('LSZH 081350Z VRB02KT CAVOK 16/09 Q1013')).toBeNull();
+    expect(metarWind('XXXX 081350Z 9999 Q1002 RMK 27015KT')).toBeNull();
+    expect(metarWind(null)).toBeNull();
+    // Wind from the west carries smoke east; from 320 (NW) to SE; from 010 to S.
+    expect(smokeDrift('EDDF 081350Z 27015KT 9999 16/09 Q1013')).toBe('E');
+    expect(smokeDrift('EDDF 081350Z 32012KT 9999 16/09 Q1013')).toBe('SE');
+    expect(smokeDrift('EDDF 081350Z 01012KT 9999 16/09 Q1013')).toBe('S');
+    expect(smokeDrift('EDDF 081350Z 18012KT 9999 16/09 Q1013')).toBe('N');
+    expect(smokeDrift(null)).toBeNull();
   });
 });
 

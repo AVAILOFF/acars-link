@@ -152,6 +152,7 @@ const SETUP: Readonly<Record<string, Setup>> = {
   connection_missed: { with: ['short_connection'], lateMin: 90 },
   dg_notoc: { answers: ['ACK'] },
   runway_closure_dest: { answers: ['HOLD', 'DIVERT'] },
+  dest_fire: { answers: ['HOLD', 'DIVERT'] },
   altn_wx_deterioration: { answers: ['OK', 'LOW'] },
   crew_duty_limit: { delayMin: 45, answers: ['EXTEND', 'NO'] },
   discretion_followup: {
@@ -431,6 +432,21 @@ describe('continuations (T41)', () => {
       'runway_closure_dest',
     );
     expect(closed[2]).toContain(`RWY ${kg.destination.planRwy} REOPENED`);
+  });
+
+  it('dest_fire: smoke drift from the METAR wind, 20 min hold, DIVERT ends the chain (T33)', () => {
+    const hold = textsOf(fly(c, [byId('dest_fire')], { answer: 'HOLD' }), 'dest_fire');
+    expect(hold).toHaveLength(3);
+    expect(hold[0]).toContain(`FIRE REPORTED NEAR RWY ${kg.destination.planRwy}`);
+    expect(hold[0]).toMatch(/SMOKE DRIFTING [NSEW]{1,2}, WIND \d{3}\/\d+KT/);
+    expect(hold[0]).toContain('PREPARE DIVERSION');
+    expect(hold[1]).toContain('20 MIN');
+    expect(hold[2]).toContain('UNDER CONTROL');
+    const div = fly(c, [byId('dest_fire')], { answer: 'DIVERT' });
+    expect(textsOf(div, 'dest_fire')).toHaveLength(2);
+    expect(div.events).toContainEqual(
+      expect.objectContaining({ type: 'SET', name: 'flight.divert' }),
+    );
   });
 
   it('atc_flow_delay needs the CTOT of slot_ctot', () => {
