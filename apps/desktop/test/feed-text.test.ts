@@ -46,6 +46,7 @@ const SENT: Readonly<Record<SystemCode, Readonly<Record<string, string>>>> = {
   atc_request: { station: 'XFIN', request: 'r', reply: 'p' },
   atc_auto: { station: 'XFIN', text: 't' },
   atc_needs_data: {},
+  link_needs_data: {},
   atc_dcl_request: { station: 'XEFHK' },
   atc_dcl_clearance: { station: 'XEFHK', squawk: '1234', source: 's' },
   atc_dcl_confirmed: { station: 'XEFHK' },

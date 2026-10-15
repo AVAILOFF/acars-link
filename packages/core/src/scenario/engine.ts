@@ -1,4 +1,5 @@
 import type { CpdlcHeader } from '../atc/cpdlc.js';
+import type { DeliveryInfo } from '../datalink/link.js';
 import {
   ATC_MAX_AGE_MS,
   applyExtData,
@@ -98,6 +99,8 @@ export interface OutboundMessage {
   readonly t: number;
   /** Sent while handling a pilot message (an answer, a command reply): goes first in the outbox. */
   readonly toPilot: boolean;
+  /** The data link it went through (T31); absent without the link simulation. */
+  readonly link?: DeliveryInfo;
 }
 
 /**

@@ -616,6 +616,45 @@ describe('live data (T13)', () => {
     ]);
   });
 
+  it('data link (T31): off by default; on, messages are delayed, the stations are recorded and replay the same', async () => {
+    const plain = await setup({ http: await dataHttp() });
+    await plain.app.setSimbriefUsername('pilot42');
+    await plain.app.updateSettings({ transport: 'offline' });
+    await plain.app.loadOfp();
+    plain.sockets.last().hello();
+    await plain.app.startFlight();
+    await flyAsync(plain);
+    await plain.app.endFlight('DONE');
+    await plain.app.stopFlight();
+    const recPlain = await readRecording(plain.recordings);
+    expect(recPlain.header.datalink).toBeUndefined();
+    expect(recPlain.events.some((e) => e.type === 'tick' && e.data?.vhf !== undefined)).toBe(false);
+
+    const http = await dataHttp();
+    const s = await setup({ http });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', datalink: true });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    await flyAsync(s);
+    await s.app.endFlight('DONE');
+    await s.app.stopFlight();
+
+    const rec = await readRecording(s.recordings);
+    expect(rec.header.datalink).toEqual({ satcom: true });
+    const vhf = rec.events.flatMap((e) => (e.type === 'tick' && e.data?.vhf ? e.data.vhf : []));
+    expect(vhf.map((v) => v.icao)).toEqual(['RJBB']);
+    const outs = rec.events.filter((e) => e.type === 'out');
+    expect(outs.length).toBeGreaterThan(0);
+    const r = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+    // Every message went through a link, so none is stamped before its scenario could start.
+    expect(r.outbound.every((m) => m.link !== undefined)).toBe(true);
+  });
+
   it('fetches after the OFP loads, feeds the core, is recorded and replays the same', async () => {
     const http = await dataHttp();
     const s = await setup({ http });

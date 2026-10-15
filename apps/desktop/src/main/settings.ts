@@ -28,6 +28,8 @@ export function defaultSettings(locale: string): Settings {
     soundOnMessage: false,
     messageGapSec: 60,
     rops: false,
+    datalink: false,
+    datalinkSatcom: true,
     ropsStandAside: true,
     ropsRandomDirects: true,
     specialSport: true,
@@ -86,6 +88,8 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'liveData':
       case 'soundOnMessage':
       case 'rops':
+      case 'datalink':
+      case 'datalinkSatcom':
       case 'ropsStandAside':
       case 'ropsRandomDirects':
       case 'specialSport':
@@ -129,6 +133,8 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'soundOnMessage',
     'messageGapSec',
     'rops',
+    'datalink',
+    'datalinkSatcom',
     'ropsStandAside',
     'ropsRandomDirects',
     'specialSport',

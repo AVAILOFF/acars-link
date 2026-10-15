@@ -38,6 +38,13 @@ export interface Settings {
    * XDGG) for the own aircraft. Needs live data (FIR boundaries). Off by default.
    */
   readonly rops: boolean;
+  /**
+   * Data link simulation (T31): messages wait for the delay of a conditional VHF station or an
+   * Inmarsat satellite (and for a link at all). Needs live data (stations near the route). Off by default.
+   */
+  readonly datalink: boolean;
+  /** The aircraft has SATCOM: Inmarsat where VHF is out of reach. Default on. */
+  readonly datalinkSatcom: boolean;
   /** ROPS steps aside where a live VATSIM centre covers the FIR. Default on. */
   readonly ropsStandAside: boolean;
   /** ROPS sends up to 3 random Direct To per flight (T26). Default on. */
@@ -206,6 +213,7 @@ export type SystemCode =
   | 'atc_request'
   | 'atc_auto'
   | 'atc_needs_data'
+  | 'link_needs_data'
   | 'atc_dcl_request'
   | 'atc_dcl_clearance'
   | 'atc_dcl_confirmed'

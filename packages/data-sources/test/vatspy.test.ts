@@ -10,12 +10,14 @@ import {
   ExternalDataService,
   type HttpClient,
   NATTRAK_TRACKS_URL,
+  OURAIRPORTS_AIRPORTS_URL,
   OURAIRPORTS_FREQS_URL,
   OURAIRPORTS_RUNWAYS_URL,
   parseAirportFrequencies,
   parseNatTracks,
   parseRunwayPoint,
   parseVatsimCenters,
+  parseVhfStations,
   routeFirs,
   VATSPY_BOUNDARIES_URL,
   VATSPY_DAT_URL,
@@ -326,5 +328,38 @@ describe('T34: runway coordinates from OurAirports', () => {
     expect(await svc.runwayPoint('RJBB', '24R', T0 + 60_000)).toEqual(a);
     expect(calls).toBe(1);
     expect(await svc.runwayPoint('RJBB', '30', T0)).toBeNull();
+  });
+});
+
+describe('T31: conditional VHF stations from OurAirports', () => {
+  const csv = fixture('ourairports-airports.csv');
+
+  it('large and medium airports with scheduled service, four-letter ident (trimmed real file)', () => {
+    const list = parseVhfStations(csv);
+    expect(list.map((s) => s.icao)).toEqual(['EDDF', 'EGLL', 'KJFK', 'RJBB']);
+    expect(list[0]).toEqual({ icao: 'EDDF', lat: 50.026706, lon: 8.55835 });
+    expect(() => parseVhfStations('a,b\n1,2')).toThrow(DataSourceError);
+  });
+
+  it('the service keeps only stations near the route, with the datalink option only', async () => {
+    const http: HttpClient = {
+      async request(req) {
+        return req.url === OURAIRPORTS_AIRPORTS_URL
+          ? { status: 200, body: csv }
+          : { status: 404, body: '' };
+      },
+    };
+    const T0 = Date.UTC(2026, 9, 15, 8, 0);
+    const off = new ExternalDataService({ http, userAgent: 't', sources: ['vhf'] });
+    off.startFlight(eddfEddm, T0);
+    off.tick(T0, 'PREFLIGHT');
+    await off.settle();
+    expect(off.take(T0).update).toBeNull();
+
+    const svc = new ExternalDataService({ http, userAgent: 't', sources: ['vhf'] });
+    svc.startFlight(eddfEddm, T0, { datalink: true });
+    svc.tick(T0, 'PREFLIGHT');
+    await svc.settle();
+    expect(svc.take(T0).update?.vhf?.map((s) => s.icao)).toEqual(['EDDF']);
   });
 });

@@ -1,3 +1,4 @@
+import type { VhfStation } from '../datalink/link.js';
 import { distanceNm, interpolate, type LatLon } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';
 import {
@@ -193,6 +194,8 @@ export interface ExtDataUpdate {
   readonly airports?: Readonly<Record<string, AirportInfo>>;
   /** Frequencies of the departure airport (T24). */
   readonly freqs?: { readonly icao: string; readonly list: readonly AirportFrequency[] };
+  /** Conditional VHF stations (airports) near the route (T31); replaces the list. */
+  readonly vhf?: readonly VhfStation[];
   /** Space launches in the time window of the flight (T28); replaces the list. */
   readonly launches?: readonly SpaceLaunch[];
   /** Active NAT tracks (T27); replaces the list. */
@@ -267,6 +270,8 @@ export interface ExtState {
   /** T24; absent in states saved before T24. */
   readonly airports?: Readonly<Record<string, AirportInfo>> | null;
   readonly freqs?: { readonly icao: string; readonly list: readonly AirportFrequency[] } | null;
+  /** T31; absent in states saved before T31. */
+  readonly vhf?: readonly VhfStation[];
   /** T28; absent in states saved before T28. */
   readonly launches?: readonly RoutedLaunch[];
   /** T27; absent in states saved before T27. */
@@ -421,6 +426,22 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
     for (const f of (freqs as { list: unknown[] }).list) {
       if (!isObj(f) || typeof f['type'] !== 'string' || typeof f['mhz'] !== 'string') {
         bad('freqs item');
+      }
+    }
+  }
+  if (x['vhf'] !== undefined) {
+    if (!Array.isArray(x['vhf'])) bad('vhf');
+    for (const v of x['vhf'] as unknown[]) {
+      if (
+        !isObj(v) ||
+        typeof v['icao'] !== 'string' ||
+        !ICAO.test(v['icao']) ||
+        !isNum(v['lat']) ||
+        !isNum(v['lon']) ||
+        Math.abs(v['lat'] as number) > 90 ||
+        Math.abs(v['lon'] as number) > 180
+      ) {
+        bad('vhf item');
       }
     }
   }
@@ -669,6 +690,7 @@ export function applyExtData(
     next = { ...next, launches };
   }
   if (u.natTracks !== undefined) next = { ...next, natTracks: [...u.natTracks] };
+  if (u.vhf !== undefined) next = { ...next, vhf: u.vhf.map((v) => ({ ...v })) };
   next = applySpecial(next, u, route);
   if (u.firs !== undefined) next = { ...next, firs: [...u.firs] };
   if (u.centers !== undefined) next = { ...next, centers: [...u.centers], centersT: u.t };

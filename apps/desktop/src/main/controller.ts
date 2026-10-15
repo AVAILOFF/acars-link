@@ -365,6 +365,7 @@ export class AppController {
     if (settings.liveData) {
       this.data.startFlight(ofp, this.o.now(), {
         firs: settings.rops,
+        datalink: settings.datalink,
         special: specialGroups(settings),
       });
     } else this.data.stopFlight();
@@ -430,6 +431,7 @@ export class AppController {
       flags,
       minGapMs: settings.messageGapSec * 1000,
       simCommands: (c) => this.sendSimCommand(c),
+      ...(settings.datalink ? { datalink: { satcom: settings.datalinkSatcom } } : {}),
       ...(settings.rops
         ? {
             rops: {
@@ -442,6 +444,8 @@ export class AppController {
     });
     // The station needs the FIR boundaries (live data).
     if (settings.rops && !settings.liveData) this.feed.system(now, 'atc_needs_data');
+    // The conditional VHF stations come from live data; without them only SATCOM is a link.
+    if (settings.datalink && !settings.liveData) this.feed.system(now, 'link_needs_data');
     if (Object.keys(flags).length > 0) {
       this.feed.system(now, 'memory', { names: Object.keys(flags).sort().join(', ') });
     }

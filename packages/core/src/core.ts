@@ -5,6 +5,7 @@ import {
   type RopsState,
   RopsStation,
 } from './atc/rops.js';
+import { type DatalinkState, LinkChannel, type LinkView } from './datalink/link.js';
 import type { ExtDataUpdate, ExtState } from './ext/data.js';
 import type { DisplayProfile } from './format/profile.js';
 import type { Ofp } from './ofp/types.js';
@@ -92,6 +93,12 @@ export interface CoreOptions {
   readonly minGapMs?: number;
   /** ROPS ATC station (T23); absent = off. */
   readonly rops?: RopsOptions;
+  /**
+   * Simulation of the data link (T31, `datalink/link.ts`): each outgoing message waits for the
+   * delay of the VHF station or satellite in reach, or for any link at all. `satcom`: the
+   * aircraft has SATCOM. Absent = messages leave at once, as before.
+   */
+  readonly datalink?: { readonly satcom: boolean };
 }
 
 export interface CoreState {
@@ -102,6 +109,8 @@ export interface CoreState {
   readonly outbox?: OutboxState;
   /** ROPS station (T23); absent in states saved before it or without ROPS. */
   readonly rops?: RopsState;
+  /** Data link (T31); absent in states saved before it or without the link simulation. */
+  readonly link?: DatalinkState;
 }
 
 export interface OutboxState {
@@ -124,6 +133,7 @@ export class AcarsCore {
     private readonly engine: ScenarioEngine,
     options: CoreOptions,
     private readonly rops: RopsStation | null,
+    private link: LinkChannel | null,
   ) {
     this.gapMs = options.minGapMs ?? 0;
     if (!(this.gapMs >= 0)) throw new RangeError('minGapMs must be >= 0');
@@ -140,6 +150,7 @@ export class AcarsCore {
       new ScenarioEngine(engineOptions(options)),
       options,
       ropsOf(options, undefined),
+      linkOf(options, undefined),
     );
   }
 
@@ -155,6 +166,7 @@ export class AcarsCore {
       ScenarioEngine.fromState(state.engine, engineOptions(options)),
       options,
       ropsOf(options, state.rops),
+      linkOf(options, state.link),
     );
     if (state.outbox !== undefined) {
       const copy = JSON.parse(JSON.stringify(state.outbox)) as OutboxState;
@@ -205,7 +217,13 @@ export class AcarsCore {
       engine: this.engine.getState(),
       outbox: JSON.parse(JSON.stringify({ queue: this.queue, lastAt: this.lastAt })) as OutboxState,
       ...(this.rops === null ? {} : { rops: this.rops.getState() }),
+      ...(this.link === null ? {} : { link: this.link.getState() }),
     };
+  }
+
+  /** The data link now and what waits on it (T31); null without the link simulation. */
+  get linkView(): LinkView | null {
+    return this.link?.view ?? null;
   }
 
   /** The user starts the flight (PREFLIGHT → BOARDING). */
@@ -274,13 +292,22 @@ export class AcarsCore {
       const id = e.kind === 'MAYDAY' ? 'emergency_mayday' : 'emergency_pan';
       if (this.engine.has(id) && !this.emergencies.includes(id)) this.emergencies.push(id);
     }
+    const outbound = [...atc.outbound, ...this.pace(now, out.outbound)];
     return {
-      outbound: [...atc.outbound, ...this.pace(now, out.outbound)],
+      outbound: this.link === null ? outbound : this.throughLink(now, outbound),
       commands: out.commands,
       phase: this.fsm.phase,
       events: [...phaseEvents, ...out.events, ...atc.events] as CoreEvent[],
       listen: this.rops?.listen ?? [],
     };
+  }
+
+  /** T31: the messages of this tick enter the link; those whose delay is over leave. */
+  private throughLink(now: number, fresh: readonly OutboundMessage[]): OutboundMessage[] {
+    const tm = this.fsm.lastSnapshot;
+    const pos =
+      tm === null ? null : { lat: tm.lat, lon: tm.lon, altFt: tm.altFt, onGround: tm.onGround };
+    return (this.link as LinkChannel).process(now, pos, this.engine.ext.vhf ?? [], fresh);
   }
 
   /**
@@ -305,6 +332,12 @@ export class AcarsCore {
     }
     return out;
   }
+}
+
+function linkOf(o: CoreOptions, state: DatalinkState | undefined): LinkChannel | null {
+  if (o.datalink === undefined) return null;
+  const seed = o.seed ?? `${o.ofp.callsign}/${o.ofp.source.requestId}`;
+  return new LinkChannel(o.datalink.satcom, seed, state);
 }
 
 function ropsOf(o: CoreOptions, state: RopsState | undefined): RopsStation | null {

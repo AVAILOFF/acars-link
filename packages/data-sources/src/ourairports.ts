@@ -1,5 +1,12 @@
-import type { AirportFrequency } from '@acars/core';
+import {
+  type AirportFrequency,
+  type Ofp,
+  RoutePolyline,
+  VHF_CORRIDOR_NM,
+  type VhfStation,
+} from '@acars/core';
 import { DataSourceError, expectOk, type FetchContext, request } from './common.js';
+import { OURAIRPORTS_AIRPORTS_URL } from './holidays.js';
 
 /**
  * Airport frequencies for the departure clearance (T24, docs/06 "OurAirports"): OurAirports
@@ -109,6 +116,40 @@ export function parseRunwayPoint(csv: string, icao: string, rwy: string): Runway
     return { lat: ((a as number) + (d as number)) / 2, lon: ((b as number) + (e as number)) / 2 };
   }
   return null;
+}
+
+/**
+ * Conditional VHF stations for the data link (T31, docs/07 A1): the airports of OurAirports
+ * `airports.csv` that are large or medium with scheduled service and a four-letter ident,
+ * only those within {@link VHF_CORRIDOR_NM} of the planned route. Real SITA/ARINC stations
+ * have no open list; the pilot sees these as conditional ones.
+ */
+export async function fetchVhfStations(ctx: FetchContext, ofp: Ofp): Promise<VhfStation[]> {
+  const res = await request(ctx, OURAIRPORTS_AIRPORTS_URL);
+  expectOk(res, 'OurAirports');
+  const route = new RoutePolyline(ofp);
+  return parseVhfStations(res.body).filter((s) => route.locate(s).offNm <= VHF_CORRIDOR_NM);
+}
+
+/** Large and medium airports with scheduled service (file order, 4-letter ident). */
+export function parseVhfStations(csv: string): VhfStation[] {
+  const lines = csv.split(/\r?\n/);
+  const head = splitCsv(lines[0] ?? '');
+  const col = (name: string) => head.indexOf(name);
+  const idx = ['ident', 'type', 'latitude_deg', 'longitude_deg', 'scheduled_service'].map(col);
+  if (idx.some((i) => i < 0)) throw new DataSourceError('OurAirports: unexpected CSV header');
+  const [ident, type, lat, lon, sched] = idx as [number, number, number, number, number];
+  const out: VhfStation[] = [];
+  for (const line of lines.slice(1)) {
+    if (line === '') continue;
+    const c = splitCsv(line);
+    if (c[type] !== 'large_airport' && c[type] !== 'medium_airport') continue;
+    if (c[sched] !== 'yes' || !/^[A-Z]{4}$/.test(c[ident] ?? '')) continue;
+    const [la, lo] = [Number(c[lat]), Number(c[lon])];
+    if (!(Math.abs(la) <= 90 && Math.abs(lo) <= 180) || c[lat] === '' || c[lon] === '') continue;
+    out.push({ icao: c[ident] as string, lat: la, lon: lo });
+  }
+  return out;
 }
 
 /** One CSV line: commas, double-quoted fields with `""` escapes. */

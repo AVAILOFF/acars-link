@@ -62,6 +62,8 @@ export interface FlightSessionOptions {
   readonly simCommands?: (c: SimCommand) => void;
   /** ROPS ATC station (T23); absent = off. */
   readonly rops?: RopsOptions;
+  /** Data link simulation (T31); absent = off. */
+  readonly datalink?: { readonly satcom: boolean };
 }
 
 /** Names of the data sources in the feed (proper names, the same in every language). */
@@ -72,6 +74,7 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
   stands: 'OSM stands (Overpass)',
   firs: 'VATSpy (FIR boundaries)',
   freqs: 'OurAirports (frequencies)',
+  vhf: 'OurAirports (VHF stations)',
   launches: 'TheSpaceDevs (launches)',
   nattracks: 'natTrak (NAT tracks)',
   spacewx: 'NOAA SWPC (space weather)',
@@ -130,6 +133,7 @@ export class FlightSession {
       ...(o.flags === undefined ? {} : { flags: o.flags }),
       ...(o.minGapMs === undefined ? {} : { minGapMs: o.minGapMs }),
       ...(o.rops === undefined ? {} : { rops: o.rops }),
+      ...(o.datalink === undefined ? {} : { datalink: o.datalink }),
       namesVersion: NAMES_VERSION,
     });
     this.data = o.data ?? null;
@@ -158,6 +162,7 @@ export class FlightSession {
         ...probabilities(o.scenarios),
         ...(o.minGapMs === undefined || o.minGapMs === 0 ? {} : { minGapMs: o.minGapMs }),
         ...(o.rops === undefined ? {} : { rops: o.rops }),
+        ...(o.datalink === undefined ? {} : { datalink: o.datalink }),
         namesVersion: NAMES_VERSION,
       }),
     );

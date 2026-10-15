@@ -74,6 +74,8 @@ export interface RecordingHeader {
   readonly flags?: Readonly<Record<string, Value>>;
   /** ROPS ATC station (T23); absent = off. */
   readonly rops?: RopsOptions;
+  /** Data link simulation (T31); absent = off. */
+  readonly datalink?: { readonly satcom: boolean };
 }
 
 export type RecordingEvent =
@@ -220,6 +222,8 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     )
   )
     throw bad('rops');
+  const dl = x['datalink'];
+  if (dl !== undefined && !(isObj(dl) && typeof dl['satcom'] === 'boolean')) throw bad('datalink');
   return x as unknown as RecordingHeader;
 }
 

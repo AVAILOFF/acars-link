@@ -239,6 +239,27 @@ function NetworkForm() {
         <p className="hint">{t('set.ropsRandomDirectsHint')}</p>
       </div>
       <div className="field">
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={settings.datalink}
+            disabled={busy !== null}
+            onChange={(e) => void update({ datalink: e.currentTarget.checked })}
+          />
+          {t('set.datalink')}
+        </label>
+        <p className="hint">{t('set.datalinkHint')}</p>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={settings.datalinkSatcom}
+            disabled={busy !== null || !settings.datalink}
+            onChange={(e) => void update({ datalinkSatcom: e.currentTarget.checked })}
+          />
+          {t('set.datalinkSatcom')}
+        </label>
+      </div>
+      <div className="field">
         <span>{t('set.special')}</span>
         {(['specialSport', 'specialAviation', 'specialOther'] as const).map((key) => (
           <label className="check" key={key}>

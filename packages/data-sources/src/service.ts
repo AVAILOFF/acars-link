@@ -22,6 +22,7 @@ import {
   RoutePolyline,
   type SpaceLaunch,
   type SpaceWeather,
+  type VhfStation,
   type WxReport,
 } from '@acars/core';
 import { DataSourceError, type FetchContext, type HttpClient, ICAO_RE } from './common.js';
@@ -29,7 +30,12 @@ import { fetchEonetEvents } from './eonet.js';
 import { fetchAirportCountries, fetchHolidays } from './holidays.js';
 import { fetchLaunches } from './launches.js';
 import { fetchNatTracks } from './nattrak.js';
-import { fetchAirportFrequencies, fetchRunwayPoint, type RunwayPoint } from './ourairports.js';
+import {
+  fetchAirportFrequencies,
+  fetchRunwayPoint,
+  fetchVhfStations,
+  type RunwayPoint,
+} from './ourairports.js';
 import { fetchQuakes } from './quakes.js';
 import { fetchAshSigmets } from './sigmet.js';
 import { fetchAurora, fetchSpaceWeather } from './spacewx.js';
@@ -79,6 +85,7 @@ export type DataSourceKind =
   | 'stands'
   | 'firs'
   | 'freqs'
+  | 'vhf'
   | 'launches'
   | 'nattracks'
   | 'spacewx'
@@ -95,6 +102,7 @@ export const DATA_SOURCES: readonly DataSourceKind[] = [
   'stands',
   'firs',
   'freqs',
+  'vhf',
   'launches',
   'nattracks',
   'spacewx',
@@ -118,8 +126,10 @@ const SPECIAL_SOURCES: ReadonlySet<DataSourceKind> = new Set(Object.values(SPECI
 const ROPS_SOURCES: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs', 'nattracks']);
 /** ROPS sources fetched once per flight (the others refresh on their schedule). */
 const ROPS_ONCE: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs']);
+/** Source of the data link simulation only (`startFlight(…, { datalink: true })`, T31). */
+const DATALINK_SOURCES: ReadonlySet<DataSourceKind> = new Set(['vhf']);
 /** Fetched once per flight. */
-const ONCE: ReadonlySet<DataSourceKind> = new Set(['stands', 'firs', 'freqs', 'holidays']);
+const ONCE: ReadonlySet<DataSourceKind> = new Set(['stands', 'firs', 'freqs', 'vhf', 'holidays']);
 
 export interface CacheEntry {
   /** When the value was fetched, epoch ms. */
@@ -171,6 +181,7 @@ export const DATA_POLICY: Readonly<Record<DataSourceKind, Policy>> = {
   stands: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   firs: { refreshMs: null, cacheMs: 7 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   freqs: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
+  vhf: { refreshMs: null, cacheMs: 30 * 24 * 60 * MIN, retryMs: 10 * MIN, maxTries: 3 },
   launches: { refreshMs: 60 * MIN, cacheMs: 30 * MIN, retryMs: 15 * MIN, maxTries: null },
   nattracks: { refreshMs: 60 * MIN, cacheMs: 30 * MIN, retryMs: 15 * MIN, maxTries: null },
   spacewx: { refreshMs: 30 * MIN, cacheMs: 15 * MIN, retryMs: 15 * MIN, maxTries: null },
@@ -214,6 +225,8 @@ interface Flight {
   readonly airports: readonly string[];
   /** FIR boundaries and centres for the ROPS station (T23). */
   readonly firs: boolean;
+  /** The conditional VHF stations of the data link simulation (T31). */
+  readonly datalink: boolean;
   /** Special-event sources of the flight, sorted, comma-joined (T29). */
   readonly special: string;
   /** When the flight started (`startFlight`), epoch ms. */
@@ -239,6 +252,7 @@ export class ExternalDataService {
     centers: CenterStation[] | null;
     airports: Record<string, AirportInfo> | null;
     freqs: { icao: string; list: AirportFrequency[] } | null;
+    vhf: VhfStation[] | null;
     launches: SpaceLaunch[] | null;
     natTracks: NatTrack[] | null;
     spaceWx: SpaceWeather | null;
@@ -274,12 +288,22 @@ export class ExternalDataService {
   startFlight(
     ofp: Ofp,
     now: number,
-    opts: { readonly firs?: boolean; readonly special?: readonly SpecialGroup[] } = {},
+    opts: {
+      readonly firs?: boolean;
+      readonly datalink?: boolean;
+      readonly special?: readonly SpecialGroup[];
+    } = {},
   ): void {
     const firs = opts.firs === true;
+    const datalink = opts.datalink === true;
     const special = new Set((opts.special ?? []).flatMap((g) => SPECIAL_GROUPS[g]));
     const key = [...special].sort().join(',');
-    if (this.flight?.ofp === ofp && this.flight.firs === firs && this.flight.special === key)
+    if (
+      this.flight?.ofp === ofp &&
+      this.flight.firs === firs &&
+      this.flight.datalink === datalink &&
+      this.flight.special === key
+    )
       return;
     this.generation++;
     const airports = [ofp.origin.icao, ofp.destination.icao, ...ofp.alternates.map((a) => a.icao)];
@@ -287,6 +311,7 @@ export class ExternalDataService {
       ofp,
       airports: [...new Set(airports)].filter((i) => ICAO_RE.test(i)),
       firs,
+      datalink,
       special: key,
       startedAt: now,
     };
@@ -295,6 +320,7 @@ export class ExternalDataService {
         (k) =>
           this.enabled.has(k) &&
           (!ROPS_SOURCES.has(k) || firs) &&
+          (!DATALINK_SOURCES.has(k) || datalink) &&
           (!SPECIAL_SOURCES.has(k) || special.has(k)),
       ).map((k) => [k, { inFlight: false, nextAt: now, fails: 0, fetched: false, failing: false }]),
     );
@@ -356,6 +382,7 @@ export class ExternalDataService {
       p.centers !== null ||
       p.airports !== null ||
       p.freqs !== null ||
+      p.vhf !== null ||
       p.launches !== null ||
       p.natTracks !== null ||
       p.spaceWx !== null ||
@@ -377,6 +404,7 @@ export class ExternalDataService {
         ...(p.centers === null ? {} : { centers: p.centers }),
         ...(p.airports === null ? {} : { airports: p.airports }),
         ...(p.freqs === null ? {} : { freqs: p.freqs }),
+        ...(p.vhf === null ? {} : { vhf: p.vhf }),
         ...(p.launches === null ? {} : { launches: p.launches }),
         ...(p.natTracks === null ? {} : { natTracks: p.natTracks }),
         ...(p.spaceWx === null ? {} : { spaceWx: p.spaceWx }),
@@ -515,6 +543,14 @@ export class ExternalDataService {
         const freqs = { icao, list };
         return () => {
           this.pending.freqs = freqs;
+        };
+      }
+      case 'vhf': {
+        const o = flight.ofp;
+        const key = `vhf:${o.origin.icao}-${o.destination.icao}-${hashSeed(o.route ?? '')}`;
+        const v = await this.cachedOr(key, now, kind, 'vhf', () => fetchVhfStations(this.ctx, o));
+        return () => {
+          this.pending.vhf = v as VhfStation[];
         };
       }
       case 'eonet': {
@@ -753,6 +789,7 @@ function empty() {
     centers: null,
     airports: null,
     freqs: null,
+    vhf: null,
     launches: null,
     natTracks: null,
     spaceWx: null,

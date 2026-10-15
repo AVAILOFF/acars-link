@@ -128,6 +128,8 @@ const en = {
   'sys.atc_request': 'ROPS: {station} — "{request}" → {reply}',
   'sys.atc_auto': 'ROPS: {station} — {text}',
   'sys.atc_needs_data': 'ROPS needs live data (FIR boundaries): turn on "Live data" in Settings',
+  'sys.link_needs_data':
+    'The data link simulation needs live data (VHF stations): without it only SATCOM is a link',
   'sys.atc_dcl_request': 'PDC: request received by {station}',
   'sys.atc_dcl_clearance': 'PDC: clearance sent by {station}, squawk {squawk} ({source})',
   'sys.atc_dcl_confirmed': 'PDC: clearance confirmed (WILCO)',
@@ -151,6 +153,10 @@ const en = {
   'set.ropsRandomDirects': 'Random Direct To',
   'set.ropsRandomDirectsHint':
     'Up to 3 times per flight in cruise the station clears you direct to a fix ahead on your route. Applies to the next flight.',
+  'set.datalink': 'Data link simulation (VHF / SATCOM)',
+  'set.datalinkHint':
+    'Messages arrive with the delay of a VHF station in line of sight (a conditional one: the nearest airport on the route, not a real SITA/ARINC station) or of an Inmarsat satellite; with no link they wait. Needs live data. Applies to the next flight.',
+  'set.datalinkSatcom': 'The aircraft has SATCOM (Inmarsat where VHF is out of reach)',
   'set.special': 'Special events',
   'set.specialSport': 'Sport (F1, NHL)',
   'set.specialAviation':
@@ -394,6 +400,8 @@ const ru: Record<MessageKey, string> = {
   'sys.atc_auto': 'ROPS: {station} — {text}',
   'sys.atc_needs_data':
     'Для ROPS нужны живые данные (границы FIR): включите «Живые данные» в настройках',
+  'sys.link_needs_data':
+    'Для имитации линии нужны живые данные (станции VHF): без них линией остаётся только SATCOM',
   'sys.atc_dcl_request': 'PDC: запрос принят станцией {station}',
   'sys.atc_dcl_clearance': 'PDC: {station} выдала разрешение, сквок {squawk} ({source})',
   'sys.atc_dcl_confirmed': 'PDC: разрешение подтверждено (WILCO)',
@@ -417,6 +425,10 @@ const ru: Record<MessageKey, string> = {
   'set.ropsRandomDirects': 'Случайные Direct To',
   'set.ropsRandomDirectsHint':
     'До 3 раз за полёт в крейсере станция даёт прямо на точку впереди по маршруту. Действует со следующего рейса.',
+  'set.datalink': 'Имитация линии передачи (VHF / SATCOM)',
+  'set.datalinkHint':
+    'Сообщения приходят с задержкой станции VHF в прямой видимости (условной: ближайший аэропорт у маршрута, а не настоящая станция SITA/ARINC) или спутника Inmarsat; без линии сообщения ждут. Нужны живые данные. Действует со следующего рейса.',
+  'set.datalinkSatcom': 'На самолёте есть SATCOM (Inmarsat там, где нет VHF)',
   'set.special': 'Особые события',
   'set.specialSport': 'Спорт (Формула-1, NHL)',
   'set.specialAviation':

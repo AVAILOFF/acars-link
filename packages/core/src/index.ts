@@ -18,6 +18,7 @@ export * from './atc/rops.js';
 export * from './atc/route.js';
 export * from './atc/squawk/squawk.js';
 export * from './core.js';
+export * from './datalink/link.js';
 export * from './ext/airline.js';
 export * from './ext/airshows.js';
 export * from './ext/aviation-history.js';
