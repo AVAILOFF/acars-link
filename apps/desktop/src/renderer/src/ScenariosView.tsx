@@ -1,6 +1,7 @@
 import type { ScenarioCategory } from '@acars/core';
 import { useEffect, useState } from 'react';
 import type { ScenarioInfo } from '../../shared/api.js';
+import { SwitchInput } from './Switch.js';
 import { useStore } from './store.js';
 import { useT, useUiText } from './ui.js';
 
@@ -16,39 +17,46 @@ export function ScenariosView() {
   for (const s of scenarios) groups.set(s.category, [...(groups.get(s.category) ?? []), s]);
 
   return (
-    <section className="panel narrow" aria-labelledby="scen-title">
-      <h2 id="scen-title" className="panel-title">
+    <section className="page" aria-labelledby="scen-title">
+      <h2 id="scen-title" className="page-title">
         {t('scen.title')}
       </h2>
       <p className={running ? 'hint warn' : 'hint'}>{t(running ? 'scen.running' : 'scen.hint')}</p>
       {[...groups].map(([category, list]) => (
-        <fieldset key={category} className="group">
-          <legend>{t(`cat.${category}`)}</legend>
-          {list.map((s) => (
-            <div key={s.id} className="scenario-row">
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={s.enabled}
-                  disabled={busy !== null}
-                  onChange={(e) => void setScenario(s.id, e.currentTarget.checked)}
-                />
-                <span className="check-title">{text(s.titleText)}</span>
-                <span className="mono muted small">{s.id}</span>
-                {s.enabled !== s.enabledByDefault && (
-                  <span className="muted small">
-                    {t('scen.default', { value: t(s.enabledByDefault ? 'scen.on' : 'scen.off') })}
-                  </span>
-                )}
-                {s.category === 'irregular' && <ChanceInput s={s} />}
-              </label>
-              {s.description !== null && (
-                <p className="hint small scenario-desc">{text(s.description)}</p>
-              )}
-              {s.droneRiskDefault !== null && <DroneRiskTable defaults={s.droneRiskDefault} />}
-            </div>
-          ))}
-        </fieldset>
+        <section key={category} className="group" aria-labelledby={`cat-${category}`}>
+          <h3 id={`cat-${category}`} className="group-title">
+            {t(`cat.${category}`)}
+          </h3>
+          <ul className="sheet">
+            {list.map((s) => (
+              <li key={s.id} className="scenario">
+                <div className="sheet-row scenario-row">
+                  <label className="row-text" htmlFor={`scen-${s.id}`}>
+                    <span className="row-title">{text(s.titleText)}</span>
+                    {s.description !== null && (
+                      <span className="row-desc">{text(s.description)}</span>
+                    )}
+                    <span className="row-hint">
+                      <span className="row-id">{s.id}</span>
+                      {s.enabled !== s.enabledByDefault &&
+                        ` · ${t('scen.default', {
+                          value: t(s.enabledByDefault ? 'scen.on' : 'scen.off'),
+                        })}`}
+                    </span>
+                  </label>
+                  {s.category === 'irregular' && <ChanceInput s={s} />}
+                  <SwitchInput
+                    id={`scen-${s.id}`}
+                    checked={s.enabled}
+                    disabled={busy !== null}
+                    onChange={(v) => void setScenario(s.id, v)}
+                  />
+                </div>
+                {s.droneRiskDefault !== null && <DroneRiskTable defaults={s.droneRiskDefault} />}
+              </li>
+            ))}
+          </ul>
+        </section>
       ))}
     </section>
   );
@@ -81,7 +89,6 @@ function ChanceInput({ s }: { s: ScenarioInfo }) {
         min={0}
         max={100}
         step={0.5}
-        className="mono"
         aria-label={t('scen.chance', { id: s.id })}
         placeholder={String(s.defaultChance)}
         value={text}
@@ -95,9 +102,11 @@ function ChanceInput({ s }: { s: ScenarioInfo }) {
           }
         }}
       />
-      <span className="muted small">%</span>
+      <span className="chance-unit">%</span>
       {s.chance !== null && (
-        <span className="muted small">{t('scen.chanceDefault', { value: s.defaultChance })}</span>
+        <span className="chance-default">
+          {t('scen.chanceDefault', { value: s.defaultChance })}
+        </span>
       )}
     </span>
   );
@@ -133,20 +142,19 @@ function DroneRiskTable({ defaults }: { defaults: Readonly<Record<string, number
     <details className="drone-risk">
       <summary>
         {t('drone.title')}{' '}
-        <span className="muted small">{t(isCustom ? 'drone.custom' : 'drone.builtin')}</span>
+        <span className="row-hint">{t(isCustom ? 'drone.custom' : 'drone.builtin')}</span>
       </summary>
-      <p className="hint small">{t('drone.hint')}</p>
+      <p className="hint">{t('drone.hint')}</p>
       <ul className="drone-rows">
         {rows.map(([c, m]) => (
           <li key={`${c}:${m}`}>
-            <span className="mono">{c}</span>
+            <span className="drone-code">{c}</span>
             <span>×</span>
             <input
               type="number"
               min={0}
               max={100}
               step={0.1}
-              className="mono"
               aria-label={t('drone.factor', { country: c })}
               defaultValue={m}
               disabled={busy}
@@ -158,6 +166,7 @@ function DroneRiskTable({ defaults }: { defaults: Readonly<Record<string, number
             />
             <button
               type="button"
+              className="btn-close"
               disabled={busy}
               aria-label={t('drone.remove', { country: c })}
               onClick={() => {
@@ -172,7 +181,8 @@ function DroneRiskTable({ defaults }: { defaults: Readonly<Record<string, number
       </ul>
       <div className="drone-add">
         <input
-          className="mono"
+          type="text"
+          className="caps"
           maxLength={2}
           aria-label={t('drone.country')}
           placeholder="XX / *"
@@ -185,7 +195,6 @@ function DroneRiskTable({ defaults }: { defaults: Readonly<Record<string, number
           min={0}
           max={100}
           step={0.1}
-          className="mono"
           aria-label={t('drone.factor', { country: code === '' ? '…' : code })}
           value={factor}
           disabled={busy}
@@ -194,11 +203,11 @@ function DroneRiskTable({ defaults }: { defaults: Readonly<Record<string, number
             if (e.key === 'Enter') add();
           }}
         />
-        <button type="button" disabled={busy} onClick={add}>
+        <button type="button" className="btn" disabled={busy} onClick={add}>
           {t('drone.add')}
         </button>
         {isCustom && (
-          <button type="button" disabled={busy} onClick={() => save({})}>
+          <button type="button" className="btn" disabled={busy} onClick={() => save({})}>
             {t('drone.reset')}
           </button>
         )}

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>ACARS — запрос</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#16181D}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible{outline:none;box-shadow:0 0 0 2px #F2F2F5,0 0 0 4px #4A9BF0}
+</style>
+</helmet>
+<div style="position: relative; width: 100%; min-height: 900px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 20px; font-variant-numeric: tabular-nums">
+<div aria-hidden="true" style="pointer-events: none">
+<dc-import name="ScreenMain" hint-size="100%,900px"></dc-import>
+</div>
+<div style="position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; padding: 96px 16px 16px; box-sizing: border-box; background: rgba(0,0,0,.6)">
+<div role="dialog" aria-modal="true" aria-labelledby="rq-title" style="width: 100%; max-width: 520px; border-radius: 10px; background: #F2F2F5; color: #1C1C1E; box-shadow: 0 2px 8px rgba(0,0,0,.3); overflow: hidden">
+
+<div style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; height: 52px; padding: 0 12px; background: #F7F7F9; border-bottom: 1px solid #E1E2E6">
+<a href="ScreenMain.dc.html" style="color: #1F6FD1; text-decoration: none">‹ Сообщения</a>
+<h2 id="rq-title" style="margin: 0; font-size: 17px; font-weight: 600">{{title}}</h2>
+<a href="ScreenMain.dc.html" aria-label="Закрыть" style="justify-self: end; width: 30px; height: 30px; border-radius: 50%; background: #A3A7AF; color: #FFFFFF; font-size: 14px; line-height: 30px; text-align: center; text-decoration: none">✕</a>
+</div>
+
+<div style="padding: 12px">
+<div role="tablist" aria-label="Тип запроса" style="display: flex; padding: 2px; border-radius: 8px; background: #E4E5E9">
+<sc-for list="{{kinds}}" as="k" hint-placeholder-count="5">
+<button type="button" role="tab" aria-selected="{{k.on}}" onClick="{{k.pick}}" style="{{k.style}}">{{k.l}}</button>
+</sc-for>
+</div>
+</div>
+
+<div style="background: #FFFFFF; border-top: 1px solid #E1E2E6; border-bottom: 1px solid #E1E2E6">
+<label style="display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 14px; border-bottom: 1px solid #E1E2E6">
+<span style="width: 96px; font-size: 12px; font-weight: 500; letter-spacing: .02em; color: #6B6F78">{{fieldLabel}}</span>
+<input type="text" value="{{icao}}" onChange="{{onIcao}}" maxlength="4" style="flex: 1 1 0; min-width: 0; border: 0; background: transparent; font-size: 17px; text-transform: uppercase; color: #1C1C1E; outline: none">
+<sc-if value="{{icaoOk}}" hint-placeholder-val="{{ true }}"><span style="height: 26px; display: inline-flex; align-items: center; padding: 0 10px; border-radius: 13px; background: #4A515E; color: #FFFFFF; font-size: 14px; font-weight: 500">{{icaoUp}}</span></sc-if>
+<sc-if value="{{icaoBad}}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; color: #D93025">4 буквы ICAO</span></sc-if>
+</label>
+<div style="padding: 10px 14px">
+<div style="font-size: 12px; font-weight: 500; letter-spacing: .02em; color: #6B6F78">БУДЕТ ОТПРАВЛЕНО</div>
+<div style="margin-top: 6px; padding: 8px 10px; border-radius: 4px; background: #000000; color: #48D27A; font-family: 'B612 Mono', monospace; font-size: 14px; line-height: 20px; white-space: pre">{{preview}}</div>
+</div>
+</div>
+
+<div style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px">
+<a href="ScreenMain.dc.html" style="display: inline-flex; align-items: center; height: 34px; padding: 0 14px; border-radius: 6px; background: #ECEDF0; color: #1C1C1E; font-weight: 500; text-decoration: none">Отмена</a>
+<a href="ScreenMain.dc.html" style="display: inline-flex; align-items: center; height: 34px; padding: 0 14px; border-radius: 6px; background: #1F7AE0; color: #FFFFFF; font-weight: 600; text-decoration: none">Отправить</a>
+</div>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { kind: 'METAR', icao: 'LEMD' }; }
+  renderVals() {
+    const kinds = ['METAR', 'TAF', 'ATIS', 'PDC', 'Текст'];
+    const k = this.state.kind;
+    const up = (this.state.icao || '').toUpperCase();
+    const ok = /^[A-Z]{4}$/.test(up);
+    const pv = {
+      METAR: 'REQ METAR ' + (up || '____'),
+      TAF: 'REQ TAF ' + (up || '____'),
+      ATIS: 'REQ ATIS ' + (up || '____') + ' ARR',
+      PDC: 'REQ PDC ' + (up || '____') + '\nVRT204 A20N STAND [—]',
+      'Текст': 'TELEX TO ' + (up || '____') + '\n[ТЕКСТ СООБЩЕНИЯ]'
+    }[k];
+    return {
+      title: k === 'Текст' ? 'Новое сообщение' : 'Запрос ' + k,
+      fieldLabel: k === 'Текст' ? 'КОМУ' : 'АЭРОПОРТ',
+      icao: this.state.icao, icaoUp: up, icaoOk: ok, icaoBad: !ok && up.length > 0,
+      onIcao: (e) => this.setState({ icao: e.target.value }),
+      preview: pv,
+      kinds: kinds.map((x) => ({
+        l: x, on: x === k ? 'true' : 'false',
+        pick: () => this.setState({ kind: x }),
+        style: 'flex: 1 1 0; height: 30px; border: 0; border-radius: 6px; font-size: 14px; font-weight: ' + (x === k ? '600' : '500') + '; background: ' + (x === k ? '#1F7AE0' : 'transparent') + '; color: ' + (x === k ? '#FFFFFF' : '#1C1C1E')
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>

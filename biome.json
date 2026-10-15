@@ -6,7 +6,13 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!**/dist", "!**/coverage", "!tools/extract-asar-sources.js"]
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/coverage",
+      "!tools/extract-asar-sources.js",
+      "!design/artboards"
+    ]
   },
   "formatter": {
     "indentStyle": "space",
