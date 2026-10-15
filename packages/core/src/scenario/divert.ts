@@ -127,15 +127,22 @@ export function pickDivert(input: {
   );
 }
 
-/** Position of an airport the core knows: the OFP's or a reserve one; null for any other. */
+/**
+ * Position of an airport the core knows: the OFP's, a reserve one or one the pilot named and the
+ * app looked up (`places`, T51); null for any other.
+ */
 export function airportPlace(
   ofp: Ofp,
   reserve: readonly DivertAirport[] | undefined,
   icao: string,
+  places?: Readonly<Record<string, Place | null>>,
 ): (Place & { readonly icao: string }) | null {
   const o = [ofp.origin, ofp.destination, ...ofp.alternates].find((a) => a.icao === icao);
   if (o !== undefined) return o;
-  return (reserve ?? []).find((a) => a.icao === icao) ?? null;
+  const r = (reserve ?? []).find((a) => a.icao === icao);
+  if (r !== undefined) return r;
+  const p = places?.[icao];
+  return p == null ? null : { icao, lat: p.lat, lon: p.lon };
 }
 
 /** The runway need of an aircraft type (ICAO designator), undefined when the table has none. */

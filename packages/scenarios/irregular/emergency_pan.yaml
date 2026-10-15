@@ -26,11 +26,13 @@ steps:
       reply: { options: [DIVERT, CONTINUE], timeout_min: 5, default: CONTINUE }
   - branch:
       DIVERT:
-        - set: { flight.divert: "{flight.nearest_altn}" }
+        - set: { flight.divert: "{reply.icao|else:flight.nearest_altn}" }
         - send:
             header: OPS MSG EMERGENCY
             body: |
+              ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
               ROGER DIVERT {flight.divert|or:NEAREST SUITABLE}
+              ~{flight.divert_nm} NM FROM PRESENT POS
               RESCUE AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
       CONTINUE:

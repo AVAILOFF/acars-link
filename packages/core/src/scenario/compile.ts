@@ -165,6 +165,13 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
     case 'phase_enter':
     case 'phase':
       if (!isPhase(tr.phase)) fail('trigger.phase', `unknown phase ${String(tr.phase)}`);
+      if ('window' in tr && tr.window !== undefined) {
+        if (tr.on !== 'phase') fail('trigger.window', 'only for on: phase');
+        const w = tr.window;
+        if (!(w.after_min >= 0 && w.before_tod_min >= 0)) {
+          fail('trigger.window', 'after_min and before_tod_min must be numbers >= 0');
+        }
+      }
       break;
     case 'event':
       if (!TRIGGER_EVENTS.includes(tr.event)) fail('trigger.event', `unknown event ${tr.event}`);

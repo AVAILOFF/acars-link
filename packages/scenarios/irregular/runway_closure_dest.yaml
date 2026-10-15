@@ -79,11 +79,13 @@ steps:
                               ARRIVALS STILL SUSPENDED, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
                               REPLY HOLD OR DIVERT
                   DIVERT:
-                    - set: { flight.divert: "{ofp.altn}" }
+                    - set: { flight.divert: "{reply.icao|else:ofp.altn}" }
                     - send:
                         header: OPS MSG {ofp.dest}
                         body: |
-                          DIVERT {ofp.altn} NOTED
+                          ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
+                          DIVERT {flight.divert} NOTED
+                          ~{flight.divert_nm} NM FROM PRESENT POS
                           HANDLING AND FUEL ORDERED
                           SEND ETA WHEN ABLE
                     - break: true
@@ -97,10 +99,12 @@ steps:
                     ARRIVALS RESUMED AT {ofp.dest}
                     EXPECT NORMAL APPROACH
       DIVERT:
-        - set: { flight.divert: "{ofp.altn}" }
+        - set: { flight.divert: "{reply.icao|else:ofp.altn}" }
         - send:
             header: OPS MSG {ofp.dest}
             body: |
-              DIVERT {ofp.altn} NOTED
+              ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
+              DIVERT {flight.divert} NOTED
+              ~{flight.divert_nm} NM FROM PRESENT POS
               HANDLING AND FUEL ORDERED
               SEND ETA WHEN ABLE

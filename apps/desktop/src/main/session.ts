@@ -383,7 +383,8 @@ export class FlightSession {
           this.feed.system(e.t, `forced_${e.result}`, { id: e.id, detail: e.detail ?? '' });
           break;
         case 'DATA_REQUEST':
-          this.data?.requestWx(e.icao);
+          if (e.kind === 'place') this.data?.requestPlace(e.icao);
+          else this.data?.requestWx(e.icao);
           break;
         case 'REPLY_TIMEOUT':
           this.feed.system(e.t, 'reply_timeout', { id: e.id, option: e.option });

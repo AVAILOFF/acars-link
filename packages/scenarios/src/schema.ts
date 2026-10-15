@@ -54,7 +54,19 @@ export const SCENARIO_SCHEMA = {
         {
           additionalProperties: false,
           required: ['on', 'phase'],
-          properties: { on: { enum: ['phase_enter', 'phase'] }, phase },
+          properties: {
+            on: { enum: ['phase_enter', 'phase'] },
+            phase,
+            window: {
+              type: 'object',
+              additionalProperties: false,
+              required: ['after_min', 'before_tod_min'],
+              properties: {
+                after_min: { type: 'number', minimum: 0 },
+                before_tod_min: { type: 'number', minimum: 0 },
+              },
+            },
+          },
         },
         {
           additionalProperties: false,

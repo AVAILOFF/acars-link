@@ -52,7 +52,12 @@ export type PilotCommand = (typeof PILOT_COMMANDS)[number];
 
 export type Trigger =
   | { readonly on: 'phase_enter'; readonly phase: FlightPhase }
-  | { readonly on: 'phase'; readonly phase: FlightPhase }
+  | {
+      readonly on: 'phase';
+      readonly phase: FlightPhase;
+      /** Start at a random moment of the phase instead of at once (T51). */
+      readonly window?: StartWindow;
+    }
   | { readonly on: 'event'; readonly event: TriggerEvent }
   | { readonly on: 'command'; readonly command: PilotCommand }
   | { readonly on: 'time'; readonly at: { readonly rel: TimeRef; readonly offset_min: number } }
@@ -64,6 +69,21 @@ export type Trigger =
         readonly gte_nm?: number;
       };
     };
+
+/**
+ * A random start inside a phase (T51, `on: phase` in the cruise): when the trigger fires and
+ * `probability` holds, a share `f` of the way is drawn from the scenario's seeded Rng and the
+ * scenario waits for the moment `flight.minutes_to_tod ≤ T0 − after_min − f × (T0 − after_min −
+ * before_tod_min)`, where T0 is `flight.minutes_to_tod` at the trigger. The start is spread
+ * evenly over the path from `after_min` after the trigger to `before_tod_min` before the top of
+ * descent, whatever the pauses and the sim rate. A cruise too short for the window (`T0 − after_min
+ * ≤ before_tod_min`) starts nothing. At the moment of the start the conditions, the cooldown and
+ * the exclusions are checked again.
+ */
+export interface StartWindow {
+  readonly after_min: number;
+  readonly before_tod_min: number;
+}
 
 /** `none`: every trigger may start the scenario (the default for `on: command`). */
 export type Cooldown = 'per_flight' | 'per_session' | 'none' | { readonly minutes: number };

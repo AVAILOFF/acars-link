@@ -15,6 +15,8 @@ enabled_by_default: true
 trigger:
   on: phase
   phase: CRUISE
+  # A random moment of the cruise (T51): from 10 min in to 20 min before the top of descent.
+  window: { after_min: 10, before_tod_min: 20 }
 conditions:
   - "flight.minutes_to_tod != null"
   - "flight.minutes_to_tod >= 20"
@@ -37,13 +39,14 @@ steps:
       reply: { options: [CONTINUE, DIVERT], timeout_min: 5, default: DIVERT }
   - branch:
       DIVERT:
-        - set: { flight.divert: "{flight.nearest_any}" }
+        - set: { flight.divert: "{reply.icao|else:flight.nearest_any}" }
         - send:
             header: OPS MSG FIRE
             body: |
+              ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
               ROGER DIVERT
               {flight.divert|or:NEAREST SUITABLE}
-              {flight.nearest_any_nm} NM FROM PRESENT POS
+              ~{flight.divert_nm} NM FROM PRESENT POS
               FIRE SERVICE ORDERED
               SEND NEW ETA WHEN ABLE
         - wait: { phase: ON_BLOCK }

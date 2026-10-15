@@ -13,7 +13,7 @@ import type { FlightPhase, OooiKind } from '../phase/fsm.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import { type AircraftFamily, aircraftInfo, aircraftVariables } from './aircraft.js';
 import { type DelayPart, delayLine } from './delay-codes.js';
-import { pickDivert, type RunwayNeed } from './divert.js';
+import { airportPlace, pickDivert, type RunwayNeed } from './divert.js';
 import type { Value } from './expr.js';
 import type { IrregularData } from './irregular-data.js';
 import { countryRegion, MULTINATIONAL_AIRLINES } from './names.js';
@@ -143,6 +143,8 @@ export const CONTEXT_VARIABLES = [
   'flight.air_min',
   'flight.divert',
   'flight.sent',
+  // distance to the diversion airport when its position is known (T51), NM
+  'flight.divert_nm',
   // holding announced by a scenario (`set: flight.hold`, T48) and whether the fuel has come down
   // to the diversion minimum (T50); false when not holding
   'flight.holding',
@@ -159,6 +161,10 @@ export const CONTEXT_VARIABLES = [
   'reply.text',
   'reply.arg',
   'reply.timeout',
+  // the airport a DIVERT reply named, if the core knows it (T51); the rest of the reply is reply.arg
+  'reply.icao',
+  // a DIVERT reply named the placeholder ZZZZ: an airport that does not exist (T51)
+  'reply.unknown',
   // minutes of flight time since the run entered its `loop` (T50), null outside one
   'loop.min',
   // the pilot command that started the run (`on: command`), null otherwise
@@ -391,6 +397,8 @@ export const RUN_VARIABLES = [
   'reply.text',
   'reply.arg',
   'reply.timeout',
+  'reply.icao',
+  'reply.unknown',
   'loop.min',
   'cmd.name',
   'cmd.text',
@@ -567,6 +575,8 @@ export function buildContext(input: ContextInput): ScenarioContext {
     {
       'reply.arg': null,
       'reply.timeout': null,
+      'reply.icao': null,
+      'reply.unknown': null,
       'loop.min': null,
       'cmd.name': null,
       'cmd.text': null,
@@ -759,6 +769,7 @@ type IrrVariable = Extract<
   | 'flight.nearest_altn_nm'
   | 'flight.nearest_any'
   | 'flight.nearest_any_nm'
+  | 'flight.divert_nm'
 >;
 
 /** `irr.*` (T14) and the nearest alternate; margins use the delayed estimates of the context. */
@@ -776,6 +787,10 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
           mode,
           ...(input.runwayNeeds === undefined ? {} : { needs: input.runwayNeeds }),
         });
+  const divert = input.divert ?? null;
+  const dest =
+    divert === null ? null : airportPlace(ofp, input.ext?.divertApts, divert, input.ext?.places);
+  const divertNm = tm === null || dest === null ? null : Math.round(distanceNm(tm, dest));
   const nearest = pick('ofp');
   const nearestAny = pick('any');
   const i = input.irr;
@@ -786,6 +801,7 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
     'flight.nearest_altn_nm': nearest?.nm ?? null,
     'flight.nearest_any': nearestAny?.icao ?? null,
     'flight.nearest_any_nm': nearestAny?.nm ?? null,
+    'flight.divert_nm': divertNm,
     'irr.curfew': i?.curfew ?? null,
     'irr.curfew_local': i === undefined || offset === null ? null : i.curfew + offset * 3_600_000,
     'irr.curfew_margin_min': i === undefined ? null : minutes(i.curfew - (t.estOnMs ?? t.estInMs)),

@@ -166,6 +166,12 @@ export interface AirportInfo {
   readonly country: string | null;
 }
 
+/** Where an airport the pilot named is (T51; OurAirports `airports.csv`). */
+export interface AirportPlace {
+  readonly lat: number;
+  readonly lon: number;
+}
+
 /** A frequency of an airport (T24; OurAirports `airport-frequencies.csv`, public domain). */
 export interface AirportFrequency {
   /** OurAirports type: `DEL`, `CLD`, `GND`, `TWR`, `APP`, `DEP`, `ATIS` … */
@@ -215,6 +221,8 @@ export interface ExtDataUpdate {
   readonly vhf?: readonly VhfStation[];
   /** Airports to divert to besides the OFP's (T50); replaces the list. */
   readonly divertApts?: readonly DivertAirport[];
+  /** Airports the pilot named in a reply (T51), null = the file has none; merged per code. */
+  readonly places?: Readonly<Record<string, AirportPlace | null>>;
   /** Space launches in the time window of the flight (T28); replaces the list. */
   readonly launches?: readonly SpaceLaunch[];
   /** Active NAT tracks (T27); replaces the list. */
@@ -293,6 +301,8 @@ export interface ExtState {
   readonly vhf?: readonly VhfStation[];
   /** T50; absent in states saved before T50. */
   readonly divertApts?: readonly DivertAirport[];
+  /** T51; absent in states saved before T51. */
+  readonly places?: Readonly<Record<string, AirportPlace | null>>;
   /** T28; absent in states saved before T28. */
   readonly launches?: readonly RoutedLaunch[];
   /** T27; absent in states saved before T27. */
@@ -463,6 +473,22 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
         Math.abs(v['lon'] as number) > 180
       ) {
         bad('vhf item');
+      }
+    }
+  }
+  if (x['places'] !== undefined) {
+    if (!isObj(x['places'])) bad('places');
+    for (const [k, v] of Object.entries(x['places'] as Record<string, unknown>)) {
+      if (!ICAO.test(k)) bad('places key');
+      if (
+        v !== null &&
+        (!isObj(v) ||
+          !isNum(v['lat']) ||
+          !isNum(v['lon']) ||
+          Math.abs(v['lat'] as number) > 90 ||
+          Math.abs(v['lon'] as number) > 180)
+      ) {
+        bad('places item');
       }
     }
   }
@@ -732,6 +758,7 @@ export function applyExtData(
   }
   if (u.natTracks !== undefined) next = { ...next, natTracks: [...u.natTracks] };
   if (u.vhf !== undefined) next = { ...next, vhf: u.vhf.map((v) => ({ ...v })) };
+  if (u.places !== undefined) next = { ...next, places: { ...next.places, ...u.places } };
   if (u.divertApts !== undefined) {
     next = { ...next, divertApts: u.divertApts.map((v) => ({ ...v })) };
   }

@@ -3,11 +3,13 @@ import { join } from 'node:path';
 import { parseSimbriefOfp } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import {
+  ExternalDataService,
   fetchDivertAirports,
   type HttpClient,
   isHardSurface,
   OURAIRPORTS_AIRPORTS_URL,
   OURAIRPORTS_RUNWAYS_URL,
+  parseAirportPlaces,
   parseBestRunways,
   parseDivertCandidates,
 } from '../src/index.js';
@@ -129,5 +131,93 @@ describe('fetchDivertAirports', () => {
     expect(await fetchDivertAirports(ctx, ofp, { lengthM: 4000, widthM: 45 })).toEqual([]);
     // Wide enough is checked too.
     expect(await fetchDivertAirports(ctx, ofp, { lengthM: 3000, widthM: 61 })).toEqual([]);
+  });
+});
+
+describe('places the pilot names (T51)', () => {
+  const csv = [
+    '"id","ident","type","name","latitude_deg","longitude_deg","elevation_ft","continent","iso_country","iso_region","municipality","scheduled_service","icao_code","iata_code","gps_code","local_code"',
+    '1,"EGLL","large_airport","A",51.47,-0.46,83,"EU","GB","GB-ENG","L","yes","EGLL","LHR","EGLL",',
+    '2,"00A","small_airport","B",40.0,-74.0,11,"NA","US","US-PA","X","no",,,"K00A","00A"',
+    '3,"EGLF","heliport","C",51.2,-0.7,0,"EU","GB","GB-ENG","F","no",,,,',
+    '4,"AB12","small_airport","D",10.0,20.0,0,"AF","XX","XX-A","M","no",,,"ABCD",',
+    '5,"EGKK","medium_airport","E",51.15,-0.19,202,"EU","GB","GB-ENG","G","yes","EGKK","LGW","EGKK",',
+  ].join('\n');
+
+  it('airports with a runway by their four-letter code; no heliports, no short codes', () => {
+    const m = parseAirportPlaces(csv);
+    expect([...m.keys()].sort()).toEqual(['ABCD', 'EGKK', 'EGLL']);
+    expect(m.get('EGLL')).toEqual({ lat: 51.47, lon: -0.46 });
+    expect(m.has('EGLF')).toBe(false);
+  });
+
+  it('the service answers a question once the file is there, null for an unknown code', async () => {
+    let calls = 0;
+    const http: HttpClient = {
+      async request(req) {
+        if (req.url !== OURAIRPORTS_AIRPORTS_URL) return { status: 404, body: '' };
+        calls++;
+        return { status: 200, body: csv };
+      },
+    };
+    const svc = new ExternalDataService({ http, userAgent: 't', sources: [] });
+    const ofp = parseSimbriefOfp(
+      JSON.parse(
+        readFileSync(
+          join(
+            import.meta.dirname,
+            '..',
+            '..',
+            'core',
+            'test',
+            'fixtures',
+            'ofp',
+            'rctp-rjbb-a35k-kgs.json',
+          ),
+          'utf8',
+        ),
+      ),
+    );
+    svc.startFlight(ofp, 0);
+    svc.requestPlace('EGLL');
+    svc.requestPlace('ZZZZ');
+    await svc.settle();
+    expect(svc.take(1).update?.places).toEqual({ EGLL: { lat: 51.47, lon: -0.46 }, ZZZZ: null });
+    // Known by now: answered at once, the file is not fetched again.
+    svc.requestPlace('EGKK');
+    expect(svc.take(2).update?.places).toEqual({ EGKK: { lat: 51.15, lon: -0.19 } });
+    expect(calls).toBe(1);
+  });
+
+  it('a file that cannot be fetched is an answer of "unknown", not silence', async () => {
+    const http: HttpClient = {
+      async request() {
+        return { status: 500, body: '' };
+      },
+    };
+    const svc = new ExternalDataService({ http, userAgent: 't', sources: [] });
+    svc.startFlight(
+      parseSimbriefOfp(
+        JSON.parse(
+          readFileSync(
+            join(
+              import.meta.dirname,
+              '..',
+              '..',
+              'core',
+              'test',
+              'fixtures',
+              'ofp',
+              'rctp-rjbb-a35k-kgs.json',
+            ),
+            'utf8',
+          ),
+        ),
+      ),
+      0,
+    );
+    svc.requestPlace('EGLL');
+    await svc.settle();
+    expect(svc.take(1).update?.places).toEqual({ EGLL: null });
   });
 });

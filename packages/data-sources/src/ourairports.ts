@@ -1,5 +1,6 @@
 import {
   type AirportFrequency,
+  type AirportPlace,
   type DivertAirport,
   type Ofp,
   RoutePolyline,
@@ -286,6 +287,51 @@ function joinRunways(
   for (const a of list) {
     const r = rwy.get(a.icao);
     if (r !== undefined) out.push({ ...a, ...r });
+  }
+  return out;
+}
+
+/**
+ * Where an airport is (T51): every airport of `airports.csv` that has a runway (large, medium,
+ * small) by its four-letter code (`icao_code`, else `ident`, else `gps_code`) — the airports a pilot
+ * may name in `DIVERT <ICAO>`. Fetched on request, the whole file once per app session.
+ */
+export async function fetchAirportPlaces(ctx: FetchContext): Promise<Map<string, AirportPlace>> {
+  const res = await request(ctx, OURAIRPORTS_AIRPORTS_URL);
+  expectOk(res, 'OurAirports');
+  return parseAirportPlaces(res.body);
+}
+
+export function parseAirportPlaces(csv: string): Map<string, AirportPlace> {
+  const lines = csv.split(/\r?\n/);
+  const head = splitCsv(lines[0] ?? '');
+  const col = (name: string) => head.indexOf(name);
+  const idx = ['ident', 'type', 'latitude_deg', 'longitude_deg', 'icao_code', 'gps_code'].map(col);
+  if (idx.some((i) => i < 0)) throw new DataSourceError('OurAirports: unexpected CSV header');
+  const [ident, type, lat, lon, icaoCode, gps] = idx as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
+  const out = new Map<string, AirportPlace>();
+  for (const line of lines.slice(1)) {
+    if (line === '') continue;
+    const c = splitCsv(line);
+    if (
+      c[type] !== 'large_airport' &&
+      c[type] !== 'medium_airport' &&
+      c[type] !== 'small_airport'
+    ) {
+      continue;
+    }
+    const code = [c[icaoCode], c[ident], c[gps]].find((x) => /^[A-Z]{4}$/.test(x ?? ''));
+    if (code === undefined || out.has(code) || c[lat] === '' || c[lon] === '') continue;
+    const [la, lo] = [Number(c[lat]), Number(c[lon])];
+    if (!(Math.abs(la) <= 90 && Math.abs(lo) <= 180)) continue;
+    out.set(code, { lat: la, lon: lo });
   }
   return out;
 }

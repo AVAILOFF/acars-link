@@ -922,7 +922,7 @@ export class RopsStation {
         uplink('divert', `PROCEED DIRECT TO @${dv.icao}@`);
       }
       if (dv.directSent && !dv.descentSent) {
-        const apt = airportPlace(this.ofp, input.ext?.divertApts, dv.icao);
+        const apt = airportPlace(this.ofp, input.ext?.divertApts, dv.icao, input.ext?.places);
         // An airport the core does not know has no position: no descent is computed for it.
         if (apt === null || tm.altFt <= DIVERT_DESCENT_FT + 1000) dv.descentSent = true;
         else {

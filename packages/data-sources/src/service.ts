@@ -1,6 +1,7 @@
 import {
   type AirportFrequency,
   type AirportInfo,
+  type AirportPlace,
   type AshSigmet,
   type AtcStation,
   type AuroraForecast,
@@ -34,6 +35,7 @@ import { fetchLaunches } from './launches.js';
 import { fetchNatTracks } from './nattrak.js';
 import {
   fetchAirportFrequencies,
+  fetchAirportPlaces,
   fetchDivertAirports,
   fetchRunwayPoint,
   fetchVhfStations,
@@ -267,6 +269,7 @@ export class ExternalDataService {
     freqs: { icao: string; list: AirportFrequency[] } | null;
     vhf: VhfStation[] | null;
     divertApts: DivertAirport[] | null;
+    places: Record<string, AirportPlace | null>;
     launches: SpaceLaunch[] | null;
     natTracks: NatTrack[] | null;
     spaceWx: SpaceWeather | null;
@@ -283,6 +286,10 @@ export class ExternalDataService {
   private rawCenters: readonly VatsimCenter[] | null = null;
   private notes: DataNote[] = [];
   private readonly running = new Set<Promise<void>>();
+  /** Where the airports are (T51): all of airports.csv, loaded on the first question. */
+  private placesMap: ReadonlyMap<string, AirportPlace> | null = null;
+  private readonly placeAsk = new Set<string>();
+  private placesJob: Promise<void> | null = null;
 
   constructor(o: DataServiceOptions) {
     this.ctx = {
@@ -353,6 +360,41 @@ export class ExternalDataService {
     this.rawCenters = null;
   }
 
+  /**
+   * Where an airport the pilot named is (core `DATA_REQUEST` `place`, T51): the answer goes to the
+   * core as `places`, null for a code the file does not know — also when the file cannot be
+   * fetched, so that the core does not wait the full time.
+   */
+  requestPlace(icao: string): void {
+    if (this.flight === null || !ICAO_RE.test(icao)) return;
+    if (this.placesMap !== null) {
+      this.pending.places[icao] = this.placesMap.get(icao) ?? null;
+      return;
+    }
+    this.placeAsk.add(icao);
+    if (this.placesJob !== null) return;
+    const gen = this.generation;
+    const answer = (map: ReadonlyMap<string, AirportPlace> | null) => {
+      if (gen !== this.generation) return;
+      for (const i of this.placeAsk) this.pending.places[i] = map?.get(i) ?? null;
+      this.placeAsk.clear();
+    };
+    const job: Promise<void> = fetchAirportPlaces(this.ctx)
+      .then(
+        (map) => {
+          this.placesMap = map;
+          answer(map);
+        },
+        () => answer(null),
+      )
+      .finally(() => {
+        this.placesJob = null;
+        this.running.delete(job);
+      });
+    this.placesJob = job;
+    this.running.add(job);
+  }
+
   /** Weather for an airport outside the OFP, as soon as possible (core `DATA_REQUEST`). */
   requestWx(icao: string): void {
     const s = this.src.get('wx');
@@ -398,6 +440,7 @@ export class ExternalDataService {
       p.freqs !== null ||
       p.vhf !== null ||
       p.divertApts !== null ||
+      Object.keys(p.places).length > 0 ||
       p.launches !== null ||
       p.natTracks !== null ||
       p.spaceWx !== null ||
@@ -421,6 +464,7 @@ export class ExternalDataService {
         ...(p.freqs === null ? {} : { freqs: p.freqs }),
         ...(p.vhf === null ? {} : { vhf: p.vhf }),
         ...(p.divertApts === null ? {} : { divertApts: p.divertApts }),
+        ...(Object.keys(p.places).length > 0 ? { places: p.places } : {}),
         ...(p.launches === null ? {} : { launches: p.launches }),
         ...(p.natTracks === null ? {} : { natTracks: p.natTracks }),
         ...(p.spaceWx === null ? {} : { spaceWx: p.spaceWx }),
@@ -821,6 +865,7 @@ function empty() {
     freqs: null,
     vhf: null,
     divertApts: null,
+    places: {},
     launches: null,
     natTracks: null,
     spaceWx: null,

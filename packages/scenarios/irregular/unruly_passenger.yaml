@@ -11,6 +11,8 @@ enabled_by_default: true
 trigger:
   on: phase
   phase: CRUISE
+  # A random moment of the cruise (T51): from 10 min in to 30 min before the top of descent.
+  window: { after_min: 10, before_tod_min: 30 }
 conditions:
   - "flight.minutes_to_tod != null"
   - "flight.minutes_to_tod >= 30"
@@ -47,10 +49,11 @@ steps:
               PAX SEAT {flags.unruly_seat}
               HOLD OTHER PAX UNTIL POLICE BOARD
       DIVERT:
-        - set: { flight.divert: "{flight.nearest_altn}" }
+        - set: { flight.divert: "{reply.icao|else:flight.nearest_altn}" }
         - send:
             header: OPS MSG SECURITY
             body: |
+              ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
               DIVERT {flight.divert|or:NEAREST SUITABLE} NOTED
               POLICE AND HANDLING ORDERED
               FILE CABIN INCIDENT REPORT

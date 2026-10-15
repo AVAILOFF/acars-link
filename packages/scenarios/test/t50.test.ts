@@ -428,7 +428,13 @@ describe('where the aircraft is sent (T50 part B)', () => {
   const diverted = (id: string, answer: string, needs: boolean) => {
     const core = AcarsCore.create({
       ofp,
-      scenarios: [scenario(id)],
+      // Without the random start of T51: the aircraft is where the reserve airport was put.
+      scenarios: [
+        {
+          ...scenario(id),
+          def: { ...scenario(id).def, trigger: { on: 'phase', phase: 'CRUISE' } },
+        },
+      ],
       seed: 't50b',
       ...(needs ? { runwayNeeds: NEEDS } : {}),
     });

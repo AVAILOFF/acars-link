@@ -5,6 +5,8 @@ import {
   AcarsCore,
   type CompiledScenario,
   compileScenario,
+  compileTemplate,
+  createRng,
   generateSyntheticFlight,
   type OutboundMessage,
   parseSimbriefOfp,
@@ -231,5 +233,34 @@ describe('compile errors', () => {
     expect(bad([{ draw: [{ set: { 'run.x': [5, 1] } }] }, { send: { body: 'X' } }])).toThrow(
       /range/,
     );
+  });
+});
+
+describe('template additions (T50, T51)', () => {
+  const look = (vars: Record<string, string | number | null>) => (path: string) =>
+    path in vars ? vars[path] : undefined;
+  const rng = createRng('t');
+
+  it('|else:var takes the other variable when the value is missing', () => {
+    const t = compileTemplate('{a.x|else:a.y}');
+    expect([...t.vars].sort()).toEqual(['a.x', 'a.y']);
+    expect(t.render(look({ 'a.x': null, 'a.y': 'B' }), rng)).toBe('B');
+    expect(t.render(look({ 'a.x': 'A', 'a.y': 'B' }), rng)).toBe('A');
+    expect(() => compileTemplate('{a.x|else:nope}')).toThrow(/variable/);
+    expect(() => compileTemplate('{a.x|else}')).toThrow(/argument/);
+  });
+
+  it('a line that starts with ~ is left out when it has a missing value', () => {
+    const t = compileTemplate('ONE\n~{a.n} NM FROM POS\nTWO');
+    expect(t.render(look({ 'a.n': 12 }), rng)).toBe('ONE\n12 NM FROM POS\nTWO');
+    expect(t.render(look({ 'a.n': null }), rng)).toBe('ONE\nTWO');
+    // A source without ~ lines is rendered as before, a missing value is ----.
+    expect(compileTemplate('{a.n} NM').render(look({ 'a.n': null }), rng)).toBe('---- NM');
+  });
+
+  it('|plusmin:N moves a time by minutes', () => {
+    const t = compileTemplate('{a.t|plusmin:20|hhmm}');
+    expect(t.render(look({ 'a.t': Date.UTC(2026, 9, 15, 10, 50) }), rng)).toBe('1110');
+    expect(t.render(look({ 'a.t': null }), rng)).toBe('----');
   });
 });
