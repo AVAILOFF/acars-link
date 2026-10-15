@@ -64,6 +64,7 @@ describe('settings', () => {
       datalink: false,
       datalinkSatcom: true,
       aircraftIcaoHex: '',
+      hubIcao: '',
       datalinkHeaderInText: false,
       ropsStandAside: true,
       ropsRandomDirects: true,
@@ -80,6 +81,14 @@ describe('settings', () => {
   it('the ICAO hex of the aircraft: six hex digits, stored upper case, or empty (T32)', () => {
     expect(validatePatch({ aircraftIcaoHex: '4249ea' })).toEqual({ aircraftIcaoHex: '4249EA' });
     expect(validatePatch({ aircraftIcaoHex: '' })).toEqual({ aircraftIcaoHex: '' });
+  });
+
+  it('my hub: four letters, stored upper case, or empty (T53)', () => {
+    expect(validatePatch({ hubIcao: 'uuee' })).toEqual({ hubIcao: 'UUEE' });
+    expect(validatePatch({ hubIcao: '' })).toEqual({ hubIcao: '' });
+    for (const hubIcao of ['UUE', 'UUEE1', 'UU3E', 4]) {
+      expect(() => validatePatch({ hubIcao })).toThrow();
+    }
   });
 
   it('validates patches from the renderer', () => {

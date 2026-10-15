@@ -84,6 +84,10 @@ export interface CoreOptions {
   readonly syntheticConnections?: boolean;
   /** Generator of person names, see `ScenarioEngineOptions.namesVersion` (T43); default 2. */
   readonly namesVersion?: 1 | 2;
+  /** Next leg, see `ScenarioEngineOptions.nextLegVersion` (T53); default 2. */
+  readonly nextLegVersion?: 1 | 2;
+  /** The user's hub airport (T53), see `ScenarioEngineOptions.hub`. */
+  readonly hub?: string;
   /** `flags.*` left by earlier flights (T14); read back with {@link AcarsCore.flags}. */
   readonly flags?: Readonly<Record<string, Value>>;
   /**
@@ -388,5 +392,7 @@ function engineOptions(o: CoreOptions) {
       ? {}
       : { syntheticConnections: o.syntheticConnections }),
     ...(o.namesVersion === undefined ? {} : { namesVersion: o.namesVersion }),
+    ...(o.nextLegVersion === undefined ? {} : { nextLegVersion: o.nextLegVersion }),
+    ...(o.hub === undefined ? {} : { hub: o.hub }),
   };
 }

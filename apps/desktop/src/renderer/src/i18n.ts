@@ -227,6 +227,9 @@ const en = {
   'set.transport': 'Send messages via',
   'set.transport.hoppie': 'Hoppie ACARS',
   'set.transport.offline': 'Offline (feed only)',
+  'set.hubIcao': 'My hub (airport ICAO)',
+  'set.hubIcaoHint':
+    'After a flight into the hub the next leg goes on from it on a route of the airline (OpenFlights, 2014) flown with this aircraft type. Empty = the hub from OpenFlights. Applies to the next flight.',
   'set.station': 'Station callsign template',
   'set.stationHint': '{flight} = flight number, {airline} = airline ICAO. Default OPS{flight}.',
   'set.bridgePort': 'Sim bridge port (127.0.0.1)',
@@ -510,6 +513,9 @@ const ru: Record<MessageKey, string> = {
   'set.transport': 'Отправлять сообщения через',
   'set.transport.hoppie': 'Hoppie ACARS',
   'set.transport.offline': 'Офлайн (только лента)',
+  'set.hubIcao': 'Мой хаб (ICAO аэропорта)',
+  'set.hubIcaoHint':
+    'После рейса в хаб следующий рейс идёт из него по маршруту авиакомпании (OpenFlights, 2014), на котором летал этот тип самолёта. Пусто — хаб из OpenFlights. Действует со следующего рейса.',
   'set.station': 'Шаблон позывного станции',
   'set.stationHint':
     '{flight} — номер рейса, {airline} — ICAO авиакомпании. По умолчанию OPS{flight}.',

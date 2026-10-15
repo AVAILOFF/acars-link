@@ -18,7 +18,7 @@ steps:
       header: A/C CHANGE
       body: |
         NEXT SECTOR {ops.next_flight}
-        {ofp.dest}-{ofp.orig}
+        {ops.next_orig}-{ops.next_dest}
         STD {ops.next_std|hhmm}Z
         {ofp.ac_reg} TO MAINT AFTER ARR
         CREW CHANGES A/C

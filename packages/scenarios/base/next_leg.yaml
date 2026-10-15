@@ -1,4 +1,5 @@
-# Next leg with the same aircraft. Mutually exclusive with aircraft_change.
+# Next leg with the same aircraft (T53: from the hub after a flight into it, else back).
+# Mutually exclusive with aircraft_change.
 id: next_leg
 version: 1
 category: ops
@@ -19,7 +20,7 @@ steps:
       header: NEXT LEG
       body: |
         NEXT SECTOR {ops.next_flight}
-        {ofp.dest}-{ofp.orig}
+        {ops.next_orig}-{ops.next_dest}
         STD {ops.next_std|hhmm}Z
         SAME A/C {ofp.ac_reg}
         TURNAROUND {ops.turnaround_min} MIN

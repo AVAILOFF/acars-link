@@ -68,6 +68,10 @@ export interface RecordingHeader {
   readonly minGapMs?: number;
   /** Core `namesVersion` (T43); absent = 1, the names of recordings made before it. */
   readonly namesVersion?: 1 | 2;
+  /** Core `nextLegVersion` (T53); absent = 1, the next leg of recordings made before it. */
+  readonly nextLegVersion?: 1 | 2;
+  /** Core `hub` (T53): the user's hub; absent = OpenFlights. */
+  readonly hub?: string;
   /** Probabilities set by the user instead of the files' (scenario id → 0..1); absent = none. */
   readonly probabilities?: Readonly<Record<string, number>>;
   /** Airline memory the flight started with (T14 `flags.*`); absent = none. */
@@ -210,6 +214,9 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     throw bad('minGapMs');
   if (x['namesVersion'] !== undefined && x['namesVersion'] !== 1 && x['namesVersion'] !== 2)
     throw bad('namesVersion');
+  if (x['nextLegVersion'] !== undefined && x['nextLegVersion'] !== 1 && x['nextLegVersion'] !== 2)
+    throw bad('nextLegVersion');
+  if (x['hub'] !== undefined && !(isStr(x['hub']) && /^[A-Z]{4}$/.test(x['hub']))) throw bad('hub');
   const p = x['probabilities'];
   if (p !== undefined && !(isObj(p) && Object.values(p).every((v) => isNum(v) && v >= 0 && v <= 1)))
     throw bad('probabilities');

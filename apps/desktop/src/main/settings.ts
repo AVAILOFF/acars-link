@@ -31,6 +31,7 @@ export function defaultSettings(locale: string): Settings {
     datalink: false,
     datalinkSatcom: true,
     aircraftIcaoHex: '',
+    hubIcao: '',
     datalinkHeaderInText: false,
     ropsStandAside: true,
     ropsRandomDirects: true,
@@ -85,6 +86,12 @@ export function validatePatch(patch: unknown): SettingsPatch {
           throw bad(key, 'six hex digits or empty');
         }
         out.aircraftIcaoHex = value.toUpperCase();
+        break;
+      case 'hubIcao':
+        if (typeof value !== 'string' || !/^(?:[A-Za-z]{4})?$/.test(value)) {
+          throw bad(key, 'four letters or empty');
+        }
+        out.hubIcao = value.toUpperCase();
         break;
       case 'droneRisk': {
         const t = parseDroneRisk(value);
@@ -145,6 +152,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'datalink',
     'datalinkSatcom',
     'aircraftIcaoHex',
+    'hubIcao',
     'datalinkHeaderInText',
     'ropsStandAside',
     'ropsRandomDirects',

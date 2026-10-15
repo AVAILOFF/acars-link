@@ -1106,6 +1106,23 @@ describe('gap between messages', () => {
     fly(s);
     expect((await readRecordingOrNull(s)).header.minGapMs).toBeUndefined();
   });
+
+  it('next leg (T53): version 2 and the hub of the settings in the header, replay the same', async () => {
+    const s = await setup();
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false, hubIcao: 'rjbb' });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    fly(s);
+    const rec = await readRecordingOrNull(s);
+    expect(rec.header.nextLegVersion).toBe(2);
+    expect(rec.header.hub).toBe('RJBB');
+    const r = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+  });
 });
 
 async function readRecordingOrNull(s: Awaited<ReturnType<typeof setup>>) {

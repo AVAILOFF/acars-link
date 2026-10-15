@@ -335,6 +335,24 @@ function NetworkForm() {
         <p className="hint">{t('set.soundHint')}</p>
       </div>
       <div className="field">
+        <label>
+          {t('set.hubIcao')}
+          <input
+            className="mono short"
+            type="text"
+            maxLength={4}
+            spellCheck={false}
+            defaultValue={settings.hubIcao}
+            disabled={busy !== null}
+            onBlur={(e) => {
+              const v = e.currentTarget.value.trim().toUpperCase();
+              if (v !== settings.hubIcao) void update({ hubIcao: v });
+            }}
+          />
+        </label>
+        <p className="hint">{t('set.hubIcaoHint')}</p>
+      </div>
+      <div className="field">
         <div className="row">
           <span>
             {memory.length === 0

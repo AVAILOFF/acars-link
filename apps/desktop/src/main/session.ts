@@ -59,6 +59,8 @@ export interface FlightSessionOptions {
   readonly flags?: Readonly<Record<string, Value>>;
   /** Minimum time between airline telexes, ms (core `minGapMs`). */
   readonly minGapMs?: number;
+  /** The user's hub (core `hub`, T53); absent = OpenFlights. */
+  readonly hub?: string;
   /** Commands to the simulator the core produced (T21), sent on by the controller. */
   readonly simCommands?: (c: SimCommand) => void;
   /** ROPS ATC station (T23); absent = off. */
@@ -93,6 +95,8 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
 
 /** Person names of new flights (core `namesVersion`, T43); recorded in the header. */
 const NAMES_VERSION = 2;
+/** Next leg of new flights (core `nextLegVersion`, T53); recorded in the header. */
+const NEXT_LEG_VERSION = 2;
 
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */
 export const DATA_WAIT_MS = 60_000;
@@ -140,6 +144,8 @@ export class FlightSession {
       ...(o.rops === undefined ? {} : { rops: o.rops }),
       ...(o.datalink === undefined ? {} : { datalink: o.datalink }),
       namesVersion: NAMES_VERSION,
+      nextLegVersion: NEXT_LEG_VERSION,
+      ...(o.hub === undefined ? {} : { hub: o.hub }),
     });
     this.data = o.data ?? null;
     this.simCommands = o.simCommands ?? (() => {});
@@ -169,6 +175,8 @@ export class FlightSession {
         ...(o.rops === undefined ? {} : { rops: o.rops }),
         ...(o.datalink === undefined ? {} : { datalink: o.datalink }),
         namesVersion: NAMES_VERSION,
+        nextLegVersion: NEXT_LEG_VERSION,
+        ...(o.hub === undefined ? {} : { hub: o.hub }),
       }),
     );
     this.core.startFlight();
