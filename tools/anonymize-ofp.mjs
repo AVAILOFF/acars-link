@@ -1,12 +1,14 @@
 // Turns a real SimBrief OFP (json=v2) into a small anonymized test fixture.
 //
-//   node tools/anonymize-ofp.mjs <raw.json> <out.json> [--to-lbs] [--no-flight-number] [--extra-alternate] [--with-perf]
+//   node tools/anonymize-ofp.mjs <raw.json> <out.json> [--to-lbs] [--no-flight-number] [--extra-alternate] [--with-perf] [--with-etops]
 //
 // Keeps only the sections the parser reads, drops personal data (pilot id, crew, user ids,
 // links, files, NOTAMs, free text). Raw OFPs live in reference/ofp/raw/ (gitignored).
 // Flags produce synthetic variants for tests: weights converted to lbs, empty flight
 // number / airline, a second alternate. `--with-perf` keeps the TLR (`tlr`, no personal data)
-// and the crew head count: names are replaced with role placeholders.
+// and the crew head count: names are replaced with role placeholders. `--with-etops` keeps the
+// ETOPS plan (`etops`: rule, entry / exit, suitable airports without METAR/TAF/NOTAM, equal time
+// points, critical point) and the `enroute_altn` / `takeoff_altn` lists as they are (T50).
 import { readFileSync, writeFileSync } from 'node:fs';
 
 const [, , inPath, outPath, ...flags] = process.argv;
@@ -151,6 +153,31 @@ if (has('--with-perf')) {
       fa: names(raw.crew.fa, 'FA'),
     };
   }
+}
+
+if (has('--with-etops')) {
+  const e = raw.etops;
+  if (e && !Array.isArray(e)) {
+    const suitable = Array.isArray(e.suitable_airport) ? e.suitable_airport : [e.suitable_airport];
+    out.etops = {
+      rule: e.rule,
+      entry: e.entry,
+      exit: e.exit,
+      suitable_airport: suitable
+        .filter(Boolean)
+        .map((a) =>
+          pick(a, [
+            ...AIRPORT_KEYS.filter((k) => k !== 'metar'),
+            'suitability_start',
+            'suitability_end',
+          ]),
+        ),
+      equal_time_point: e.equal_time_point,
+      critical_point: e.critical_point,
+    };
+  } else out.etops = e ?? [];
+  out.enroute_altn = raw.enroute_altn ?? [];
+  out.takeoff_altn = raw.takeoff_altn ?? [];
 }
 
 if (has('--to-lbs')) {

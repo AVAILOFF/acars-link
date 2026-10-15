@@ -68,6 +68,56 @@ describe('candidates', () => {
   });
 });
 
+describe('ETOPS airports of the OFP (T50)', () => {
+  const etops = parseSimbriefOfp(
+    JSON.parse(
+      readFileSync(
+        join(import.meta.dirname, 'fixtures', 'ofp', 'rjtt-klax-a35k-etops.json'),
+        'utf8',
+      ),
+    ),
+  );
+
+  it('join the candidates after the origin and the alternates, the destination never', () => {
+    expect(ofpCandidates(etops).map((a) => a.icao)).toEqual([
+      'RJTT',
+      'KONT',
+      'RJSS',
+      'RJCM',
+      'PACD',
+      'KRDD',
+    ]);
+  });
+
+  it('over the Pacific the nearest is an ETOPS airport, not the origin', () => {
+    // The first equal time point of the OFP: RJCM 1188 NM, PACD 1236 NM by the plan.
+    const etp = { lat: 43.056287622048, lon: 171.52241904248 };
+    const got = pickDivert({
+      pos: etp,
+      ofp: etops,
+      reserve: undefined,
+      family: 'A350',
+      mode: 'ofp',
+    });
+    expect(got?.icao).toBe('RJCM');
+    // Without the ETOPS plan the same position diverts to the origin.
+    const plain = { ...etops, etops: null };
+    expect(
+      pickDivert({ pos: etp, ofp: plain, reserve: undefined, family: 'A350', mode: 'ofp' })?.icao,
+    ).toBe('RJTT');
+  });
+
+  it('an ETOPS airport is a known airport for DIVERT <ICAO> (T51)', () => {
+    expect(airportPlace(etops, undefined, 'PACD')).toMatchObject({ icao: 'PACD', lat: 55.205917 });
+    expect(airportPlace({ ...etops, etops: null }, undefined, 'PACD')).toBeNull();
+  });
+
+  it('a recording made before T50 (no `etops`) still works', () => {
+    const { etops: _drop, ...old } = etops;
+    expect(ofpCandidates(old as typeof etops).map((a) => a.icao)).toEqual(['RJTT', 'KONT']);
+  });
+});
+
 describe('reserve airports', () => {
   const here = { lat: 25, lon: 150 };
   const list = [

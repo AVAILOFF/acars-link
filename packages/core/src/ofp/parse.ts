@@ -4,6 +4,8 @@ import type {
   OfpAirport,
   OfpAtis,
   OfpCrew,
+  OfpEtops,
+  OfpEtopsAirport,
   OfpFix,
   OfpFuel,
   OfpLandingPerf,
@@ -264,6 +266,33 @@ function parseAirport(r: Reader): OfpAirport {
   };
 }
 
+/** `etops` of the OFP (T50): an object when planned ETOPS, `[]` (or missing) otherwise. */
+function parseEtops(root: Reader): OfpEtops | null {
+  const e = root.optSection('etops');
+  if (e === null) return null;
+  const point = (key: string): OfpEtopsAirport | null => {
+    const p = e.optSection(key);
+    if (p === null || p.optStr('icao_code') === null) return null;
+    return {
+      icao: p.str('icao_code').toUpperCase(),
+      name: p.optStr('name') ?? '',
+      lat: p.coord('pos_lat_apt', 90),
+      lon: p.coord('pos_long_apt', 180),
+    };
+  };
+  return {
+    ruleMin: e.looseInt('rule'),
+    entry: point('entry'),
+    exit: point('exit'),
+    suitable: e.objects('suitable_airport').map((a) => ({
+      icao: a.str('icao_code').toUpperCase(),
+      name: a.optStr('name') ?? '',
+      lat: a.coord('pos_lat', 90),
+      lon: a.coord('pos_long', 180),
+    })),
+  };
+}
+
 /** `fuel_plan_onboard` of a fix (the plan's fuel on board there, OFP units), kg; null if absent. */
 function planFob(f: Reader, kg: (n: number) => number): number | null {
   const n = f.optNum('fuel_plan_onboard');
@@ -518,6 +547,7 @@ export function parseSimbriefOfp(json: unknown): Ofp {
     takeoffPerf: parseTakeoffPerf(root.optSection('tlr')),
     landingPerf: parseLandingPerf(root.optSection('tlr')),
     crew: parseCrew(root.optSection('crew')),
+    etops: parseEtops(root),
   };
 }
 

@@ -5,18 +5,19 @@ import { type AircraftFamily, aircraftInfo } from './aircraft.js';
 
 /**
  * Where a diverting aircraft is sent (T50, docs/07 T50 part B). Candidates are the airports of the
- * OFP the dispatcher picked for the type — the origin and the alternates, the destination left
- * out — and, when the nearest of them is far, a reserve from OurAirports (`DivertAirport`).
+ * OFP the dispatcher picked for the type — the origin, the alternates and the ETOPS airports
+ * (entry, en-route suitable, exit), the destination left out — and, when the nearest of them is
+ * far, a reserve from OurAirports (`DivertAirport`).
  *
  * Rules (approved 2026-10-15):
  * - `ofp`: the nearest candidate of the OFP; if it is farther than {@link DIVERT_RESERVE_NM}, the
  *   nearest suitable reserve airport when that one is closer (PAN, medical, unruly passenger);
  * - `any`: the nearest of all, the reserve included (MAYDAY, fire in the cabin: time matters).
  *
- * `[ПРОВЕРИТЬ]` the OFP's en-route alternates (ERA), ETOPS airports and take-off alternate are not
- * read yet: the structure of `enroute_altn` / `etops` / `takeoff_altn` in the SimBrief JSON is
- * unverified (no OFP with them was available, 2026-10-15). They join {@link ofpCandidates} once
- * parsed.
+ * `[ПРОВЕРИТЬ]` the OFP's en-route alternates (ERA) and take-off alternate are not read yet: in the
+ * one real OFP checked (RJTT–KLAX A35K ETOPS, 2026-10-15) `enroute_altn` / `takeoff_altn` were
+ * empty arrays, so the structure of their elements is unverified. They join
+ * {@link ofpCandidates} once parsed.
  */
 
 /** Past this distance to the nearest airport of the OFP a reserve airport is looked for, NM. */
@@ -82,10 +83,25 @@ export interface DivertChoice {
   readonly lon: number;
 }
 
-/** The OFP's own candidates: origin and alternates, the destination excluded, no repeats. */
+/** ETOPS airports of the OFP: entry, en-route suitable, exit (none when not planned ETOPS). */
+function etopsAirports(ofp: Ofp): readonly (Place & { readonly icao: string })[] {
+  // Recordings made before T50 have no `etops`.
+  const e = ofp.etops ?? null;
+  if (e === null) return [];
+  return [
+    ...(e.entry === null ? [] : [e.entry]),
+    ...e.suitable,
+    ...(e.exit === null ? [] : [e.exit]),
+  ];
+}
+
+/**
+ * The OFP's own candidates: origin, alternates, ETOPS airports; the destination excluded, no
+ * repeats.
+ */
 export function ofpCandidates(ofp: Ofp): readonly (Place & { readonly icao: string })[] {
   const out: (Place & { readonly icao: string })[] = [];
-  for (const a of [ofp.origin, ...ofp.alternates]) {
+  for (const a of [ofp.origin, ...ofp.alternates, ...etopsAirports(ofp)]) {
     if (a.icao === ofp.destination.icao || out.some((x) => x.icao === a.icao)) continue;
     out.push(a);
   }
@@ -163,7 +179,9 @@ export function airportPlace(
   icao: string,
   places?: Readonly<Record<string, Place | null>>,
 ): (Place & { readonly icao: string }) | null {
-  const o = [ofp.origin, ofp.destination, ...ofp.alternates].find((a) => a.icao === icao);
+  const o = [ofp.origin, ofp.destination, ...ofp.alternates, ...etopsAirports(ofp)].find(
+    (a) => a.icao === icao,
+  );
   if (o !== undefined) return o;
   const r = (reserve ?? []).find((a) => a.icao === icao);
   if (r !== undefined) return r;
