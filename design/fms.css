@@ -1,0 +1,92 @@
+/*
+ * FMS screen (telex preview). Isolated: these tokens exist ONLY inside .fms.
+ * Rule: everything on the screen is green on black. No white/blue/yellow/red/pink text,
+ * no bubbles, avatars, gradients or glow. Hierarchy = size (large/small) + dim green.
+ * The screen width follows the display profile: FlightSummary.lineWidth (24 / 27 / 30).
+ * Font is bundled locally (CSP blocks external fonts): design/fonts, OFL-1.1.
+ */
+@font-face {
+  font-family: "B612 Mono";
+  src: url("./fonts/B612Mono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "B612 Mono";
+  src: url("./fonts/B612Mono-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: block;
+}
+
+.fms {
+  --fms-bg: #000000;
+  --fms-text: #48d27a; /* 10.8:1 */
+  --fms-text-dim: #2e9b57; /* 5.9:1 — labels, read, separators */
+  --fms-rule: #1e5233;
+  --fms-ann-on: #0e2a18; /* MSG annunciator background */
+  --fms-bezel: #2a2e35;
+  --fms-key: #3a3f48;
+  --fms-key-label: #ffffff; /* bezel only, never on the screen */
+  --fms-font: "B612 Mono", "Cascadia Mono", Consolas, monospace;
+  --fms-lg: 15px;
+  --fms-sm: 12px;
+  --fms-lh: 21px;
+  --fms-cols: 24; /* set inline from FlightSummary.lineWidth */
+}
+
+.fms__screen {
+  background: var(--fms-bg);
+  color: var(--fms-text);
+  font: var(--fms-lg) / var(--fms-lh) var(--fms-font);
+  width: calc(var(--fms-cols) * 1ch + 24px);
+  max-width: 100%;
+  padding: 10px 12px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  white-space: pre;
+  overflow-x: auto;
+  text-shadow: none;
+}
+
+/* Guard: nothing inside the screen may change hue. */
+.fms__screen * {
+  color: inherit;
+  background: transparent;
+}
+.fms__screen .fms__line--sm {
+  font-size: var(--fms-sm);
+  color: var(--fms-text-dim);
+}
+.fms__screen .fms__line--dim {
+  color: var(--fms-text-dim);
+}
+.fms__screen .fms__rule {
+  color: var(--fms-rule);
+}
+
+/* Scratchpad-style input: [ TEXT ] */
+.fms__scratch {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--fms-rule);
+  margin-top: 6px;
+  padding-top: 6px;
+  color: var(--fms-text);
+  font: var(--fms-lg) / var(--fms-lh) var(--fms-font);
+}
+.fms__scratch input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fms-text);
+  caret-color: var(--fms-text);
+  font: inherit;
+  text-transform: uppercase;
+  outline: none;
+}
+.fms__scratch input::placeholder {
+  color: var(--fms-text-dim);
+}

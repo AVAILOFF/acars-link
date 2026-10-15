@@ -1,10 +1,11 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, type ReactNode, useState } from 'react';
 import type { Language, TransportChoice } from '../../shared/api.js';
 import { playMessageSound } from './sound.js';
 
 /** Choices for the gap between messages, seconds. */
 const GAPS: readonly number[] = [0, 30, 60, 90, 120, 180];
 
+import { Switch, SwitchInput } from './Switch.js';
 import { useStore } from './store.js';
 import { useT } from './ui.js';
 
@@ -15,22 +16,61 @@ export function SettingsView() {
   const running = useStore((s) => s.app?.session === 'running');
   if (creds === null || settings === null) return null;
   return (
-    <div className="settings">
-      <section className="panel narrow" aria-labelledby="acc-title">
-        <h2 id="acc-title" className="panel-title">
-          {t('set.account')}
-        </h2>
-        {!creds.secureStorage && <p className="hint warn">{t('set.noSecure')}</p>}
+    <section className="page" aria-labelledby="set-title">
+      <h2 id="set-title" className="page-title">
+        {t('tab.settings')}
+      </h2>
+      <Group id="acc" title={t('set.account')}>
+        {!creds.secureStorage && <p className="sheet-note warn">{t('set.noSecure')}</p>}
         <UsernameForm initial={creds.simbriefUsername} />
         <HoppieCodeForm isSet={creds.hoppieCodeSet} />
-      </section>
-      <section className="panel narrow" aria-labelledby="net-title">
-        <h2 id="net-title" className="panel-title">
-          {t('set.network')}
-        </h2>
-        {running && <p className="hint warn">{t('set.runningNote')}</p>}
-        <NetworkForm />
-      </section>
+      </Group>
+      {running && <p className="hint warn">{t('set.runningNote')}</p>}
+      <NetworkForm />
+    </section>
+  );
+}
+
+/** A titled light sheet of rows, like grouped settings on iOS. */
+function Group({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <section className="group" aria-labelledby={`grp-${id}`}>
+      <h3 id={`grp-${id}`} className="group-title">
+        {title}
+      </h3>
+      <div className="sheet">{children}</div>
+    </section>
+  );
+}
+
+/** One sheet row: title and hint on the left, the control on the right. */
+function Row({
+  htmlFor,
+  title,
+  hint,
+  children,
+}: {
+  htmlFor?: string;
+  title: ReactNode;
+  hint?: ReactNode;
+  children?: ReactNode;
+}) {
+  const text = (
+    <>
+      <span className="row-title">{title}</span>
+      {hint !== undefined && <span className="row-hint">{hint}</span>}
+    </>
+  );
+  return (
+    <div className="sheet-row">
+      {htmlFor === undefined ? (
+        <span className="row-text">{text}</span>
+      ) : (
+        <label className="row-text" htmlFor={htmlFor}>
+          {text}
+        </label>
+      )}
+      {children !== undefined && <div className="row-control">{children}</div>}
     </div>
   );
 }
@@ -55,9 +95,8 @@ function UsernameForm({ initial }: { initial: string }) {
     void setUsername(value);
   };
   return (
-    <form className="field" onSubmit={submit}>
-      <label htmlFor="sb-user">{t('set.simbrief')}</label>
-      <div className="row">
+    <form onSubmit={submit}>
+      <Row htmlFor="sb-user" title={t('set.simbrief')} hint={t('set.simbriefHint')}>
         <input
           id="sb-user"
           type="text"
@@ -74,8 +113,7 @@ function UsernameForm({ initial }: { initial: string }) {
           {t('set.save')}
         </button>
         <Saved what="username" />
-      </div>
-      <p className="hint">{t('set.simbriefHint')}</p>
+      </Row>
     </form>
   );
 }
@@ -92,14 +130,19 @@ function HoppieCodeForm({ isSet }: { isSet: boolean }) {
     });
   };
   return (
-    <form className="field" onSubmit={submit}>
-      <label htmlFor="hoppie-code">
-        {t('set.hoppie')}{' '}
-        <span className={isSet ? 'badge ok' : 'badge'}>
-          {t(isSet ? 'set.hoppieSet' : 'set.hoppieNotSet')}
-        </span>
-      </label>
-      <div className="row">
+    <form onSubmit={submit}>
+      <Row
+        htmlFor="hoppie-code"
+        title={
+          <>
+            {t('set.hoppie')}{' '}
+            <span className={isSet ? 'pill ok' : 'pill'}>
+              {t(isSet ? 'set.hoppieSet' : 'set.hoppieNotSet')}
+            </span>
+          </>
+        }
+        hint={t('set.hoppieHint')}
+      >
         <input
           id="hoppie-code"
           type="password"
@@ -115,7 +158,7 @@ function HoppieCodeForm({ isSet }: { isSet: boolean }) {
         {isSet && (
           <button
             type="button"
-            className="btn ghost"
+            className="btn danger"
             disabled={busy !== null}
             onClick={() => void clearHoppieCode()}
           >
@@ -123,8 +166,7 @@ function HoppieCodeForm({ isSet }: { isSet: boolean }) {
           </button>
         )}
         <Saved what="code" />
-      </div>
-      <p className="hint">{t('set.hoppieHint')}</p>
+      </Row>
     </form>
   );
 }
@@ -141,6 +183,7 @@ function NetworkForm() {
   const [station, setStation] = useState(settings?.stationTemplate ?? '');
   const [port, setPort] = useState(String(settings?.bridgePort ?? ''));
   if (settings === null) return null;
+  const off = busy !== null;
   const dirty = station !== settings.stationTemplate || port !== String(settings.bridgePort);
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -148,259 +191,236 @@ function NetworkForm() {
   };
   return (
     <>
-      <div className="field">
-        <label htmlFor="lang">{t('set.language')}</label>
-        <select
-          id="lang"
-          value={settings.language}
-          disabled={busy !== null}
-          onChange={(e) => void update({ language: e.currentTarget.value as Language })}
-        >
-          <option value="en">English</option>
-          <option value="ru">Русский</option>
-        </select>
-      </div>
-      <div className="field">
-        <label htmlFor="transport">{t('set.transport')}</label>
-        <select
-          id="transport"
-          value={settings.transport}
-          disabled={busy !== null}
-          onChange={(e) => void update({ transport: e.currentTarget.value as TransportChoice })}
-        >
-          <option value="hoppie">{t('set.transport.hoppie')}</option>
-          <option value="offline">{t('set.transport.offline')}</option>
-        </select>
-      </div>
-      <div className="field">
-        <div className="row">
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={settings.recordFlights}
-              disabled={busy !== null}
-              onChange={(e) => void update({ recordFlights: e.currentTarget.checked })}
-            />
-            {t('set.record')}
-          </label>
-          <button
-            type="button"
-            className="btn ghost"
-            disabled={busy !== null}
-            onClick={() => void openRecordings()}
+      <Group id="general" title={t('set.group.general')}>
+        <Row htmlFor="lang" title={t('set.language')}>
+          <select
+            id="lang"
+            value={settings.language}
+            disabled={off}
+            onChange={(e) => void update({ language: e.currentTarget.value as Language })}
           >
-            {t('set.openRecordings')}
-          </button>
-        </div>
-        <p className="hint">{t('set.recordHint')}</p>
-      </div>
-      <div className="field">
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.liveData}
-            disabled={busy !== null}
-            onChange={(e) => void update({ liveData: e.currentTarget.checked })}
-          />
-          {t('set.liveData')}
-        </label>
-        <p className="hint">{t('set.liveDataHint')}</p>
-      </div>
-      <div className="field">
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.rops}
-            disabled={busy !== null}
-            onChange={(e) => void update({ rops: e.currentTarget.checked })}
-          />
-          {t('set.rops')}
-        </label>
-        <p className="hint">{t('set.ropsHint')}</p>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.ropsStandAside}
-            disabled={busy !== null || !settings.rops}
-            onChange={(e) => void update({ ropsStandAside: e.currentTarget.checked })}
-          />
-          {t('set.ropsStandAside')}
-        </label>
-        <p className="hint">{t('set.ropsStandAsideHint')}</p>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.ropsRandomDirects}
-            disabled={busy !== null || !settings.rops}
-            onChange={(e) => void update({ ropsRandomDirects: e.currentTarget.checked })}
-          />
-          {t('set.ropsRandomDirects')}
-        </label>
-        <p className="hint">{t('set.ropsRandomDirectsHint')}</p>
-      </div>
-      <div className="field">
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.datalink}
-            disabled={busy !== null}
-            onChange={(e) => void update({ datalink: e.currentTarget.checked })}
-          />
-          {t('set.datalink')}
-        </label>
-        <p className="hint">{t('set.datalinkHint')}</p>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.datalinkSatcom}
-            disabled={busy !== null || !settings.datalink}
-            onChange={(e) => void update({ datalinkSatcom: e.currentTarget.checked })}
-          />
-          {t('set.datalinkSatcom')}
-        </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.datalinkHeaderInText}
-            disabled={busy !== null || !settings.datalink}
-            onChange={(e) => void update({ datalinkHeaderInText: e.currentTarget.checked })}
-          />
-          {t('set.datalinkHeaderInText')}
-        </label>
-        <label>
-          {t('set.aircraftIcaoHex')}
-          <input
-            className="mono"
-            type="text"
-            maxLength={6}
-            defaultValue={settings.aircraftIcaoHex}
-            disabled={busy !== null || !settings.datalink}
-            onBlur={(e) => {
-              const v = e.currentTarget.value.trim();
-              if (v !== settings.aircraftIcaoHex) void update({ aircraftIcaoHex: v });
-            }}
-          />
-        </label>
-        <p className="hint">{t('set.aircraftIcaoHexHint')}</p>
-      </div>
-      <div className="field">
-        <span>{t('set.special')}</span>
-        {(['specialSport', 'specialAviation', 'specialOther'] as const).map((key) => (
-          <label className="check" key={key}>
-            <input
-              type="checkbox"
-              checked={settings[key]}
-              disabled={busy !== null}
-              onChange={(e) => void update({ [key]: e.currentTarget.checked })}
-            />
-            {t(`set.${key}`)}
-          </label>
-        ))}
-        <p className="hint">{t('set.specialHint')}</p>
-      </div>
-      <div className="field">
-        <label htmlFor="gap">{t('set.gap')}</label>
-        <select
-          id="gap"
-          value={settings.messageGapSec}
-          disabled={busy !== null}
-          onChange={(e) => void update({ messageGapSec: Number(e.currentTarget.value) })}
-        >
-          {GAPS.includes(settings.messageGapSec) ? null : (
-            <option value={settings.messageGapSec}>{settings.messageGapSec}</option>
-          )}
-          {GAPS.map((s) => (
-            <option key={s} value={s}>
-              {s === 0 ? t('set.gapNone') : t('set.gapSec', { s })}
-            </option>
-          ))}
-        </select>
-        <p className="hint">{t('set.gapHint')}</p>
-      </div>
-      <div className="field">
-        <div className="row">
-          <label className="check">
-            <input
-              type="checkbox"
-              checked={settings.soundOnMessage}
-              disabled={busy !== null}
-              onChange={(e) => void update({ soundOnMessage: e.currentTarget.checked })}
-            />
-            {t('set.sound')}
-          </label>
-          <button type="button" className="btn ghost" onClick={() => playMessageSound()}>
+            <option value="en">English</option>
+            <option value="ru">Русский</option>
+          </select>
+        </Row>
+        <Row htmlFor="transport" title={t('set.transport')}>
+          <select
+            id="transport"
+            value={settings.transport}
+            disabled={off}
+            onChange={(e) => void update({ transport: e.currentTarget.value as TransportChoice })}
+          >
+            <option value="hoppie">{t('set.transport.hoppie')}</option>
+            <option value="offline">{t('set.transport.offline')}</option>
+          </select>
+        </Row>
+      </Group>
+
+      <Group id="messages" title={t('set.group.messages')}>
+        <Row htmlFor="gap" title={t('set.gap')} hint={t('set.gapHint')}>
+          <select
+            id="gap"
+            value={settings.messageGapSec}
+            disabled={off}
+            onChange={(e) => void update({ messageGapSec: Number(e.currentTarget.value) })}
+          >
+            {GAPS.includes(settings.messageGapSec) ? null : (
+              <option value={settings.messageGapSec}>{settings.messageGapSec}</option>
+            )}
+            {GAPS.map((s) => (
+              <option key={s} value={s}>
+                {s === 0 ? t('set.gapNone') : t('set.gapSec', { s })}
+              </option>
+            ))}
+          </select>
+        </Row>
+        <Row htmlFor="sound" title={t('set.sound')} hint={t('set.soundHint')}>
+          <button type="button" className="btn" onClick={() => playMessageSound()}>
             {t('set.soundTest')}
           </button>
-        </div>
-        <p className="hint">{t('set.soundHint')}</p>
-      </div>
-      <div className="field">
-        <label>
-          {t('set.hubIcao')}
+          <SwitchInput
+            id="sound"
+            checked={settings.soundOnMessage}
+            disabled={off}
+            onChange={(v) => void update({ soundOnMessage: v })}
+          />
+        </Row>
+        <Row htmlFor="hub-icao" title={t('set.hubIcao')} hint={t('set.hubIcaoHint')}>
           <input
-            className="mono short"
+            id="hub-icao"
+            className="caps short"
             type="text"
             maxLength={4}
             spellCheck={false}
             defaultValue={settings.hubIcao}
-            disabled={busy !== null}
+            disabled={off}
             onBlur={(e) => {
               const v = e.currentTarget.value.trim().toUpperCase();
               if (v !== settings.hubIcao) void update({ hubIcao: v });
             }}
           />
-        </label>
-        <p className="hint">{t('set.hubIcaoHint')}</p>
-      </div>
-      <div className="field">
-        <div className="row">
-          <span>
-            {memory.length === 0
-              ? t('set.memoryEmpty')
-              : t('set.memory', { names: memory.join(', ') })}
-          </span>
+        </Row>
+      </Group>
+
+      <Group id="data" title={t('set.group.data')}>
+        <Switch
+          checked={settings.liveData}
+          disabled={off}
+          onChange={(v) => void update({ liveData: v })}
+          hint={t('set.liveDataHint')}
+        >
+          {t('set.liveData')}
+        </Switch>
+        <p className="sheet-note">
+          <strong>{t('set.special')}</strong> {t('set.specialHint')}
+        </p>
+        {(['specialSport', 'specialAviation', 'specialOther'] as const).map((key) => (
+          <Switch
+            key={key}
+            checked={settings[key]}
+            disabled={off}
+            onChange={(v) => void update({ [key]: v })}
+          >
+            {t(`set.${key}`)}
+          </Switch>
+        ))}
+      </Group>
+
+      <Group id="rops" title={t('set.group.rops')}>
+        <Switch
+          checked={settings.rops}
+          disabled={off}
+          onChange={(v) => void update({ rops: v })}
+          hint={t('set.ropsHint')}
+        >
+          {t('set.rops')}
+        </Switch>
+        <Switch
+          checked={settings.ropsStandAside}
+          disabled={off || !settings.rops}
+          onChange={(v) => void update({ ropsStandAside: v })}
+          hint={t('set.ropsStandAsideHint')}
+        >
+          {t('set.ropsStandAside')}
+        </Switch>
+        <Switch
+          checked={settings.ropsRandomDirects}
+          disabled={off || !settings.rops}
+          onChange={(v) => void update({ ropsRandomDirects: v })}
+          hint={t('set.ropsRandomDirectsHint')}
+        >
+          {t('set.ropsRandomDirects')}
+        </Switch>
+      </Group>
+
+      <Group id="datalink" title={t('set.group.datalink')}>
+        <Switch
+          checked={settings.datalink}
+          disabled={off}
+          onChange={(v) => void update({ datalink: v })}
+          hint={t('set.datalinkHint')}
+        >
+          {t('set.datalink')}
+        </Switch>
+        <Switch
+          checked={settings.datalinkSatcom}
+          disabled={off || !settings.datalink}
+          onChange={(v) => void update({ datalinkSatcom: v })}
+        >
+          {t('set.datalinkSatcom')}
+        </Switch>
+        <Switch
+          checked={settings.datalinkHeaderInText}
+          disabled={off || !settings.datalink}
+          onChange={(v) => void update({ datalinkHeaderInText: v })}
+        >
+          {t('set.datalinkHeaderInText')}
+        </Switch>
+        <Row
+          htmlFor="icao-hex"
+          title={t('set.aircraftIcaoHex')}
+          hint={t('set.aircraftIcaoHexHint')}
+        >
+          <input
+            id="icao-hex"
+            className="caps short"
+            type="text"
+            maxLength={6}
+            defaultValue={settings.aircraftIcaoHex}
+            disabled={off || !settings.datalink}
+            onBlur={(e) => {
+              const v = e.currentTarget.value.trim();
+              if (v !== settings.aircraftIcaoHex) void update({ aircraftIcaoHex: v });
+            }}
+          />
+        </Row>
+      </Group>
+
+      <Group id="records" title={t('set.group.records')}>
+        <Row htmlFor="record" title={t('set.record')} hint={t('set.recordHint')}>
           <button
             type="button"
-            className="btn ghost"
-            disabled={busy !== null || running || memory.length === 0}
+            className="btn"
+            disabled={off}
+            onClick={() => void openRecordings()}
+          >
+            {t('set.openRecordings')}
+          </button>
+          <SwitchInput
+            id="record"
+            checked={settings.recordFlights}
+            disabled={off}
+            onChange={(v) => void update({ recordFlights: v })}
+          />
+        </Row>
+        <Row
+          title={
+            memory.length === 0
+              ? t('set.memoryEmpty')
+              : t('set.memory', { names: memory.join(', ') })
+          }
+          hint={t('set.memoryHint')}
+        >
+          <button
+            type="button"
+            className="btn danger"
+            disabled={off || running || memory.length === 0}
             onClick={() => void clearMemory()}
           >
             {t('set.clearMemory')}
           </button>
-        </div>
-        <p className="hint">{t('set.memoryHint')}</p>
-      </div>
+        </Row>
+      </Group>
+
       <form onSubmit={submit}>
-        <div className="field">
-          <label htmlFor="station">{t('set.station')}</label>
-          <input
-            id="station"
-            type="text"
-            className="mono"
-            spellCheck={false}
-            value={station}
-            onChange={(e) => setStation(e.currentTarget.value)}
-          />
-          <p className="hint">{t('set.stationHint')}</p>
-        </div>
-        <div className="field">
-          <label htmlFor="port">{t('set.bridgePort')}</label>
-          <input
-            id="port"
-            type="number"
-            min={1024}
-            max={65535}
-            className="mono short"
-            value={port}
-            onChange={(e) => setPort(e.currentTarget.value)}
-          />
-        </div>
-        <div className="row">
-          <button type="submit" className="btn" disabled={busy !== null || !dirty}>
-            {t('set.save')}
-          </button>
-          <Saved what="settings" />
-        </div>
+        <Group id="conn" title={t('set.group.connection')}>
+          <Row htmlFor="station" title={t('set.station')} hint={t('set.stationHint')}>
+            <input
+              id="station"
+              type="text"
+              spellCheck={false}
+              value={station}
+              onChange={(e) => setStation(e.currentTarget.value)}
+            />
+          </Row>
+          <Row htmlFor="port" title={t('set.bridgePort')}>
+            <input
+              id="port"
+              type="number"
+              min={1024}
+              max={65535}
+              className="short"
+              value={port}
+              onChange={(e) => setPort(e.currentTarget.value)}
+            />
+          </Row>
+          <div className="sheet-actions">
+            <Saved what="settings" />
+            <button type="submit" className="btn primary" disabled={off || !dirty}>
+              {t('set.save')}
+            </button>
+          </div>
+        </Group>
       </form>
     </>
   );

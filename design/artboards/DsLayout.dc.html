@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Компоновка и поведение</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1200px; min-height: 1240px; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 28px; background: #16181D; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif; font-size: 13px; line-height: 18px">
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 11px; font-weight: 600; letter-spacing: .08em; color: #8A909A">07 · СХЕМЫ ОСНОВНЫХ ЭКРАНОВ</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+<sc-for list="{{schemes}}" as="s" hint-placeholder-count="4">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; gap: 8px"><span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 11px; color: #4A9BF0">{{s.id}}</span><span style="font-weight: 600">{{s.t}}</span></div>
+<div style="height: 220px; display: flex; flex-direction: column; border: 1px solid #4A505A; border-radius: 4px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 10px; color: #A9AEB8">
+<div style="height: 18px; display: flex; align-items: center; padding: 0 6px; background: #2C3038; border-bottom: 1px solid #4A505A">TOP BAR · раздел · рейс · связь · UTC</div>
+<div style="flex: 1 1 auto; display: flex; min-height: 0">
+<div style="width: 26px; background: #3A3F48; border-right: 1px solid #4A505A; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl">NAV</div>
+<div style="{{s.work}}">{{s.w}}</div>
+<sc-if value="{{s.ctx}}" hint-placeholder-val="{{ true }}"><div style="width: {{s.cw}}; display: flex; align-items: center; justify-content: center; text-align: center; padding: 4px; box-sizing: border-box; background: #3A3F48; border-left: 1px solid #4A505A; white-space: pre-line">{{s.ctx}}</div></sc-if>
+</div>
+<div style="height: 14px; display: flex; align-items: center; padding: 0 6px; background: #2C3038; border-top: 1px solid #4A505A">STATUS BAR · уведомления · связь</div>
+</div>
+<div style="font-size: 12px; color: #A9AEB8">{{s.d}}</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px">
+<div style="border: 1px solid #2C3038; border-radius: 10px; background: #1E2128">
+<div style="height: 28px; display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid #2C3038; font-size: 11px; font-weight: 600; letter-spacing: .08em; color: #A9AEB8">АДАПТАЦИЯ ПО ШИРИНЕ</div>
+<sc-for list="{{bp}}" as="b" hint-placeholder-count="4">
+<div style="display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 10px; padding: 8px 10px; border-bottom: 1px solid #2C3038">
+<span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 12px">{{b.w}}</span>
+<span style="font-size: 12px; color: #A9AEB8">{{b.d}}</span>
+</div>
+</sc-for>
+<div style="padding: 8px 10px; font-size: 12px; color: #8A909A">Никогда не скрываются: позывной, состояние связи, UTC, открытые CPDLC-запросы.</div>
+</div>
+<div style="border: 1px solid #2C3038; border-radius: 10px; background: #1E2128">
+<div style="height: 28px; display: flex; align-items: center; padding: 0 10px; border-bottom: 1px solid #2C3038; font-size: 11px; font-weight: 600; letter-spacing: .08em; color: #A9AEB8">ПОРЯДОК ФОКУСА И КЛАВИШИ</div>
+<div style="padding: 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 12px; line-height: 20px; white-space: pre-line">Top bar → Nav → Вкладки → Тулбар → Таблица → Контекст → FMS → Status bar
+F6 / Shift+F6     переход между областями
+↑ ↓  Home End     строки таблицы
+Enter             открыть в контексте/FMS
+Ctrl+K            поиск
+Ctrl+Shift+F      окно FMS отдельно
+Esc               закрыть меню/модалку/drawer
+Фокус: кольцо 2 px #4A9BF0 с зазором 2 px</div>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 11px; font-weight: 600; letter-spacing: .08em; color: #8A909A">08 · СОСТОЯНИЯ И ВЗАИМОДЕЙСТВИЯ</div>
+<div style="border: 1px solid #2C3038; border-radius: 10px; background: #1E2128">
+<sc-for list="{{rules}}" as="r" hint-placeholder-count="8">
+<div style="display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; padding: 9px 12px; border-bottom: 1px solid #2C3038">
+<span style="font-weight: 600">{{r.k}}</span>
+<span style="color: #A9AEB8">{{r.v}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const work = (bg) => 'flex: 1 1 auto; display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; white-space: pre-line; background: ' + bg;
+    return {
+      schemes: [
+        { id: 'A', t: 'Сообщения (по умолчанию)', w: 'РАБОЧАЯ ОБЛАСТЬ\nтаблица сообщений · вкладки · фильтр', work: work('#16181D'), ctx: 'КОНТЕКСТ\nрейс\n+\nFMS', cw: '34%', d: 'Таблица + контекст с параметрами рейса и пристыкованным окном FMS.' },
+        { id: 'B', t: 'Рейс / брифинг', w: 'РАБОЧАЯ ОБЛАСТЬ\nплан полёта · топливо · загрузка\n(таблицы, 12 колонок)', work: work('#16181D'), ctx: null, cw: '0', d: 'Контекстная панель скрыта: таблицам нужна ширина.' },
+        { id: 'C', t: 'Погода и NOTAM на карте', w: 'КАРТА\nсветлая подложка допустима\nWX-категории · NOTAM', work: work('#1E2226'), ctx: 'КОНТЕКСТ\nстанция\nMETAR/TAF\nNOTAM', cw: '30%', d: 'Цвета карты сохраняют навигационную семантику; UI вокруг — нейтральный.' },
+        { id: 'D', t: 'FMS отдельно', w: 'ГЛАВНОЕ ОКНО\n(может быть свёрнуто)', work: work('#16181D'), ctx: 'FMS\nокно\nповерх\nсимулятора', cw: '38%', d: 'Окно FMS открепляется, закрепляется поверх MSFS и живёт отдельно.' }
+      ],
+      bp: [
+        { w: '≥ 1600', d: 'Все области; контекст 400 px.' },
+        { w: '1280–1599', d: 'Контекст 340 px; в таблице скрывается колонка Ref.' },
+        { w: '1024–1279', d: 'Контекст становится drawer поверх правой части (Esc закрывает); FMS — отдельным окном.' },
+        { w: '< 1024', d: 'Rail сужается до 64 px (плитки 56×52, подписи-сокращения); нижний бар сводится к индикаторам и последнему событию.' }
+      ],
+      rules: [
+        { k: 'Hover', v: 'Плашка светлеет на шаг: #3A3F48 → #454B55, синяя #1F7AE0 → #3388E8, строка листа → #F5F6F8. Без анимации.' },
+        { k: 'Active / выбранное', v: 'Сплошная синяя заливка #1F7AE0 с белым текстом — у плиток навигации, вкладок, сегментов. Строка таблицы: фон #DCEBFD + полоса 4 px слева. Один выбранный элемент на группу.' },
+        { k: 'Фокус', v: 'Двойное кольцо: 2 px цвета фона + 2 px #4A9BF0 — читается и на тёмной оболочке, и на светлом листе.' },
+        { k: 'Disabled', v: 'Плашка #2A2E35, текст #5A606B; на листе — текст #A9ACB3. Не скрывать — объяснять в подсказке, почему недоступно.' },
+        { k: 'Ошибка', v: 'Строка листа подсвечивается #FDECEA, метка и подсказка — #D93025; введённое значение сохраняется.' },
+        { k: 'Системные уведомления', v: 'Только в status bar и в inline-баннерах над рабочей областью — сдвигают контент, не перекрывают. Без всплывающих тостов поверх данных.' },
+        { k: 'Связь', v: 'Четыре состояния у каждого канала (SIM, NET, CPDLC, WX): Connected ● #34C759 · Connecting ○ #F5A623 + сегменты · Lost ● #FF5A4E + текст · Off ○ серый. Всегда видны в верхнем и нижнем баре.' },
+        { k: 'Обновление данных', v: 'tabular-nums и фиксированные ширины колонок — значения не «прыгают». Новые строки вставляются сверху с подсветкой #DCEBFD 1 с. Выделение и позиция прокрутки сохраняются.' },
+        { k: 'Длинные списки', v: 'Виртуализация, sticky-заголовок таблицы, плотный режим 28 px, поиск Ctrl+K, фильтры-вкладки со счётчиками.' },
+        { k: 'Анимация', v: 'Только функциональная: 120 мс открытие меню, 160 мс drawer, без easing-эффектов. prefers-reduced-motion — отключить.' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

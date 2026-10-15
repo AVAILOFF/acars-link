@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Токены в коде</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1200px; min-height: 1700px; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 20px; background: #16181D; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 18px">
+<div>
+<div style="font-size: 11px; font-weight: 600; letter-spacing: .08em; color: #8A909A">09 · ДИЗАЙН-ТОКЕНЫ В КОДЕ</div>
+<p style="margin: 4px 0 0; color: #A9AEB8; max-width: 860px">Значения обновлены по визуальному языку EFB-референса: тёмная оболочка, графитовые кнопки r 6, синее активное, светлые листы r 10, системный шрифт. Допущение: исходный код приложения не предоставлен, поэтому примеры фреймворк-нейтральны. При внедрении — сопоставить с существующей системой стилей, не меняя бизнес-логику и интеграцию с SimConnect.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{blocks}}" as="b" hint-placeholder-count="4">
+<section style="border-radius: 10px; background: #1E2128; overflow: hidden">
+<div style="display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 14px; border-bottom: 1px solid #2C3038; background: #2A2E35">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600">{{b.f}}</span>
+<span style="font-size: 11px; color: #8A909A">{{b.d}}</span>
+</div>
+<pre style="margin: 0; padding: 12px; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; line-height: 17px; color: #C9D1D7; white-space: pre; overflow-x: auto">{{b.code}}</pre>
+</section>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":1700}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const css = [
+      ':root {',
+      '  /* shell (dark) */',
+      '  --shell-0: #16181D; --shell-1: #1E2128; --shell-2: #2A2E35;',
+      '  --shell-line: #2C3038; --field: #2C3038;',
+      '  --btn: #3A3F48; --btn-hover: #454B55; --btn-pressed: #30343C;',
+      '  --btn-close: #4A505A; --btn-disabled: #2A2E35;',
+      '  --on-shell-1: #FFFFFF; --on-shell-2: #A9AEB8;',
+      '  --on-shell-3: #8A909A; --on-shell-off: #5A606B;',
+      '  /* active */',
+      '  --active: #1F7AE0; --active-hover: #3388E8;',
+      '  --active-pressed: #1866BD; --focus-ring: #4A9BF0;',
+      '  /* sheet (light) */',
+      '  --sheet-bg: #F2F2F5; --sheet-header: #F7F7F9;',
+      '  --sheet-row: #FFFFFF; --sheet-line: #E1E2E6;',
+      '  --sheet-select: #DCEBFD; --sheet-btn: #ECEDF0;',
+      '  --on-sheet-1: #1C1C1E; --on-sheet-2: #6B6F78;',
+      '  --on-sheet-3: #8A909A; --link: #1F6FD1; --chip: #4A515E;',
+      '  /* status */',
+      '  --ok: #34C759; --ok-text: #1E9E52;',
+      '  --caution: #F5A623; --caution-text: #B36B00;',
+      '  --warning: #D93025; --warning-dot: #FF5A4E;',
+      '  /* chart semantics — charts, route, METAR, NOTAM only */',
+      '  --ownship: #D63AD6; --route: #1F3FD0; --traffic: #3FD6E0;',
+      '  --notam: #D9480F;',
+      '  /* type */',
+      "  --font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text',",
+      "             'Segoe UI', system-ui, sans-serif;",
+      '  --fs-title-lg: 22px; --fs-title: 17px; --fs-control: 15px;',
+      '  --fs-body: 15px; --fs-sub: 13px; --fs-caps: 12px;',
+      '  /* space · radius · size */',
+      '  --s-1: 4px; --s-2: 6px; --s-3: 8px; --s-4: 12px;',
+      '  --s-5: 16px; --s-6: 24px; --s-7: 32px;',
+      '  --r-sm: 4px; --r-ctl: 6px; --r-sheet: 10px; --r-pill: 999px;',
+      '  --h-ctl: 34px; --h-ctl-sm: 30px; --h-row: 44px; --h-row-2: 64px;',
+      '  --topbar: 52px; --bottombar: 48px; --rail: 88px;',
+      '  --tile-w: 72px; --tile-h: 56px; --icon-btn: 40px;',
+      '  --shadow-float: 0 2px 8px rgba(0,0,0,.3);',
+      '  --focus: 0 0 0 2px var(--shell-0), 0 0 0 4px var(--focus-ring);',
+      '  --dur-fast: 120ms; --dur: 160ms;',
+      '}',
+      '@media (prefers-reduced-motion: reduce) {',
+      '  :root { --dur-fast: 0ms; --dur: 0ms; }',
+      '}'
+    ].join('\n');
+    const fms = [
+      '/* Isolated: tokens exist ONLY inside .fms */',
+      '.fms {',
+      '  --fms-bg: #000000;',
+      '  --fms-text: #48D27A;      /* 10.8:1 */',
+      '  --fms-text-dim: #2E9B57;  /*  5.9:1 */',
+      '  --fms-rule: #1E5233;',
+      '  --fms-ann-on: #0E2A18;',
+      '  --fms-bezel: #2A2E35;',
+      '  --fms-key: #3A3F48; --fms-key-radius: 6px;',
+      '  --fms-key-label: #FFFFFF; /* bezel only */',
+      "  --fms-font: 'B612 Mono', ui-monospace, monospace;",
+      '  --fms-cols: 28; --fms-rows: 14;',
+      '  --fms-lg: 18px; --fms-sm: 14px; --fms-lh: 26px;',
+      '}',
+      '.fms__screen {',
+      '  background: var(--fms-bg);',
+      '  color: var(--fms-text);',
+      '  font: var(--fms-lg)/var(--fms-lh) var(--fms-font);',
+      '  width: calc(var(--fms-cols) * 1ch);',
+      '  text-transform: uppercase;',
+      '  white-space: pre;',
+      '  text-shadow: none;',
+      '}',
+      '.fms__line--sm  { font-size: var(--fms-sm); color: var(--fms-text-dim); }',
+      '.fms__line--dim { color: var(--fms-text-dim); }',
+      '.fms__rule      { color: var(--fms-rule); }',
+      '/* guard: nothing inside the screen may change hue */',
+      '.fms__screen * { color: inherit; background: transparent; }',
+      '.fms__screen .fms__line--sm,',
+      '.fms__screen .fms__line--dim { color: var(--fms-text-dim); }'
+    ].join('\n');
+    const ts = [
+      "export const ui = {",
+      "  shell: ['#16181D', '#1E2128', '#2A2E35'],",
+      "  btn: { base: '#3A3F48', hover: '#454B55', pressed: '#30343C' },",
+      "  active: '#1F7AE0',",
+      "  sheet: { bg: '#F2F2F5', row: '#FFFFFF', line: '#E1E2E6', select: '#DCEBFD' },",
+      "  radius: { ctl: 6, sheet: 10, pill: 999 },",
+      "} as const;",
+      "",
+      "export type LinkState = 'connected' | 'connecting' | 'lost' | 'off';",
+      "export const linkColor: Record<LinkState, string> = {",
+      "  connected: 'var(--ok)', connecting: 'var(--caution)',",
+      "  lost: 'var(--warning-dot)', off: 'var(--on-shell-3)',",
+      "};",
+      "",
+      "export type FlightCat = 'VFR' | 'MVFR' | 'IFR' | 'LIFR' | 'NODATA';",
+      "// pill on a light sheet: [background, text]",
+      "export const wxPill: Record<FlightCat, [string, string]> = {",
+      "  VFR: ['#E3F5EA', '#1E7A43'], MVFR: ['#E3EEFC', '#1F5FC0'],",
+      "  IFR: ['#FDF0DC', '#8F5600'], LIFR: ['#FDE7E5', '#B3261E'],",
+      "  NODATA: ['#1C1C1E', '#FFFFFF'],",
+      "};",
+      "",
+      "// FMS line formatting — fixed 28 columns",
+      "export const W = 28;",
+      "export const pad = (s: string, n = W) => s.padEnd(n).slice(0, n);",
+      "export const lr = (l: string, r: string) => pad(l, W - r.length) + r;"
+    ].join('\n');
+    const jsx = [
+      "// usage — framework-agnostic idea, shown in React",
+      "function StatusDot({ state, label }: { state: LinkState; label: string }) {",
+      "  return (",
+      "    <span className=\"status\" data-state={state}>",
+      "      <i style={{ background: linkColor[state] }} aria-hidden />",
+      "      {label} <b>{state.toUpperCase()}</b>",
+      "    </span>",
+      "  );",
+      "}",
+      "",
+      "function FmsScreen({ lines }: { lines: FmsLine[] }) {",
+      "  return (",
+      "    <div className=\"fms\"><pre className=\"fms__screen\" aria-live=\"polite\">",
+      "      {lines.map((l, i) => (",
+      "        <div key={i} className={l.small ? 'fms__line--sm' : ''}>",
+      "          {pad(l.text)}",
+      "        </div>",
+      "      ))}",
+      "    </pre></div>",
+      "  );",
+      "}",
+      "",
+      "/* shell button + sheet row */",
+      ".btn { height: var(--h-ctl); padding: 0 14px; border: 0;",
+      "  border-radius: var(--r-ctl); background: var(--btn);",
+      "  color: var(--on-shell-1); font: 500 var(--fs-control)/20px var(--font-ui); }",
+      ".btn:hover { background: var(--btn-hover); }",
+      ".btn[aria-pressed=true], .btn--primary { background: var(--active); }",
+      ".msg-row { height: var(--h-row); background: var(--sheet-row);",
+      "  border-bottom: 1px solid var(--sheet-line); color: var(--on-sheet-1);",
+      "  font-variant-numeric: tabular-nums; }",
+      ".msg-row[aria-selected=true] { background: var(--sheet-select);",
+      "  box-shadow: inset 4px 0 0 var(--active); }",
+      ".chip { height: 26px; padding: 0 10px; border-radius: var(--r-pill);",
+      "  background: var(--chip); color: #fff; font-weight: 500; }",
+      ":focus-visible { outline: none; box-shadow: var(--focus); }"
+    ].join('\n');
+    return {
+      blocks: [
+        { f: 'tokens.css', d: 'UI-токены приложения', code: css },
+        { f: 'fms.css', d: 'изолированные токены окна FMS', code: fms },
+        { f: 'tokens.ts', d: 'типизированные карты состояний', code: ts },
+        { f: 'StatusDot.tsx · FmsScreen.tsx', d: 'пример использования', code: jsx }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Окно FMS — ACARS</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button,input{font:inherit}
+button{cursor:pointer}
+button:focus-visible{outline:2px solid #4A9BF0;outline-offset:1px}
+.fms-in::placeholder{color:#2E9B57}
+.fms-in:focus-visible{outline:none}
+</style>
+</helmet>
+<div style="width: 1200px; height: 900px; box-sizing: border-box; display: flex; gap: 40px; padding: 40px; background: #16181D; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif; color: #FFFFFF; font-size: 13px; line-height: 18px">
+
+<!-- ===== The FMS window ===== -->
+<div style="flex: 0 0 auto; display: flex; flex-direction: column; width: 560px; border: 1px solid #2C3038; border-radius: 6px; background: #1E2128; overflow: hidden; align-self: flex-start">
+<div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 6px 0 12px; background: #1E2128; border-bottom: 1px solid #2C3038">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: .06em">FMS · ACARS</span>
+<span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 11px; color: #8A909A">VRT204 · EDDM–LEMD</span>
+<span style="flex: 1 1 0"></span>
+<button type="button" aria-label="Закрепить поверх окон" style="width: 24px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #A9AEB8"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6l-1 6 4 4H6l4-4zM12 13v8"></path></svg></button>
+<a href="ScreenMain.dc.html" aria-label="Вернуть в главное окно" style="display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 6px; background: #3A3F48; color: #FFFFFF; font-size: 13px; font-weight: 500; text-decoration: none"><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 20H4v-6M4 20l9-9M6 10V4h14v14h-6"></path></svg>В главное окно</a>
+</div>
+
+<!-- bezel -->
+<div style="padding: 20px 14px 18px; background: #2A2E35">
+<div style="display: flex; gap: 10px; justify-content: center">
+<!-- LSK left -->
+<div style="display: flex; flex-direction: column; padding-top: 66px; gap: 26px">
+<sc-for list="{{lskL}}" as="k" hint-placeholder-count="6">
+<button type="button" onClick="{{k.act}}" aria-label="{{k.aria}}" style="{{k.style}}"><span aria-hidden="true" style="display: block; width: 16px; height: 2px; margin: 0 auto; background: #5A636B"></span></button>
+</sc-for>
+</div>
+
+<!-- screen -->
+<div style="width: 360px; box-sizing: border-box; padding: 12px 14px; background: #000000; border: 2px solid #0A0C0D; border-radius: 6px; font-family: 'B612 Mono', monospace; color: #48D27A">
+<sc-for list="{{lines}}" as="ln" hint-placeholder-count="13">
+<div style="height: 26px; white-space: pre; overflow: hidden; font-size: {{ln.fs}}; line-height: 26px; color: {{ln.c}}">{{ln.v}}</div>
+</sc-for>
+<label style="display: flex; height: 26px; align-items: center; font-size: 18px; color: #48D27A">
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Scratchpad — строка команды</span>
+<span aria-hidden="true">[</span>
+<input class="fms-in" type="text" value="{{cmd}}" onChange="{{onCmd}}" onKeyDown="{{onKey}}" placeholder="{{spHint}}" style="flex: 1 1 0; min-width: 0; padding: 0; border: 0; background: transparent; color: #48D27A; caret-color: #48D27A; font-family: 'B612 Mono', monospace; font-size: 18px; text-transform: uppercase">
+<span aria-hidden="true">]</span>
+</label>
+</div>
+
+<!-- LSK right -->
+<div style="display: flex; flex-direction: column; padding-top: 66px; gap: 26px">
+<sc-for list="{{lskR}}" as="k" hint-placeholder-count="6">
+<button type="button" onClick="{{k.act}}" aria-label="{{k.aria}}" style="{{k.style}}"><span aria-hidden="true" style="display: block; width: 16px; height: 2px; margin: 0 auto; background: #5A636B"></span></button>
+</sc-for>
+</div>
+</div>
+
+<!-- function keys -->
+<div style="display: flex; align-items: center; gap: 8px; margin-top: 18px; padding: 0 46px">
+<button type="button" onClick="{{goIndex}}" style="height: 32px; padding: 0 12px; border: 1px solid #3A3F48; border-radius: 6px; background: #3A3F48; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .06em; box-shadow: 0 2px 0 #0A0C0D">INDEX</button>
+<button type="button" onClick="{{prev}}" style="height: 32px; padding: 0 12px; border: 1px solid #3A3F48; border-radius: 6px; background: #3A3F48; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .06em; box-shadow: 0 2px 0 #0A0C0D">PREV</button>
+<button type="button" onClick="{{next}}" style="height: 32px; padding: 0 12px; border: 1px solid #3A3F48; border-radius: 6px; background: #3A3F48; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .06em; box-shadow: 0 2px 0 #0A0C0D">NEXT</button>
+<button type="button" onClick="{{clr}}" style="height: 32px; padding: 0 12px; border: 1px solid #3A3F48; border-radius: 6px; background: #3A3F48; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .06em; box-shadow: 0 2px 0 #0A0C0D">CLR</button>
+<span style="flex: 1 1 0"></span>
+<span style="{{annStyle}}">MSG</span>
+</div>
+</div>
+</div>
+
+<!-- ===== Spec ===== -->
+<div style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<div>
+<div style="font-size: 11px; font-weight: 600; letter-spacing: .08em; color: #8A909A">06 · СПЕЦИФИКАЦИЯ</div>
+<h1 style="margin: 4px 0 0; font-size: 18px; line-height: 24px; font-weight: 600">Окно FMS (CDU) — изолированный набор токенов</h1>
+<p style="margin: 6px 0 0; color: #A9AEB8">Токены <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; color: #FFFFFF">--fms-*</span> применяются только внутри окна FMS и не используются в остальном интерфейсе. Весь текст на экране — зелёный, иерархия задаётся размером шрифта, яркостью и синтаксисом CDU.</p>
+</div>
+
+<table style="width: 100%; border-collapse: collapse; font-size: 12px">
+<thead><tr style="height: 26px; text-align: left; color: #8A909A; font-size: 11px; letter-spacing: .08em; text-transform: uppercase"><th scope="col" style="font-weight: 500; border-bottom: 1px solid #2C3038; padding: 0 8px 0 0">Токен</th><th scope="col" style="font-weight: 500; border-bottom: 1px solid #2C3038">Значение</th><th scope="col" style="font-weight: 500; border-bottom: 1px solid #2C3038">Применение</th></tr></thead>
+<tbody>
+<sc-for list="{{tokens}}" as="tk" hint-placeholder-count="9">
+<tr style="height: 30px">
+<td style="padding: 0 8px 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; border-bottom: 1px solid #2C3038">{{tk.n}}</td>
+<td style="border-bottom: 1px solid #2C3038"><span style="display: inline-flex; align-items: center; gap: 6px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"><span style="width: 14px; height: 14px; border-radius: 2px; border: 1px solid #3D4750; background: {{tk.v}}"></span>{{tk.v}}</span></td>
+<td style="color: #A9AEB8; border-bottom: 1px solid #2C3038">{{tk.u}}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+<div style="border: 1px solid #2C3038; border-radius: 6px; padding: 12px; background: #1E2128">
+<h2 style="margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #A9AEB8">Сетка экрана</h2>
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 12px; line-height: 20px; color: #FFFFFF; white-space: pre-line">28 колонок × 14 строк
+Строка 1 — заголовок + индекс страницы
+Строки 2–13 — 6 пар «метка / данные»
+Строка 14 — scratchpad [ ]
+LSK L1–R6 выровнены по строкам 3,5…13
+Ширина символа фиксирована, текст UPPERCASE</div>
+</div>
+<div style="border: 1px solid #2C3038; border-radius: 6px; padding: 12px; background: #1E2128">
+<h2 style="margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #A9AEB8">Типографика</h2>
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-size: 12px; line-height: 20px; color: #FFFFFF; white-space: pre-line">B612 Mono (OFL, создан для кабинных дисплеев)
+LARGE  18 / 26 — данные, сообщения
+SMALL  14 / 26 — метки строк, служебное
+Только Regular, без курсива
+Свечение — нет (или ≤ 2 px, 25 %)</div>
+</div>
+</div>
+
+<div style="border: 1px solid #2C3038; border-radius: 6px; padding: 12px; background: #1E2128">
+<h2 style="margin: 0 0 8px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #A9AEB8">Синтаксис и состояния</h2>
+<div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 6px 12px; font-size: 12px">
+<span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">&lt;PROMPT / PROMPT&gt;</span><span style="color: #A9AEB8">действие на соседней LSK; без LSK — строка не кликабельна</span>
+<span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">SMALL / dim</span><span style="color: #A9AEB8">метки, разделители, прочитанное; LARGE / основной — новое и данные</span>
+<span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">NEW · MSG</span><span style="color: #A9AEB8">новое сообщение: метка NEW в строке + индикатор MSG на рамке</span>
+<span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">[      ]</span><span style="color: #A9AEB8">scratchpad: ввод, системные ответы (SENDING, INVALID ENTRY)</span>
+<span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">Фокус клавиатуры</span><span style="color: #A9AEB8">кольцо фокуса — на клавише LSK (вне экрана), экран не перекрашивается</span>
+<span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif">Запрещено</span><span style="color: #A9AEB8">белый/голубой/жёлтый/красный/розовый текст, пузыри, аватары, градиенты, карточки</span>
+</div>
+</div>
+<p style="margin: 0; font-size: 12px; color: #8A909A">Подписи клавиш на рамке (INDEX, PREV…) относятся к корпусу, а не к экрану, поэтому они нейтральные. Попробуйте: L2–L5 открывают сообщения, R6 — возврат, ввод в scratchpad + Enter.</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1200,"height":900}}'>
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    this.state = { page: 'index', msg: 0, read: {}, resp: {}, cmd: '', sp: '' };
+  }
+  renderVals() {
+    const W = 28, G = '#48D27A', D = '#2E9B57';
+    const pad = (s, n) => (s + ' '.repeat(n)).slice(0, n);
+    const lr = (l, r) => pad(l, W - r.length) + r;
+    const ctrR = (s, r) => { const k = Math.max(0, Math.floor((W - s.length) / 2)); return pad(pad(' '.repeat(k) + s, W - r.length) + r, W); };
+    const msgs = [
+      { t: '14:31Z', src: 'ATC LFFF', head: 'CLIMB TO FL370', cpdlc: true, body: ['CLIMB TO AND MAINTAIN', 'FL370', 'REPORT LEVEL FL370'] },
+      { t: '14:20Z', src: 'NOTAM LEMD', head: 'RWY [—] CLSD', body: ['LEMD NOTAM [—]', 'RWY [—] CLSD', 'FROM [—] TO [—]'] },
+      { t: '14:18Z', src: 'DISPATCH', head: 'ARR STAND [—]', body: ['VRT204 EDDM-LEMD', 'ARR STAND [—]', 'TERMINAL [—]'] },
+      { t: '14:02Z', src: 'WX LEMD', head: 'METAR RECEIVED', body: ['LEMD 151400Z 36008KT', 'CAVOK 18/06 Q1021', 'NOSIG'] }
+    ];
+    const st = this.state;
+    const L = [];
+    const big = (v, dim) => L.push({ v, fs: '18px', c: dim ? D : G });
+    const sm = (v) => L.push({ v, fs: '14px', c: D });
+    const noop = null;
+    const actsL = [noop, noop, noop, noop, noop, noop];
+    const actsR = [noop, noop, noop, noop, noop, noop];
+    const ariaL = ['', '', '', '', '', ''];
+    const ariaR = ['', '', '', '', '', ''];
+    const anyNew = msgs.some((m, i) => !st.read[i]);
+    if (st.page === 'index') {
+      big(ctrR('ACARS MESSAGES', '1/1'));
+      sm(' SYSTEM STATUS');
+      big(lr(' LINK CONNECTED', '14:32Z'));
+      msgs.forEach((m, i) => {
+        const isNew = !st.read[i];
+        sm(lr(' ' + m.t + ' ' + m.src, isNew ? 'NEW' : (st.resp[i] ? st.resp[i] : '')));
+        big('<' + m.head, !isNew);
+        actsL[i + 1] = () => this.setState({ page: 'msg', msg: i, read: Object.assign({}, st.read, { [i]: true }) });
+        ariaL[i + 1] = 'LSK L' + (i + 2) + ' — открыть: ' + m.head;
+      });
+      sm(' ');
+      big(lr('<REQUEST', 'SETUP>'));
+      ariaL[5] = 'LSK L6 — запрос'; ariaR[5] = 'LSK R6 — настройки';
+      actsL[5] = () => this.setState({ sp: 'METAR ICAO' });
+      actsR[5] = () => {};
+    } else {
+      const m = msgs[st.msg];
+      const r = st.resp[st.msg];
+      big(ctrR(m.cpdlc ? 'ATC MSG' : 'ACARS MSG', (st.msg + 1) + '/' + msgs.length));
+      sm(lr(' FROM', 'TIME'));
+      big(lr(' ' + m.src, m.t));
+      sm(' ' + '-'.repeat(W - 2));
+      for (let i = 0; i < 5; i++) big(m.body[i] ? ' ' + m.body[i] : ' ');
+      if (m.cpdlc && !r) {
+        sm(lr(' RESPONSE', 'W/U'));
+        big(lr('<WILCO', 'UNABLE>'));
+        sm(' ');
+        big(lr('<STANDBY', 'RETURN>'));
+        const ans = (w) => () => this.setState({ resp: Object.assign({}, st.resp, { [st.msg]: w }), sp: w + ' SENT' });
+        actsL[4] = ans('WILCO'); actsR[4] = ans('UNABLE'); actsL[5] = ans('STANDBY');
+        ariaL[4] = 'LSK L5 — WILCO'; ariaR[4] = 'LSK R5 — UNABLE'; ariaL[5] = 'LSK L6 — STANDBY';
+      } else {
+        sm(r ? ' ' + r + ' SENT 14:32Z' : ' ');
+        big(lr('<PRINT', 'REPLY>'));
+        sm(' ');
+        big(lr('<ARCHIVE', 'RETURN>'));
+        actsL[4] = () => {}; actsR[4] = () => {}; actsL[5] = () => {};
+        ariaL[4] = 'LSK L5 — печать'; ariaR[4] = 'LSK R5 — ответ'; ariaL[5] = 'LSK L6 — в архив';
+      }
+      actsR[5] = () => this.setState({ page: 'index' });
+      ariaR[5] = 'LSK R6 — возврат к списку';
+    }
+    while (L.length < 13) sm(' ');
+    const keyStyle = (on) => 'width: 34px; height: 26px; padding: 0; border: 1px solid #3A3F48; border-radius: 6px; background: ' + (on ? '#3A3F48' : '#30343C') + '; box-shadow: 0 2px 0 #0A0C0D; cursor: ' + (on ? 'pointer' : 'default') + '; opacity: ' + (on ? '1' : '.55');
+    const mk = (acts, aria, side) => acts.map((a, i) => ({ act: a || (() => {}), aria: aria[i] || ('LSK ' + side + (i + 1) + ' — нет функции'), style: keyStyle(!!a) }));
+    const go = (d) => () => {
+      if (st.page === 'index') return;
+      const n = (st.msg + d + msgs.length) % msgs.length;
+      this.setState({ msg: n, read: Object.assign({}, st.read, { [n]: true }) });
+    };
+    return {
+      lines: L.slice(0, 13),
+      lskL: mk(actsL, ariaL, 'L'), lskR: mk(actsR, ariaR, 'R'),
+      goIndex: () => this.setState({ page: 'index' }), prev: go(-1), next: go(1),
+      clr: () => this.setState({ cmd: '', sp: '' }),
+      cmd: st.cmd, spHint: st.sp || '',
+      onCmd: (e) => this.setState({ cmd: e.target.value }),
+      onKey: (e) => { if (e.key === 'Enter') this.setState({ cmd: '', sp: st.cmd ? 'SENDING ' + st.cmd.toUpperCase() : 'INVALID ENTRY' }); },
+      annStyle: 'height: 24px; padding: 0 8px; border-radius: 2px; font-family: B612 Mono, monospace; font-size: 12px; font-weight: 700; line-height: 24px; letter-spacing: .08em; ' + (anyNew ? 'background: #0E2A18; color: #48D27A; border: 1px solid #2E9B57' : 'background: #15191C; color: #3A4148; border: 1px solid #2B3136'),
+      tokens: [
+        { n: '--fms-bg', v: '#000000', u: 'фон экрана' },
+        { n: '--fms-text', v: '#48D27A', u: 'основной текст, LARGE · 10.8:1' },
+        { n: '--fms-text-dim', v: '#2E9B57', u: 'SMALL, метки, прочитанное · 5.9:1' },
+        { n: '--fms-rule', v: '#1E5233', u: 'разделители, рамка scratchpad' },
+        { n: '--fms-ann-on', v: '#0E2A18', u: 'фон индикатора MSG' },
+        { n: '--fms-bezel', v: '#2A2E35', u: 'корпус вокруг экрана' },
+        { n: '--fms-key', v: '#3A3F48', u: 'клавиши LSK и функциональные' },
+        { n: '--fms-key-line', v: '#3A3F48', u: 'контур клавиш' },
+        { n: '--fms-key-label', v: '#FFFFFF', u: 'подписи на корпусе (не на экране)' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

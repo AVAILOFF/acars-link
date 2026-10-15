@@ -1,32 +1,138 @@
-import { FLIGHT_PHASES, type FlightPhase } from '@acars/core';
+import type { CSSProperties } from 'react';
 import { type FormEvent, useState } from 'react';
-import type { AppState, FlightSummary, LinkWindow } from '../../shared/api.js';
+import type { AppState, FeedEntry, FlightSummary } from '../../shared/api.js';
 import { atcHints } from '../../shared/atc-hints.js';
-import { FeedList } from './FeedList.js';
-import { phaseKey, type Translate } from './i18n.js';
+import { type Filter, MessageTable } from './FeedList.js';
+import { phaseKey } from './i18n.js';
+import { RequestDialog, type RequestKind } from './RequestDialog.js';
 import { useStore } from './store.js';
 import { num, useT, useUiText, zulu } from './ui.js';
 
-/** The normal sequence shown as a strip; GO_AROUND and the end states only as the label. */
-const STRIP: readonly FlightPhase[] = FLIGHT_PHASES.filter(
-  (p) => p !== 'GO_AROUND' && p !== 'TURNAROUND' && p !== 'DONE',
-);
+/** FMS screen width without a flight plan: the narrowest profile. */
+const DEFAULT_COLS = 24;
 
+type Message = Exclude<FeedEntry, { kind: 'system' }>;
+
+const isMessage = (e: FeedEntry): e is Message => e.kind !== 'system';
+
+/** "Messages" screen of the mockup: toolbar + table, context column with the flight and the FMS. */
 export function FlightView() {
+  const t = useT();
   const app = useStore((s) => s.app) as AppState;
+  const busy = useStore((s) => s.busy);
+  const running = app.session === 'running';
+  const [filter, setFilter] = useState<Filter>('all');
+  const [query, setQuery] = useState('');
+  // null = follow the newest message.
+  const [picked, setPicked] = useState<string | null>(null);
+  // Messages already there when the screen opened are not "new".
+  const [seen, setSeen] = useState(() => new Set(app.feed.map((e) => e.id)));
+  const [request, setRequest] = useState<RequestKind | null>(null);
+
+  const messages = app.feed.filter(isMessage);
+  const selected =
+    messages.find((m) => m.id === picked) ?? (messages.length > 0 ? messages.at(-1) : undefined);
+  const select = (id: string) => {
+    setPicked(id);
+    setSeen((s) => (s.has(id) ? s : new Set(s).add(id)));
+  };
+  const counts: Record<Filter, number> = {
+    all: app.feed.length,
+    airline: app.feed.filter((e) => e.kind === 'outbound').length,
+    pilot: app.feed.filter((e) => e.kind === 'inbound').length,
+    system: app.feed.filter((e) => e.kind === 'system').length,
+  };
+  const disabledWhy = running ? undefined : t('req.notRunning');
+
   return (
-    <div className="flight-layout">
-      <div className="side">
-        <FlightCard app={app} />
-        <StatusCard app={app} />
-      </div>
-      <section className="panel feed-panel" aria-labelledby="feed-title">
-        {app.session === 'running' && <PilotForm />}
-        {app.session === 'running' && app.irregular.length > 0 && (
-          <ForceForm list={app.irregular} />
-        )}
-        <FeedList entries={app.feed} />
+    <div className="msg-layout">
+      <section className="workspace" aria-label={t('page.flight')}>
+        <div className="toolbar">
+          <div className="filters" role="tablist" aria-label={t('filter.label')}>
+            {(['all', 'airline', 'pilot', 'system'] as const).map((f) => (
+              <button
+                key={f}
+                type="button"
+                role="tab"
+                aria-selected={f === filter}
+                className={f === filter ? 'tab active' : 'tab'}
+                onClick={() => setFilter(f)}
+              >
+                {t(`filter.${f}`)}
+                <span className="tab-count">{counts[f]}</span>
+              </button>
+            ))}
+          </div>
+          <span className="toolbar-gap" />
+          <label className="search">
+            <svg
+              aria-hidden="true"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path d="M20 20l-4.8-4.8" />
+            </svg>
+            <span className="sr-only">{t('search.label')}</span>
+            <input
+              type="search"
+              placeholder={t('search.placeholder')}
+              value={query}
+              onChange={(e) => setQuery(e.currentTarget.value)}
+            />
+          </label>
+        </div>
+        <div className="toolbar">
+          <button
+            type="button"
+            className="btn primary"
+            disabled={!running || busy !== null}
+            title={disabledWhy}
+            onClick={() => setRequest('text')}
+          >
+            {t('toolbar.new')}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={!running || busy !== null}
+            title={disabledWhy}
+            onClick={() => setRequest('wx')}
+          >
+            {t('toolbar.request')}
+          </button>
+          {running && app.irregular.length > 0 && <ForceForm list={app.irregular} />}
+        </div>
+        <MessageTable
+          entries={app.feed}
+          filter={filter}
+          query={query}
+          selectedId={selected?.id ?? null}
+          seen={seen}
+          onSelect={select}
+        />
       </section>
+      <aside className="context" aria-label={t('ctx.label')}>
+        <FlightCard app={app} />
+        <FmsPanel
+          messages={messages}
+          selected={selected}
+          cols={app.flight?.lineWidth ?? DEFAULT_COLS}
+          running={running}
+          onSelect={select}
+        />
+      </aside>
+      {request !== null && (
+        <RequestDialog
+          initial={request}
+          destination={app.flight?.destination ?? ''}
+          onClose={() => setRequest(null)}
+        />
+      )}
     </div>
   );
 }
@@ -49,13 +155,42 @@ function FlightCard({ app }: { app: AppState }) {
   const f = app.flight;
   const offline = settings?.transport === 'offline';
   const needCode = !offline && creds?.hoppieCodeSet === false;
+  const tm = app.telemetry;
 
   return (
     <section className="panel" aria-labelledby="flight-title">
-      <h2 id="flight-title" className="panel-title">
-        {t('flight.title')}
-      </h2>
-      {f === null ? <p className="muted">{t('flight.none')}</p> : <Summary f={f} />}
+      <div className="panel-head">
+        <h2 id="flight-title" className="panel-title">
+          {t('flight.title')}
+        </h2>
+        {f !== null && (
+          <span className="panel-sub">
+            {f.callsign} · {f.aircraftIcao}
+            {f.aircraftReg === null ? '' : ` · ${f.aircraftReg}`}
+          </span>
+        )}
+      </div>
+      {f === null ? (
+        <p className="muted">{t('flight.none')}</p>
+      ) : (
+        <Summary f={f} phase={running && app.phase !== null ? t(phaseKey(app.phase)) : null} />
+      )}
+      {running && (
+        <dl className="params">
+          <Param k="ALT" v={tm === null ? '—' : num(tm.altFt)} unit="FT" />
+          <Param k="VS" v={tm === null ? '—' : num(tm.vsFpm)} unit="FPM" />
+          <Param k="GS" v={tm === null ? '—' : num(tm.gsKt)} unit="KT" />
+          <Param k="FOB" v={tm === null ? '—' : num(tm.fuelKg)} unit="KG" />
+        </dl>
+      )}
+      {running && tm !== null && (
+        <p className="hint">
+          {tm.aircraftTitle}
+          {tm.onGround ? ` · ${t('tm.ground')}` : ''}
+        </p>
+      )}
+      {running && tm === null && <p className="hint">{t('tm.none')}</p>}
+
       {creds?.simbriefUsername === '' && <p className="hint warn">{t('flight.needUsername')}</p>}
       {f !== null && !running && needCode && <p className="hint warn">{t('flight.needCode')}</p>}
       {f !== null && (running || !needCode) && (
@@ -65,10 +200,20 @@ function FlightCard({ app }: { app: AppState }) {
             : t('flight.fmsHint', { callsign: f.callsign, station: f.station })}
         </p>
       )}
-
-      {running && needsFplnRequest(app.telemetry?.aircraftTitle) && (
+      {running && needsFplnRequest(tm?.aircraftTitle) && (
         <p className="hint warn">{t('flight.fplnHint')}</p>
       )}
+      {running &&
+        atcHints({
+          atc: app.atc,
+          aircraftTitle: tm?.aircraftTitle,
+          phase: app.phase,
+          callsign: f?.callsign ?? null,
+        }).map((h) => (
+          <p key={h.key} className="hint">
+            {t(h.key, h.params)}
+          </p>
+        ))}
 
       {running && app.phase === 'ON_BLOCK' && (
         <div className="end-flight">
@@ -76,7 +221,7 @@ function FlightCard({ app }: { app: AppState }) {
           <div className="row">
             <button
               type="button"
-              className="btn"
+              className="btn primary"
               disabled={busy !== null}
               onClick={() => void endFlight('TURNAROUND')}
             >
@@ -133,7 +278,36 @@ function FlightCard({ app }: { app: AppState }) {
   );
 }
 
-/** T12: a pilot telex typed in the app (aircraft without free-text telex, tests). */
+function Summary({ f, phase }: { f: FlightSummary; phase: string | null }) {
+  const t = useT();
+  return (
+    <div className="route-block">
+      <div className="route">
+        <span>{f.origin}</span>
+        <span className="route-line" aria-hidden="true" />
+        <span>{f.destination}</span>
+      </div>
+      <div className="route-meta">
+        <span>STD {zulu(f.schedOutMs)}</span>
+        <span>{phase ?? t('flight.profileValue', { id: f.profileId, width: f.lineWidth })}</span>
+        <span>STA {zulu(f.schedInMs)}</span>
+      </div>
+    </div>
+  );
+}
+
+function Param({ k, v, unit }: { k: string; v: string; unit: string }) {
+  return (
+    <div>
+      <dt>{k}</dt>
+      <dd>
+        {v}
+        <span className="param-unit"> {unit}</span>
+      </dd>
+    </div>
+  );
+}
+
 /** "Run now" for an irregular scenario of the running flight; the result goes to the feed. */
 function ForceForm({ list }: { list: AppState['irregular'] }) {
   const t = useT();
@@ -143,250 +317,130 @@ function ForceForm({ list }: { list: AppState['irregular'] }) {
   const current = list.some((x) => x.id === id) ? id : (list[0]?.id ?? '');
   return (
     <form
-      className="pilot-form"
+      className="force-form"
+      title={t('force.hint')}
       onSubmit={(e) => {
         e.preventDefault();
         if (current !== '') void useStore.getState().forceScenario(current);
       }}
     >
-      <label htmlFor="force-id" className="small muted">
+      <label htmlFor="force-id" className="force-label">
         {t('force.label')}
       </label>
-      <div className="row">
-        <select id="force-id" value={current} onChange={(e) => setId(e.currentTarget.value)}>
-          {list.map((s) => (
-            <option key={s.id} value={s.id}>
-              {text(s.title)}
-            </option>
-          ))}
-        </select>
-        <button type="submit" className="btn" disabled={busy !== null || current === ''}>
-          {t('force.run')}
-        </button>
-      </div>
-      <p className="hint small">{t('force.hint')}</p>
+      <select id="force-id" value={current} onChange={(e) => setId(e.currentTarget.value)}>
+        {list.map((s) => (
+          <option key={s.id} value={s.id}>
+            {text(s.title)}
+          </option>
+        ))}
+      </select>
+      <button type="submit" className="btn" disabled={busy !== null || current === ''}>
+        {t('force.run')}
+      </button>
     </form>
   );
 }
 
-function PilotForm() {
+/** `left` and `right` on one screen line of `cols` characters. */
+function pad(left: string, right: string, cols: number): string {
+  return left + ' '.repeat(Math.max(1, cols - left.length - right.length)) + right;
+}
+
+/**
+ * The FMS screen (fms.css): the selected message as the aircraft shows it, PREV/NEXT on the bezel,
+ * and the scratchpad that sends a pilot telex (T12).
+ */
+function FmsPanel({
+  messages,
+  selected,
+  cols,
+  running,
+  onSelect,
+}: {
+  messages: readonly Message[];
+  selected: Message | undefined;
+  cols: number;
+  running: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const t = useT();
+  const index = selected === undefined ? -1 : messages.indexOf(selected);
+  const go = (step: number) => {
+    const next = messages[index + step];
+    if (next !== undefined) onSelect(next.id);
+  };
+  const screen = { '--fms-cols': cols } as CSSProperties;
+  return (
+    <section className="panel fms-panel" aria-labelledby="fms-title">
+      <div className="panel-head">
+        <h2 id="fms-title" className="panel-title">
+          {t('fms.title')}
+        </h2>
+        <span className="panel-sub">{t('fms.width', { n: cols })}</span>
+      </div>
+      <div className="fms fms-bezel" style={screen}>
+        <div className="fms__screen fms-body">
+          {selected === undefined ? (
+            <div className="fms__line--dim">{pad('ACARS MSG', '0/0', cols)}</div>
+          ) : (
+            <>
+              <div>
+                {pad(
+                  selected.kind === 'outbound' ? 'ACARS MSG' : 'PILOT MSG',
+                  `${index + 1}/${messages.length}`,
+                  cols,
+                )}
+              </div>
+              <div className="fms__line--sm">{pad('FROM', 'TIME', cols)}</div>
+              <div>{pad(selected.from, zulu(selected.t), cols)}</div>
+              <div className="fms__rule">{'-'.repeat(cols)}</div>
+              <pre className="fms-text">{selected.text}</pre>
+            </>
+          )}
+          {running && <Scratchpad />}
+        </div>
+        <div className="fms-keys">
+          <button type="button" className="fms-key" disabled={index <= 0} onClick={() => go(-1)}>
+            PREV
+          </button>
+          <button
+            type="button"
+            className="fms-key"
+            disabled={index < 0 || index >= messages.length - 1}
+            onClick={() => go(1)}
+          >
+            NEXT
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** `[ ENTER MESSAGE ]` — a pilot telex typed in the app (aircraft without free-text telex, tests). */
+function Scratchpad() {
   const t = useT();
   const busy = useStore((s) => s.busy);
   const [text, setText] = useState('');
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (text.trim() === '') return;
+    if (text.trim() === '' || busy !== null) return;
     if (await useStore.getState().sendPilotMessage(text)) setText('');
   };
   return (
-    <form className="pilot-form" onSubmit={(e) => void submit(e)}>
-      <label htmlFor="pilot-text" className="small muted">
-        {t('pilot.label')}
-      </label>
-      <div className="row">
-        <input
-          id="pilot-text"
-          type="text"
-          className="mono"
-          maxLength={200}
-          autoComplete="off"
-          spellCheck={false}
-          placeholder={t('pilot.placeholder')}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <button type="submit" className="btn" disabled={busy !== null || text.trim() === ''}>
-          {t('pilot.send')}
-        </button>
-      </div>
-      <p className="hint small">{t('pilot.hint')}</p>
+    <form className="fms__scratch" onSubmit={(e) => void submit(e)} title={t('pilot.hint')}>
+      <span aria-hidden="true">[</span>
+      <input
+        type="text"
+        aria-label={t('pilot.label')}
+        maxLength={200}
+        autoComplete="off"
+        spellCheck={false}
+        placeholder="ENTER MESSAGE"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <span aria-hidden="true">]</span>
     </form>
-  );
-}
-
-function Summary({ f }: { f: FlightSummary }) {
-  const t = useT();
-  return (
-    <>
-      <div className="callsign">
-        {f.callsign}
-        <span className="route">
-          {f.origin} → {f.destination}
-        </span>
-      </div>
-      <dl className="facts">
-        <dt>{t('flight.aircraft')}</dt>
-        <dd>
-          {f.aircraftIcao}
-          {f.aircraftReg === null ? '' : ` · ${f.aircraftReg}`}
-        </dd>
-        <dt>{t('flight.sched')}</dt>
-        <dd className="mono">
-          {zulu(f.schedOutMs)} / {zulu(f.schedInMs)}
-        </dd>
-        <dt>{t('flight.station')}</dt>
-        <dd className="mono">{f.station}</dd>
-        <dt>{t('flight.profile')}</dt>
-        <dd>{t('flight.profileValue', { id: f.profileId, width: f.lineWidth })}</dd>
-      </dl>
-    </>
-  );
-}
-
-type Tone = 'ok' | 'warn' | 'bad' | 'off';
-
-function StatusCard({ app }: { app: AppState }) {
-  const t = useT();
-  const b = app.bridge;
-  const bridgeTone: Tone = b.link === 'open' ? 'ok' : b.link === 'connecting' ? 'warn' : 'bad';
-  const bridgeText = t(`bridge.${b.link}`) + (b.detail === null ? '' : ` — ${b.detail}`);
-
-  let simTone: Tone = 'off';
-  let simText = '—';
-  if (b.link === 'open' && b.sim !== null) {
-    simTone = b.sim === 'connected' ? (b.running ? 'ok' : 'warn') : 'bad';
-    simText = t(`sim.${b.sim}`);
-    if (b.sim === 'connected' && !b.running) simText = t('sim.menu');
-    if (b.paused) simText += ` · ${t('sim.paused')}`;
-    if (b.simRate !== 1) simText += ` · ${t('sim.rate', { rate: b.simRate })}`;
-  }
-
-  const tr = app.transport;
-  let netTone: Tone = 'off';
-  let netText = t('net.none');
-  if (tr !== null) {
-    netTone =
-      tr.kind === 'mock'
-        ? 'ok'
-        : tr.status === 'halted'
-          ? 'bad'
-          : tr.status === 'degraded'
-            ? 'warn'
-            : 'ok';
-    netText = tr.kind === 'mock' ? t('net.mock') : t(`net.${tr.status}`);
-    if (tr.reason !== null) netText += ` — ${tr.reason}`;
-    if (tr.pending > 0) netText += ` · ${t('net.pending', { n: tr.pending })}`;
-    if (tr.outbox > 0) netText += ` · ${t('net.outbox', { n: tr.outbox })}`;
-  }
-
-  const atc = app.atc;
-  const atcText =
-    atc === null
-      ? null
-      : (atc.connected !== null
-          ? t('atc.connected', { station: atc.connected })
-          : atc.station !== null
-            ? t('atc.logon', { station: atc.station })
-            : t('atc.wait')) + (atc.dcl === null ? '' : ` · ${t('atc.dcl', { station: atc.dcl })}`);
-
-  const link = app.link;
-  const linkText = link === null ? null : linkLine(link, t);
-
-  const tm = app.telemetry;
-  return (
-    <section className="panel" aria-labelledby="status-title">
-      <h2 id="status-title" className="panel-title">
-        {t('status.title')}
-      </h2>
-      <PhaseStrip phase={app.phase} />
-      <ul className="status-list">
-        <StatusRow label={t('status.bridge')} tone={bridgeTone} text={bridgeText} />
-        <StatusRow label={t('status.sim')} tone={simTone} text={simText} />
-        <StatusRow label={t('status.network')} tone={netTone} text={netText} />
-        {atc !== null && atcText !== null && (
-          <StatusRow
-            label={t('status.atc')}
-            tone={atc.connected !== null ? 'ok' : atc.station !== null ? 'warn' : 'off'}
-            text={atcText}
-          />
-        )}
-        {link !== null && linkText !== null && (
-          <StatusRow
-            label={t('status.link')}
-            tone={link.kind === null ? 'warn' : 'ok'}
-            text={linkText}
-          />
-        )}
-      </ul>
-      {app.session === 'running' &&
-        atcHints({
-          atc,
-          aircraftTitle: tm?.aircraftTitle,
-          phase: app.phase,
-          callsign: app.flight?.callsign ?? null,
-        }).map((h) => (
-          <p key={h.key} className="hint">
-            {t(h.key, h.params)}
-          </p>
-        ))}
-      {app.session === 'running' && (
-        <p className="telemetry mono">
-          {tm === null
-            ? t('tm.none')
-            : `${tm.aircraftTitle}\n${tm.onGround ? `${t('tm.ground')} · ` : ''}${t('tm.line', {
-                alt: num(tm.altFt),
-                gs: num(tm.gsKt),
-                vs: num(tm.vsFpm),
-                fuel: num(tm.fuelKg),
-              })}`}
-        </p>
-      )}
-    </section>
-  );
-}
-
-/** One line of the link window: the link, the AES/GES header, what waits, the last delivery. */
-function linkLine(link: LinkWindow, t: Translate): string {
-  const now =
-    link.kind === 'vhf'
-      ? t('link.vhf', { station: link.station ?? '', nm: link.distNm ?? 0 })
-      : link.kind === 'satcom'
-        ? t('link.satcom', { station: link.station ?? '', el: link.elevDeg ?? 0 })
-        : t('link.none');
-  const parts = [now];
-  if (link.header !== null) parts.push(link.header);
-  if (link.held > 0) parts.push(t('link.held', { n: link.held }));
-  if (link.inFlight > 0) parts.push(t('link.inflight', { n: link.inFlight }));
-  if (link.last !== null) {
-    parts.push(
-      t('link.last', {
-        time: zulu(link.last.t),
-        sec: Math.round(link.last.delayMs / 1000),
-      }),
-    );
-  }
-  return parts.join(' · ');
-}
-
-function StatusRow({ label, tone, text }: { label: string; tone: Tone; text: string }) {
-  return (
-    <li>
-      <span className={`dot ${tone}`} aria-hidden="true" />
-      <span className="status-label">{label}</span>
-      <span className="status-text">{text}</span>
-    </li>
-  );
-}
-
-function PhaseStrip({ phase }: { phase: FlightPhase | null }) {
-  const t = useT();
-  const index = phase === null ? -1 : STRIP.indexOf(phase === 'GO_AROUND' ? 'APPROACH' : phase);
-  const ended = phase === 'TURNAROUND' || phase === 'DONE';
-  return (
-    <div className="phase">
-      <div className="phase-label">
-        <span className="muted">{t('status.phase')}</span>
-        <strong>{phase === null ? '—' : t(phaseKey(phase))}</strong>
-      </div>
-      <ol className="phase-strip" aria-hidden="true">
-        {STRIP.map((p, i) => (
-          <li
-            key={p}
-            title={t(phaseKey(p))}
-            className={ended || i < index ? 'past' : i === index ? 'current' : ''}
-          />
-        ))}
-      </ol>
-    </div>
   );
 }
