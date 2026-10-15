@@ -231,7 +231,7 @@ describe('scenario selection', () => {
       ),
     ).toEqual(['slot_ctot']);
     expect(() => pickScenarios({ base, extra: [], recorded: [], only: ['nope'] })).toThrow(/nope/);
-    expect(pickScenarios({ base, extra: [], recorded: [], all: true }).scenarios).toHaveLength(16);
+    expect(pickScenarios({ base, extra: [], recorded: [], all: true }).scenarios).toHaveLength(17);
   });
 });
 
