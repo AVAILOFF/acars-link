@@ -20,13 +20,32 @@ conditions:
 excludes: [space_launch]
 priority: 0
 steps:
-  - send:
-      header: OPS ADVISORY
-      body: |
-        SPACE LAUNCH NEAR ROUTE
-        {ext.launch_rocket} / {ext.launch_mission|or:UNKNOWN PAYLOAD}
-        {ext.launch_pad}
-        LAUNCHED {ext.launch_net|hhmm}Z {ext.launch_status}
-        {ext.launch_ahead_nm} NM AHEAD / {ext.launch_off_nm} NM FROM ROUTE
-        EXPECT AIRSPACE RESTRICTIONS CHECK NOTAM
-      footer: SOURCE THESPACEDEVS
+  # After a failure the FAA may activate a Debris Response Area (faa.gov, checked 2026-10-15):
+  # the line is added for FAILURE and PARTIAL FAILURE only; whether an area exists is not
+  # known (no data), so the text says "may" and sends the crew to the NOTAMs. The pad's country
+  # is not known to the scenario: the same wording for every pad (approved 2026-10-15).
+  - wait: { until: "ext.launch_status in ['FAILURE','PARTIAL FAILURE']", timeout_min: 0.02 }
+  - branch:
+      MET:
+        - send:
+            header: OPS ADVISORY
+            body: |
+              SPACE LAUNCH NEAR ROUTE
+              {ext.launch_rocket} / {ext.launch_mission|or:UNKNOWN PAYLOAD}
+              {ext.launch_pad}
+              LAUNCHED {ext.launch_net|hhmm}Z {ext.launch_status}
+              {ext.launch_ahead_nm} NM AHEAD / {ext.launch_off_nm} NM FROM ROUTE
+              DEBRIS RESPONSE AREA MAY BE ACTIVE
+              CHECK NOTAM
+            footer: SOURCE THESPACEDEVS
+      TIMEOUT:
+        - send:
+            header: OPS ADVISORY
+            body: |
+              SPACE LAUNCH NEAR ROUTE
+              {ext.launch_rocket} / {ext.launch_mission|or:UNKNOWN PAYLOAD}
+              {ext.launch_pad}
+              LAUNCHED {ext.launch_net|hhmm}Z {ext.launch_status}
+              {ext.launch_ahead_nm} NM AHEAD / {ext.launch_off_nm} NM FROM ROUTE
+              EXPECT AIRSPACE RESTRICTIONS CHECK NOTAM
+            footer: SOURCE THESPACEDEVS

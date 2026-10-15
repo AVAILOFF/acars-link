@@ -100,7 +100,7 @@ const STANDS = ['11', '12', '13', '14', '15'];
  * Two launches (T28): one that happened after take-off at a third of the route (60 NM off),
  * one confirmed (Go) at two thirds of the route (180 NM off), T-0 at 60 % of the flight.
  */
-function launches(c: Case): readonly SpaceLaunch[] {
+function launches(c: Case, doneStatus: SpaceLaunch['status'] = 'success'): readonly SpaceLaunch[] {
   const at = (f: number) =>
     c.ofp.navlog[Math.floor(c.ofp.navlog.length * f)] as { lat: number; lon: number };
   const snaps = c.flight.snapshots;
@@ -117,7 +117,7 @@ function launches(c: Case): readonly SpaceLaunch[] {
       net: airborne + 5 * 60_000,
       windowStart: airborne,
       windowEnd: airborne + 30 * 60_000,
-      status: 'success',
+      status: doneStatus,
     },
     {
       id: 'go',
@@ -135,7 +135,14 @@ function launches(c: Case): readonly SpaceLaunch[] {
 }
 
 /** What the app would pass: everything at start, weather/VATSIM/EONET again every 10 min. */
-function liveData(c: Case, t: number, first: boolean, atc = true, atisCode = 'C'): ExtDataUpdate {
+function liveData(
+  c: Case,
+  t: number,
+  first: boolean,
+  atc = true,
+  atisCode = 'C',
+  doneStatus: SpaceLaunch['status'] = 'success',
+): ExtDataUpdate {
   const ofp = c.ofp;
   const mid = ofp.navlog[Math.floor(ofp.navlog.length / 2)] as { lat: number; lon: number };
   const metar = (icao: string, q: number) =>
@@ -175,7 +182,7 @@ function liveData(c: Case, t: number, first: boolean, atc = true, atisCode = 'C'
         date: t,
       },
     ],
-    launches: launches(c),
+    launches: launches(c, doneStatus),
     ...(first
       ? { stands: { icao: 'RJBB', list: STANDS.map((ref) => ({ ref, kind: 'stand' as const })) } }
       : {}),
@@ -196,6 +203,8 @@ function fly(
     atc?: boolean;
     /** The ATIS letter of RJBB in the live data update number `i` (T45). */
     atis?: (i: number) => string;
+    /** Status of the launch that happened (T45). */
+    launch?: SpaceLaunch['status'];
     say?: ReadonlyMap<number, readonly PilotMessage[]>;
   } = {},
 ): Run {
@@ -212,7 +221,7 @@ function fly(
   c.flight.snapshots.forEach((s, i) => {
     const data =
       o.data === true && i % 600 === 0
-        ? liveData(c, s.t, i === 0, o.atc ?? true, o.atis?.(i))
+        ? liveData(c, s.t, i === 0, o.atc ?? true, o.atis?.(i), o.launch)
         : undefined;
     const inbound = o.say?.get(i);
     const r = core.tick({
@@ -410,5 +419,23 @@ describe('atis_update (T45)', () => {
     const r = fly(c, atisOnly, { data: true, atis: (i) => (i > lastCruise ? 'D' : 'C') });
     const sets = r.events.filter((e) => e.type === 'SET');
     expect(sets.map((e) => (e as unknown as { value: unknown }).value)).toEqual(['C', null]);
+  });
+});
+
+describe('space_launch_done after a failure (T45)', () => {
+  const c = FLIGHTS[0] as Case;
+  const one = [{ ...byId('space_launch_done'), probability: 1 }];
+  it('FAILURE and PARTIAL FAILURE add the debris area line, a success does not', () => {
+    for (const status of ['failure', 'partial_failure'] as const) {
+      const r = fly(c, one, { data: true, launch: status });
+      expect(errors(r)).toEqual([]);
+      expect(ids(r)).toEqual(['space_launch_done']);
+      const text = flat(textOf(r, 'space_launch_done'));
+      expect(text).toContain('DEBRIS RESPONSE AREA MAY BE ACTIVE CHECK NOTAM');
+      expect(text).toMatch(/FAILURE/);
+    }
+    const ok = flat(textOf(fly(c, one, { data: true }), 'space_launch_done'));
+    expect(ok).not.toContain('DEBRIS');
+    expect(ok).toContain('EXPECT AIRSPACE RESTRICTIONS CHECK NOTAM');
   });
 });
