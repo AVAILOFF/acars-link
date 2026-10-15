@@ -38,6 +38,19 @@ export const DEFAULT_PROFILE: DisplayProfile = {
   allowedChars: DEFAULT_ALLOWED_CHARS,
 };
 
+/**
+ * Boeing 737 NG/MAX (PMDG 737 for MSFS 2024, T52). `[ПРОВЕРИТЬ]` the CDU width:
+ * base width until "Проверка человеком" (approved by the user 2026-10-15).
+ */
+export const B73X_PROFILE: DisplayProfile = {
+  id: 'b73x',
+  matchIcao: ['B73*', 'B37M', 'B38M', 'B39M', 'B3XM'],
+  matchTitleRegex: '\\b(B?737)',
+  lineWidth: BASE_LINE_WIDTH,
+  uppercase: true,
+  allowedChars: DEFAULT_ALLOWED_CHARS,
+};
+
 /** Boeing 777 family: base + 3 (as in the original). */
 export const B77X_PROFILE: DisplayProfile = {
   id: 'b77x',
@@ -58,7 +71,11 @@ export const B78X_PROFILE: DisplayProfile = {
   allowedChars: DEFAULT_ALLOWED_CHARS,
 };
 
-export const BUILTIN_PROFILES: readonly DisplayProfile[] = [B77X_PROFILE, B78X_PROFILE];
+export const BUILTIN_PROFILES: readonly DisplayProfile[] = [
+  B73X_PROFILE,
+  B77X_PROFILE,
+  B78X_PROFILE,
+];
 
 export class DisplayProfileError extends Error {
   override readonly name = 'DisplayProfileError';

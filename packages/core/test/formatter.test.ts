@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  B73X_PROFILE,
   B77X_PROFILE,
   B78X_PROFILE,
   BASE_LINE_WIDTH,
@@ -162,6 +163,18 @@ describe('DisplayProfile', () => {
     expect(selectProfile({ title: 'Boeing 787-10 Asobo' }).id).toBe('b78x');
     expect(selectProfile({ title: 'FlyByWire A320neo' }).id).toBe('default');
     expect(selectProfile({ icao: null, title: null }).id).toBe('default');
+  });
+
+  it('B737 NG/MAX: b73x at the base width until the human check (T52)', () => {
+    expect(B73X_PROFILE.lineWidth).toBe(BASE_LINE_WIDTH);
+    for (const icao of ['B736', 'B737', 'b738', 'B739', 'B37M', 'B38M', 'B39M', 'B3XM']) {
+      expect(selectProfile({ icao }).id).toBe('b73x');
+    }
+    expect(selectProfile({ title: 'PMDG 737-800 Ryanair' }).id).toBe('b73x');
+    expect(selectProfile({ title: 'PMDG B737-700' }).id).toBe('b73x');
+    expect(selectProfile({ title: 'iFly 737 MAX 8' }).id).toBe('b73x');
+    expect(selectProfile({ icao: 'B38M', title: 'iFly 737 MAX 8' }).id).toBe('b73x');
+    expect(selectProfile({ icao: 'B77W', title: 'PMDG 777-300ER' }).id).toBe('b77x');
   });
 
   it('earlier (user) profiles override the built-ins', () => {

@@ -32,7 +32,7 @@
 - Логон: самолёт шлёт `/data2/n//Y/REQUEST LOGON` (так шлют A350/A380, T09). Станция отвечает `/data2/m/n/NE/LOGON ACCEPTED` и `CURRENT ATC UNIT@_@EDGG@_@LANGEN CTL` (океан — `… OCA`). Отказ — `UNABLE …` (FBW: UM9996/UM0). Передача: `HANDOVER @EDUU` (NE) — FBW шлёт LOGOFF старой станции и REQUEST LOGON новой. Конец связи — `LOGOFF` (NE).
 - Позывные живых станций — 4 символа (TopSky: «four characters»): EDGG, EDYJ, LONC, EUWN. ROPS использует `X` + FIR (решение 2026-10-09, `07` T23).
 - Опрос: по tech.html ждать первого сообщения должны клиенты самолётов; станция УВД ждёт логона, поэтому опрашивается с начала (те же 45–75 с, после HANDOVER — 20 с не дольше 3 мин).
-- `[ПРОВЕРИТЬ]` человеком: показ в PMDG 777/737, Fenix, iniBuilds; автологон после HANDOVER у не-FBW самолётов.
+- `[ПРОВЕРИТЬ]` человеком: показ в PMDG 777/737 (737 MSFS 2024 — чек-лист в `07`, T52), Fenix, iniBuilds; автологон после HANDOVER у не-FBW самолётов.
 
 ## DCL/PDC через Hoppie (T24)
 
