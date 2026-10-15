@@ -273,6 +273,8 @@ export interface ScenarioEngineState {
   readonly sent: Readonly<Record<string, Sent>>;
   /** Diversion airport from the pilot's `DIVERT`. */
   readonly divert: string | null;
+  /** Holding announced by a scenario (`flight.hold`, T48); absent in older states. */
+  readonly hold?: { readonly since: number; readonly min: number } | null;
   /** Pilot messages that arrived while telemetry was lost; handled when it is back. */
   readonly inbox: readonly PilotMessage[];
   /** External data (T13). */
@@ -370,6 +372,7 @@ export class ScenarioEngine {
     delayMs: number | null;
     sent: Record<string, Sent>;
     divert: string | null;
+    hold: { since: number; min: number } | null;
     inbox: PilotMessage[];
     ext: ExtState;
     pendingWx: PendingWx[];
@@ -426,6 +429,7 @@ export class ScenarioEngine {
       delayMs: null,
       sent: {},
       divert: null,
+      hold: null,
       inbox: [],
       ext: EMPTY_EXT,
       pendingWx: [],
@@ -457,6 +461,7 @@ export class ScenarioEngine {
     e.st.sessionFired = [...copy.sessionFired];
     e.st.sent = { ...(copy.sent ?? {}) };
     e.st.divert = copy.divert ?? null;
+    e.st.hold = copy.hold ?? null;
     e.st.inbox = [...(copy.inbox ?? [])];
     // Fields added with T13.
     e.st.ext = copy.ext ?? EMPTY_EXT;
@@ -480,12 +485,22 @@ export class ScenarioEngine {
     return JSON.parse(JSON.stringify({ v: 1, ...this.st })) as ScenarioEngineState;
   }
 
-  /** Ids started in this session (persist them to honour `per_session` across flights). */
   /** Whether a scenario with this id is loaded (enabled). */
   has(id: string): boolean {
     return this.byId.has(id);
   }
 
+  /** Diversion airport (a scenario's or the pilot's), null = none (T48: the ROPS station reads it). */
+  get divert(): string | null {
+    return this.st.divert;
+  }
+
+  /** Holding the airline announced (`flight.hold`, T48), null = none. */
+  get hold(): { readonly since: number; readonly min: number } | null {
+    return this.st.hold === null ? null : { ...this.st.hold };
+  }
+
+  /** Ids started in this session (persist them to honour `per_session` across flights). */
   get sessionFired(): readonly string[] {
     return [...this.st.sessionFired];
   }
@@ -986,6 +1001,16 @@ export class ScenarioEngine {
           this.st.divert = icao;
           value = icao;
           refresh = true;
+        }
+      } else if (a.target === 'flight.hold') {
+        // Holding in the air (T48): minutes 1..120 starts it, null ends it.
+        const min = typeof value === 'number' ? value : Number(value);
+        const airborne = input.oooi.OFF !== null && input.oooi.ON === null;
+        if (value === null) {
+          this.st.hold = null;
+        } else {
+          applied = airborne && Number.isFinite(min) && min >= 1 && min <= 120;
+          if (applied) this.st.hold = { since: input.now, min: Math.round(min) };
         }
       } else if (a.target === 'flight.delay_min') {
         const min = typeof value === 'number' ? value : Number(value);

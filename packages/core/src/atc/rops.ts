@@ -1,7 +1,7 @@
 import { ATC_MAX_AGE_MS, type CenterStation, type ExtState, type FirArea } from '../ext/data.js';
 import type { FormattedMessage } from '../format/formatter.js';
 import { DEFAULT_PROFILE, type DisplayProfile } from '../format/profile.js';
-import type { LatLon } from '../geo/geo.js';
+import { distanceNm, type LatLon } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';
 import type { FlightPhase } from '../phase/fsm.js';
 import { createRng } from '../random/rng.js';
@@ -29,7 +29,7 @@ import { atcUnitName, FirMap, ropsStation } from './fir.js';
 import { levelText } from './levels.js';
 import { type OclContext, type OclEvent, OclService, type OclState, parseRcl } from './oceanic.js';
 import { type AtcRequest, decide, parseRequest, type RefusalReason } from './requests.js';
-import { routePosition } from './route.js';
+import { routePosition, starEntryIndex } from './route.js';
 
 /**
  * ROPS ATC station (T23, docs/07): a simulated CPDLC ground station for the own pilot only,
@@ -72,6 +72,11 @@ export const LEVEL_CHECK_MIN = 5;
 /** The aircraft is "at" the assigned level within this, ft; beyond `LEVEL_DEPART_FT` it left it. */
 export const LEVEL_AT_FT = 200;
 export const LEVEL_DEPART_FT = 300;
+
+/** Diversion: descent to this level once the airport is within the descent distance (T48). */
+export const DIVERT_DESCENT_FT = 10_000;
+/** Descent distance of the diversion: 3 NM per 1000 ft plus this margin, NM (T48). */
+export const DIVERT_DESCENT_MARGIN_NM = 20;
 
 export interface RopsOptions {
   readonly enabled: boolean;
@@ -137,7 +142,7 @@ export type AtcEvent =
       readonly type: 'ATC_AUTO';
       readonly t: number;
       readonly station: string;
-      readonly kind: 'direct' | 'step' | 'descent';
+      readonly kind: 'direct' | 'step' | 'descent' | 'divert' | 'hold';
       readonly text: string;
     }
   /** MAYDAY / PAN received (T47): the airline's emergency chain starts. */
@@ -187,6 +192,27 @@ export interface RopsState {
   readonly auto?: AutoState;
   /** Oceanic clearance (T27); absent in states saved before it. */
   readonly ocl?: OclState;
+  /** Clearances that follow the airline's messages (T48); absent in states saved before it. */
+  readonly link?: LinkState;
+}
+
+/** The airline's diversion and holding, as the station answered them (T48). */
+export interface LinkState {
+  /** The diversion airport handled and its clearances sent. */
+  readonly divert: {
+    readonly icao: string;
+    readonly dueAt: number;
+    readonly directSent: boolean;
+    readonly descentSent: boolean;
+  } | null;
+  /** The holding handled: the fix held at (navlog index). */
+  readonly hold: {
+    readonly since: number;
+    readonly fixIdx: number | null;
+    readonly sent: boolean;
+  } | null;
+  /** Diversions seen so far (seeds the delay of each). */
+  readonly n: number;
 }
 
 export interface AutoState {
@@ -251,6 +277,10 @@ export interface RopsTickInput {
   /** The aircraft's messages to ROPS stations (`to` set), oldest first. */
   readonly inbound: readonly PilotMessage[];
   readonly ext: ExtState;
+  /** The flight's diversion airport (T48), null/absent = none. */
+  readonly divert?: string | null;
+  /** Holding the airline announced (T48), null/absent = none. */
+  readonly hold?: { readonly since: number; readonly min: number } | null;
 }
 
 export interface RopsTickOutput {
@@ -298,6 +328,11 @@ export class RopsStation {
       levelAwait: { min: number; levelFt: number } | null;
       levelWatch: { levelFt: number; startFt: number; at: number; reached: boolean } | null;
     };
+    link: {
+      divert: { icao: string; dueAt: number; directSent: boolean; descentSent: boolean } | null;
+      hold: { since: number; fixIdx: number | null; sent: boolean } | null;
+      n: number;
+    };
   };
   private readonly dcl: DclService;
   private readonly ocl: OclService;
@@ -342,6 +377,11 @@ export class RopsStation {
         cleared: copy.auto?.cleared ?? null,
         levelAwait: copy.auto?.levelAwait ?? null,
         levelWatch: copy.auto?.levelWatch ?? null,
+      },
+      link: {
+        divert: copy.link?.divert ?? null,
+        hold: copy.link?.hold ?? null,
+        n: copy.link?.n ?? 0,
       },
     };
     this.dcl = new DclService(ofp, deps.seed, deps.profile ?? DEFAULT_PROFILE, copy.dcl);
@@ -513,6 +553,7 @@ export class RopsStation {
 
     // T26: clearances on the station's own.
     this.autoClearances(input, map, send, events);
+    this.airlineLink(input, send, events);
     this.watchLevel(input, send, events);
 
     // 4. On block: the service ends.
@@ -727,6 +768,11 @@ export class RopsStation {
     const phase = input.phase;
     if (station === null || tm === null || (phase !== 'CRUISE' && phase !== 'DESCENT')) return;
     const a = this.st.auto;
+    // T48: a diversion or a holding replaces the clearances of the old route.
+    if ((input.divert ?? null) !== null || (input.hold ?? null) !== null) {
+      a.directDue = null;
+      return;
+    }
     const route = routePosition(this.ofp, tm);
     const now = input.now;
     const uplink = (kind: 'direct' | 'step' | 'descent', text: string, levelFt?: number) => {
@@ -795,6 +841,98 @@ export class RopsStation {
     if (exit !== null) {
       a.directTo = { ident: exit.fix.ident, idx: exit.idx };
       uplink('direct', `PROCEED DIRECT TO @${exit.fix.ident}@`);
+    }
+  }
+
+  /**
+   * The airline's diversion and holding reach the aircraft through the station (T48): a
+   * diversion → `PROCEED DIRECT TO <airport>` (UM74) 20–60 s later (seeded) and a descent to
+   * 10000 ft when the airport is within 3 NM per 1000 ft + 20 NM; a holding → `HOLD AT <fix>
+   * AS PUBLISHED MAINTAIN <level>` (UM92) with `EXPECT FURTHER CLEARANCE AT <time>` (UM93), at
+   * the first fix ahead from the STAR's entry on, and `PROCEED DIRECT TO <next fix>` when the
+   * airline ends it. Only to a logged-on aircraft with telemetry; without a logon (or with a
+   * live controller) the airline's message is all.
+   */
+  private airlineLink(
+    input: RopsTickInput,
+    send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => number,
+    events: AtcEvent[],
+  ): void {
+    const now = input.now;
+    const l = this.st.link;
+    const divert = input.divert ?? null;
+    const hold = input.hold ?? null;
+    const station = this.st.connected;
+    const tm = input.telemetry;
+    const uplink = (kind: 'divert' | 'hold', text: string) => {
+      send(station as string, 'WU', null, text);
+      events.push({ type: 'ATC_AUTO', t: now, station: station as string, kind, text });
+    };
+
+    // Diversion.
+    if (divert === null) l.divert = null;
+    else if (l.divert?.icao !== divert) {
+      const rng = createRng(`${this.seed}/#divert/${l.n}`);
+      l.n += 1;
+      l.divert = {
+        icao: divert,
+        dueAt: now + rng.int(REPLY_DELAY_S[0], REPLY_DELAY_S[1]) * 1000,
+        directSent: false,
+        descentSent: false,
+      };
+    }
+    const dv = l.divert;
+    if (dv !== null && station !== null && tm !== null && !tm.onGround) {
+      if (!dv.directSent && now >= dv.dueAt) {
+        dv.directSent = true;
+        uplink('divert', `PROCEED DIRECT TO @${dv.icao}@`);
+      }
+      if (dv.directSent && !dv.descentSent) {
+        const apt = [this.ofp.origin, this.ofp.destination, ...this.ofp.alternates].find(
+          (a) => a.icao === dv.icao,
+        );
+        // An airport the OFP does not know has no position: no descent is computed for it.
+        if (apt === undefined || tm.altFt <= DIVERT_DESCENT_FT + 1000) dv.descentSent = true;
+        else {
+          const need = ((tm.altFt - DIVERT_DESCENT_FT) / 1000) * 3 + DIVERT_DESCENT_MARGIN_NM;
+          if (distanceNm(tm, apt) <= need) {
+            dv.descentSent = true;
+            uplink('divert', `DESCEND TO @${levelText(DIVERT_DESCENT_FT, false)}@`);
+            this.st.auto.cleared = DIVERT_DESCENT_FT;
+          }
+        }
+      }
+    }
+
+    // Holding.
+    const navlog = this.ofp.navlog;
+    if (hold === null) {
+      const h = l.hold;
+      l.hold = null;
+      if (h?.sent && station !== null && h.fixIdx !== null) {
+        const next = navlog.findIndex((f, i) => i > (h.fixIdx as number) && f.type !== 'ltlg');
+        const fix = next < 0 ? undefined : navlog[next];
+        if (fix !== undefined) uplink('hold', `PROCEED DIRECT TO @${fix.ident}@`);
+      }
+    } else if (l.hold === null && station !== null && tm !== null && !tm.onGround) {
+      const route = routePosition(this.ofp, tm);
+      const star = starEntryIndex(navlog);
+      const idx = navlog.findIndex(
+        (f, i) => i >= Math.max(route.next, star ?? 0) && f.type !== 'ltlg' && f.type !== 'apt',
+      );
+      l.hold = { since: hold.since, fixIdx: idx < 0 ? null : idx, sent: false };
+      const fix = idx < 0 ? undefined : navlog[idx];
+      if (fix !== undefined) {
+        l.hold.sent = true;
+        const level = Math.round(tm.altFt / 1000) * 1000;
+        const efc = new Date(now + hold.min * 60_000);
+        const hhmm = `${String(efc.getUTCHours()).padStart(2, '0')}${String(efc.getUTCMinutes()).padStart(2, '0')}`;
+        uplink(
+          'hold',
+          `HOLD AT @${fix.ident}@ AS PUBLISHED MAINTAIN @${levelText(level, level >= 18_000)}@`,
+        );
+        uplink('hold', `EXPECT FURTHER CLEARANCE AT @${hhmm}@`);
+      }
     }
   }
 

@@ -265,6 +265,8 @@ export class AcarsCore {
       telemetry: this.fsm.lastSnapshot,
       inbound: inbound.filter(toAtc),
       ext: this.engine.ext,
+      divert: this.engine.divert,
+      hold: this.engine.hold,
     }) ?? { outbound: [], events: [] };
     // MAYDAY / PAN to ROPS: the airline's chain starts on the next tick (T47).
     for (const e of atc.events) {

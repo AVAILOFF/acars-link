@@ -123,14 +123,19 @@ export type SetValue = string | number | boolean | null;
  * Assignments (T14): `flags.<name>` — airline memory that later scenarios of this flight and of
  * the next flights read (`null` clears it); `flight.divert` — diversion airport (ICAO, only in
  * the air, not the destination); `ops.arr_gate` — the arrival gate from now on; `flight.delay_min` (T43) — raise the flight's delay to at least
- * this many minutes (before OUT), as a pilot `DELAY` would.
+ * this many minutes (before OUT), as a pilot `DELAY` would; `flight.hold` (T48) — minutes of holding announced to the ROPS station in the air (`null` ends it).
  */
 export interface SetStep {
   readonly set: Readonly<Record<string, SetValue>>;
 }
 
 /** Engine fields a `set` may change besides `flags.*`. */
-export const SET_TARGETS = ['flight.divert', 'ops.arr_gate', 'flight.delay_min'] as const;
+export const SET_TARGETS = [
+  'flight.divert',
+  'ops.arr_gate',
+  'flight.delay_min',
+  'flight.hold',
+] as const;
 export type SetTarget = (typeof SET_TARGETS)[number];
 
 /** A VDGS line: a template, or `{ red: template }` for a red line. */

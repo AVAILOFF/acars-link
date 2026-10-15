@@ -28,12 +28,15 @@ steps:
       reply: { options: [HOLD, DIVERT], timeout_min: 8, default: HOLD }
   - branch:
       HOLD:
+        # The ROPS station gives the holding clearance (T48); null below ends it.
+        - set: { flight.hold: 15 }
         - send:
             header: OPS MSG {ofp.dest}
             body: |
               NOTED, EXPECT 15 MIN HOLDING
               STAND AND HANDLING UNCHANGED
         - wait: { until: "phase in ['LANDED','TAXI_IN','ON_BLOCK']", timeout_min: 15 }
+        - set: { flight.hold: null }
         - branch:
             TIMEOUT:
               - send:
