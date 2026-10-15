@@ -50,6 +50,11 @@ export interface Settings {
    * AES/GES header is shown (open databases are not used). Stored upper case.
    */
   readonly aircraftIcaoHex: string;
+  /**
+   * The user's hub airport, ICAO (T53): the next leg after a flight into it goes on from it.
+   * Empty = the OpenFlights hub of the airline. Stored upper case.
+   */
+  readonly hubIcao: string;
   /** Put the AES/GES header (a decoder format, not a cockpit one) in the message text. Default off. */
   readonly datalinkHeaderInText: boolean;
   /** ROPS steps aside where a live VATSIM centre covers the FIR. Default on. */

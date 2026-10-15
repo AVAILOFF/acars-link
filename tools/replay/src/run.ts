@@ -76,6 +76,8 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
     ...(h.flags === undefined ? {} : { flags: h.flags }),
     ...(h.minGapMs === undefined ? {} : { minGapMs: h.minGapMs }),
     namesVersion: h.namesVersion ?? 1,
+    nextLegVersion: h.nextLegVersion ?? 1,
+    ...(h.hub === undefined ? {} : { hub: h.hub }),
     ...(h.rops === undefined ? {} : { rops: h.rops }),
     ...(h.datalink === undefined ? {} : { datalink: h.datalink }),
     ...(o.phaseConfig === undefined ? {} : { phaseConfig: o.phaseConfig }),

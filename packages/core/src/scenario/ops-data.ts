@@ -1,6 +1,6 @@
-import { airlineType } from '../ext/airline.js';
+import { airlineHub, airlineType, hubRoutesFor } from '../ext/airline.js';
 import type { Ofp } from '../ofp/types.js';
-import { createRng } from '../random/rng.js';
+import { createRng, type Rng } from '../random/rng.js';
 
 /**
  * Per-flight "airline data" that several scenarios must agree on (T07): the last-minute
@@ -43,8 +43,11 @@ export interface FlightOps {
   readonly belt: number;
   readonly transferPax: number;
   readonly turnaroundMin: number;
-  /** Next leg back to the origin. */
+  /** Next leg with this aircraft (T53: from the hub after a flight into it, else back). */
   readonly nextFlight: string;
+  /** Departure of the next leg: the destination of this one. */
+  readonly nextOrig: string;
+  readonly nextDest: string;
   readonly nextStd: number;
   readonly cabinCrew: number;
   /** How much earlier a ready (RDY) flight may get its CTOT, minutes (T44, assumption). */
@@ -60,7 +63,23 @@ export interface FlightData {
 const DEFAULT_PAX_KG = 84;
 const MIN = 60_000;
 
-export function buildFlightData(ofp: Ofp, seed: number | string): FlightData {
+/**
+ * How the next leg is chosen (T53): version 1 = always back to the origin with number + 1 (as
+ * recorded before T53); 2 = after a flight into the hub, a route of the airline from the hub.
+ * `hub`: the user's hub (setting), instead of the OpenFlights one.
+ */
+export interface NextLegOptions {
+  readonly version: 1 | 2;
+  readonly hub: string | null;
+}
+
+const NEXT_LEG_DEFAULT: NextLegOptions = { version: 2, hub: null };
+
+export function buildFlightData(
+  ofp: Ofp,
+  seed: number | string,
+  nextLegOptions: NextLegOptions = NEXT_LEG_DEFAULT,
+): FlightData {
   const rng = createRng(`${String(seed)}/#ops`);
   const w = ofp.weights;
   const f = ofp.fuel;
@@ -99,6 +118,7 @@ export function buildFlightData(ofp: Ofp, seed: number | string): FlightData {
   const seats = ofp.aircraft.maxPax ?? pax;
   // Appended last: the draw order of older recordings stays.
   const rdyGainMin = rng.int(5, 15);
+  const next = nextLeg(ofp, seed, nextLegOptions);
 
   return {
     load: {
@@ -121,7 +141,9 @@ export function buildFlightData(ofp: Ofp, seed: number | string): FlightData {
       belt,
       transferPax,
       turnaroundMin,
-      nextFlight: nextFlight(ofp),
+      nextFlight: next.flight,
+      nextOrig: ofp.destination.icao,
+      nextDest: next.dest,
       nextStd: roundTo5Min(t.schedInMs + turnaroundMin * MIN),
       // The OFP crew list when there is one (T43); else one per 50 seats.
       cabinCrew: ofp.crew?.cabin || Math.max(1, Math.ceil(seats / 50)),
@@ -130,12 +152,53 @@ export function buildFlightData(ofp: Ofp, seed: number | string): FlightData {
   };
 }
 
-/** `SJX` + `822` → `SJX823`; without an airline flight number, the callsign's number + 1. */
-function nextFlight(ofp: Ofp): string {
+/**
+ * The next leg (T53, approved by the user 2026-10-15). After a flight into the hub (the user's,
+ * else the OpenFlights one) from elsewhere: a seeded pick among the airline's routes from the hub
+ * flown with this aircraft type, not back to the origin, under a seeded number of the same
+ * length. Otherwise, or with no such route: back to the origin, number + 1. Own Rng stream
+ * `#next`, so the draws of `#ops` stay as recorded.
+ */
+function nextLeg(
+  ofp: Ofp,
+  seed: number | string,
+  o: NextLegOptions,
+): { readonly flight: string; readonly dest: string } {
+  const orig = ofp.origin.icao;
+  const dest = ofp.destination.icao;
+  const back = { flight: flightNumber(ofp, (n) => n + 1), dest: orig };
+  if (o.version === 1) return back;
+  const hub = o.hub ?? airlineHub(ofp.airlineIcao);
+  if (hub === null || dest !== hub || orig === hub) return back;
+  const routes = hubRoutesFor(ofp.airlineIcao, hub, ofp.aircraft.icao).filter((d) => d !== orig);
+  if (routes.length === 0) return back;
+  const rng = createRng(`${String(seed)}/#next`);
+  const to = rng.pick(routes);
+  return { flight: flightNumber(ofp, (n, digits) => randomNumber(rng, n, digits)), dest: to };
+}
+
+/** A number of `digits` digits other than `n`. */
+function randomNumber(rng: Rng, n: number, digits: number): number {
+  const lo = digits <= 1 ? 1 : 10 ** (digits - 1);
+  const hi = 10 ** digits - 1;
+  const x = rng.int(lo, hi);
+  return x !== n ? x : x < hi ? x + 1 : lo;
+}
+
+/**
+ * `SJX` + `822` → `SJX` + next(822); without an airline flight number, the callsign's number;
+ * without one either, the callsign as it is.
+ */
+function flightNumber(ofp: Ofp, next: (n: number, digits: number) => number): string {
   const n = /^(\d+)([A-Z]?)$/.exec(ofp.flightNumber ?? '');
-  if (n !== null && ofp.airlineIcao !== null) return `${ofp.airlineIcao}${Number(n[1]) + 1}`;
+  if (n !== null && ofp.airlineIcao !== null) {
+    const d = n[1] as string;
+    return `${ofp.airlineIcao}${next(Number(d), d.length)}`;
+  }
   const c = /^(.*?)(\d+)([A-Z]?)$/.exec(ofp.callsign);
-  return c === null ? ofp.callsign : `${c[1]}${Number(c[2]) + 1}`;
+  if (c === null) return ofp.callsign;
+  const d = c[2] as string;
+  return `${c[1]}${next(Number(d), d.length)}`;
 }
 
 const roundTo5Min = (ms: number) => Math.round(ms / (5 * MIN)) * 5 * MIN;

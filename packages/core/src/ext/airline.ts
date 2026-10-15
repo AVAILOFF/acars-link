@@ -1,4 +1,35 @@
-import { OPENFLIGHTS_AIRLINE_COUNTRY, OPENFLIGHTS_ROUTES } from './openflights.js';
+import {
+  OPENFLIGHTS_AIRLINE_COUNTRY,
+  OPENFLIGHTS_HUB,
+  OPENFLIGHTS_HUB_ROUTES,
+  OPENFLIGHTS_PLANE_IATA,
+  OPENFLIGHTS_ROUTES,
+} from './openflights.js';
+
+/**
+ * The airline's hub (T53): the airport with the most own direct routes in OpenFlights (2014);
+ * null when unknown or tied.
+ */
+export function airlineHub(airline: string | null): string | null {
+  return airline === null ? null : (OPENFLIGHTS_HUB[airline] ?? null);
+}
+
+/**
+ * Destinations of the airline's own direct routes from `hub` flown with the aircraft type
+ * (ICAO designator → IATA by OpenFlights `planes.dat`), sorted (T53). Empty when the hub is not
+ * the airline's OpenFlights hub, the type has no IATA code, or no route had it.
+ */
+export function hubRoutesFor(airline: string | null, hub: string, aircraftIcao: string): string[] {
+  if (airline === null || OPENFLIGHTS_HUB[airline] !== hub) return [];
+  const iata = OPENFLIGHTS_PLANE_IATA[aircraftIcao];
+  if (iata === undefined) return [];
+  const out: string[] = [];
+  for (const route of (OPENFLIGHTS_HUB_ROUTES[airline] ?? '').split(' ')) {
+    const [dest, eq] = route.split(':');
+    if (dest !== undefined && dest !== '' && (eq ?? '').split(',').includes(iata)) out.push(dest);
+  }
+  return out;
+}
 
 /**
  * Does the airline have own departures from the airport (OpenFlights routes, data of 2014; T43)?

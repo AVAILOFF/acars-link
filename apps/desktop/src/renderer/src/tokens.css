@@ -1,0 +1,110 @@
+/*
+ * ACARS Sim — UI tokens (dark shell + light sheets).
+ * Source: Claude Design canvas "ACARS для MSFS 2024", artboards DsFoundations / DsTokens.
+ * Maps onto apps/desktop/src/renderer/src/styles.css — see design/README.md, "Token mapping".
+ */
+:root {
+  color-scheme: dark;
+
+  /* Shell (dark): top bar, tabs, panels around the content */
+  --shell-0: #16181d; /* app background */
+  --shell-1: #1e2128; /* bars */
+  --shell-2: #2a2e35; /* panels on the shell, banners */
+  --shell-line: #2c3038; /* dividers on the shell */
+  --field: #2c3038; /* input on the shell */
+
+  /* Shell buttons: flat slate, no border */
+  --btn: #3a3f48;
+  --btn-hover: #454b55;
+  --btn-pressed: #30343c;
+  --btn-close: #4a505a; /* round ✕ */
+  --btn-disabled: #2a2e35;
+
+  /* Text on the shell (contrast to --shell-1) */
+  --on-shell-1: #ffffff; /* 16:1 */
+  --on-shell-2: #a9aeb8; /* 7.6:1 — subtitles */
+  --on-shell-3: #8a909a; /* 5:1 — captions */
+  --on-shell-off: #5a606b; /* disabled only */
+
+  /* Active / selection: solid blue fill, white text */
+  --active: #1f7ae0;
+  --active-hover: #3388e8;
+  --active-pressed: #1866bd;
+  --focus-ring: #4a9bf0;
+
+  /* Sheet (light): lists, tables, forms, settings */
+  --sheet-bg: #f2f2f5;
+  --sheet-header: #f7f7f9;
+  --sheet-row: #ffffff;
+  --sheet-row-hover: #f5f6f8;
+  --sheet-line: #e1e2e6;
+  --sheet-select: #dcebfd;
+  --sheet-btn: #ecedf0; /* Save / Import style */
+  --on-sheet-1: #1c1c1e; /* 16:1 */
+  --on-sheet-2: #6b6f78; /* 5:1 — CAPS labels, secondary */
+  --on-sheet-3: #8a909a; /* placeholder only */
+  --on-sheet-off: #a9acb3;
+  --link: #1f6fd1;
+  --chip: #4a515e; /* ICAO / route pills */
+
+  /* Status */
+  --ok: #34c759; /* dots / text on the shell */
+  --ok-text: #1e9e52; /* text on a sheet */
+  --caution: #f5a623;
+  --caution-text: #b36b00;
+  --warning: #d93025;
+  --warning-dot: #ff5a4e;
+  --warning-tint: #fdecea; /* sheet row with an error */
+
+  /* Chart / nav semantics — route, ownship, NOTAM only, never for UI state */
+  --ownship: #d63ad6;
+  --route: #1f3fd0;
+  --traffic: #3fd6e0;
+  --notam: #d9480f;
+
+  /* Type */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --fs-title-lg: 22px; /* 28 lh */
+  --fs-title: 17px; /* 22 lh, semibold */
+  --fs-control: 15px; /* 20 lh, medium */
+  --fs-body: 15px; /* 20 lh */
+  --fs-sub: 13px; /* 18 lh */
+  --fs-caps: 12px; /* 16 lh, medium, letter-spacing .02em, uppercase */
+
+  /* Space (4 px grid) */
+  --s-1: 4px;
+  --s-2: 6px;
+  --s-3: 8px;
+  --s-4: 12px;
+  --s-5: 16px;
+  --s-6: 24px;
+  --s-7: 32px;
+
+  /* Radius */
+  --r-sm: 4px; /* FMS screen, small marks */
+  --r-ctl: 6px; /* buttons, tabs, tiles, inputs */
+  --r-sheet: 10px; /* sheets, panels, modals */
+  --r-pill: 999px; /* chips */
+
+  /* Sizes */
+  --h-ctl: 34px;
+  --h-ctl-sm: 30px;
+  --h-row: 44px;
+  --h-row-2: 64px; /* two-line sheet row */
+  --topbar: 52px;
+  --bottombar: 48px;
+  --icon-btn: 40px;
+
+  --shadow-float: 0 2px 8px rgb(0 0 0 / 0.3); /* menus, modals, tooltips only */
+  --focus: 0 0 0 2px var(--shell-0), 0 0 0 4px var(--focus-ring);
+
+  --dur-fast: 120ms;
+  --dur: 160ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+  }
+}

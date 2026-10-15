@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { UiText } from '../../shared/api.js';
 import { type Translate, translator } from './i18n.js';
 import { useStore } from './store.js';
@@ -22,3 +22,13 @@ export function zulu(ms: number): string {
 }
 
 export const num = (n: number): string => Math.round(n).toLocaleString('en-US');
+
+/** UTC clock of the top bar (display only, no logic hangs on it). */
+export function useUtcClock(): string {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return zulu(now);
+}

@@ -452,6 +452,7 @@ export class AppController {
       data: settings.liveData ? this.data : null,
       flags,
       minGapMs: settings.messageGapSec * 1000,
+      ...(settings.hubIcao === '' ? {} : { hub: settings.hubIcao }),
       simCommands: (c) => this.sendSimCommand(c),
       ...(settings.datalink
         ? {

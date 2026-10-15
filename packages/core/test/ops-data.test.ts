@@ -2,11 +2,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  airlineHub,
   airlineType,
   buildFlightData,
   buildIrregularData,
   compileTemplate,
   createRng,
+  hubRoutesFor,
   type Lookup,
   type Ofp,
   parseSimbriefOfp,
@@ -170,5 +172,83 @@ describe('airline type: turnaround and onward connection (T43)', () => {
     const [lo, hi] = conn(kg);
     expect(lo).toBeGreaterThanOrEqual(50);
     expect(hi).toBeLessThanOrEqual(100);
+  });
+});
+
+describe('next leg: hub of the airline (T53)', () => {
+  const afl = (orig: string, dest: string, type = 'A320'): Ofp => ({
+    ...kg,
+    airlineIcao: 'AFL',
+    flightNumber: '1123',
+    origin: { ...kg.origin, icao: orig },
+    destination: { ...kg.destination, icao: dest },
+    aircraft: { ...kg.aircraft, icao: type },
+  });
+  const v1 = { version: 1, hub: null } as const;
+  const v2 = { version: 2, hub: null } as const;
+
+  it('hub and its routes from OpenFlights, by aircraft type', () => {
+    expect(airlineHub('AFL')).toBe('UUEE');
+    expect(airlineHub('SJX')).toBeNull(); // not in OpenFlights
+    expect(airlineHub(null)).toBeNull();
+    const a320 = hubRoutesFor('AFL', 'UUEE', 'A320');
+    expect(a320).toContain('URSS');
+    expect(a320).not.toContain('KJFK'); // long haul: 333/77W only
+    expect(hubRoutesFor('AFL', 'UUEE', 'B77W')).toContain('KJFK');
+    expect(hubRoutesFor('AFL', 'URSS', 'A320')).toEqual([]); // not the hub
+    expect(hubRoutesFor('AFL', 'UUEE', 'A20N')).toEqual([]); // not flown in 2014
+    expect(hubRoutesFor('AFL', 'UUEE', 'ZZZZ')).toEqual([]); // no IATA code
+  });
+
+  it('into the hub: a route of the airline from it, not back, under another number', () => {
+    const ofp = afl('URSS', 'UUEE');
+    const routes = hubRoutesFor('AFL', 'UUEE', 'A320');
+    const dests = new Set<string>();
+    for (const seed of seeds) {
+      const { ops } = buildFlightData(ofp, seed, v2);
+      expect(ops.nextOrig).toBe('UUEE');
+      expect(routes).toContain(ops.nextDest);
+      expect(ops.nextDest).not.toBe('URSS');
+      expect(ops.nextFlight).toMatch(/^AFL[1-9]\d{3}$/);
+      expect(ops.nextFlight).not.toBe('AFL1123');
+      expect(buildFlightData(ofp, seed, v2).ops).toEqual(ops);
+      dests.add(ops.nextDest);
+    }
+    expect(dests.size).toBeGreaterThan(20);
+  });
+
+  it('the rest of the ops data stays as before (own Rng stream)', () => {
+    const ofp = afl('URSS', 'UUEE');
+    for (const seed of seeds.slice(0, 20)) {
+      const a = buildFlightData(ofp, seed, v1);
+      const b = buildFlightData(ofp, seed, v2);
+      expect(b.load).toEqual(a.load);
+      const strip = ({ nextFlight, nextDest, ...rest }: typeof a.ops) => rest;
+      expect(strip(b.ops)).toEqual(strip(a.ops));
+    }
+  });
+
+  it('back to the origin with number + 1: from the hub, a type without routes, version 1', () => {
+    const back = (ofp: Ofp, o: { version: 1 | 2; hub: string | null } = v2) => {
+      const { ops } = buildFlightData(ofp, 's', o);
+      return `${ops.nextFlight} ${ops.nextOrig}-${ops.nextDest}`;
+    };
+    expect(back(afl('UUEE', 'URSS'))).toBe('AFL1124 URSS-UUEE');
+    expect(back(afl('URSS', 'USSS'))).toBe('AFL1124 USSS-URSS'); // neither is the hub
+    expect(back(afl('URSS', 'UUEE', 'A20N'))).toBe('AFL1124 UUEE-URSS');
+    expect(back(afl('URSS', 'UUEE'), v1)).toBe('AFL1124 UUEE-URSS');
+    expect(back(kg)).toBe('SJX823 RJBB-RCTP'); // airline not in OpenFlights
+  });
+
+  it("the user's hub replaces the OpenFlights one; without routes from it, back", () => {
+    const user = (hub: string) => ({ version: 2, hub }) as const;
+    // URSS as the hub: a flight into URSS goes back (no AFL routes from URSS in the data) ...
+    expect(buildFlightData(afl('UUEE', 'URSS'), 's', user('URSS')).ops.nextDest).toBe('UUEE');
+    // ... and UUEE is no longer the hub: a flight into it goes back as well.
+    expect(buildFlightData(afl('URSS', 'UUEE'), 's', user('URSS')).ops.nextDest).toBe('URSS');
+    // The same hub as OpenFlights: as without the setting.
+    expect(buildFlightData(afl('URSS', 'UUEE'), 's', user('UUEE')).ops).toEqual(
+      buildFlightData(afl('URSS', 'UUEE'), 's', v2).ops,
+    );
   });
 });

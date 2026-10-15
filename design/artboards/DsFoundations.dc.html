@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Основы дизайн-системы</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=B612+Mono:wght@400;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 1440px; min-height: 1240px; box-sizing: border-box; padding: 40px; display: flex; flex-direction: column; gap: 28px; background: #16181D; color: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 20px; font-variant-numeric: tabular-nums">
+
+<section style="display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 32px; padding-bottom: 24px; border-bottom: 1px solid #2C3038">
+<div>
+<div style="font-size: 12px; font-weight: 600; letter-spacing: .04em; color: #8A909A">01 · КОНЦЕПЦИЯ</div>
+<h1 style="margin: 4px 0 0; font-size: 22px; line-height: 28px; font-weight: 600">Тёмная оболочка, светлые листы</h1>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; color: #A9AEB8">
+<p style="margin: 0"><span style="color: #FFFFFF; font-weight: 600">Оболочка.</span> Верхний бар, навигация и нижний бар — тёмный графит. Кнопки — плоские графитовые плашки с радиусом 6; активное — сплошная синяя заливка.</p>
+<p style="margin: 0"><span style="color: #FFFFFF; font-weight: 600">Содержимое.</span> Списки, формы и таблицы лежат на светлых листах (белые строки на светло-сером, радиус 10) — как документы и панели в EFB.</p>
+<p style="margin: 0"><span style="color: #FFFFFF; font-weight: 600">Исключение — FMS.</span> Окно FMS не наследует ни оболочку, ни листы: чёрный экран, зелёный текст, B612 Mono.</p>
+</div>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 12px; font-weight: 600; letter-spacing: .04em; color: #8A909A">02 · ПАЛИТРА</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="8">
+<div style="border-radius: 10px; background: #1E2128; overflow: hidden">
+<div style="height: 36px; display: flex; align-items: center; padding: 0 12px; font-size: 13px; font-weight: 600; color: #FFFFFF; border-bottom: 1px solid #2C3038">{{g.t}}</div>
+<sc-for list="{{g.items}}" as="s" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 12px; border-bottom: 1px solid #2C3038">
+<span style="flex: 0 0 auto; width: 22px; height: 22px; border-radius: 6px; border: 1px solid #4A505A; background: {{s.c}}"></span>
+<span style="flex: 1 1 0; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{s.n}}</span>
+<span style="font-size: 12px; color: #A9AEB8">{{s.c}}</span>
+</div>
+</sc-for>
+<div style="padding: 8px 12px; font-size: 12px; line-height: 16px; color: #8A909A">{{g.note}}</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<div style="display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 32px">
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 12px; font-weight: 600; letter-spacing: .04em; color: #8A909A">03 · ТИПОГРАФИКА</div>
+<div style="border-radius: 10px; background: #FFFFFF; color: #1C1C1E; overflow: hidden">
+<sc-for list="{{type}}" as="ty" hint-placeholder-count="10">
+<div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 190px; align-items: center; gap: 12px; min-height: 44px; padding: 4px 14px; border-bottom: 1px solid #E1E2E6">
+<span style="font-size: 12px; color: #6B6F78">{{ty.n}}</span>
+<span style="{{ty.s}}">{{ty.ex}}</span>
+<span style="font-size: 12px; color: #6B6F78; text-align: right">{{ty.spec}}</span>
+</div>
+</sc-for>
+</div>
+<p style="margin: 0; font-size: 13px; color: #8A909A">Системный гротеск (SF Pro на macOS, Segoe UI на Windows) с tabular-nums для времени, эшелонов и частот. Отдельный моноширинный шрифт в UI не нужен. B612 Mono — только в окне FMS.</p>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="font-size: 12px; font-weight: 600; letter-spacing: .04em; color: #8A909A">04 · СЕТКА, РАЗМЕРЫ, РАДИУСЫ</div>
+<div style="border-radius: 10px; background: #1E2128; padding: 14px; display: flex; flex-direction: column; gap: 10px">
+<div style="font-size: 13px; font-weight: 600">Шаг 4 px</div>
+<sc-for list="{{space}}" as="sp" hint-placeholder-count="7">
+<div style="display: flex; align-items: center; gap: 12px; height: 18px; font-size: 13px">
+<span style="width: 72px">{{sp.n}}</span>
+<span style="width: 28px; color: #A9AEB8">{{sp.v}}</span>
+<span style="height: 8px; width: {{sp.w}}; border-radius: 2px; background: #1F7AE0"></span>
+<span style="color: #8A909A">{{sp.u}}</span>
+</div>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="border-radius: 10px; background: #1E2128; padding: 14px">
+<div style="font-size: 13px; font-weight: 600; margin-bottom: 8px">Высоты</div>
+<div style="font-size: 13px; line-height: 21px; color: #A9AEB8; white-space: pre-line">кнопка, вкладка, поле — 34
+кнопка в баннере — 30
+строка таблицы — 44
+строка листа (2 строки) — 64
+плитка навигации — 72 × 56
+верхний бар — 52 · нижний — 48
+кнопка-иконка — 40 × 40</div>
+</div>
+<div style="border-radius: 10px; background: #1E2128; padding: 14px">
+<div style="font-size: 13px; font-weight: 600; margin-bottom: 8px">Радиусы</div>
+<div style="display: flex; gap: 10px; margin-bottom: 10px">
+<span style="width: 34px; height: 30px; border-radius: 4px; background: #3A3F48"></span>
+<span style="width: 34px; height: 30px; border-radius: 6px; background: #3A3F48"></span>
+<span style="width: 34px; height: 30px; border-radius: 10px; background: #3A3F48"></span>
+<span style="width: 44px; height: 30px; border-radius: 15px; background: #4A515E"></span>
+</div>
+<div style="font-size: 13px; line-height: 21px; color: #A9AEB8; white-space: pre-line">4 — экран FMS, мелкие метки
+6 — кнопки, вкладки, плитки, поля
+10 — листы, панели, модалки
+полный — чипы ICAO и маршрута
+тень только у плавающих: 0 2 8 .3</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const groups = [
+      { t: 'Оболочка (тёмная)', note: 'Фон, бары, навигация, плавающие панели инструментов.', items: [
+        { n: 'shell-0 · фон', c: '#16181D' }, { n: 'shell-1 · бары, rail', c: '#1E2128' }, { n: 'shell-2 · панели, баннер', c: '#2A2E35' }, { n: 'shell-line · разделитель', c: '#2C3038' }, { n: 'field · поле на тёмном', c: '#2C3038' } ] },
+      { t: 'Кнопки оболочки', note: 'Плоские плашки без обводки.', items: [
+        { n: 'btn · обычная', c: '#3A3F48' }, { n: 'btn-hover', c: '#454B55' }, { n: 'btn-pressed', c: '#30343C' }, { n: 'btn-close · круг ✕', c: '#4A505A' }, { n: 'btn-disabled', c: '#2A2E35' } ] },
+      { t: 'Активное (синий)', note: 'Выбранный раздел, вкладка, сегмент, основное действие.', items: [
+        { n: 'active · заливка', c: '#1F7AE0' }, { n: 'active-hover', c: '#3388E8' }, { n: 'active-pressed', c: '#1866BD' }, { n: 'focus · кольцо', c: '#4A9BF0' }, { n: 'link на светлом', c: '#1F6FD1' } ] },
+      { t: 'Текст на оболочке', note: 'Белый 16:1 · вторичный 7.6:1 · третичный 5:1 к #1E2128.', items: [
+        { n: 'on-shell-1', c: '#FFFFFF' }, { n: 'on-shell-2 · подзаголовки', c: '#A9AEB8' }, { n: 'on-shell-3 · подписи', c: '#8A909A' }, { n: 'on-shell-off', c: '#5A606B' } ] },
+      { t: 'Лист (светлый)', note: 'Списки, формы, таблицы, параметры рейса.', items: [
+        { n: 'sheet-bg · подложка', c: '#F2F2F5' }, { n: 'sheet-header', c: '#F7F7F9' }, { n: 'sheet-row · строка', c: '#FFFFFF' }, { n: 'sheet-line', c: '#E1E2E6' }, { n: 'sheet-select · строка', c: '#DCEBFD' } ] },
+      { t: 'Текст на листе', note: 'Основной 16:1 · вторичный 5:1 · placeholder 3.3:1 (только подсказки).', items: [
+        { n: 'on-sheet-1', c: '#1C1C1E' }, { n: 'on-sheet-2 · метки CAPS', c: '#6B6F78' }, { n: 'on-sheet-3 · placeholder', c: '#8A909A' }, { n: 'chip · ICAO, маршрут', c: '#4A515E' }, { n: 'sheet-btn · Save/Import', c: '#ECEDF0' } ] },
+      { t: 'Статусы', note: 'Точки на оболочке — яркие; текст на листе — затемнённые.', items: [
+        { n: 'ok · точка', c: '#34C759' }, { n: 'ok · текст на листе', c: '#1E9E52' }, { n: 'caution · точка, метка', c: '#F5A623' }, { n: 'caution · текст на листе', c: '#B36B00' }, { n: 'warning', c: '#D93025' } ] },
+      { t: 'Семантика карт и погоды', note: 'Только для карты, маршрута, METAR, NOTAM.', items: [
+        { n: 'ownship / активное', c: '#D63AD6' }, { n: 'маршрут', c: '#1F3FD0' }, { n: 'трафик · метки', c: '#3FD6E0' }, { n: 'NOTAM / опасность', c: '#D9480F' }, { n: 'IFR-метка (жёлтая)', c: '#F2B21B' } ] }
+    ];
+    const f = "font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-variant-numeric: tabular-nums; ";
+    const type = [
+      { n: 'title-lg', s: f + 'font-size: 22px; line-height: 28px; font-weight: 600', ex: 'Сообщения ACARS', spec: '22 / 28 · Semibold' },
+      { n: 'title', s: f + 'font-size: 17px; line-height: 22px; font-weight: 600', ex: 'Набор FL370', spec: '17 / 22 · Semibold' },
+      { n: 'subtitle', s: f + 'font-size: 13px; line-height: 18px; color: #6B6F78', ex: 'VRT204 · A20N · CLB', spec: '13 / 18 · Regular' },
+      { n: 'control', s: f + 'font-size: 15px; line-height: 20px; font-weight: 500', ex: 'Запрос · Новое сообщение', spec: '15 / 20 · Medium' },
+      { n: 'nav-tile', s: f + 'font-size: 15px; line-height: 18px; font-weight: 600', ex: 'CPDLC', spec: '15 / 18 · Semibold' },
+      { n: 'body', s: f + 'font-size: 15px; line-height: 20px', ex: 'Получен NOTAM для пункта назначения', spec: '15 / 20 · Regular' },
+      { n: 'row-title', s: f + 'font-size: 17px; line-height: 22px; font-weight: 600', ex: 'Low Vis Taxi Routes', spec: '17 / 22 · Semibold' },
+      { n: 'row-sub', s: f + 'font-size: 15px; line-height: 20px; color: #6B6F78', ex: '10-9D', spec: '15 / 20 · Regular' },
+      { n: 'label-caps', s: f + 'font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: .02em; color: #6B6F78', ex: 'NAVAIDS, WAYPOINTS, AIRWAYS', spec: '12 / 16 · Medium · CAPS' },
+      { n: 'value', s: f + 'font-size: 17px; line-height: 22px; font-weight: 500', ex: '596 NM   FL370   16:12Z', spec: '17 / 22 · Medium · tnum' },
+      { n: 'fms (изол.)', s: "font-family: 'B612 Mono', monospace; font-size: 15px; line-height: 22px; color: #48D27A; background: #000; padding: 2px 8px; border-radius: 4px", ex: 'CLIMB TO FL370', spec: 'B612 Mono 18 / 26' }
+    ];
+    const space = [
+      { n: 'space-1', v: '4', w: '4px', u: 'иконка ↔ текст' },
+      { n: 'space-2', v: '6', w: '6px', u: 'между плитками rail' },
+      { n: 'space-3', v: '8', w: '8px', u: 'между кнопками' },
+      { n: 'space-4', v: '12', w: '12px', u: 'внутри листа, поля оболочки' },
+      { n: 'space-5', v: '16', w: '16px', u: 'отступ текста в строке' },
+      { n: 'space-6', v: '24', w: '24px', u: 'между группами' },
+      { n: 'space-7', v: '32', w: '32px', u: 'между секциями' }
+    ];
+    return { groups, type, space };
+  }
+}
+</script>
+</body>
+</html>

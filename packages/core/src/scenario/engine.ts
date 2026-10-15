@@ -31,7 +31,7 @@ import { type DelayPart, LATE_START_CODE, reasonCode, SLOT_CODE } from './delay-
 import type { Lookup, Value } from './expr.js';
 import { pruneExpiredFlags } from './flags-expiry.js';
 import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
-import { buildFlightData, type FlightData } from './ops-data.js';
+import { buildFlightData, type FlightData, type NextLegOptions } from './ops-data.js';
 import {
   normalizePilotText,
   type ParsedCommand,
@@ -224,6 +224,13 @@ export interface ScenarioEngineOptions {
    */
   readonly namesVersion?: 1 | 2;
   /**
+   * How the next leg is chosen (T53, `ops-data.ts`): 1 = always back to the origin (as recorded
+   * before T53), 2 = from the hub after a flight into it (default).
+   */
+  readonly nextLegVersion?: 1 | 2;
+  /** The user's hub airport (T53), instead of the OpenFlights one; absent = OpenFlights. */
+  readonly hub?: string;
+  /**
    * How long `REQ WX` waits for weather the app fetches on `DATA_REQUEST`, ms of clock time.
    * 0 (default) = answer at once with what the core has (no live data source).
    */
@@ -356,6 +363,7 @@ export class ScenarioEngine {
   private readonly polyline: RoutePolyline;
   private readonly dataWaitMs: number;
   private readonly syntheticConnections: boolean;
+  private readonly nextLeg: NextLegOptions;
   private readonly seed: number | string;
   private readonly leadMs: number;
   /** Derived from OFP + seed (+ delay), so not part of the serialized state. */
@@ -405,12 +413,13 @@ export class ScenarioEngine {
     this.polyline = new RoutePolyline(options.ofp);
     this.dataWaitMs = options.dataWaitMs ?? 0;
     this.syntheticConnections = options.syntheticConnections ?? false;
+    this.nextLeg = { version: options.nextLegVersion ?? 2, hub: options.hub ?? null };
     if (!(this.dataWaitMs >= 0)) throw new RangeError('dataWaitMs must be ≥ 0');
     this.seed = options.seed;
     this.namesVersion = options.namesVersion ?? 2;
     this.leadMs = (options.lateStartLeadMin ?? DEFAULT_LATE_START_LEAD_MIN) * 60_000;
     if (!(this.leadMs >= 0)) throw new RangeError('lateStartLeadMin must be ≥ 0');
-    this.data = buildFlightData(options.ofp, options.seed);
+    this.data = buildFlightData(options.ofp, options.seed, this.nextLeg);
     this.irr = buildIrregularData(options.ofp, options.seed, this.data.ops.transferPax);
     this.profile = options.profile ?? DEFAULT_PROFILE;
     this.from = stationCallsign(options.station ?? DEFAULT_STATION, options.ofp);
@@ -534,14 +543,17 @@ export class ScenarioEngine {
   private rebuildData(): void {
     const delay = this.st.delayMs ?? 0;
     const at = (ms: number) => (ms === 0 ? this.ofp : delayedOfp(this.ofp, ms, true));
-    const built = buildFlightData(at(delay), this.seed);
+    const built = buildFlightData(at(delay), this.seed, this.nextLeg);
     const raised = this.st.delayRaisedMs;
     const data =
       raised === 0
         ? built
         : {
             ...built,
-            ops: { ...built.ops, ctot: buildFlightData(at(delay - raised), this.seed).ops.ctot },
+            ops: {
+              ...built.ops,
+              ctot: buildFlightData(at(delay - raised), this.seed, this.nextLeg).ops.ctot,
+            },
           };
     const stands = this.st.ext.stands;
     // No stands, no gate (T43): nothing is invented.
