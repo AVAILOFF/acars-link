@@ -655,6 +655,38 @@ describe('live data (T13)', () => {
     expect(r.outbound.every((m) => m.link !== undefined)).toBe(true);
   });
 
+  it('data link window (T32): the link state in the app state; the ICAO hex and the text option are recorded', async () => {
+    const s = await setup({ http: await dataHttp() });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({
+      transport: 'offline',
+      datalink: true,
+      aircraftIcaoHex: '4249ea',
+      datalinkHeaderInText: true,
+    });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    expect(s.app.state().link).toBeNull();
+    await s.app.startFlight();
+    expect(s.app.state().link).toMatchObject({ kind: null, held: 0, inFlight: 0, last: null });
+    await flyAsync(s);
+    const link = s.app.state().link;
+    expect(link?.last).not.toBeNull();
+    await s.app.endFlight('DONE');
+    await s.app.stopFlight();
+    expect(s.app.state().link).toBeNull();
+
+    const rec = await readRecording(s.recordings);
+    expect(rec.header.datalink).toEqual({ satcom: true, icaoHex: '4249EA', headerInText: true });
+    const r = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+    // On SATCOM with a known GES code the text starts with the header (the sample format).
+    const withHeader = r.outbound.filter((m) => m.message.text.startsWith('AES:4249EA GES:'));
+    expect(withHeader.length).toBeGreaterThan(0);
+  });
+
   it('fetches after the OFP loads, feeds the core, is recorded and replays the same', async () => {
     const http = await dataHttp();
     const s = await setup({ http });

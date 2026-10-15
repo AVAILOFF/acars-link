@@ -258,6 +258,30 @@ function NetworkForm() {
           />
           {t('set.datalinkSatcom')}
         </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={settings.datalinkHeaderInText}
+            disabled={busy !== null || !settings.datalink}
+            onChange={(e) => void update({ datalinkHeaderInText: e.currentTarget.checked })}
+          />
+          {t('set.datalinkHeaderInText')}
+        </label>
+        <label>
+          {t('set.aircraftIcaoHex')}
+          <input
+            className="mono"
+            type="text"
+            maxLength={6}
+            defaultValue={settings.aircraftIcaoHex}
+            disabled={busy !== null || !settings.datalink}
+            onBlur={(e) => {
+              const v = e.currentTarget.value.trim();
+              if (v !== settings.aircraftIcaoHex) void update({ aircraftIcaoHex: v });
+            }}
+          />
+        </label>
+        <p className="hint">{t('set.aircraftIcaoHexHint')}</p>
       </div>
       <div className="field">
         <span>{t('set.special')}</span>

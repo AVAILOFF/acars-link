@@ -247,6 +247,7 @@ export class AppController {
       telemetry: s?.telemetry ?? null,
       transport: s?.transportView ?? null,
       atc: s?.atc ?? null,
+      link: s?.link ?? null,
       feed: this.feed.entries,
       memory: this.memory,
       irregular: s?.irregular ?? [],
@@ -431,7 +432,15 @@ export class AppController {
       flags,
       minGapMs: settings.messageGapSec * 1000,
       simCommands: (c) => this.sendSimCommand(c),
-      ...(settings.datalink ? { datalink: { satcom: settings.datalinkSatcom } } : {}),
+      ...(settings.datalink
+        ? {
+            datalink: {
+              satcom: settings.datalinkSatcom,
+              ...(settings.aircraftIcaoHex === '' ? {} : { icaoHex: settings.aircraftIcaoHex }),
+              ...(settings.datalinkHeaderInText ? { headerInText: true } : {}),
+            },
+          }
+        : {}),
       ...(settings.rops
         ? {
             rops: {

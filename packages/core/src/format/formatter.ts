@@ -168,6 +168,15 @@ export function formatMessage(input: string | MessageBlocks, p: DisplayProfile):
     ...(footer.length > 0 ? ['.'.repeat(p.lineWidth), ...footer] : []),
   ];
 
+  return assemble(lines, [...dropped], p);
+}
+
+/** Pages and joined text of `lines` for the profile; the one place a {@link FormattedMessage} is made. */
+function assemble(
+  lines: readonly string[],
+  dropped: readonly string[],
+  p: DisplayProfile,
+): FormattedMessage {
   const pages: string[][] = [];
   const per = p.maxLines ?? lines.length;
   for (let i = 0; i < lines.length; i += per) pages.push(lines.slice(i, i + per));
@@ -186,6 +195,47 @@ export function formatMessage(input: string | MessageBlocks, p: DisplayProfile):
     text,
     dropped: [...dropped],
   } as unknown as FormattedMessage;
+}
+
+/**
+ * The AES/GES header of the data link (T32, docs/07 A11) as display lines: whole tokens
+ * (`AES:4249EA`, `GES:50 2`, `.VQ-BLQ`) are packed into lines of at most `lineWidth`; a token
+ * longer than a line is wrapped by the ordinary formatter rules. Same character filter as any text.
+ */
+export function linkHeaderLines(tokens: readonly string[], p: DisplayProfile): string[] {
+  const dropped = new Set<string>();
+  const lines: string[] = [];
+  let cur = '';
+  for (const raw of tokens) {
+    const token = sanitizeLine(raw, p, dropped);
+    if (token === '') continue;
+    if (token.length > p.lineWidth) {
+      if (cur !== '') lines.push(cur);
+      const parts = wrap(token, p.lineWidth);
+      cur = parts.pop() as string;
+      lines.push(...parts);
+    } else if (cur === '') cur = token;
+    else if (cur.length + 1 + token.length <= p.lineWidth) cur += ` ${token}`;
+    else {
+      lines.push(cur);
+      cur = token;
+    }
+  }
+  if (cur !== '') lines.push(cur);
+  return lines;
+}
+
+/**
+ * `msg` with the link header lines in front (T32, optional in the message text), repaginated.
+ * Like every message it comes out of this module, so the width and character rules hold.
+ */
+export function withLinkHeader(
+  msg: FormattedMessage,
+  header: readonly string[],
+  p: DisplayProfile,
+): FormattedMessage {
+  if (header.length === 0) return msg;
+  return assemble([...header, ...msg.lines], msg.dropped, p);
 }
 
 /**

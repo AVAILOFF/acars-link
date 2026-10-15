@@ -20,6 +20,7 @@ import type { Transport, TransportStatus } from '@acars/transport';
 import type {
   AtcView,
   ForceableScenario,
+  LinkWindow,
   SystemCode,
   TelemetryView,
   TransportView,
@@ -63,7 +64,11 @@ export interface FlightSessionOptions {
   /** ROPS ATC station (T23); absent = off. */
   readonly rops?: RopsOptions;
   /** Data link simulation (T31); absent = off. */
-  readonly datalink?: { readonly satcom: boolean };
+  readonly datalink?: {
+    readonly satcom: boolean;
+    readonly icaoHex?: string;
+    readonly headerInText?: boolean;
+  };
 }
 
 /** Names of the data sources in the feed (proper names, the same in every language). */
@@ -207,6 +212,22 @@ export class FlightSession {
   /** ROPS station (T23): where to log on and where the aircraft is logged on; null = off. */
   get atc(): AtcView | null {
     return this.core.atc;
+  }
+
+  /** Data link (T31): the link now and what waits on it; null = off. */
+  get link(): LinkWindow | null {
+    const v = this.core.linkView;
+    if (v === null) return null;
+    return {
+      kind: v.link?.kind ?? null,
+      station: v.link?.station ?? null,
+      distNm: v.link?.distNm ?? null,
+      elevDeg: v.link?.elevDeg ?? null,
+      held: v.held,
+      inFlight: v.inFlight,
+      header: v.header,
+      last: v.last,
+    };
   }
 
   get transportView(): TransportView {

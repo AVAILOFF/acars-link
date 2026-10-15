@@ -47,6 +47,42 @@ export const INMARSAT_SATELLITES: readonly InmarsatSatellite[] = [
   { id: 'APAC', lon: 143.5 },
 ];
 
+/**
+ * GES codes seen in L-band decoder logs per satellite (A8; hobbyist notes `acars_notes/L-Band.md`,
+ * checked 2026-10-15): 3F5 54°W = 43, 44, 02; 4F3 98°W = 05, D0, 02; 4F1 143°E = 50, 82, 85;
+ * 4A4F4 25°E = 90, C5, C1. The first code of a satellite is used; `02` is in two rows and
+ * belongs to the first, 54°W. Satellites without a row (15.5°W, 64.5°E, 178°E) have no header:
+ * no code is invented. Real GES assignment is the network's own.
+ */
+const GES_CODES: Readonly<Record<string, readonly string[]>> = {
+  'AOR-W': ['43', '44', '02'],
+  AMER: ['05', 'D0', '02'],
+  APAC: ['50', '82', '85'],
+  EMEA: ['90', 'C5', 'C1'],
+};
+
+/** The GES code shown for a satellite, null when no code is known. */
+export function gesCode(satelliteId: string): string | null {
+  return GES_CODES[satelliteId]?.[0] ?? null;
+}
+
+/**
+ * Tokens of the AES/GES header as decoders print it (T32, A7): `AES:4249EA`, `GES:50 2`,
+ * `.VQ-BLQ`. Not a cockpit format. Null without a valid ICAO hex, a GES code or on VHF.
+ */
+export function aesHeaderTokens(
+  icaoHex: string | undefined,
+  ges: string | null,
+  reg: string | null,
+): string[] | null {
+  if (icaoHex === undefined || !/^[0-9A-Fa-f]{6}$/.test(icaoHex) || ges === null) return null;
+  return [
+    `AES:${icaoHex.toUpperCase()}`,
+    `GES:${ges} 2`,
+    ...(reg === null || reg === '' ? [] : [`.${reg.toUpperCase()}`]),
+  ];
+}
+
 export const VHF_MAX_RANGE_NM = 200;
 export const VHF_GROUND_RANGE_NM = 20;
 /** Stations farther than this from the planned route are not used (and not recorded). */
@@ -76,6 +112,8 @@ export interface LinkChoice {
   readonly distNm: number | null;
   /** Elevation of the satellite, degrees (`satcom`). */
   readonly elevDeg: number | null;
+  /** GES code of the satellite from the table (`satcom`), null when unknown. */
+  readonly ges: string | null;
 }
 
 /** Radio horizon to a station on the ground for an aircraft at `altFt`, NM (A2). */
@@ -112,7 +150,13 @@ export function chooseLink(
     if (best === null || d < best.d || (d === best.d && s.icao < best.s.icao)) best = { s, d };
   }
   if (best !== null) {
-    return { kind: 'vhf', station: best.s.icao, distNm: Math.round(best.d), elevDeg: null };
+    return {
+      kind: 'vhf',
+      station: best.s.icao,
+      distNm: Math.round(best.d),
+      elevDeg: null,
+      ges: null,
+    };
   }
   if (!satcom) return null;
   let sat: { id: string; elev: number } | null = null;
@@ -122,7 +166,13 @@ export function chooseLink(
   }
   return sat === null
     ? null
-    : { kind: 'satcom', station: sat.id, distNm: null, elevDeg: Math.round(sat.elev) };
+    : {
+        kind: 'satcom',
+        station: sat.id,
+        distNm: null,
+        elevDeg: Math.round(sat.elev),
+        ges: gesCode(sat.id),
+      };
 }
 
 /** How a message went through the link (on `OutboundMessage.link`). */
@@ -133,6 +183,8 @@ export interface DeliveryInfo {
   readonly delayMs: number;
   /** Time the message waited for any link at all, ms (0 = a link was there). */
   readonly waitedMs: number;
+  /** AES/GES header tokens of the link (T32); absent on VHF or without the aircraft's ICAO hex. */
+  readonly header?: readonly string[];
 }
 
 /** What the window of the app shows (T32): the link now and the messages on it. */
@@ -142,6 +194,10 @@ export interface LinkView {
   readonly held: number;
   /** On the way (delay not over). */
   readonly inFlight: number;
+  /** AES/GES header of the link now, one line, as decoders print it (T32); null = none. */
+  readonly header: string | null;
+  /** The last message delivered: when it left (epoch ms) and how long the link held it. */
+  readonly last: { readonly t: number; readonly delayMs: number } | null;
 }
 
 interface Held {
@@ -161,6 +217,15 @@ export interface DatalinkState {
   readonly rng: RngState;
   readonly lastDue: number;
   readonly choice: LinkChoice | null;
+  /** Last delivery (T32); absent in states saved before it. */
+  readonly last?: { readonly t: number; readonly delayMs: number } | null;
+}
+
+/** What the aircraft is (for the AES/GES header, T32). */
+export interface LinkAircraft {
+  /** 24-bit ICAO address, six hex digits; absent = no header. */
+  readonly icaoHex?: string;
+  readonly reg: string | null;
 }
 
 /**
@@ -174,12 +239,14 @@ export class LinkChannel {
   private flying: Flying[] = [];
   private lastDue = 0;
   private choice: LinkChoice | null = null;
+  private last: { t: number; delayMs: number } | null = null;
   private readonly rng: Rng;
 
   constructor(
     private readonly satcom: boolean,
     seed: number | string,
     state?: DatalinkState,
+    private readonly aircraft: LinkAircraft = { reg: null },
   ) {
     this.rng = state === undefined ? createRng(`${seed}/#link`) : rngFromState(state.rng);
     if (state !== undefined) {
@@ -188,11 +255,24 @@ export class LinkChannel {
       this.flying = [...copy.flying];
       this.lastDue = copy.lastDue;
       this.choice = copy.choice;
+      this.last = copy.last ?? null;
     }
   }
 
+  private headerFor(c: LinkChoice | null): readonly string[] | null {
+    return c === null || c.kind !== 'satcom'
+      ? null
+      : aesHeaderTokens(this.aircraft.icaoHex, c.ges, this.aircraft.reg);
+  }
+
   get view(): LinkView {
-    return { link: this.choice, held: this.held.length, inFlight: this.flying.length };
+    return {
+      link: this.choice,
+      held: this.held.length,
+      inFlight: this.flying.length,
+      header: this.headerFor(this.choice)?.join(' ') ?? null,
+      last: this.last,
+    };
   }
 
   getState(): DatalinkState {
@@ -203,6 +283,7 @@ export class LinkChannel {
         rng: this.rng.getState(),
         lastDue: this.lastDue,
         choice: this.choice,
+        last: this.last,
       }),
     ) as DatalinkState;
   }
@@ -238,6 +319,9 @@ export class LinkChannel {
             station: choice.station,
             delayMs: due - now,
             waitedMs: now - h.since,
+            ...(this.headerFor(choice) === null
+              ? {}
+              : { header: this.headerFor(choice) as readonly string[] }),
           },
         });
       }
@@ -247,6 +331,7 @@ export class LinkChannel {
     while (this.flying.length > 0 && (this.flying[0] as Flying).due <= now) {
       const f = this.flying.shift() as Flying;
       out.push({ ...f.msg, t: now, link: f.info });
+      this.last = { t: now, delayMs: f.info.delayMs };
     }
     return out;
   }

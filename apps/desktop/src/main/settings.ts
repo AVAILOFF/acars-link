@@ -30,6 +30,8 @@ export function defaultSettings(locale: string): Settings {
     rops: false,
     datalink: false,
     datalinkSatcom: true,
+    aircraftIcaoHex: '',
+    datalinkHeaderInText: false,
     ropsStandAside: true,
     ropsRandomDirects: true,
     specialSport: true,
@@ -78,6 +80,12 @@ export function validatePatch(patch: unknown): SettingsPatch {
         }
         out.bridgePort = value as number;
         break;
+      case 'aircraftIcaoHex':
+        if (typeof value !== 'string' || !/^(?:[0-9A-Fa-f]{6})?$/.test(value)) {
+          throw bad(key, 'six hex digits or empty');
+        }
+        out.aircraftIcaoHex = value.toUpperCase();
+        break;
       case 'droneRisk': {
         const t = parseDroneRisk(value);
         if (t === null) throw bad(key, `{country or *: 0..${DRONE_RISK_MAX}}`);
@@ -90,6 +98,7 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'rops':
       case 'datalink':
       case 'datalinkSatcom':
+      case 'datalinkHeaderInText':
       case 'ropsStandAside':
       case 'ropsRandomDirects':
       case 'specialSport':
@@ -135,6 +144,8 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'rops',
     'datalink',
     'datalinkSatcom',
+    'aircraftIcaoHex',
+    'datalinkHeaderInText',
     'ropsStandAside',
     'ropsRandomDirects',
     'specialSport',

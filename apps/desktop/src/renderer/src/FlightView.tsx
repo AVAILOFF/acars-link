@@ -1,9 +1,9 @@
 import { FLIGHT_PHASES, type FlightPhase } from '@acars/core';
 import { type FormEvent, useState } from 'react';
-import type { AppState, FlightSummary } from '../../shared/api.js';
+import type { AppState, FlightSummary, LinkWindow } from '../../shared/api.js';
 import { atcHints } from '../../shared/atc-hints.js';
 import { FeedList } from './FeedList.js';
-import { phaseKey } from './i18n.js';
+import { phaseKey, type Translate } from './i18n.js';
 import { useStore } from './store.js';
 import { num, useT, useUiText, zulu } from './ui.js';
 
@@ -279,6 +279,9 @@ function StatusCard({ app }: { app: AppState }) {
             ? t('atc.logon', { station: atc.station })
             : t('atc.wait')) + (atc.dcl === null ? '' : ` · ${t('atc.dcl', { station: atc.dcl })}`);
 
+  const link = app.link;
+  const linkText = link === null ? null : linkLine(link, t);
+
   const tm = app.telemetry;
   return (
     <section className="panel" aria-labelledby="status-title">
@@ -295,6 +298,13 @@ function StatusCard({ app }: { app: AppState }) {
             label={t('status.atc')}
             tone={atc.connected !== null ? 'ok' : atc.station !== null ? 'warn' : 'off'}
             text={atcText}
+          />
+        )}
+        {link !== null && linkText !== null && (
+          <StatusRow
+            label={t('status.link')}
+            tone={link.kind === null ? 'warn' : 'ok'}
+            text={linkText}
           />
         )}
       </ul>
@@ -323,6 +333,29 @@ function StatusCard({ app }: { app: AppState }) {
       )}
     </section>
   );
+}
+
+/** One line of the link window: the link, the AES/GES header, what waits, the last delivery. */
+function linkLine(link: LinkWindow, t: Translate): string {
+  const now =
+    link.kind === 'vhf'
+      ? t('link.vhf', { station: link.station ?? '', nm: link.distNm ?? 0 })
+      : link.kind === 'satcom'
+        ? t('link.satcom', { station: link.station ?? '', el: link.elevDeg ?? 0 })
+        : t('link.none');
+  const parts = [now];
+  if (link.header !== null) parts.push(link.header);
+  if (link.held > 0) parts.push(t('link.held', { n: link.held }));
+  if (link.inFlight > 0) parts.push(t('link.inflight', { n: link.inFlight }));
+  if (link.last !== null) {
+    parts.push(
+      t('link.last', {
+        time: zulu(link.last.t),
+        sec: Math.round(link.last.delayMs / 1000),
+      }),
+    );
+  }
+  return parts.join(' · ');
 }
 
 function StatusRow({ label, tone, text }: { label: string; tone: Tone; text: string }) {

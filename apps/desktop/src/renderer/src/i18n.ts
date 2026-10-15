@@ -143,6 +143,13 @@ const en = {
   'sys.atc_ocl_cancelled': 'Oceanic: no ROGER in 10 min, clearance cancelled',
   'atc.dcl': 'PDC from {station}',
   'status.atc': 'ROPS ATC',
+  'status.link': 'Data link',
+  'link.vhf': 'VHF {station} ({nm} NM)',
+  'link.satcom': 'SATCOM {station} ({el}°)',
+  'link.none': 'no link',
+  'link.held': 'waiting: {n}',
+  'link.inflight': 'in transit: {n}',
+  'link.last': 'last {time} (+{sec} s)',
   'atc.logon': 'log on to {station}',
   'atc.connected': 'connected to {station}',
   'atc.wait': 'waiting for FIR data',
@@ -157,6 +164,10 @@ const en = {
   'set.datalinkHint':
     'Messages arrive with the delay of a VHF station in line of sight (a conditional one: the nearest airport on the route, not a real SITA/ARINC station) or of an Inmarsat satellite; with no link they wait. Needs live data. Applies to the next flight.',
   'set.datalinkSatcom': 'The aircraft has SATCOM (Inmarsat where VHF is out of reach)',
+  'set.aircraftIcaoHex': 'ICAO address of the aircraft (6 hex digits)',
+  'set.aircraftIcaoHexHint':
+    'For the AES/GES header on SATCOM (the format decoders print, not a cockpit one). Without it no header is shown. Open databases are not used: enter the address of your airframe.',
+  'set.datalinkHeaderInText': 'Put the AES/GES header in the message text',
   'set.special': 'Special events',
   'set.specialSport': 'Sport (F1, NHL)',
   'set.specialAviation':
@@ -415,6 +426,13 @@ const ru: Record<MessageKey, string> = {
   'sys.atc_ocl_cancelled': 'Океан: нет ROGER за 10 мин, клиренс отменён',
   'atc.dcl': 'PDC со станции {station}',
   'status.atc': 'ROPS УВД',
+  'status.link': 'Линия передачи',
+  'link.vhf': 'VHF {station} ({nm} NM)',
+  'link.satcom': 'SATCOM {station} ({el}°)',
+  'link.none': 'нет линии',
+  'link.held': 'ждут: {n}',
+  'link.inflight': 'в пути: {n}',
+  'link.last': 'последнее {time} (+{sec} с)',
   'atc.logon': 'логон на {station}',
   'atc.connected': 'связь с {station}',
   'atc.wait': 'ждём данные FIR',
@@ -429,6 +447,10 @@ const ru: Record<MessageKey, string> = {
   'set.datalinkHint':
     'Сообщения приходят с задержкой станции VHF в прямой видимости (условной: ближайший аэропорт у маршрута, а не настоящая станция SITA/ARINC) или спутника Inmarsat; без линии сообщения ждут. Нужны живые данные. Действует со следующего рейса.',
   'set.datalinkSatcom': 'На самолёте есть SATCOM (Inmarsat там, где нет VHF)',
+  'set.aircraftIcaoHex': 'ICAO-адрес самолёта (6 hex-цифр)',
+  'set.aircraftIcaoHexHint':
+    'Для заголовка AES/GES при SATCOM (формат, который печатают декодеры, а не кабинный). Без адреса заголовок не показывается. Открытые базы не используются: введите адрес своего борта.',
+  'set.datalinkHeaderInText': 'Вставлять заголовок AES/GES в текст сообщения',
   'set.special': 'Особые события',
   'set.specialSport': 'Спорт (Формула-1, NHL)',
   'set.specialAviation':

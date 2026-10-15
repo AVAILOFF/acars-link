@@ -63,6 +63,8 @@ describe('settings', () => {
       rops: false,
       datalink: false,
       datalinkSatcom: true,
+      aircraftIcaoHex: '',
+      datalinkHeaderInText: false,
       ropsStandAside: true,
       ropsRandomDirects: true,
       specialSport: true,
@@ -73,6 +75,11 @@ describe('settings', () => {
       droneRisk: {},
     });
     expect(defaultSettings('ru-RU').language).toBe('ru');
+  });
+
+  it('the ICAO hex of the aircraft: six hex digits, stored upper case, or empty (T32)', () => {
+    expect(validatePatch({ aircraftIcaoHex: '4249ea' })).toEqual({ aircraftIcaoHex: '4249EA' });
+    expect(validatePatch({ aircraftIcaoHex: '' })).toEqual({ aircraftIcaoHex: '' });
   });
 
   it('validates patches from the renderer', () => {
@@ -92,6 +99,10 @@ describe('settings', () => {
       { rops: 1 },
       { datalink: 1 },
       { datalinkSatcom: 'yes' },
+      { aircraftIcaoHex: '4249E' },
+      { aircraftIcaoHex: '4249EG' },
+      { aircraftIcaoHex: 4249 },
+      { datalinkHeaderInText: 1 },
       { ropsStandAside: 'no' },
       { ropsRandomDirects: 'off' },
       { messageGapSec: -1 },

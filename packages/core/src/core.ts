@@ -7,7 +7,8 @@ import {
 } from './atc/rops.js';
 import { type DatalinkState, LinkChannel, type LinkView } from './datalink/link.js';
 import type { ExtDataUpdate, ExtState } from './ext/data.js';
-import type { DisplayProfile } from './format/profile.js';
+import { linkHeaderLines, withLinkHeader } from './format/formatter.js';
+import { DEFAULT_PROFILE, type DisplayProfile } from './format/profile.js';
 import type { Ofp } from './ofp/types.js';
 import {
   type FlightPhase,
@@ -98,7 +99,13 @@ export interface CoreOptions {
    * delay of the VHF station or satellite in reach, or for any link at all. `satcom`: the
    * aircraft has SATCOM. Absent = messages leave at once, as before.
    */
-  readonly datalink?: { readonly satcom: boolean };
+  readonly datalink?: {
+    readonly satcom: boolean;
+    /** The aircraft's 24-bit ICAO address, six hex digits (T32); absent = no AES/GES header. */
+    readonly icaoHex?: string;
+    /** Put the AES/GES header in front of the message text (T32); default off. */
+    readonly headerInText?: boolean;
+  };
 }
 
 export interface CoreState {
@@ -127,6 +134,9 @@ export class AcarsCore {
   private readonly gapMs: number;
   /** The airline's station callsign: messages to it go to the scenarios. */
   private readonly airline: string;
+  /** T32: the AES/GES header is put into the message text. */
+  private readonly headerInText: boolean;
+  private readonly profile: DisplayProfile;
 
   private constructor(
     private readonly fsm: PhaseMachine,
@@ -135,6 +145,8 @@ export class AcarsCore {
     private readonly rops: RopsStation | null,
     private link: LinkChannel | null,
   ) {
+    this.headerInText = options.datalink?.headerInText === true;
+    this.profile = options.profile ?? DEFAULT_PROFILE;
     this.gapMs = options.minGapMs ?? 0;
     if (!(this.gapMs >= 0)) throw new RangeError('minGapMs must be >= 0');
     this.airline = stationCallsign(options.station ?? DEFAULT_STATION, options.ofp);
@@ -307,7 +319,15 @@ export class AcarsCore {
     const tm = this.fsm.lastSnapshot;
     const pos =
       tm === null ? null : { lat: tm.lat, lon: tm.lon, altFt: tm.altFt, onGround: tm.onGround };
-    return (this.link as LinkChannel).process(now, pos, this.engine.ext.vhf ?? [], fresh);
+    const out = (this.link as LinkChannel).process(now, pos, this.engine.ext.vhf ?? [], fresh);
+    if (!this.headerInText) return out;
+    // The header goes through the formatter like any text (invariant 9).
+    return out.map((m) => {
+      const tokens = m.link?.header;
+      if (m.kind !== 'telex' || tokens === undefined) return m;
+      const lines = linkHeaderLines(tokens, this.profile);
+      return { ...m, message: withLinkHeader(m.message, lines, this.profile) };
+    });
   }
 
   /**
@@ -337,7 +357,10 @@ export class AcarsCore {
 function linkOf(o: CoreOptions, state: DatalinkState | undefined): LinkChannel | null {
   if (o.datalink === undefined) return null;
   const seed = o.seed ?? `${o.ofp.callsign}/${o.ofp.source.requestId}`;
-  return new LinkChannel(o.datalink.satcom, seed, state);
+  return new LinkChannel(o.datalink.satcom, seed, state, {
+    ...(o.datalink.icaoHex === undefined ? {} : { icaoHex: o.datalink.icaoHex }),
+    reg: o.ofp.aircraft.reg,
+  });
 }
 
 function ropsOf(o: CoreOptions, state: RopsState | undefined): RopsStation | null {

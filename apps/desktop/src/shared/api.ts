@@ -45,6 +45,13 @@ export interface Settings {
   readonly datalink: boolean;
   /** The aircraft has SATCOM: Inmarsat where VHF is out of reach. Default on. */
   readonly datalinkSatcom: boolean;
+  /**
+   * 24-bit ICAO address of the aircraft, six hex digits (T32); empty = none. Without it no
+   * AES/GES header is shown (open databases are not used). Stored upper case.
+   */
+  readonly aircraftIcaoHex: string;
+  /** Put the AES/GES header (a decoder format, not a cockpit one) in the message text. Default off. */
+  readonly datalinkHeaderInText: boolean;
   /** ROPS steps aside where a live VATSIM centre covers the FIR. Default on. */
   readonly ropsStandAside: boolean;
   /** ROPS sends up to 3 random Direct To per flight (T26). Default on. */
@@ -168,6 +175,23 @@ export interface AtcView {
   readonly dcl: string | null;
 }
 
+/** State of the data link simulation for the window of the app (T31/T32). */
+export interface LinkWindow {
+  /** The link now; null = no station in reach and no satellite (messages wait). */
+  readonly kind: 'vhf' | 'satcom' | null;
+  /** ICAO of the conditional VHF station or the satellite id. */
+  readonly station: string | null;
+  readonly distNm: number | null;
+  readonly elevDeg: number | null;
+  /** Messages waiting for a link, and on the way. */
+  readonly held: number;
+  readonly inFlight: number;
+  /** AES/GES header of the link, one line; null = none. */
+  readonly header: string | null;
+  /** The last message delivered: when (epoch ms) and how long the link held it. */
+  readonly last: { readonly t: number; readonly delayMs: number } | null;
+}
+
 export type Delivery = 'queued' | 'sent' | 'retry' | 'failed' | 'dropped';
 
 /** System entries carry a code + params; the renderer translates them. */
@@ -272,6 +296,8 @@ export interface AppState {
   readonly transport: TransportView | null;
   /** ROPS station of the running flight (T23); null = off or no flight. */
   readonly atc: AtcView | null;
+  /** Data link of the running flight (T31); null = off or no flight. */
+  readonly link: LinkWindow | null;
   /** Newest last, capped. */
   readonly feed: readonly FeedEntry[];
   /** Names of the airline-memory flags kept for the next flight (T14). */
