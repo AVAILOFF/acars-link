@@ -262,7 +262,6 @@ const missing = new RegExp(`(^|[^-])${MISSING}($|[^-])`, 'm');
 describe('external scenario files', () => {
   it('are the live-data scenarios, file name = id', () => {
     expect(external.map((s) => s.id)).toEqual([
-      'connex_list',
       'dest_weather_live',
       'natural_event',
       'space_launch',
@@ -274,7 +273,9 @@ describe('external scenario files', () => {
 });
 
 describe.each(FLIGHTS)('each live-data scenario alone on $name', (c) => {
-  const cases = [...external, byId('cmd_req_wx_live')].map((s) => [s.id, s] as const);
+  const cases = [...external, byId('connex_list'), byId('cmd_req_wx_live')].map(
+    (s) => [s.id, s] as const,
+  );
   it.each(cases)('%s', (id, s) => {
     const cruise = c.flight.snapshots.findIndex((x) => x.altFt > 30_000);
     const say = new Map(
