@@ -1127,7 +1127,13 @@ export class ScenarioEngine {
     }
   }
 
-  private emit(id: string, message: FormattedMessage, now: number, out: OutboundMessage[]): void {
+  private emit(
+    id: string,
+    message: FormattedMessage,
+    now: number,
+    out: OutboundMessage[],
+    urgent = false,
+  ): void {
     out.push({
       scenarioId: id,
       from: this.from,
@@ -1135,7 +1141,7 @@ export class ScenarioEngine {
       kind: 'telex',
       message,
       t: now,
-      toPilot: this.answering || id === OPS_REPLY_ID,
+      toPilot: this.answering || urgent || id === OPS_REPLY_ID,
     });
     if (id === OPS_REPLY_ID) return;
     const first = !(id in this.st.sent);
@@ -1576,7 +1582,11 @@ export class ScenarioEngine {
           },
           this.profile,
         );
-        this.emit(sc.id, message, input.now, outbound);
+        // The first telex of a "run now" goes ahead of the queue, as an answer to the pilot would:
+        // the user pressed the button and waits for it.
+        const urgent = run.vars['run.forced'] === true && run.vars['run.forced_sent'] !== true;
+        if (urgent) run.vars = { ...run.vars, 'run.forced_sent': true };
+        this.emit(sc.id, message, input.now, outbound, urgent);
         if (
           !this.st.ext.gateLocked &&
           this.data.ops.arrGate !== null &&

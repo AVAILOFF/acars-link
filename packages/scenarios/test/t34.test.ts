@@ -198,10 +198,10 @@ describe('dep_fire by hand (2026-10-16)', () => {
     const r = core.tick({ now: second.t, telemetry: second, force: ['dep_fire'] });
     expect(r.commands).toMatchObject([{ command: 'smoke', action: 'start' }]);
     const later = core.tick({ now: second.t + 5_000, telemetry: second });
-    const text = [...r.outbound, ...later.outbound]
-      .filter((m) => m.scenarioId === 'dep_fire')
-      .map((m) => m.message.text)
-      .join('\n');
+    const sent = [...r.outbound, ...later.outbound].filter((m) => m.scenarioId === 'dep_fire');
+    // Ahead of the queue, as an answer to the pilot.
+    expect(sent[0]?.toPilot).toBe(true);
+    const text = sent.map((m) => m.message.text).join(' ');
     expect(text).toContain('DEPARTURES SUSPENDED');
   });
 });
