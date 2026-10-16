@@ -14,26 +14,27 @@ public enum SmokeAction
 /// Decides when the smoke column (T34) exists in the sim. A fire is reported 120 NM out, but scenery and
 /// objects far from the aircraft are not loaded, so the object is created only when the aircraft comes
 /// within <see cref="SpawnNm"/> and removed when it is farther than <see cref="RemoveNm"/> (hysteresis), on
-/// <c>smoke_stop</c>, or after <see cref="MaxLife"/>. Nothing is created until the sim has been running for
-/// <see cref="SettleTime"/> in this session: an object created seconds after a flight loads stands in the sim
-/// but its effect never starts (MSFS 2024, seen by a human 2026-10-16; the same object created later smokes).
-/// Thread-safe: commands arrive on a network thread, positions
-/// on the SimConnect thread, which alone calls SimConnect.
+/// <c>smoke_stop</c>, or after <see cref="MaxLife"/>. The first object of a sim session stands in the sim but its
+/// effect never starts, while the same object created again smokes (MSFS 2024, seen by a human 2026-10-16; a
+/// 60 s wait after the flight loads did not help), so that object is created once more after
+/// <see cref="RespawnAfter"/>. Thread-safe: commands arrive on a network thread, positions on the SimConnect
+/// thread, which alone calls SimConnect.
 /// </summary>
 public sealed class SmokeController(TimeProvider clock)
 {
     public const double SpawnNm = 40;
     public const double RemoveNm = 60;
     public static readonly TimeSpan MaxLife = TimeSpan.FromMinutes(90);
-    /// <summary>How long the sim must run before the object is created (approved by the user 2026-10-16).</summary>
-    public static readonly TimeSpan SettleTime = TimeSpan.FromSeconds(60);
+    /// <summary>When the first object of a session is created again (the recommended option, 2026-10-16).</summary>
+    public static readonly TimeSpan RespawnAfter = TimeSpan.FromSeconds(15);
 
     private readonly object _gate = new();
     private (double Lat, double Lon)? _target;
     private DateTimeOffset _started;
     private bool _spawned;
-    /// <summary>Since when the sim runs without a stop in this session; null while it does not run.</summary>
-    private DateTimeOffset? _runningSince;
+    private DateTimeOffset _spawnedAt;
+    /// <summary>The first object of this session was already created again; later ones are not.</summary>
+    private bool _warm;
     /// <summary>The target changed while an object stands at the old one: remove it, then spawn anew.</summary>
     private bool _moved;
 
@@ -69,18 +70,18 @@ public sealed class SmokeController(TimeProvider clock)
         lock (_gate)
         {
             _spawned = false;
-            _runningSince = null;
+            _warm = false;
         }
     }
 
-    /// <summary>The SimConnect <c>Sim</c> event: the flight runs (true) or is in menus / loading (false).</summary>
+    /// <summary>
+    /// The SimConnect <c>Sim</c> event: false in menus and while a flight loads. A new flight may load its
+    /// effects anew, so its first object is created twice as well.
+    /// </summary>
     public void SimRunning(bool running)
     {
-        lock (_gate)
-        {
-            if (!running) _runningSince = null;
-            else _runningSince ??= clock.GetUtcNow();
-        }
+        if (running) return;
+        lock (_gate) _warm = false;
     }
 
     /// <summary>Called with every aircraft position; returns what to do now.</summary>
@@ -99,9 +100,13 @@ public sealed class SmokeController(TimeProvider clock)
                 return Take(false); // spawned at the new point on the next position
             }
             _moved = false;
+            if (_spawned && !_warm && clock.GetUtcNow() - _spawnedAt >= RespawnAfter)
+            {
+                _warm = true;
+                return Take(false); // spawned again on the next position
+            }
             var nm = DistanceNm(lat, lon, t.Lat, t.Lon);
-            var settled = _runningSince is { } since && clock.GetUtcNow() - since >= SettleTime;
-            if (!_spawned && nm <= SpawnNm && settled) return Take(true);
+            if (!_spawned && nm <= SpawnNm) return Take(true);
             if (_spawned && nm > RemoveNm) return Take(false);
             return SmokeAction.None;
         }
@@ -110,6 +115,7 @@ public sealed class SmokeController(TimeProvider clock)
     private SmokeAction Take(bool spawn)
     {
         _spawned = spawn;
+        if (spawn) _spawnedAt = clock.GetUtcNow();
         return spawn ? SmokeAction.Spawn : SmokeAction.Remove;
     }
 

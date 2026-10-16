@@ -7,42 +7,52 @@ public class SmokeControllerTests
     // Middle of a runway at RJBB.
     private const double Lat = 34.44, Lon = 135.22;
 
-    /// <summary>A controller whose sim has run for <see cref="SmokeController.SettleTime"/>.</summary>
-    private static SmokeController New(ManualClock? clock = null)
-    {
-        clock ??= ManualClock.At(1_700_000_000_000);
-        var c = new SmokeController(clock);
-        c.SimRunning(true);
-        clock.Advance(SmokeController.SettleTime);
-        return c;
-    }
+    private static SmokeController New(ManualClock? clock = null) =>
+        new(clock ?? ManualClock.At(1_700_000_000_000));
 
     [Fact]
-    public void Waits_until_the_sim_has_run_for_the_settle_time()
-    {
-        var clock = ManualClock.At(1_700_000_000_000);
-        var c = new SmokeController(clock);
-        c.Start(Lat, Lon);
-        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon)); // the sim has not reported running
-        c.SimRunning(true);
-        clock.Advance(SmokeController.SettleTime - TimeSpan.FromSeconds(1));
-        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon));
-        c.SimRunning(true); // repeated: the clock does not restart
-        clock.Advance(TimeSpan.FromSeconds(1));
-        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
-    }
-
-    [Fact]
-    public void A_stop_of_the_sim_restarts_the_settle_time()
+    public void The_first_object_of_a_session_is_created_again_once()
     {
         var clock = ManualClock.At(1_700_000_000_000);
         var c = New(clock);
+        c.Start(Lat, Lon);
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+        clock.Advance(SmokeController.RespawnAfter - TimeSpan.FromSeconds(1));
+        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon));
+        clock.Advance(TimeSpan.FromSeconds(1));
+        Assert.Equal(SmokeAction.Remove, c.OnPosition(Lat, Lon));
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+        clock.Advance(SmokeController.RespawnAfter * 4);
+        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon)); // only once
+
+        c.Start(Lat + 0.01, Lon); // a later object of the session: no second creation
+        Assert.Equal(SmokeAction.Remove, c.OnPosition(Lat, Lon));
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+        clock.Advance(SmokeController.RespawnAfter * 4);
+        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon));
+    }
+
+    [Fact]
+    public void A_new_flight_or_session_creates_its_first_object_again()
+    {
+        var clock = ManualClock.At(1_700_000_000_000);
+        var c = New(clock);
+        c.Start(Lat, Lon);
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+        clock.Advance(SmokeController.RespawnAfter);
+        Assert.Equal(SmokeAction.Remove, c.OnPosition(Lat, Lon));
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+
         c.SimRunning(false); // back to the menu, a new flight loads
         c.SimRunning(true);
-        c.Start(Lat, Lon);
-        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon));
-        clock.Advance(SmokeController.SettleTime);
+        clock.Advance(SmokeController.RespawnAfter);
+        Assert.Equal(SmokeAction.Remove, c.OnPosition(Lat, Lon));
         Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+
+        c.SessionEnded();
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+        clock.Advance(SmokeController.RespawnAfter);
+        Assert.Equal(SmokeAction.Remove, c.OnPosition(Lat, Lon));
     }
 
     [Fact]
@@ -104,14 +114,10 @@ public class SmokeControllerTests
     [Fact]
     public void A_new_session_spawns_again_for_a_standing_request()
     {
-        var clock = ManualClock.At(1_700_000_000_000);
-        var c = New(clock);
+        var c = New();
         c.Start(Lat, Lon);
         Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
         c.SessionEnded();
-        c.SimRunning(true);
-        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon)); // the new session settles first
-        clock.Advance(SmokeController.SettleTime);
         Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
     }
 
