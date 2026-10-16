@@ -78,7 +78,7 @@ accepts a v1 bridge: telemetry then works and commands end with `unavailable`.
 | Command | Args | `simconnect` | `fake` |
 |---|---|---|---|
 | `ping` | none | ok while a SimConnect session is open, else `unavailable` | ok |
-| `smoke_start` | `lat` (-90..90), `lon` (-180..180) | T34: remembers the point (`unavailable` without a session); the smoke object is created when the aircraft is within 40 NM, removed beyond 60 NM, after 90 min or on `smoke_stop` (`SmokeController`) | ok |
+| `smoke_start` | `lat` (-90..90), `lon` (-180..180) | T34: remembers the point (`unavailable` without a session); the smoke object is created when the aircraft is within 40 NM and the sim has run for 60 s in this session (an object created right after a flight loads never starts its effect), removed beyond 60 NM, after 90 min or on `smoke_stop` (`SmokeController`); a new point moves the object | ok |
 | `smoke_stop` | none | removes the object and forgets the point | ok |
 
 The fake source accepts every whitelisted command, confirms it, and logs it to the console.

@@ -157,11 +157,16 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             var changed = (Evt)data.uEventID switch
             {
                 Evt.Pause => pump.OnPauseFlags(data.dwData),
-                Evt.Sim => pump.OnSimRunning(data.dwData != 0),
+                Evt.Sim => SimRunning(data.dwData != 0),
                 _ => false,
             };
             if (changed) Publish();
         };
+        bool SimRunning(bool running)
+        {
+            _smoke.SimRunning(running);
+            return pump.OnSimRunning(running);
+        }
         sc.OnRecvSimobjectData += (_, data) =>
         {
             if ((Req)data.dwRequestID != Req.Telemetry) return;

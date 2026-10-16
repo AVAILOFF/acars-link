@@ -14,7 +14,10 @@ public enum SmokeAction
 /// Decides when the smoke column (T34) exists in the sim. A fire is reported 120 NM out, but scenery and
 /// objects far from the aircraft are not loaded, so the object is created only when the aircraft comes
 /// within <see cref="SpawnNm"/> and removed when it is farther than <see cref="RemoveNm"/> (hysteresis), on
-/// <c>smoke_stop</c>, or after <see cref="MaxLife"/>. Thread-safe: commands arrive on a network thread, positions
+/// <c>smoke_stop</c>, or after <see cref="MaxLife"/>. Nothing is created until the sim has been running for
+/// <see cref="SettleTime"/> in this session: an object created seconds after a flight loads stands in the sim
+/// but its effect never starts (MSFS 2024, seen by a human 2026-10-16; the same object created later smokes).
+/// Thread-safe: commands arrive on a network thread, positions
 /// on the SimConnect thread, which alone calls SimConnect.
 /// </summary>
 public sealed class SmokeController(TimeProvider clock)
@@ -22,11 +25,15 @@ public sealed class SmokeController(TimeProvider clock)
     public const double SpawnNm = 40;
     public const double RemoveNm = 60;
     public static readonly TimeSpan MaxLife = TimeSpan.FromMinutes(90);
+    /// <summary>How long the sim must run before the object is created (approved by the user 2026-10-16).</summary>
+    public static readonly TimeSpan SettleTime = TimeSpan.FromSeconds(60);
 
     private readonly object _gate = new();
     private (double Lat, double Lon)? _target;
     private DateTimeOffset _started;
     private bool _spawned;
+    /// <summary>Since when the sim runs without a stop in this session; null while it does not run.</summary>
+    private DateTimeOffset? _runningSince;
     /// <summary>The target changed while an object stands at the old one: remove it, then spawn anew.</summary>
     private bool _moved;
 
@@ -59,7 +66,21 @@ public sealed class SmokeController(TimeProvider clock)
     /// <summary>The sim session ended: the object is gone with it, the request stays for the next session.</summary>
     public void SessionEnded()
     {
-        lock (_gate) _spawned = false;
+        lock (_gate)
+        {
+            _spawned = false;
+            _runningSince = null;
+        }
+    }
+
+    /// <summary>The SimConnect <c>Sim</c> event: the flight runs (true) or is in menus / loading (false).</summary>
+    public void SimRunning(bool running)
+    {
+        lock (_gate)
+        {
+            if (!running) _runningSince = null;
+            else _runningSince ??= clock.GetUtcNow();
+        }
     }
 
     /// <summary>Called with every aircraft position; returns what to do now.</summary>
@@ -79,7 +100,8 @@ public sealed class SmokeController(TimeProvider clock)
             }
             _moved = false;
             var nm = DistanceNm(lat, lon, t.Lat, t.Lon);
-            if (!_spawned && nm <= SpawnNm) return Take(true);
+            var settled = _runningSince is { } since && clock.GetUtcNow() - since >= SettleTime;
+            if (!_spawned && nm <= SpawnNm && settled) return Take(true);
             if (_spawned && nm > RemoveNm) return Take(false);
             return SmokeAction.None;
         }
