@@ -41,6 +41,20 @@ public class SmokeControllerTests
     }
 
     [Fact]
+    public void A_new_point_moves_a_spawned_object_and_the_same_point_keeps_it()
+    {
+        var c = New();
+        c.Start(Lat, Lon);
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+        c.Start(Lat, Lon); // the same point again: nothing to do
+        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon));
+        c.Start(Lat + 0.01, Lon);
+        Assert.Equal(SmokeAction.Remove, c.OnPosition(Lat, Lon));
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+        Assert.Equal((Lat + 0.01, Lon), c.Target);
+    }
+
+    [Fact]
     public void Expires_after_the_maximum_life()
     {
         var clock = ManualClock.At(1_700_000_000_000);

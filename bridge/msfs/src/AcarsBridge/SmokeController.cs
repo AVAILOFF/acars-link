@@ -27,6 +27,8 @@ public sealed class SmokeController(TimeProvider clock)
     private (double Lat, double Lon)? _target;
     private DateTimeOffset _started;
     private bool _spawned;
+    /// <summary>The target changed while an object stands at the old one: remove it, then spawn anew.</summary>
+    private bool _moved;
 
     /// <summary>Where the smoke should be, null when none is wanted.</summary>
     public (double Lat, double Lon)? Target
@@ -43,6 +45,7 @@ public sealed class SmokeController(TimeProvider clock)
     {
         lock (_gate)
         {
+            if (_spawned && _target != (lat, lon)) _moved = true;
             _target = (lat, lon);
             _started = clock.GetUtcNow();
         }
@@ -69,6 +72,12 @@ public sealed class SmokeController(TimeProvider clock)
                 _target = null;
                 return _spawned ? Take(false) : SmokeAction.None;
             }
+            if (_moved && _spawned)
+            {
+                _moved = false;
+                return Take(false); // spawned at the new point on the next position
+            }
+            _moved = false;
             var nm = DistanceNm(lat, lon, t.Lat, t.Lon);
             if (!_spawned && nm <= SpawnNm) return Take(true);
             if (_spawned && nm > RemoveNm) return Take(false);
