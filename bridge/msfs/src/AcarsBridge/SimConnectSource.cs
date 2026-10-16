@@ -47,8 +47,10 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
 
     /// <summary>Object id of the smoke SimObject (0 = none); set and read on the message thread only.</summary>
     private uint _smokeId;
-    private bool _smokeAsked;
-    private bool _smokeRemoveWhenAssigned;
+    /// <summary>Objects asked for and not yet assigned an id (ids come back in the order asked).</summary>
+    private int _smokeAsked;
+    /// <summary>How many of those are to be removed as soon as their id comes (a respawn may ask anew before).</summary>
+    private int _smokeRemoveWhenAssigned;
 
     public IReadOnlyCollection<string> Commands { get; } = ["ping", "smoke_start", "smoke_stop"];
 
@@ -84,8 +86,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                     Latitude = t.Lat, Longitude = t.Lon, Altitude = 0, Pitch = 0, Bank = 0, Heading = 0,
                     OnGround = 1, Airspeed = 0,
                 };
-                _smokeAsked = true;
-                _smokeRemoveWhenAssigned = false;
+                _smokeAsked++;
                 sc.AICreateSimulatedObject(SmokeTitle, at, Req.Smoke);
                 break;
             case SmokeAction.Remove:
@@ -94,8 +95,8 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                     sc.AIRemoveObject(_smokeId, Req.SmokeRemove);
                     _smokeId = 0;
                 }
-                else if (_smokeAsked)
-                    _smokeRemoveWhenAssigned = true;
+                else if (_smokeAsked > _smokeRemoveWhenAssigned)
+                    _smokeRemoveWhenAssigned++;
                 break;
         }
     }
@@ -179,10 +180,10 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         sc.OnRecvAssignedObjectId += (_, data) =>
         {
             if ((Req)data.dwRequestID != Req.Smoke) return;
-            _smokeAsked = false;
-            if (_smokeRemoveWhenAssigned)
+            if (_smokeAsked > 0) _smokeAsked--;
+            if (_smokeRemoveWhenAssigned > 0)
             {
-                _smokeRemoveWhenAssigned = false;
+                _smokeRemoveWhenAssigned--;
                 sc.AIRemoveObject(data.dwObjectID, Req.SmokeRemove);
             }
             else _smokeId = data.dwObjectID;
@@ -216,8 +217,8 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             _open = false;
             // The sim takes its objects with it; a standing request spawns again in the next session.
             _smokeId = 0;
-            _smokeAsked = false;
-            _smokeRemoveWhenAssigned = false;
+            _smokeAsked = 0;
+            _smokeRemoveWhenAssigned = 0;
             _smoke.SessionEnded();
         }
         return ended ?? "stopped";
