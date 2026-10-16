@@ -161,6 +161,7 @@ const SETUP: Readonly<Record<string, Setup>> = {
   dg_notoc: { answers: ['ACK'] },
   runway_closure_dest: { answers: ['HOLD', 'DIVERT'] },
   dest_fire: { answers: ['HOLD', 'DIVERT'] },
+  dep_fire: {},
   altn_wx_deterioration: { answers: ['OK', 'LOW'] },
   crew_duty_limit: { delayMin: 45, answers: ['EXTEND', 'NO'] },
   discretion_followup: {
@@ -517,7 +518,11 @@ describe('continuations (T41)', () => {
       'dest_fire',
     );
     expect(hold).toHaveLength(3);
-    expect(hold[0]).toContain(`FIRE REPORTED NEAR RWY ${kg.destination.planRwy}`);
+    expect(hold[0]).toMatch(
+      new RegExp(
+        String.raw`FIRE REPORTED\s+(NEAR|\d\.\dNM [NSEW]{1,2} OF) RWY ` + kg.destination.planRwy,
+      ),
+    );
     expect(hold[0]).toMatch(/SMOKE DRIFTING [NSEW]{1,2}, WIND \d{3}\/\d+KT/);
     expect(hold[0]).toContain('PREPARE DIVERSION');
     expect(hold[1]).toMatch(/NEXT UPDATE \d{4}Z/);

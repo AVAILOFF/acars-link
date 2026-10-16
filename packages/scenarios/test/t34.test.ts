@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import {
   AcarsCore,
   type CompiledScenario,
+  firePlace,
   generateSyntheticFlight,
   type Ofp,
   parseSimbriefOfp,
@@ -73,5 +74,112 @@ describe('dest_fire smoke (T34)', () => {
   it('DIVERT leaves the smoke burning: no stop command', () => {
     const c = commands('DIVERT').filter((x) => x.command === 'smoke');
     expect(c.map((x) => (x.command === 'smoke' ? x.action : null))).toEqual(['start']);
+  });
+});
+
+describe('fire at a random point (2026-10-16)', () => {
+  it('dest_fire: the smoke is 0.2-2.5 NM from the runway, the text says where', () => {
+    const seen = new Set<string>();
+    for (const seed of ['a', 'b', 'c', 'd', 'e']) {
+      const core = AcarsCore.create({ ofp, scenarios: [fire], seed });
+      core.startFlight();
+      for (const s of flight.snapshots) {
+        const r = core.tick({ now: s.t, telemetry: s });
+        const start = r.commands.find((x) => x.command === 'smoke' && x.action === 'start');
+        if (start === undefined || start.command !== 'smoke') continue;
+        const o = start.offset;
+        expect(o).toBeDefined();
+        expect(o?.distNm).toBeGreaterThanOrEqual(0.2);
+        expect(o?.distNm).toBeLessThanOrEqual(2.5);
+        expect(o?.bearingDeg).toBeGreaterThanOrEqual(0);
+        expect(o?.bearingDeg).toBeLessThan(360);
+        seen.add(`${o?.bearingDeg}/${o?.distNm}`);
+        const text = (
+          r.outbound.find((m) => m.scenarioId === 'dest_fire')?.message.text ?? ''
+        ).replace(/\s+/g, ' ');
+        expect(text).toContain(firePlace(ofp.destination.planRwy, o ?? null));
+      }
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it('firePlace: near the runway within 0.5 NM, else distance and compass point', () => {
+    expect(firePlace('24R', null)).toBe('NEAR RWY 24R');
+    expect(firePlace('24R', { bearingDeg: 300, distNm: 0.5 })).toBe('NEAR RWY 24R');
+    expect(firePlace('24R', { bearingDeg: 315, distNm: 1.2 })).toBe('1.2NM NW OF RWY 24R');
+    expect(firePlace(null, { bearingDeg: 0, distNm: 2 })).toBe('2.0NM N OF THE AIRPORT');
+  });
+});
+
+describe('dep_fire: fire before takeoff (2026-10-16)', () => {
+  const dep: CompiledScenario = {
+    ...withHoldMin(
+      loadScenarios([...read('irregular')]).find((s) => s.id === 'dep_fire') as CompiledScenario,
+      20,
+    ),
+    probability: 1,
+  };
+
+  /** Flies the synthetic flight; `waitMin` keeps the aircraft at the gate that long more. */
+  function fly(waitMin: number) {
+    const f = generateSyntheticFlight({ ofp, boardingSec: (35 + waitMin) * 60 });
+    const core = AcarsCore.create({ ofp, scenarios: [dep], seed: 'dep' });
+    core.startFlight();
+    const texts: string[] = [];
+    const cmds: SimCommand[] = [];
+    for (const s of f.snapshots) {
+      const r = core.tick({ now: s.t, telemetry: s });
+      texts.push(
+        ...r.outbound.filter((m) => m.scenarioId === 'dep_fire').map((m) => m.message.text),
+      );
+      cmds.push(...r.commands.filter((c) => c.command === 'smoke'));
+    }
+    return { texts, cmds };
+  }
+
+  it('at the gate: departures suspended, updates, resumed; smoke at the departure runway', () => {
+    const { texts, cmds } = fly(30);
+    expect(texts[0]).toMatch(
+      new RegExp(
+        String.raw`FIRE REPORTED\s+(NEAR|\d\.\dNM [NSEW]{1,2} OF) RWY ` + ofp.origin.planRwy,
+      ),
+    );
+    expect(texts[0]).toContain('DEPARTURES SUSPENDED');
+    expect(texts.at(-1)).toContain('DEPARTURES RESUMED');
+    expect(cmds).toMatchObject([
+      { action: 'start', airport: ofp.origin.icao, runway: ofp.origin.planRwy },
+      { action: 'stop' },
+    ]);
+  });
+
+  it('nothing after the takeoff roll', () => {
+    const late: CompiledScenario = {
+      ...dep,
+      steps: dep.steps.map((x) =>
+        x.kind === 'draw'
+          ? {
+              ...x,
+              options: [
+                {
+                  weight: 1,
+                  values: [
+                    ['run.start_min', { k: 'lit' as const, v: 600 }],
+                    ['run.hold_min', { k: 'lit' as const, v: 20 }],
+                  ],
+                },
+              ],
+            }
+          : x,
+      ),
+    };
+    const core = AcarsCore.create({ ofp, scenarios: [late], seed: 'dep' });
+    core.startFlight();
+    let sent = 0;
+    for (const s of flight.snapshots) {
+      const r = core.tick({ now: s.t, telemetry: s });
+      sent += r.outbound.filter((m) => m.scenarioId === 'dep_fire').length;
+      sent += r.commands.length;
+    }
+    expect(sent).toBe(0);
   });
 });

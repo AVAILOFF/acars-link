@@ -24,6 +24,10 @@ export function withHoldMin(
                   ...(x.options.some((o) => o.values.some(([n]) => n === 'run.ufn'))
                     ? ([['run.ufn', { k: 'lit' as const, v: ufn }]] as const)
                     : []),
+                  // dep_fire: the fire starts at once.
+                  ...(x.options.some((o) => o.values.some(([n]) => n === 'run.start_min'))
+                    ? ([['run.start_min', { k: 'lit' as const, v: 0 }]] as const)
+                    : []),
                   ...(x.options.some((o) => o.values.some(([n]) => n === 'run.reason'))
                     ? ([['run.reason', { k: 'lit' as const, v: reason }]] as const)
                     : []),

@@ -1,14 +1,15 @@
-# Fire near the destination runway: smoke over the field, advice to prepare a diversion, an
-# update every 20 minutes (T50) until it is under control, 20 min to 2 h after the message.
-# Conditions are real: the planned runway (OFP) and the wind of the destination METAR (live, else
-# the OFP one) for the direction the smoke drifts to.
+# Fire on or near the destination airport: smoke over the field, advice to prepare a diversion,
+# an update every 20 minutes (T50) until it is under control, 20 min to 2 h after the message.
+# The fire is at a random point 0.2-2.5 NM from the middle of the planned runway (approved by the
+# user 2026-10-16). Conditions are real: the planned runway (OFP) and the wind of the destination
+# METAR (live, else the OFP one) for the direction the smoke drifts to.
 id: dest_fire
 version: 1
 category: irregular
-title: Fire near destination runway
-title_ru: "Пожар у ВПП назначения"
-description: "About 120 NM out: fire near the planned runway, smoke drifting downwind, under control in 20 min to 2 h, with an update every 20 min. HOLD (default) or DIVERT to the alternate."
-description_ru: "Примерно за 120 NM: пожар у плановой ВПП, дым сносит по ветру, потушат за 20 мин – 2 ч, обновления каждые 20 мин. HOLD (по умолчанию) — ожидание или DIVERT — на запасной."
+title: Fire at destination airport
+title_ru: "Пожар в аэропорту назначения"
+description: "About 120 NM out: fire on or near the destination airport (random point 0.2-2.5 NM from the planned runway), smoke drifting downwind, under control in 20 min to 2 h, with an update every 20 min. HOLD (default) or DIVERT to the alternate."
+description_ru: "Примерно за 120 NM: пожар на территории аэропорта назначения или рядом (случайная точка в 0,2–2,5 NM от плановой ВПП), дым сносит по ветру, потушат за 20 мин – 2 ч, обновления каждые 20 мин. HOLD (по умолчанию) — ожидание или DIVERT — на запасной."
 enabled_by_default: true
 trigger:
   on: distance
@@ -24,17 +25,19 @@ excludes: [drone_activity, runway_closure_dest]
 steps:
   - draw:
       - set: { run.hold_min: [20, 120] }
+  # A smoke column in the simulator (T34) at a random point near the runway; the bridge shows it
+  # when we are near. Its place goes to run.fire_at for the text.
+  - smoke: { start: dest, spread_nm: [0.2, 2.5] }
   - send:
       header: OPS MSG {ofp.dest}
       body: |
-        FIRE REPORTED NEAR RWY {ofp.dest_rwy}
+        FIRE REPORTED
+        {run.fire_at}
         SMOKE DRIFTING {wx.dest_smoke_drift}, WIND {wx.dest_wind_from}/{wx.dest_wind_kt}KT
         VIS REDUCED IN SMOKE, RESCUE ON SCENE
         PREPARE DIVERSION {ofp.altn}
         NO ESTIMATE, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
         REPLY HOLD OR DIVERT
-  # A smoke column at the runway in the simulator (T34); the bridge shows it when we are near.
-  - smoke: start
   - wait:
       reply: { options: [HOLD, DIVERT], timeout_min: 8, default: HOLD }
   - branch:
@@ -63,7 +66,8 @@ steps:
                         - send:
                             header: OPS MSG {ofp.dest}
                             body: |
-                              FIRE NEAR RWY {ofp.dest_rwy} STILL BURNING
+                              FIRE {run.fire_at}
+                              STILL BURNING
                               NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
                               REPLY HOLD OR DIVERT
                   DIVERT:
@@ -83,7 +87,8 @@ steps:
               - send:
                   header: OPS MSG {ofp.dest}
                   body: |
-                    FIRE NEAR RWY {ofp.dest_rwy} UNDER CONTROL
+                    FIRE {run.fire_at}
+                    UNDER CONTROL
                     ARRIVALS RESUMED AT {ofp.dest}
                     EXPECT NORMAL APPROACH
               - smoke: stop

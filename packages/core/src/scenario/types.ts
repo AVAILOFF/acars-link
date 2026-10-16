@@ -180,11 +180,18 @@ export interface VdgsStep {
 }
 
 /**
- * Smoke column in the simulator at the planned runway of the destination (T34): `start` or
- * `stop`. Needs the bridge and the smoke package (docs/06); without them nothing happens.
+ * Smoke column in the simulator (T34): `start` — at the middle of the planned runway of the
+ * destination, `stop` — take it down. `{ start: orig | dest, spread_nm: [min, max] }` — at the
+ * planned runway of that airport, moved by a random bearing and distance (tenths of NM, from the
+ * scenario's seeded Rng); the place goes to `run.fire_at` (`1.2NM NW OF RWY 24R`, `NEAR RWY 24R`
+ * within 0.5 NM) for the text. Needs the bridge and the smoke package (docs/06); without them
+ * nothing happens in the sim.
  */
 export interface SmokeStep {
-  readonly smoke: 'start' | 'stop';
+  readonly smoke:
+    | 'start'
+    | 'stop'
+    | { readonly start: 'orig' | 'dest'; readonly spread_nm?: readonly [number, number] };
 }
 
 /** A value `draw` gives a run variable: a literal, or `[min, max]` — a uniform integer. */

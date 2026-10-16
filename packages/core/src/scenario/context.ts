@@ -902,12 +902,17 @@ export function metarWind(metar: string | null): { from: number; kt: number } | 
 
 const COMPASS_8 = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
 
+/** Eight-point compass name of a true bearing, degrees. */
+export function compass8(deg: number): string {
+  return COMPASS_8[Math.round((((deg % 360) + 360) % 360) / 45) % 8] as string;
+}
+
 /** Compass point the wind carries smoke to: the reciprocal of the METAR wind direction. */
 export function smokeDrift(metar: string | null): string | null {
   const w = metarWind(metar);
   if (w === null) return null;
   const to = (w.from + 180) % 360;
-  return COMPASS_8[Math.round(to / 45) % 8] as string;
+  return compass8(to);
 }
 
 /** T43/T44 variables (kept apart from the big literal in {@link buildContext}). */

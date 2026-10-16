@@ -71,7 +71,13 @@ export type CompiledStep =
   | { readonly kind: 'jump'; readonly to: number }
   | { readonly kind: 'resend'; readonly of: readonly string[] }
   | { readonly kind: 'set'; readonly assigns: readonly CompiledAssign[] }
-  | { readonly kind: 'smoke'; readonly action: 'start' | 'stop' }
+  | {
+      readonly kind: 'smoke';
+      readonly action: 'start' | 'stop';
+      readonly at: 'orig' | 'dest';
+      /** Distance range from the runway's middle, tenths of NM; null = at the middle. */
+      readonly spread: readonly [number, number] | null;
+    }
   | { readonly kind: 'draw'; readonly options: readonly CompiledDrawOption[] }
   | {
       readonly kind: 'loop';
@@ -485,9 +491,22 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
         continue;
       }
       if ('smoke' in s) {
-        if (s.smoke !== 'start' && s.smoke !== 'stop')
-          fail(`${path}.smoke`, 'must be start or stop');
-        steps.push({ kind: 'smoke', action: s.smoke });
+        const sm = s.smoke;
+        if (typeof sm === 'string') {
+          if (sm !== 'start' && sm !== 'stop') fail(`${path}.smoke`, 'must be start or stop');
+          steps.push({ kind: 'smoke', action: sm, at: 'dest', spread: null });
+          continue;
+        }
+        if (sm.start !== 'orig' && sm.start !== 'dest')
+          fail(`${path}.smoke.start`, 'must be orig or dest');
+        let spread: readonly [number, number] | null = null;
+        if (sm.spread_nm !== undefined) {
+          const [lo, hi] = sm.spread_nm.map((n) => Math.round(n * 10));
+          if (!(lo !== undefined && hi !== undefined && lo >= 0 && hi >= lo && hi <= 100))
+            fail(`${path}.smoke.spread_nm`, 'must be [min, max], 0 ≤ min ≤ max ≤ 10 NM');
+          spread = [lo as number, hi as number];
+        }
+        steps.push({ kind: 'smoke', action: 'start', at: sm.start, spread });
         continue;
       }
       if ('vdgs' in s) {

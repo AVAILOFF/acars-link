@@ -39,9 +39,10 @@ export interface VdgsCommand extends CommandBase {
 }
 
 /**
- * Smoke column at a runway of the destination (T34, scenario step `smoke`). The app looks up the
- * runway's coordinates (OurAirports) and sends the bridge `smoke_start` / `smoke_stop`; the core
- * only names the airport and the runway, so a recording replays without the lookup.
+ * Smoke column at or near a runway of the departure or destination airport (T34, scenario step
+ * `smoke`). The app looks up the runway's middle (OurAirports), moves it by `offset` and sends the
+ * bridge `smoke_start` / `smoke_stop`; the core only names the airport, the runway and the
+ * offset, so a recording replays without the lookup.
  */
 export interface SmokeCommand extends CommandBase {
   readonly command: 'smoke';
@@ -49,6 +50,8 @@ export interface SmokeCommand extends CommandBase {
   readonly airport: string;
   /** Planned runway (`24R`), null when the OFP has none. */
   readonly runway: string | null;
+  /** From the runway's middle: true bearing, degrees, and distance, NM; null = at the middle. */
+  readonly offset?: { readonly bearingDeg: number; readonly distNm: number } | null;
 }
 
 export type SimCommand = BridgeCommand | VdgsCommand | SmokeCommand;

@@ -297,7 +297,27 @@ export const SCENARIO_SCHEMA = {
             type: 'object',
             additionalProperties: false,
             required: ['smoke'],
-            properties: { smoke: { enum: ['start', 'stop'] } },
+            properties: {
+              smoke: {
+                oneOf: [
+                  { enum: ['start', 'stop'] },
+                  {
+                    type: 'object',
+                    additionalProperties: false,
+                    required: ['start'],
+                    properties: {
+                      start: { enum: ['orig', 'dest'] },
+                      spread_nm: {
+                        type: 'array',
+                        minItems: 2,
+                        maxItems: 2,
+                        items: { type: 'number', minimum: 0, maximum: 10 },
+                      },
+                    },
+                  },
+                ],
+              },
+            },
           },
           {
             type: 'object',

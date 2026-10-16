@@ -23,6 +23,7 @@ import type { AircraftFamily } from './aircraft.js';
 import type { CompiledScenario, CompiledStep } from './compile.js';
 import {
   buildContext,
+  compass8,
   type FuelTrack,
   RouteGeometry,
   type RunVariable,
@@ -1497,13 +1498,25 @@ export class ScenarioEngine {
         continue;
       }
       if (step.kind === 'smoke') {
+        const apt = step.at === 'orig' ? this.ofp.origin : this.ofp.destination;
+        const runway = apt.planRwy ?? null;
+        let offset: { bearingDeg: number; distNm: number } | null = null;
+        if (step.action === 'start') {
+          if (step.spread !== null) {
+            const bearingDeg = rng.int(0, 359);
+            const tenths = rng.int(step.spread[0], step.spread[1]);
+            offset = { bearingDeg, distNm: tenths / 10 };
+          }
+          run.vars = { ...run.vars, 'run.fire_at': firePlace(runway, offset) };
+        }
         this.commands.push({
           command: 'smoke',
           scenarioId: sc.id,
           t: input.now,
           action: step.action,
-          airport: this.ofp.destination.icao,
-          runway: this.ofp.destination.planRwy ?? null,
+          airport: apt.icao,
+          runway,
+          ...(offset !== null ? { offset } : {}),
         });
         continue;
       }
@@ -1604,6 +1617,19 @@ function clip(text: string): string {
 }
 
 /** OFP with the estimated (and, for ops data, also the scheduled) times moved by `ms`. */
+/**
+ * Where a fire of the `smoke` step is, for `run.fire_at`: `NEAR RWY 24R` within 0.5 NM of the
+ * runway's middle, else `1.2NM NW OF RWY 24R`.
+ */
+export function firePlace(
+  runway: string | null,
+  offset: { readonly bearingDeg: number; readonly distNm: number } | null,
+): string {
+  const ref = runway !== null ? `RWY ${runway}` : 'THE AIRPORT';
+  if (offset === null || offset.distNm <= 0.5) return `NEAR ${ref}`;
+  return `${offset.distNm.toFixed(1)}NM ${compass8(offset.bearingDeg)} OF ${ref}`;
+}
+
 function delayedOfp(ofp: Ofp, ms: number, sched: boolean): Ofp {
   const t = ofp.times;
   const add = (x: number | null) => (x === null ? null : x + ms);

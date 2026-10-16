@@ -1,0 +1,63 @@
+# Fire on or near the departure airport before takeoff (approved by the user 2026-10-16): at a
+# random moment from 30 min before the scheduled OUT until the takeoff roll, at the stand or on the
+# taxi out. Departures are suspended for 20-90 min, with an update every 20 min. The fire is at a
+# random point 0.2-2.5 NM from the middle of the planned departure runway; a smoke column stands
+# there in the simulator (T34).
+id: dep_fire
+version: 1
+category: irregular
+title: Fire at departure airport
+title_ru: "Пожар в аэропорту вылета"
+description: "From 30 min before the scheduled departure until the takeoff roll: fire on or near the departure airport (random point 0.2-2.5 NM from the planned runway), departures suspended for 20-90 min with an update every 20 min."
+description_ru: "От 30 мин до планового вылета и до разбега: пожар на территории аэропорта вылета или рядом (случайная точка в 0,2–2,5 NM от плановой ВПП), вылеты приостановлены на 20–90 мин, обновления каждые 20 мин."
+enabled_by_default: true
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -30 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING','PUSHBACK','TAXI_OUT']"
+  - "ofp.orig_rwy != null"
+probability: 0.02
+excludes: [atc_flow_delay, deicing_holdover]
+steps:
+  - draw:
+      - set: { run.start_min: [0, 45], run.hold_min: [20, 90] }
+  # The moment: up to 45 min after the trigger, unless the aircraft is already rolling or airborne.
+  - loop:
+      until: "loop.min >= run.start_min"
+      stop: "phase not in ['PREFLIGHT','BOARDING','PUSHBACK','TAXI_OUT']"
+      steps:
+        - wait: { minutes: 60 }
+  - branch:
+      MET:
+        - smoke: { start: orig, spread_nm: [0.2, 2.5] }
+        - send:
+            header: OPS MSG {ofp.orig}
+            body: |
+              FIRE REPORTED
+              {run.fire_at}
+              RESCUE ON SCENE, DEPARTURES SUSPENDED
+              EXPECT DELAY, FOLLOW ATC INSTRUCTIONS
+              NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
+        - loop:
+            until: "loop.min >= run.hold_min"
+            stop: "phase not in ['PREFLIGHT','BOARDING','PUSHBACK','TAXI_OUT']"
+            steps:
+              - wait: { minutes: 20 }
+              - send:
+                  header: OPS MSG {ofp.orig}
+                  body: |
+                    FIRE {run.fire_at}
+                    STILL BURNING
+                    DEPARTURES STILL SUSPENDED
+                    NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
+        - branch:
+            MET:
+              - send:
+                  header: OPS MSG {ofp.orig}
+                  body: |
+                    FIRE {run.fire_at}
+                    UNDER CONTROL
+                    DEPARTURES RESUMED
+                    EXPECT START UP ACCORDING TO ATC
+              - smoke: stop

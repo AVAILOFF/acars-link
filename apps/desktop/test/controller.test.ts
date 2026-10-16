@@ -233,8 +233,8 @@ describe('AppController', () => {
     const list = await app.listScenarios();
     // 15 base + 12 commands (T12) + 8 command scenarios (T44) + slot_missed (T43) + 4 live-data (T13) + 2 launches (T28) + 24 irregular (T14, T44)
     // + 1 sim (T22) + 10 special events (T29) + atis_update and vdgs_divert (T45) + emergency_mayday and emergency_pan (T47)
-    // + 4 irregular (T46) + connex_list (T30) + hold_fuel_watch (T50)
-    expect(list).toHaveLength(90);
+    // + 4 irregular (T46) + connex_list (T30) + hold_fuel_watch (T50) + dep_fire
+    expect(list).toHaveLength(91);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -598,6 +598,14 @@ describe('live data (T13)', () => {
     expect(socket.sent).toMatchObject([
       { type: 'command', command: 'smoke_start', args: { lat: 34.439917, lon: 135.223083 } },
     ]);
+
+    // A random point (dest_fire, dep_fire): the runway's middle moved by the offset, 1 NM north.
+    app.sendSimCommand({ ...smoke('start', '24R'), offset: { bearingDeg: 0, distNm: 1 } });
+    await new Promise((r) => setTimeout(r, 0));
+    const moved = socket.sent[1] as { args: { lat: number; lon: number } };
+    expect(moved.args.lat).toBeCloseTo(34.439917 + 1 / 60.04, 4);
+    expect(moved.args.lon).toBeCloseTo(135.223083, 6);
+    socket.sent.splice(1);
 
     // A runway the file does not have: one line in the feed, nothing sent.
     app.sendSimCommand(smoke('start', '09'));
@@ -1036,7 +1044,7 @@ describe('irregular events by hand', () => {
     });
     await s.app.startFlight();
     const list = s.app.state().irregular;
-    expect(list.length).toBe(33);
+    expect(list.length).toBe(34);
     expect(list.find((x) => x.id === 'vip_onboard')?.title).toEqual({
       en: 'VIP on board',
       ru: 'VIP на борту',
