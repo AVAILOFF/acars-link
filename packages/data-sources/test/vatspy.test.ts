@@ -296,7 +296,10 @@ describe('T34: runway coordinates from OurAirports', () => {
     const p = parseRunwayPoint(csv, 'RJBB', '24R');
     expect(p?.lat).toBeCloseTo(34.43992, 4);
     expect(p?.lon).toBeCloseTo(135.22308, 4);
-    expect(parseRunwayPoint(csv, 'RJBB', '06L')).toEqual(p);
+    expect(p?.headingDeg).toBeCloseTo(230.6, 0); // 24R flies from its threshold south-west
+    const back = parseRunwayPoint(csv, 'RJBB', '06L');
+    expect(back?.lat).toBe(p?.lat);
+    expect(back?.lon).toBe(p?.lon);
     expect(parseRunwayPoint(csv, 'RJBB', '24r')).toEqual(p);
   });
 

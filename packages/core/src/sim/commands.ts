@@ -50,8 +50,11 @@ export interface SmokeCommand extends CommandBase {
   readonly airport: string;
   /** Planned runway (`24R`), null when the OFP has none. */
   readonly runway: string | null;
-  /** From the runway's middle: true bearing, degrees, and distance, NM; null = at the middle. */
-  readonly offset?: { readonly bearingDeg: number; readonly distNm: number } | null;
+  /**
+   * From the runway's middle, NM: along it in the direction of `runway` (negative = back) and
+   * off its axis (positive = right of that direction); absent = at the middle.
+   */
+  readonly offset?: { readonly alongNm: number; readonly sideNm: number } | null;
 }
 
 export type SimCommand = BridgeCommand | VdgsCommand | SmokeCommand;

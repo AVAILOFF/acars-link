@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { generateSyntheticFlight, ManualClock, parseSimbriefOfp } from '@acars/core';
+import { distanceNm, generateSyntheticFlight, ManualClock, parseSimbriefOfp } from '@acars/core';
 import { compareOutbound, parseJsonl, type Recording, replay } from '@acars/replay';
 import { loadScenarios } from '@acars/scenarios';
 import { MockTransport } from '@acars/transport';
@@ -599,12 +599,14 @@ describe('live data (T13)', () => {
       { type: 'command', command: 'smoke_start', args: { lat: 34.439917, lon: 135.223083 } },
     ]);
 
-    // A random point (dest_fire, dep_fire): the runway's middle moved by the offset, 1 NM north.
-    app.sendSimCommand({ ...smoke('start', '24R'), offset: { bearingDeg: 0, distNm: 1 } });
+    // A point beside the runway (dest_fire, dep_fire): RJBB 24R flies about 230 true, so 1 NM to
+    // its right is north-west of the middle.
+    app.sendSimCommand({ ...smoke('start', '24R'), offset: { alongNm: 0, sideNm: 1 } });
     await new Promise((r) => setTimeout(r, 0));
     const moved = socket.sent[1] as { args: { lat: number; lon: number } };
-    expect(moved.args.lat).toBeCloseTo(34.439917 + 1 / 60.04, 4);
-    expect(moved.args.lon).toBeCloseTo(135.223083, 6);
+    expect(distanceNm(moved.args, { lat: 34.439917, lon: 135.223083 })).toBeCloseTo(1, 2);
+    expect(moved.args.lat).toBeGreaterThan(34.439917);
+    expect(moved.args.lon).toBeLessThan(135.223083);
     socket.sent.splice(1);
 
     // A runway the file does not have: one line in the feed, nothing sent.

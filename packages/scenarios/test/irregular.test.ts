@@ -520,7 +520,7 @@ describe('continuations (T41)', () => {
     expect(hold).toHaveLength(3);
     expect(hold[0]).toMatch(
       new RegExp(
-        String.raw`FIRE REPORTED\s+(NEAR|\d\.\dNM [NSEW]{1,2} OF) RWY ` + kg.destination.planRwy,
+        String.raw`FIRE REPORTED\s+(NEAR|[NSEW]{1,2} SIDE OF) RWY ` + kg.destination.planRwy,
       ),
     );
     expect(hold[0]).toMatch(/SMOKE DRIFTING [NSEW]{1,2}, WIND \d{3}\/\d+KT/);

@@ -78,7 +78,7 @@ describe('dest_fire smoke (T34)', () => {
 });
 
 describe('fire at a random point (2026-10-16)', () => {
-  it('dest_fire: the smoke is 0.2-2.5 NM from the runway, the text says where', () => {
+  it('dest_fire: the smoke is beside the runway (0.8 NM along, 0.1-0.3 NM off), the text says which side', () => {
     const seen = new Set<string>();
     for (const seed of ['a', 'b', 'c', 'd', 'e']) {
       const core = AcarsCore.create({ ofp, scenarios: [fire], seed });
@@ -89,11 +89,10 @@ describe('fire at a random point (2026-10-16)', () => {
         if (start === undefined || start.command !== 'smoke') continue;
         const o = start.offset;
         expect(o).toBeDefined();
-        expect(o?.distNm).toBeGreaterThanOrEqual(0.2);
-        expect(o?.distNm).toBeLessThanOrEqual(2.5);
-        expect(o?.bearingDeg).toBeGreaterThanOrEqual(0);
-        expect(o?.bearingDeg).toBeLessThan(360);
-        seen.add(`${o?.bearingDeg}/${o?.distNm}`);
+        expect(Math.abs(o?.alongNm ?? 9)).toBeLessThanOrEqual(0.8);
+        expect(Math.abs(o?.sideNm ?? 0)).toBeGreaterThanOrEqual(0.1);
+        expect(Math.abs(o?.sideNm ?? 9)).toBeLessThanOrEqual(0.3);
+        seen.add(`${o?.alongNm}/${o?.sideNm}`);
         const text = (
           r.outbound.find((m) => m.scenarioId === 'dest_fire')?.message.text ?? ''
         ).replace(/\s+/g, ' ');
@@ -103,11 +102,13 @@ describe('fire at a random point (2026-10-16)', () => {
     expect(seen.size).toBeGreaterThan(1);
   });
 
-  it('firePlace: near the runway within 0.5 NM, else distance and compass point', () => {
+  it('firePlace: the side of the runway from its number', () => {
     expect(firePlace('24R', null)).toBe('NEAR RWY 24R');
-    expect(firePlace('24R', { bearingDeg: 300, distNm: 0.5 })).toBe('NEAR RWY 24R');
-    expect(firePlace('24R', { bearingDeg: 315, distNm: 1.2 })).toBe('1.2NM NW OF RWY 24R');
-    expect(firePlace(null, { bearingDeg: 0, distNm: 2 })).toBe('2.0NM N OF THE AIRPORT');
+    expect(firePlace('24L', { alongNm: 0.3, sideNm: 0.2 })).toBe('NW SIDE OF RWY 24L');
+    expect(firePlace('24L', { alongNm: -0.5, sideNm: -0.2 })).toBe('SE SIDE OF RWY 24L');
+    expect(firePlace('09', { alongNm: 0, sideNm: 0.1 })).toBe('S SIDE OF RWY 09');
+    expect(firePlace('N', { alongNm: 0, sideNm: 0.1 })).toBe('NEAR RWY N');
+    expect(firePlace(null, { alongNm: 0, sideNm: 0.1 })).toBe('NEAR THE AIRPORT');
   });
 });
 
@@ -140,9 +141,7 @@ describe('dep_fire: fire before takeoff (2026-10-16)', () => {
   it('at the gate: departures suspended, updates, resumed; smoke at the departure runway', () => {
     const { texts, cmds } = fly(30);
     expect(texts[0]).toMatch(
-      new RegExp(
-        String.raw`FIRE REPORTED\s+(NEAR|\d\.\dNM [NSEW]{1,2} OF) RWY ` + ofp.origin.planRwy,
-      ),
+      new RegExp(String.raw`FIRE REPORTED\s+(NEAR|[NSEW]{1,2} SIDE OF) RWY ` + ofp.origin.planRwy),
     );
     expect(texts[0]).toContain('DEPARTURES SUSPENDED');
     expect(texts.at(-1)).toContain('DEPARTURES RESUMED');

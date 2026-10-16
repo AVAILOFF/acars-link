@@ -1,15 +1,15 @@
 # Fire on or near the departure airport before takeoff (approved by the user 2026-10-16): at a
 # random moment from 30 min before the scheduled OUT until the takeoff roll, at the stand or on the
 # taxi out. Departures are suspended for 20-90 min, with an update every 20 min. The fire is at a
-# random point 0.2-2.5 NM from the middle of the planned departure runway; a smoke column stands
-# there in the simulator (T34).
+# random point beside the planned departure runway, up to 0.8 NM along it from the middle and
+# 0.1-0.3 NM off its axis; a smoke column stands there in the simulator (T34).
 id: dep_fire
 version: 1
 category: irregular
 title: Fire at departure airport
 title_ru: "Пожар в аэропорту вылета"
-description: "From 30 min before the scheduled departure until the takeoff roll: fire on or near the departure airport (random point 0.2-2.5 NM from the planned runway), departures suspended for 20-90 min with an update every 20 min."
-description_ru: "От 30 мин до планового вылета и до разбега: пожар на территории аэропорта вылета или рядом (случайная точка в 0,2–2,5 NM от плановой ВПП), вылеты приостановлены на 20–90 мин, обновления каждые 20 мин."
+description: "From 30 min before the scheduled departure until the takeoff roll: fire on or near the departure airport (random point beside the planned runway), departures suspended for 20-90 min with an update every 20 min."
+description_ru: "От 30 мин до планового вылета и до разбега: пожар на территории аэропорта вылета или рядом (случайная точка у плановой ВПП), вылеты приостановлены на 20–90 мин, обновления каждые 20 мин."
 enabled_by_default: true
 trigger:
   on: time
@@ -31,7 +31,7 @@ steps:
         - wait: { minutes: 60 }
   - branch:
       MET:
-        - smoke: { start: orig, spread_nm: [0.2, 2.5] }
+        - smoke: { start: orig, along_nm: 0.8, side_nm: [0.1, 0.3] }
         - send:
             header: OPS MSG {ofp.orig}
             body: |

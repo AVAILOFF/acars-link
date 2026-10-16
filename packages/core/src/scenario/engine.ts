@@ -1507,12 +1507,13 @@ export class ScenarioEngine {
       if (step.kind === 'smoke') {
         const apt = step.at === 'orig' ? this.ofp.origin : this.ofp.destination;
         const runway = apt.planRwy ?? null;
-        let offset: { bearingDeg: number; distNm: number } | null = null;
+        let offset: { alongNm: number; sideNm: number } | null = null;
         if (step.action === 'start') {
           if (step.spread !== null) {
-            const bearingDeg = rng.int(0, 359);
-            const tenths = rng.int(step.spread[0], step.spread[1]);
-            offset = { bearingDeg, distNm: tenths / 10 };
+            const along = rng.int(-step.spread.along, step.spread.along);
+            const side = rng.int(step.spread.side[0], step.spread.side[1]);
+            const right = rng.int(0, 1) === 1;
+            offset = { alongNm: along / 100, sideNm: (right ? side : -side) / 100 };
           }
           run.vars = { ...run.vars, 'run.fire_at': firePlace(runway, offset) };
         }
@@ -1629,16 +1630,19 @@ function clip(text: string): string {
 
 /** OFP with the estimated (and, for ops data, also the scheduled) times moved by `ms`. */
 /**
- * Where a fire of the `smoke` step is, for `run.fire_at`: `NEAR RWY 24R` within 0.5 NM of the
- * runway's middle, else `1.2NM NW OF RWY 24R`.
+ * Where a fire of the `smoke` step is, for `run.fire_at`: the side of the runway it is on
+ * (`S SIDE OF RWY 24L`), from the runway's number (magnetic heading — close enough to name an
+ * eight-point side); `NEAR RWY 24L` at the middle or without a number.
  */
 export function firePlace(
   runway: string | null,
-  offset: { readonly bearingDeg: number; readonly distNm: number } | null,
+  offset: { readonly alongNm: number; readonly sideNm: number } | null,
 ): string {
-  const ref = runway !== null ? `RWY ${runway}` : 'THE AIRPORT';
-  if (offset === null || offset.distNm <= 0.5) return `NEAR ${ref}`;
-  return `${offset.distNm.toFixed(1)}NM ${compass8(offset.bearingDeg)} OF ${ref}`;
+  if (runway === null) return 'NEAR THE AIRPORT';
+  const num = /^(\d{1,2})/.exec(runway);
+  if (offset === null || offset.sideNm === 0 || num === null) return `NEAR RWY ${runway}`;
+  const hdg = Number(num[1]) * 10;
+  return `${compass8(hdg + (offset.sideNm > 0 ? 90 : -90))} SIDE OF RWY ${runway}`;
 }
 
 function delayedOfp(ofp: Ofp, ms: number, sched: boolean): Ofp {

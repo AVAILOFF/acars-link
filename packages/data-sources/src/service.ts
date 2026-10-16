@@ -829,7 +829,11 @@ export class ExternalDataService {
     try {
       const hit = (await this.cached(key, now, 'freqs', (v) => {
         const p = v as RunwayPoint | null;
-        if (p !== null && !(Number.isFinite(p?.lat) && Number.isFinite(p?.lon)))
+        // Entries cached before `headingDeg` count as a miss.
+        if (
+          p !== null &&
+          !(Number.isFinite(p?.lat) && Number.isFinite(p?.lon) && Number.isFinite(p?.headingDeg))
+        )
           throw new Error('bad');
       })) as RunwayPoint | null | undefined;
       if (hit !== undefined) return hit;

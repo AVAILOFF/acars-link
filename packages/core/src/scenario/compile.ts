@@ -75,8 +75,14 @@ export type CompiledStep =
       readonly kind: 'smoke';
       readonly action: 'start' | 'stop';
       readonly at: 'orig' | 'dest';
-      /** Distance range from the runway's middle, tenths of NM; null = at the middle. */
-      readonly spread: readonly [number, number] | null;
+      /**
+       * Hundredths of NM: up to `along` either way along the runway from its middle, `side`
+       * off its axis; null = at the middle.
+       */
+      readonly spread: {
+        readonly along: number;
+        readonly side: readonly [number, number];
+      } | null;
     }
   | { readonly kind: 'draw'; readonly options: readonly CompiledDrawOption[] }
   | {
@@ -499,12 +505,14 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
         }
         if (sm.start !== 'orig' && sm.start !== 'dest')
           fail(`${path}.smoke.start`, 'must be orig or dest');
-        let spread: readonly [number, number] | null = null;
-        if (sm.spread_nm !== undefined) {
-          const [lo, hi] = sm.spread_nm.map((n) => Math.round(n * 10));
-          if (!(lo !== undefined && hi !== undefined && lo >= 0 && hi >= lo && hi <= 100))
-            fail(`${path}.smoke.spread_nm`, 'must be [min, max], 0 ≤ min ≤ max ≤ 10 NM');
-          spread = [lo as number, hi as number];
+        let spread: { along: number; side: readonly [number, number] } | null = null;
+        if (sm.along_nm !== undefined || sm.side_nm !== undefined) {
+          const along = Math.round((sm.along_nm ?? 0) * 100);
+          const [lo, hi] = (sm.side_nm ?? [0, 0]).map((n) => Math.round(n * 100));
+          if (!(along >= 0 && along <= 300)) fail(`${path}.smoke.along_nm`, 'must be 0..3 NM');
+          if (!(lo !== undefined && hi !== undefined && lo >= 0 && hi >= lo && hi <= 300))
+            fail(`${path}.smoke.side_nm`, 'must be [min, max], 0 ≤ min ≤ max ≤ 3 NM');
+          spread = { along, side: [lo as number, hi as number] };
         }
         steps.push({ kind: 'smoke', action: 'start', at: sm.start, spread });
         continue;
