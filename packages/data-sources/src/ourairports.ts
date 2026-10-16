@@ -1,6 +1,7 @@
 import {
   type AirportFrequency,
   type AirportPlace,
+  bearingDeg,
   type DivertAirport,
   type Ofp,
   RoutePolyline,
@@ -64,10 +65,14 @@ export function parseAirportFrequencies(csv: string, icao: string): AirportFrequ
 export const OURAIRPORTS_RUNWAYS_URL =
   'https://davidmegginson.github.io/ourairports-data/runways.csv';
 
-/** Middle of a runway, degrees; the middle of the strip between its two thresholds. */
+/**
+ * Middle of a runway, degrees; the middle of the strip between its two thresholds. `headingDeg`:
+ * true course from the named end's threshold to the other one (the direction of `24L` for `24L`).
+ */
 export interface RunwayPoint {
   readonly lat: number;
   readonly lon: number;
+  readonly headingDeg: number;
 }
 
 export async function fetchRunwayPoint(
@@ -116,7 +121,14 @@ export function parseRunwayPoint(csv: string, icao: string, rwy: string): Runway
     const [a, b, d, e] = [leLat, leLon, heLat, heLon].map((i) => Number(c[i]));
     if ([c[leLat], c[leLon], c[heLat], c[heLon]].some((v) => v === undefined || v === '')) continue;
     if (![a, b, d, e].every(Number.isFinite)) continue;
-    return { lat: ((a as number) + (d as number)) / 2, lon: ((b as number) + (e as number)) / 2 };
+    const le = { lat: a as number, lon: b as number };
+    const he = { lat: d as number, lon: e as number };
+    const fromLe = c[leId]?.toUpperCase() === want;
+    return {
+      lat: (le.lat + he.lat) / 2,
+      lon: (le.lon + he.lon) / 2,
+      headingDeg: fromLe ? bearingDeg(le, he) : bearingDeg(he, le),
+    };
   }
   return null;
 }

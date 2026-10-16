@@ -1,5 +1,6 @@
 import {
   type CompiledScenario,
+  destinationPoint,
   type Ofp,
   type SimCommand,
   type SmokeCommand,
@@ -188,8 +189,9 @@ export class AppController {
   }
 
   /**
-   * Smoke column (T34): the runway's middle comes from OurAirports (cached), the bridge gets
-   * plain coordinates. A runway without coordinates, or no network, is one line in the feed.
+   * Smoke column (T34): the runway's middle comes from OurAirports (cached), moved by the
+   * scenario's random offset; the bridge gets plain coordinates. A runway without coordinates,
+   * or no network, is one line in the feed.
    */
   private async sendSmoke(c: SmokeCommand): Promise<void> {
     const fail = (detail: string) => {
@@ -205,8 +207,9 @@ export class AppController {
       return;
     }
     if (c.runway === null) return fail('no planned runway in the OFP');
-    const p = await this.data.runwayPoint(c.airport, c.runway, this.o.now());
-    if (p === null) return fail(`no coordinates for ${c.airport} RWY ${c.runway}`);
+    const mid = await this.data.runwayPoint(c.airport, c.runway, this.o.now());
+    if (mid === null) return fail(`no coordinates for ${c.airport} RWY ${c.runway}`);
+    const p = c.offset ? besideRunway(mid, c.offset.alongNm, c.offset.sideNm) : mid;
     if (this.session === null) return; // the flight ended while the file was fetched
     this.smokeOn = true;
     this.bridge.sendCommand('smoke_start', {
@@ -595,4 +598,18 @@ export class AppController {
       lineWidth: profile.lineWidth,
     };
   }
+}
+
+/**
+ * A point beside a runway: `alongNm` from its middle in the direction of the runway (negative =
+ * back), then `sideNm` off its axis (positive = right of that direction).
+ */
+function besideRunway(
+  mid: { lat: number; lon: number; headingDeg: number },
+  alongNm: number,
+  sideNm: number,
+): { lat: number; lon: number } {
+  const move = (p: { lat: number; lon: number }, deg: number, nm: number) =>
+    nm === 0 ? p : destinationPoint(p, nm > 0 ? deg : deg + 180, Math.abs(nm));
+  return move(move(mid, mid.headingDeg, alongNm), mid.headingDeg + 90, sideNm);
 }

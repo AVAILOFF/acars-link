@@ -23,6 +23,7 @@ import type { AircraftFamily } from './aircraft.js';
 import type { CompiledScenario, CompiledStep } from './compile.js';
 import {
   buildContext,
+  compass8,
   type FuelTrack,
   RouteGeometry,
   type RunVariable,
@@ -862,7 +863,8 @@ export class ScenarioEngine {
       untilPhase: null,
       reply: null,
       until: null,
-      vars: { ...vars },
+      // `run.forced`: started by the user's "run now", so a scenario can skip its own random wait.
+      vars: { ...vars, 'run.forced': forced },
       loop: null,
     };
     this.st.runs.push(run);
@@ -1125,7 +1127,13 @@ export class ScenarioEngine {
     }
   }
 
-  private emit(id: string, message: FormattedMessage, now: number, out: OutboundMessage[]): void {
+  private emit(
+    id: string,
+    message: FormattedMessage,
+    now: number,
+    out: OutboundMessage[],
+    urgent = false,
+  ): void {
     out.push({
       scenarioId: id,
       from: this.from,
@@ -1133,7 +1141,7 @@ export class ScenarioEngine {
       kind: 'telex',
       message,
       t: now,
-      toPilot: this.answering || id === OPS_REPLY_ID,
+      toPilot: this.answering || urgent || id === OPS_REPLY_ID,
     });
     if (id === OPS_REPLY_ID) return;
     const first = !(id in this.st.sent);
@@ -1497,13 +1505,26 @@ export class ScenarioEngine {
         continue;
       }
       if (step.kind === 'smoke') {
+        const apt = step.at === 'orig' ? this.ofp.origin : this.ofp.destination;
+        const runway = apt.planRwy ?? null;
+        let offset: { alongNm: number; sideNm: number } | null = null;
+        if (step.action === 'start') {
+          if (step.spread !== null) {
+            const along = rng.int(-step.spread.along, step.spread.along);
+            const side = rng.int(step.spread.side[0], step.spread.side[1]);
+            const right = rng.int(0, 1) === 1;
+            offset = { alongNm: along / 100, sideNm: (right ? side : -side) / 100 };
+          }
+          run.vars = { ...run.vars, 'run.fire_at': firePlace(runway, offset) };
+        }
         this.commands.push({
           command: 'smoke',
           scenarioId: sc.id,
           t: input.now,
           action: step.action,
-          airport: this.ofp.destination.icao,
-          runway: this.ofp.destination.planRwy ?? null,
+          airport: apt.icao,
+          runway,
+          ...(offset !== null ? { offset } : {}),
         });
         continue;
       }
@@ -1562,7 +1583,11 @@ export class ScenarioEngine {
           },
           this.profile,
         );
-        this.emit(sc.id, message, input.now, outbound);
+        // The first telex of a "run now" goes ahead of the queue, as an answer to the pilot would:
+        // the user pressed the button and waits for it.
+        const urgent = run.vars['run.forced'] === true && run.vars['run.forced_sent'] !== true;
+        if (urgent) run.vars = { ...run.vars, 'run.forced_sent': true };
+        this.emit(sc.id, message, input.now, outbound, urgent);
         if (
           !this.st.ext.gateLocked &&
           this.data.ops.arrGate !== null &&
@@ -1604,6 +1629,22 @@ function clip(text: string): string {
 }
 
 /** OFP with the estimated (and, for ops data, also the scheduled) times moved by `ms`. */
+/**
+ * Where a fire of the `smoke` step is, for `run.fire_at`: the side of the runway it is on
+ * (`S SIDE OF RWY 24L`), from the runway's number (magnetic heading — close enough to name an
+ * eight-point side); `NEAR RWY 24L` at the middle or without a number.
+ */
+export function firePlace(
+  runway: string | null,
+  offset: { readonly alongNm: number; readonly sideNm: number } | null,
+): string {
+  if (runway === null) return 'NEAR THE AIRPORT';
+  const num = /^(\d{1,2})/.exec(runway);
+  if (offset === null || offset.sideNm === 0 || num === null) return `NEAR RWY ${runway}`;
+  const hdg = Number(num[1]) * 10;
+  return `${compass8(hdg + (offset.sideNm > 0 ? 90 : -90))} SIDE OF RWY ${runway}`;
+}
+
 function delayedOfp(ofp: Ofp, ms: number, sched: boolean): Ofp {
   const t = ofp.times;
   const add = (x: number | null) => (x === null ? null : x + ms);

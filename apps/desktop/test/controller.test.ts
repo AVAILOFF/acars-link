@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { generateSyntheticFlight, ManualClock, parseSimbriefOfp } from '@acars/core';
+import { distanceNm, generateSyntheticFlight, ManualClock, parseSimbriefOfp } from '@acars/core';
 import { compareOutbound, parseJsonl, type Recording, replay } from '@acars/replay';
 import { loadScenarios } from '@acars/scenarios';
 import { MockTransport } from '@acars/transport';
@@ -233,8 +233,8 @@ describe('AppController', () => {
     const list = await app.listScenarios();
     // 15 base + 12 commands (T12) + 8 command scenarios (T44) + slot_missed (T43) + 4 live-data (T13) + 2 launches (T28) + 24 irregular (T14, T44)
     // + 1 sim (T22) + 10 special events (T29) + atis_update and vdgs_divert (T45) + emergency_mayday and emergency_pan (T47)
-    // + 4 irregular (T46) + connex_list (T30) + hold_fuel_watch (T50)
-    expect(list).toHaveLength(90);
+    // + 4 irregular (T46) + connex_list (T30) + hold_fuel_watch (T50) + dep_fire
+    expect(list).toHaveLength(91);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -598,6 +598,16 @@ describe('live data (T13)', () => {
     expect(socket.sent).toMatchObject([
       { type: 'command', command: 'smoke_start', args: { lat: 34.439917, lon: 135.223083 } },
     ]);
+
+    // A point beside the runway (dest_fire, dep_fire): RJBB 24R flies about 230 true, so 1 NM to
+    // its right is north-west of the middle.
+    app.sendSimCommand({ ...smoke('start', '24R'), offset: { alongNm: 0, sideNm: 1 } });
+    await new Promise((r) => setTimeout(r, 0));
+    const moved = socket.sent[1] as { args: { lat: number; lon: number } };
+    expect(distanceNm(moved.args, { lat: 34.439917, lon: 135.223083 })).toBeCloseTo(1, 2);
+    expect(moved.args.lat).toBeGreaterThan(34.439917);
+    expect(moved.args.lon).toBeLessThan(135.223083);
+    socket.sent.splice(1);
 
     // A runway the file does not have: one line in the feed, nothing sent.
     app.sendSimCommand(smoke('start', '09'));
@@ -1036,7 +1046,7 @@ describe('irregular events by hand', () => {
     });
     await s.app.startFlight();
     const list = s.app.state().irregular;
-    expect(list.length).toBe(33);
+    expect(list.length).toBe(34);
     expect(list.find((x) => x.id === 'vip_onboard')?.title).toEqual({
       en: 'VIP on board',
       ru: 'VIP на борту',

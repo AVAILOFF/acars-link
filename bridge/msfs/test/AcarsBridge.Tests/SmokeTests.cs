@@ -7,8 +7,43 @@ public class SmokeControllerTests
     // Middle of a runway at RJBB.
     private const double Lat = 34.44, Lon = 135.22;
 
-    private static SmokeController New(ManualClock? clock = null) =>
-        new(clock ?? ManualClock.At(1_700_000_000_000));
+    /// <summary>A controller whose sim has run for <see cref="SmokeController.SettleTime"/>.</summary>
+    private static SmokeController New(ManualClock? clock = null)
+    {
+        clock ??= ManualClock.At(1_700_000_000_000);
+        var c = new SmokeController(clock);
+        c.SimRunning(true);
+        clock.Advance(SmokeController.SettleTime);
+        return c;
+    }
+
+    [Fact]
+    public void Waits_until_the_sim_has_run_for_the_settle_time()
+    {
+        var clock = ManualClock.At(1_700_000_000_000);
+        var c = new SmokeController(clock);
+        c.Start(Lat, Lon);
+        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon)); // the sim has not reported running
+        c.SimRunning(true);
+        clock.Advance(SmokeController.SettleTime - TimeSpan.FromSeconds(1));
+        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon));
+        c.SimRunning(true); // repeated: the clock does not restart
+        clock.Advance(TimeSpan.FromSeconds(1));
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+    }
+
+    [Fact]
+    public void A_stop_of_the_sim_restarts_the_settle_time()
+    {
+        var clock = ManualClock.At(1_700_000_000_000);
+        var c = New(clock);
+        c.SimRunning(false); // back to the menu, a new flight loads
+        c.SimRunning(true);
+        c.Start(Lat, Lon);
+        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon));
+        clock.Advance(SmokeController.SettleTime);
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+    }
 
     [Fact]
     public void Spawns_only_when_the_aircraft_is_near_and_removes_with_hysteresis()
@@ -41,6 +76,20 @@ public class SmokeControllerTests
     }
 
     [Fact]
+    public void A_new_point_moves_a_spawned_object_and_the_same_point_keeps_it()
+    {
+        var c = New();
+        c.Start(Lat, Lon);
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+        c.Start(Lat, Lon); // the same point again: nothing to do
+        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon));
+        c.Start(Lat + 0.01, Lon);
+        Assert.Equal(SmokeAction.Remove, c.OnPosition(Lat, Lon));
+        Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
+        Assert.Equal((Lat + 0.01, Lon), c.Target);
+    }
+
+    [Fact]
     public void Expires_after_the_maximum_life()
     {
         var clock = ManualClock.At(1_700_000_000_000);
@@ -55,10 +104,14 @@ public class SmokeControllerTests
     [Fact]
     public void A_new_session_spawns_again_for_a_standing_request()
     {
-        var c = New();
+        var clock = ManualClock.At(1_700_000_000_000);
+        var c = New(clock);
         c.Start(Lat, Lon);
         Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
         c.SessionEnded();
+        c.SimRunning(true);
+        Assert.Equal(SmokeAction.None, c.OnPosition(Lat, Lon)); // the new session settles first
+        clock.Advance(SmokeController.SettleTime);
         Assert.Equal(SmokeAction.Spawn, c.OnPosition(Lat, Lon));
     }
 

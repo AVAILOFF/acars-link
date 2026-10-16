@@ -71,7 +71,19 @@ export type CompiledStep =
   | { readonly kind: 'jump'; readonly to: number }
   | { readonly kind: 'resend'; readonly of: readonly string[] }
   | { readonly kind: 'set'; readonly assigns: readonly CompiledAssign[] }
-  | { readonly kind: 'smoke'; readonly action: 'start' | 'stop' }
+  | {
+      readonly kind: 'smoke';
+      readonly action: 'start' | 'stop';
+      readonly at: 'orig' | 'dest';
+      /**
+       * Hundredths of NM: up to `along` either way along the runway from its middle, `side`
+       * off its axis; null = at the middle.
+       */
+      readonly spread: {
+        readonly along: number;
+        readonly side: readonly [number, number];
+      } | null;
+    }
   | { readonly kind: 'draw'; readonly options: readonly CompiledDrawOption[] }
   | {
       readonly kind: 'loop';
@@ -485,9 +497,24 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
         continue;
       }
       if ('smoke' in s) {
-        if (s.smoke !== 'start' && s.smoke !== 'stop')
-          fail(`${path}.smoke`, 'must be start or stop');
-        steps.push({ kind: 'smoke', action: s.smoke });
+        const sm = s.smoke;
+        if (typeof sm === 'string') {
+          if (sm !== 'start' && sm !== 'stop') fail(`${path}.smoke`, 'must be start or stop');
+          steps.push({ kind: 'smoke', action: sm, at: 'dest', spread: null });
+          continue;
+        }
+        if (sm.start !== 'orig' && sm.start !== 'dest')
+          fail(`${path}.smoke.start`, 'must be orig or dest');
+        let spread: { along: number; side: readonly [number, number] } | null = null;
+        if (sm.along_nm !== undefined || sm.side_nm !== undefined) {
+          const along = Math.round((sm.along_nm ?? 0) * 100);
+          const [lo, hi] = (sm.side_nm ?? [0, 0]).map((n) => Math.round(n * 100));
+          if (!(along >= 0 && along <= 300)) fail(`${path}.smoke.along_nm`, 'must be 0..3 NM');
+          if (!(lo !== undefined && hi !== undefined && lo >= 0 && hi >= lo && hi <= 300))
+            fail(`${path}.smoke.side_nm`, 'must be [min, max], 0 ≤ min ≤ max ≤ 3 NM');
+          spread = { along, side: [lo as number, hi as number] };
+        }
+        steps.push({ kind: 'smoke', action: 'start', at: sm.start, spread });
         continue;
       }
       if ('vdgs' in s) {
