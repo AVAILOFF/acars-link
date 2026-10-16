@@ -22,9 +22,10 @@ excludes: [atc_flow_delay, deicing_holdover]
 steps:
   - draw:
       - set: { run.start_min: [0, 45], run.hold_min: [20, 90] }
-  # The moment: up to 45 min after the trigger, unless the aircraft is already rolling or airborne.
+  # The moment: up to 45 min after the trigger, unless the aircraft is already rolling or airborne;
+  # at once when started by hand ("run now").
   - loop:
-      until: "loop.min >= run.start_min"
+      until: "run.forced or loop.min >= run.start_min"
       stop: "phase not in ['PREFLIGHT','BOARDING','PUSHBACK','TAXI_OUT']"
       steps:
         - wait: { minutes: 60 }

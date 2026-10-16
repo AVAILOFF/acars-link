@@ -863,7 +863,8 @@ export class ScenarioEngine {
       untilPhase: null,
       reply: null,
       until: null,
-      vars: { ...vars },
+      // `run.forced`: started by the user's "run now", so a scenario can skip its own random wait.
+      vars: { ...vars, 'run.forced': forced },
       loop: null,
     };
     this.st.runs.push(run);

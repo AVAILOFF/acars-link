@@ -183,3 +183,25 @@ describe('dep_fire: fire before takeoff (2026-10-16)', () => {
     expect(sent).toBe(0);
   });
 });
+
+describe('dep_fire by hand (2026-10-16)', () => {
+  it('"run now" skips the random wait: smoke and the message at once', () => {
+    const sc = loadScenarios([...read('irregular')]).find(
+      (s) => s.id === 'dep_fire',
+    ) as CompiledScenario;
+    const f = generateSyntheticFlight({ ofp });
+    const core = AcarsCore.create({ ofp, scenarios: [sc], seed: 'force' });
+    core.startFlight();
+    const [first, second] = f.snapshots;
+    if (first === undefined || second === undefined) throw new Error('no snapshots');
+    core.tick({ now: first.t, telemetry: first });
+    const r = core.tick({ now: second.t, telemetry: second, force: ['dep_fire'] });
+    expect(r.commands).toMatchObject([{ command: 'smoke', action: 'start' }]);
+    const later = core.tick({ now: second.t + 5_000, telemetry: second });
+    const text = [...r.outbound, ...later.outbound]
+      .filter((m) => m.scenarioId === 'dep_fire')
+      .map((m) => m.message.text)
+      .join('\n');
+    expect(text).toContain('DEPARTURES SUSPENDED');
+  });
+});
