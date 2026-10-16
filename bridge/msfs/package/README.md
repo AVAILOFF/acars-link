@@ -14,22 +14,25 @@ for SimConnect, so every step below that needs the sim is a human check.
 
 The Skybound-derived `Microsoft.FlightSimulator.SimConnect.dll` / `SimConnect.dll` in `C:\Users\avail\SimConnectLibs\sdk2024`
 export `AICreateSimulatedObject` but no `_EX1` (checked 2026-10-15). The plain call "only works with non-modular
-aircraft", so this SimObject is a legacy (non-modular) `aircraft.cfg` container. With the official SDK wrapper
+aircraft", so this SimObject is legacy (non-modular): a `sim.cfg` with `category=StaticObject`, the form of the SDK 2024 sample "Windsock" (an `aircraft.cfg` container was listed in the SimObject Spawner but not created, 2026-10-16). With the official SDK wrapper
 (T19) `_EX1` can replace the call in `SimConnectSource.ApplySmoke`; nothing else changes.
 
 ## What is here
 
 | File | State |
 |---|---|
-| `PackageSources/SimObjects/Airplanes/ACARS_Smoke/aircraft.cfg` | draft, title `ACARS Smoke` (the string the bridge uses) |
-| `…/model/model.cfg`, `ACARS_Smoke.xml`, `ACARS_Smoke.gltf` | draft: a one-triangle model with the node `ACARS_SMOKE_ROOT`; the XML spawns the effect through `ASOBO_GT_FX` |
+| `PackageSources/SimObjects/Landmarks/ACARS_Smoke/sim.cfg` | draft, title `ACARS Smoke` (the string the bridge uses) |
+| `…/model/model.cfg`, `ACARS_Smoke.xml`, `ACARS_Smoke.gltf` | draft: a model with one empty node `ACARS_SMOKE_ROOT` and no geometry (empty `.bin`, the form of the SDK helper models; the first hand-written triangle with a `data:` buffer failed to compile, 2026-10-16); the XML spawns the effect through `ASOBO_GT_FX` |
 | `PackageSources/VisualEffectLibs/ACARS/acars_smoke.vfxlib` | list only; **the effect `acars_smoke.xml` is not written** |
 
 ## To finish (human, in the MSFS 2024 SDK, DevMode)
 
 1. Make the effect in the Visual Effects Editor: a dark smoke column, about 50 m wide and 300 m high, slow,
-   moved by wind. Save it as `VisualEffectLibs\ACARS\acars_smoke.xml`. Its `InstanceID` goes to `FX_GUID` in
-   `ACARS_Smoke.xml` (now all zeros).
+   moved by wind. Save it as `VisualEffectLibs\ACARS\<group>\acars_smoke.xml`: the sim finds an installed effect
+   only under `VisualEffectLibs\<company>\<asset group>` (Asobo, DevSupport topic 15309). Its `InstanceID` goes to
+   `FX_GUID` in `ACARS_Smoke.xml` (now all zeros). An effect started from an SDK sample needs new GUIDs for every
+   node: with the sample's GUIDs it played only while the project was open in DevMode, never from Community
+   (seen 2026-10-17; new GUIDs fixed it).
 2. Create a package project in the SDK, add these `PackageSources` folders, build, copy the result to the
    `Community` folder as `acars-smoke`.
 3. DevMode → Aircraft selector: is the title `ACARS Smoke` listed? (`SimConnect_EnumerateSimObjectsAndLiveries`
