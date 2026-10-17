@@ -227,6 +227,34 @@ public class RescueControllerTests
     }
 
     [Fact]
+    public void Logs_what_it_sees_on_every_change_and_waits_for_a_touchdown_it_never_saw()
+    {
+        var clock = ManualClock.At(1_700_000_000_000);
+        var lines = new List<string>();
+        var c = new RescueController(clock, lines.Add);
+        c.Start(Req());
+        // The ground test: the request at the aircraft on the ground, never airborne.
+        Assert.Equal(4, Run(c, Rolling(0, 0)).Count);
+        clock.Advance(TimeSpan.FromSeconds(3));
+        Assert.Empty(Run(c, Rolling(0, 0))); // stands, but no touchdown was seen: the trucks keep waiting
+        Assert.Empty(Run(c, Rolling(0, 0)));
+        Assert.Equal(RescueStage.Staged, c.Stage);
+        Assert.Equal(2, lines.Count); // one line per change, none while nothing changes
+        Assert.Contains("stage Staged", lines[0]);
+        Assert.Contains("airborne since staged False", lines[0]);
+        Assert.Contains("stands True", lines[1]);
+
+        // Up and down again (a slew "touchdown"): touchdown, then the stop sends them to the circle.
+        Run(c, OnFinal(0.1));
+        Run(c, Rolling(0, 0));
+        clock.Advance(TimeSpan.FromSeconds(3));
+        Assert.Equal(4, Run(c, Rolling(0, 0)).Count(x => x.Kind == RescueActionKind.Move));
+        Assert.Contains(lines, l => l.Contains("stage Trailing") && l.Contains("waiting 4"));
+        Assert.Contains(lines, l => l.Contains("the aircraft stands, trucks drive to the circle"));
+        Assert.Contains(lines, l => l.Contains("stage Encircle"));
+    }
+
+    [Fact]
     public void Standby_waits_and_never_moves()
     {
         var (c, clock) = New();

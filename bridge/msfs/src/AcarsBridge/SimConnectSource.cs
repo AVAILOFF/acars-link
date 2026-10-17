@@ -87,7 +87,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     /// <summary>How many of those are to be removed as soon as their id comes (a respawn may ask anew before).</summary>
     private int _smokeRemoveWhenAssigned;
 
-    private readonly RescueController _rescue = new(clock);
+    private readonly RescueController _rescue = new(clock, line => Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {line}"));
 
     /// <summary>Rescue vehicles by slot, like the smoke object's fields; message thread only.</summary>
     private readonly uint[] _rescueId = new uint[RescueController.MaxFire + 1];

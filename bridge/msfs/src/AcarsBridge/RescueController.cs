@@ -99,9 +99,11 @@ public enum RescueStage
 /// <item>to the circle a truck goes straight when that line passes at least <see cref="ClearM"/> from the aircraft,
 /// else around it on an arc of <see cref="DetourM"/> in steps of at most <see cref="DetourStepDeg"/>, the short way.</item>
 /// </list>
-/// Thread-safe: commands arrive on a network thread, positions on the SimConnect thread.
+/// Thread-safe: commands arrive on a network thread, positions on the SimConnect thread. <paramref name="log"/> gets a
+/// line on every change of the stage or of what the controller sees (on the ground, airborne since staging, stands,
+/// trucks waiting) and on the events of the trucks (diagnostics for the human check, 2026-10-17).
 /// </summary>
-public sealed class RescueController(TimeProvider clock)
+public sealed class RescueController(TimeProvider clock, Action<string>? log = null)
 {
     public const int MaxFire = 8;
     public const int MedicSlot = MaxFire;
@@ -169,6 +171,10 @@ public sealed class RescueController(TimeProvider clock)
     private DateTimeOffset _medicAt;
 
     private readonly List<RescueAction> _out = [];
+    /// <summary>What was last logged as the state (<see cref="Trace"/>).</summary>
+    private string? _traced;
+
+    private void Log(string line) => log?.Invoke(line);
 
     public RescueStage Stage
     {
@@ -245,6 +251,7 @@ public sealed class RescueController(TimeProvider clock)
             TrackStop(a, now);
             Fire(a, now);
             Medic(a, now);
+            Trace(a, now);
             return _out;
         }
     }
@@ -253,6 +260,19 @@ public sealed class RescueController(TimeProvider clock)
     {
         if (!a.OnGround || a.GsKt >= StopKt) _slowSince = null;
         else _slowSince ??= now;
+    }
+
+    /// <summary>One line whenever the stage or what decides it changes.</summary>
+    private void Trace(RescueAircraft a, DateTimeOffset now)
+    {
+        if (log is null || (_req is null && _fireSpawned == 0)) return;
+        var waiting = _waiting.Count(w => w);
+        var state =
+            $"rescue stage {_stage}, trucks {_fireSpawned}, on ground {a.OnGround}, airborne since staged {_airborne}, " +
+            $"stands {Stands(now)}, waiting {waiting}, level {(_req?.Full == true ? "full" : _req is null ? "-" : "standby")}";
+        if (state == _traced) return;
+        _traced = state;
+        Log($"{state} (gs {a.GsKt:0.0} kt)");
     }
 
     private bool Stands(DateTimeOffset now) => _slowSince is { } s && now - s >= StopAfter;
@@ -343,6 +363,7 @@ public sealed class RescueController(TimeProvider clock)
                     if (!arrived && (_stoppedAt is not { } s || now - s < CircleDriveMax)) continue;
                     _out.Add(RescueAction.Sim(i, false));
                     _circle[i] = null;
+                    Log($"rescue slot {i}: {(arrived ? "arrived on the circle" : "stops (30 s after the stop)")}");
                 }
                 return;
         }
@@ -359,6 +380,7 @@ public sealed class RescueController(TimeProvider clock)
         {
             if (!_waiting[i] || (_pos[i] is { } p && AheadM(a, p) > 0)) continue;
             _waiting[i] = false;
+            Log($"rescue slot {i}: follows (the aircraft has passed it or it was behind)");
             var route = TrailRoute(a, i);
             _out.Add(RescueAction.TurnTo(i, Bearing(_pos[i], route[0])));
             _out.Add(RescueAction.Sim(i, true));
@@ -388,12 +410,14 @@ public sealed class RescueController(TimeProvider clock)
         _stage = RescueStage.Encircle;
         _stoppedAt = now;
         Array.Clear(_waiting);
+        Log($"rescue: the aircraft stands, {(req.Full ? "trucks drive to the circle" : "standby trucks stay")}");
         if (!req.Full) return;
         for (var i = 0; i < _fireSpawned; i++)
         {
             var target = CirclePoint(a, i, _fireSpawned);
             var from = _pos[i] ?? Offset(a.Lat, a.Lon, a.HdgDeg + 180, TrailM * (i + 1));
             var route = CircleRoute(a, from, target);
+            Log($"rescue slot {i}: to the circle, {route.Length} waypoint(s)");
             _out.Add(RescueAction.Sim(i, false));
             _out.Add(RescueAction.TurnTo(i, Bearing(from, route[0])));
             _out.Add(RescueAction.Sim(i, true));
