@@ -700,6 +700,7 @@ describe('live data (T13)', () => {
       );
       expect(a['medic']).toBe('');
       expect(a['side']).toBe('right'); // no wind given
+      expect(a['fireFlip']).toBe('0|1|0|1|0|1|0|1'); // Truck Fire Airport Medium is drawn reversed
       expect(checkSimCommand('rescue_start', a)).toBeNull();
 
       await app.stopFlight();

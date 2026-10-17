@@ -1,4 +1,5 @@
 import {
+  DEFAULT_RESCUE_FLIPPED,
   DEFAULT_RESCUE_TITLES,
   DEFAULT_STATION,
   RESCUE_MAX_VEHICLES,
@@ -47,6 +48,7 @@ export function defaultSettings(locale: string): Settings {
     rescue: true,
     rescueSiren: false,
     rescueTitles: DEFAULT_RESCUE_TITLES,
+    rescueFlipped: DEFAULT_RESCUE_FLIPPED,
     scenarios: {},
     chances: {},
     droneRisk: {},
@@ -114,6 +116,17 @@ export function validatePatch(patch: unknown): SettingsPatch {
           throw bad(key, `{group: [titles]}, up to ${RESCUE_MAX_VEHICLES} per group, no |`);
         }
         out.rescueTitles = t;
+        break;
+      }
+      case 'rescueFlipped': {
+        if (
+          !Array.isArray(value) ||
+          value.length > 64 ||
+          !value.every((t) => typeof t === 'string' && TITLE_RE.test(t))
+        ) {
+          throw bad(key, 'a list of up to 64 titles, no |');
+        }
+        out.rescueFlipped = value as string[];
         break;
       }
       case 'recordFlights':
@@ -201,6 +214,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'rescue',
     'rescueSiren',
     'rescueTitles',
+    'rescueFlipped',
     'droneRisk',
   ] as const;
   for (const key of keys) {

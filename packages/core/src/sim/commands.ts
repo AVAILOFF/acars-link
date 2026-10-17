@@ -113,12 +113,23 @@ const VALIDATORS: Readonly<Record<SimCommandName, (args: SimCommandArgs) => stri
   rescue_stop: (args) => (Object.keys(args).length === 0 ? null : 'rescue_stop takes no arguments'),
 };
 
-const RESCUE_ARGS = ['level', 'thrLat', 'thrLon', 'hdg', 'lengthM', 'side', 'fire', 'medic'];
+const RESCUE_ARGS = [
+  'level',
+  'thrLat',
+  'thrLon',
+  'hdg',
+  'lengthM',
+  'side',
+  'fire',
+  'fireFlip',
+  'medic',
+];
 
 /**
  * `rescue_start` (T54): `level` (`full` | `standby` | `medical`), the landing threshold `thrLat`,
  * `thrLon`, the runway's true course `hdg` and `lengthM`, the `side` of the runway the trucks wait on
- * (`left` | `right` of the landing direction), and the SimObject titles `fire`, `medic`:
+ * (`left` | `right` of the landing direction), the SimObject titles `fire`, `medic` and `fireFlip` — `0` | `1`
+ * per fire truck, joined by `|` like `fire` (`1`: the model is drawn nose to tail with its heading, turn it 180°):
  * one per vehicle, joined by `|` (empty = none). Fire trucks only with `full` / `standby`.
  */
 function checkRescueStart(args: SimCommandArgs): string | null {
@@ -151,6 +162,13 @@ function checkRescueStart(args: SimCommandArgs): string | null {
   }
   if (args['side'] !== 'left' && args['side'] !== 'right') return 'side must be left or right';
   if (level === 'medical' && fire !== '') return 'medical takes no fire trucks';
+  const flips = args['fireFlip'];
+  if (typeof flips !== 'string') return 'fireFlip must be a string';
+  const nFire = fire === '' ? 0 : String(fire).split('|').length;
+  const f = flips === '' ? [] : flips.split('|');
+  if (f.length !== nFire || f.some((x) => x !== '0' && x !== '1')) {
+    return 'fireFlip: 0 or 1 per fire truck, joined by |';
+  }
   return null;
 }
 

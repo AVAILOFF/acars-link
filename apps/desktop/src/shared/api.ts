@@ -78,6 +78,8 @@ export interface Settings {
   readonly rescueSiren: boolean;
   /** SimObject titles of the vehicles by group (T54, game rules of 2026-10-17); editable. */
   readonly rescueTitles: RescueTitles;
+  /** SimObject titles drawn nose to tail with their heading: the bridge turns them 180° (T54, 2026-10-17). */
+  readonly rescueFlipped: readonly string[];
   /** Scenario id → enabled; absent ids use `enabled_by_default`. */
   readonly scenarios: Readonly<Record<string, boolean>>;
   /** Irregular scenario id → chance in percent (0–100); absent ids use the YAML `probability`. */
