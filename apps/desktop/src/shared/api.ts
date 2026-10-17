@@ -1,4 +1,4 @@
-import type { FlightPhase, ScenarioCategory } from '@acars/core';
+import type { FlightPhase, RescueTitles, ScenarioCategory } from '@acars/core';
 import type { TransportStatus } from '@acars/transport';
 
 /**
@@ -69,6 +69,15 @@ export interface Settings {
   readonly specialSport: boolean;
   readonly specialAviation: boolean;
   readonly specialOther: boolean;
+  /**
+   * Rescue services in the simulator (T54): fire trucks and an ambulance at the landing airport
+   * after an emergency, through the sim bridge. Default on.
+   */
+  readonly rescue: boolean;
+  /** Siren on the PC speakers (not in the sim) while the trucks follow the aircraft. Default off. */
+  readonly rescueSiren: boolean;
+  /** SimObject titles of the vehicles by group (T54, game rules of 2026-10-17); editable. */
+  readonly rescueTitles: RescueTitles;
   /** Scenario id → enabled; absent ids use `enabled_by_default`. */
   readonly scenarios: Readonly<Record<string, boolean>>;
   /** Irregular scenario id → chance in percent (0–100); absent ids use the YAML `probability`. */
@@ -311,6 +320,8 @@ export interface AppState {
   readonly memory: readonly string[];
   /** Irregular scenarios of the running flight ("run now"); empty when no flight runs. */
   readonly irregular: readonly ForceableScenario[];
+  /** The rescue siren should sound now (T54, setting `rescueSiren`). */
+  readonly siren: boolean;
 }
 
 export type ErrorCode =

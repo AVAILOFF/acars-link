@@ -48,6 +48,7 @@ public interface ICommandTarget
 /// <list type="bullet">
 /// <item><c>ping</c>, no arguments: is the sim side ready for commands (ok, or <c>unavailable</c>).</item>
 /// <item><c>smoke_start</c> (<c>lat</c>, <c>lon</c>) / <c>smoke_stop</c> (T34): a smoke column at a point, see <see cref="SmokeController"/>.</item>
+/// <item><c>rescue_start</c> / <c>rescue_stop</c> (T54): rescue vehicles at the landing runway, see <see cref="RescueController"/>.</item>
 /// </list>
 /// New commands (T22 VDGS text, T34 effects) are added here with a validator, then implemented by a source.
 /// </summary>
@@ -63,7 +64,38 @@ public static class CommandCatalog
         ["ping"] = args => args.Count == 0 ? null : "ping takes no arguments",
         ["smoke_start"] = ValidateSmokeStart,
         ["smoke_stop"] = args => args.Count == 0 ? null : "smoke_stop takes no arguments",
+        ["rescue_start"] = ValidateRescueStart,
+        ["rescue_stop"] = args => args.Count == 0 ? null : "rescue_stop takes no arguments",
     };
+
+    private static readonly string[] RescueArgs = ["level", "thrLat", "thrLon", "hdg", "lengthM", "fire", "medic"];
+
+    /// <summary>
+    /// <c>rescue_start</c> (T54), the same rules as <c>checkRescueStart</c> in <c>@acars/core</c>: <c>level</c>
+    /// <c>full</c> | <c>standby</c> | <c>medical</c>; the threshold <c>thrLat</c>, <c>thrLon</c>; <c>hdg</c> 0..360;
+    /// <c>lengthM</c> 0..10000; <c>fire</c> and <c>medic</c>: titles joined by <c>|</c>, at most
+    /// <see cref="RescueController.MaxFire"/>, none empty; no fire trucks with <c>medical</c>.
+    /// </summary>
+    private static string? ValidateRescueStart(IReadOnlyDictionary<string, JsonValue> args)
+    {
+        if (args.Count != RescueArgs.Length || !RescueArgs.All(args.ContainsKey))
+            return $"rescue_start needs {string.Join(", ", RescueArgs)} only";
+        if (!args["level"].TryGetValue<string>(out var level) || level is not ("full" or "standby" or "medical"))
+            return "level must be full, standby or medical";
+        if (!args["thrLat"].TryGetValue<double>(out var la) || !(la >= -90 && la <= 90)) return "thrLat must be -90..90";
+        if (!args["thrLon"].TryGetValue<double>(out var lo) || !(lo >= -180 && lo <= 180)) return "thrLon must be -180..180";
+        if (!args["hdg"].TryGetValue<double>(out var h) || !(h >= 0 && h < 360)) return "hdg must be 0..360";
+        if (!args["lengthM"].TryGetValue<double>(out var len) || !(len > 0 && len <= 10_000)) return "lengthM must be 0..10000";
+        foreach (var name in (string[])["fire", "medic"])
+        {
+            if (!args[name].TryGetValue<string>(out var v)) return $"{name} must be a string";
+            var titles = v.Length == 0 ? [] : v.Split('|');
+            if (titles.Length > RescueController.MaxFire) return $"{name}: at most {RescueController.MaxFire} titles";
+            if (titles.Any(t => t.Trim().Length == 0 || t != t.Trim())) return $"{name}: empty title";
+        }
+        if (level == "medical" && args["fire"].GetValue<string>().Length > 0) return "medical takes no fire trucks";
+        return null;
+    }
 
     public static IReadOnlyCollection<string> Names => Validators.Keys;
 

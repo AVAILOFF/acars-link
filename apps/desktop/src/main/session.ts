@@ -613,12 +613,20 @@ function cmdLine(c: SimCommand): RecordingEvent {
       ? rest.vdgs
       : 'args' in rest
         ? rest.args
-        : {
-            action: rest.action,
-            airport: rest.airport,
-            runway: rest.runway,
-            ...(rest.offset ? { offset: rest.offset } : {}),
-          };
+        : 'level' in rest
+          ? {
+              action: rest.action,
+              level: rest.level,
+              airport: rest.airport,
+              runway: rest.runway,
+              windFromDeg: rest.windFromDeg,
+            }
+          : {
+              action: rest.action,
+              airport: rest.airport,
+              runway: rest.runway,
+              ...(rest.offset ? { offset: rest.offset } : {}),
+            };
   return { type: 'cmd', t, scenarioId, command, data: JSON.parse(JSON.stringify(data)) };
 }
 

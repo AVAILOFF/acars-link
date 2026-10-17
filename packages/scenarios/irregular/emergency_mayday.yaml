@@ -37,6 +37,7 @@ steps:
               RESCUE AND FIRE SERVICES ALERTED
               MEDICAL AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
+        - rescue: { level: full }
       CONTINUE:
         - send:
             header: OPS MSG EMERGENCY
@@ -44,3 +45,4 @@ steps:
               ROGER CONTINUE TO {ofp.dest}
               RESCUE AND FIRE SERVICES ALERTED
               ADVISE IF PLAN CHANGES
+        - rescue: { level: full }

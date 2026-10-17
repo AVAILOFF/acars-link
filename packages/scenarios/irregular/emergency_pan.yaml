@@ -35,9 +35,11 @@ steps:
               ~{flight.divert_nm} NM FROM PRESENT POS
               RESCUE AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
+        - rescue: { level: standby }
       CONTINUE:
         - send:
             header: OPS MSG EMERGENCY
             body: |
               ROGER CONTINUE TO {ofp.dest}
               ADVISE IF SITUATION CHANGES
+        - rescue: { level: standby }

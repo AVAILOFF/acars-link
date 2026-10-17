@@ -6,14 +6,23 @@
  *   rules here mirror the bridge's `CommandCatalog`; both sides check.
  * - `smoke_start` (`lat`, `lon`) / `smoke_stop` (T34): a smoke column at a point; the bridge
  *   spawns it when the aircraft is near (see `bridge/msfs/README.md`).
+ * - `rescue_start` / `rescue_stop` (T54): fire trucks and an ambulance at the landing runway; the
+ *   bridge's `RescueController` spawns, moves and removes them.
  * - `vdgs` (T22) is text for the GSX docking display (`sim/vdgs.ts`). The app writes it to
  *   GSX's message folder itself; it never goes to the bridge.
  */
 
+import type { RescueLevel } from '../scenario/types.js';
 import type { VdgsMessage } from './vdgs.js';
 
 /** Commands the sim bridge runs (its whitelist). */
-export const SIM_COMMANDS = ['ping', 'smoke_start', 'smoke_stop'] as const;
+export const SIM_COMMANDS = [
+  'ping',
+  'smoke_start',
+  'smoke_stop',
+  'rescue_start',
+  'rescue_stop',
+] as const;
 export type SimCommandName = (typeof SIM_COMMANDS)[number];
 
 export type SimCommandArg = string | number | boolean;
@@ -57,7 +66,32 @@ export interface SmokeCommand extends CommandBase {
   readonly offset?: { readonly alongNm: number; readonly sideNm: number } | null;
 }
 
-export type SimCommand = BridgeCommand | VdgsCommand | SmokeCommand;
+/**
+ * Rescue services at the landing airport (T54, scenario step `rescue`). The core names the airport
+ * (`flight.divert`, else the destination), the planned runway when it lands at the destination and
+ * the level; the app looks up the runway (OurAirports), picks the vehicles and sends the bridge
+ * `rescue_start` / `rescue_stop`, so a recording replays without the lookup.
+ */
+export interface RescueCommand extends CommandBase {
+  readonly command: 'rescue';
+  readonly action: 'start' | 'stop';
+  /** Null for `stop`. */
+  readonly level: RescueLevel | null;
+  readonly airport: string;
+  /** Planned runway of the destination (`24R`); null at a diversion airport or without one. */
+  readonly runway: string | null;
+  /**
+   * Wind direction of the airport's METAR, degrees true (live, else the OFP's); null when calm,
+   * variable or unknown. Without a planned runway the app lands on the end of the longest runway
+   * that faces it (user decision 2026-10-17).
+   */
+  readonly windFromDeg: number | null;
+}
+
+export type SimCommand = BridgeCommand | VdgsCommand | SmokeCommand | RescueCommand;
+
+/** Most vehicles of one `rescue_start` (shared with the bridge's `RescueController`). */
+export const RESCUE_MAX_VEHICLES = 8;
 
 /** Limits shared with the bridge (`CommandCatalog`). */
 export const SIM_COMMAND_LIMITS = { maxArgs: 16, maxStringArg: 512 } as const;
@@ -75,7 +109,48 @@ const VALIDATORS: Readonly<Record<SimCommandName, (args: SimCommandArgs) => stri
     return null;
   },
   smoke_stop: (args) => (Object.keys(args).length === 0 ? null : 'smoke_stop takes no arguments'),
+  rescue_start: checkRescueStart,
+  rescue_stop: (args) => (Object.keys(args).length === 0 ? null : 'rescue_stop takes no arguments'),
 };
+
+const RESCUE_ARGS = ['level', 'thrLat', 'thrLon', 'hdg', 'lengthM', 'fire', 'medic'];
+
+/**
+ * `rescue_start` (T54): `level` (`full` | `standby` | `medical`), the landing threshold `thrLat`,
+ * `thrLon`, the runway's true course `hdg` and `lengthM`, and the SimObject titles `fire`, `medic`:
+ * one per vehicle, joined by `|` (empty = none). Fire trucks only with `full` / `standby`.
+ */
+function checkRescueStart(args: SimCommandArgs): string | null {
+  const keys = Object.keys(args);
+  if (keys.length !== RESCUE_ARGS.length || !RESCUE_ARGS.every((k) => k in args)) {
+    return `needs ${RESCUE_ARGS.join(', ')} only`;
+  }
+  const { level, thrLat, thrLon, hdg, lengthM, fire, medic } = args;
+  if (level !== 'full' && level !== 'standby' && level !== 'medical') {
+    return 'level must be full, standby or medical';
+  }
+  if (typeof thrLat !== 'number' || !(thrLat >= -90 && thrLat <= 90))
+    return 'thrLat must be -90..90';
+  if (typeof thrLon !== 'number' || !(thrLon >= -180 && thrLon <= 180)) {
+    return 'thrLon must be -180..180';
+  }
+  if (typeof hdg !== 'number' || !(hdg >= 0 && hdg < 360)) return 'hdg must be 0..360';
+  if (typeof lengthM !== 'number' || !(lengthM > 0 && lengthM <= 10_000)) {
+    return 'lengthM must be 0..10000';
+  }
+  for (const [name, v] of [
+    ['fire', fire],
+    ['medic', medic],
+  ] as const) {
+    if (typeof v !== 'string') return `${name} must be a string`;
+    const titles = v === '' ? [] : v.split('|');
+    if (titles.length > RESCUE_MAX_VEHICLES)
+      return `${name}: at most ${RESCUE_MAX_VEHICLES} titles`;
+    if (titles.some((t) => t.trim() === '' || t !== t.trim())) return `${name}: empty title`;
+  }
+  if (level === 'medical' && fire !== '') return 'medical takes no fire trucks';
+  return null;
+}
 
 export function isSimCommandName(name: unknown): name is SimCommandName {
   return typeof name === 'string' && (SIM_COMMANDS as readonly string[]).includes(name);

@@ -11,12 +11,16 @@ namespace AcarsBridge;
 /// Commands (protocol v2): <c>ping</c> — ok while a SimConnect session is open; <c>smoke_start</c> /
 /// <c>smoke_stop</c> (T34) — a smoke SimObject at a point, created by <c>AICreateSimulatedObject</c> when the
 /// aircraft is near (the EX1 variant is not in the managed wrapper of the SDK, so the smoke package is a
-/// non-modular SimObject, which the plain call supports).
+/// non-modular SimObject, which the plain call supports). <c>rescue_start</c> / <c>rescue_stop</c> (T54) — fire trucks and
+/// an ambulance by their titles (<see cref="RescueController"/>), created with the same plain call and driven by
+/// <c>AI WAYPOINT LIST</c> (<c>SetDataOnSimObject</c> with <c>SIMCONNECT_DATA_WAYPOINT</c>); while they are wanted the
+/// aircraft position is also read every <see cref="RescueController.MoveEvery"/>.
 /// </summary>
 public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy = null) : ISimSource, ICommandTarget
 {
-    private enum Def { Telemetry }
-    private enum Req { Telemetry, Smoke, SmokeRemove }
+    private enum Def { Telemetry, Rescue, Waypoint }
+    /// <summary>Rescue vehicles are created with <c>RescueSpawn + slot</c>.</summary>
+    private enum Req { Telemetry, Smoke, SmokeRemove, RescuePos, RescueRemove, RescueSpawn = 100 }
     private enum Evt { Pause, Sim }
 
     /// <summary>Wire layout of the data definition: FLOAT64 × SimVars.Count, then TITLE as STRING256.</summary>
@@ -28,6 +32,13 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
 
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)]
         public string Title;
+    }
+
+    /// <summary>Aircraft position for the rescue vehicles (T54): FLOAT64 × 7, in this order.</summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private struct RescuePos
+    {
+        public double Lat, Lon, Alt, Hdg, Gs, OnGround, ParkingBrake;
     }
 
     private const string ClientName = "ACARS Bridge";
@@ -52,7 +63,15 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     /// <summary>How many of those are to be removed as soon as their id comes (a respawn may ask anew before).</summary>
     private int _smokeRemoveWhenAssigned;
 
-    public IReadOnlyCollection<string> Commands { get; } = ["ping", "smoke_start", "smoke_stop"];
+    private readonly RescueController _rescue = new(clock);
+
+    /// <summary>Rescue vehicles by slot, like the smoke object's fields; message thread only.</summary>
+    private readonly uint[] _rescueId = new uint[RescueController.MaxFire + 1];
+    private readonly int[] _rescueAsked = new int[RescueController.MaxFire + 1];
+    private readonly int[] _rescueRemoveWhenAssigned = new int[RescueController.MaxFire + 1];
+    private DateTimeOffset _rescuePolled;
+
+    public IReadOnlyCollection<string> Commands { get; } = ["ping", "rescue_start", "rescue_stop", "smoke_start", "smoke_stop"];
 
     public Task<CommandResult> ExecuteAsync(SimCommand command, CancellationToken ct)
     {
@@ -68,6 +87,14 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                 return Task.FromResult(CommandResult.Success);
             case "smoke_stop":
                 _smoke.Stop();
+                return Task.FromResult(CommandResult.Success);
+            case "rescue_start" when !_open:
+                return Task.FromResult(CommandResult.Fail(CommandErrors.Unavailable, "sim not connected"));
+            case "rescue_start":
+                _rescue.Start(RescueRequest.FromArgs(command.Args));
+                return Task.FromResult(CommandResult.Success);
+            case "rescue_stop":
+                _rescue.Stop();
                 return Task.FromResult(CommandResult.Success);
             default:
                 return Task.FromResult(CommandResult.Fail(CommandErrors.UnknownCommand, command.Name));
@@ -99,6 +126,54 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                     _smokeRemoveWhenAssigned++;
                 break;
         }
+    }
+
+    /// <summary>Message thread: carries out what <see cref="RescueController"/> decides for this position.</summary>
+    private void ApplyRescue(SimConnect sc, RescuePos p)
+    {
+        var a = new RescueAircraft(p.Lat, p.Lon, p.Hdg, p.Gs, p.OnGround != 0, p.ParkingBrake != 0);
+        foreach (var x in _rescue.OnPosition(a))
+        {
+            switch (x.Kind)
+            {
+                case RescueActionKind.Spawn:
+                    var at = new SIMCONNECT_DATA_INITPOSITION
+                    {
+                        Latitude = x.Lat, Longitude = x.Lon, Altitude = 0, Pitch = 0, Bank = 0, Heading = x.Hdg,
+                        OnGround = 1, Airspeed = 0,
+                    };
+                    _rescueAsked[x.Slot]++;
+                    sc.AICreateSimulatedObject(x.Title, at, (Req)((int)Req.RescueSpawn + x.Slot));
+                    break;
+                case RescueActionKind.Remove:
+                    if (_rescueId[x.Slot] != 0)
+                    {
+                        sc.AIRemoveObject(_rescueId[x.Slot], Req.RescueRemove);
+                        _rescueId[x.Slot] = 0;
+                    }
+                    else if (_rescueAsked[x.Slot] > _rescueRemoveWhenAssigned[x.Slot])
+                        _rescueRemoveWhenAssigned[x.Slot]++;
+                    break;
+                case RescueActionKind.Move when _rescueId[x.Slot] != 0:
+                    var wp = new SIMCONNECT_DATA_WAYPOINT
+                    {
+                        Latitude = x.Lat, Longitude = x.Lon, Altitude = p.Alt,
+                        Flags = (uint)(SIMCONNECT_WAYPOINT_FLAGS.ON_GROUND | SIMCONNECT_WAYPOINT_FLAGS.SPEED_REQUESTED),
+                        ktsSpeed = x.SpeedKt, percentThrottle = 0,
+                    };
+                    sc.SetDataOnSimObject(Def.Waypoint, _rescueId[x.Slot], SIMCONNECT_DATA_SET_FLAG.DEFAULT, new object[] { wp });
+                    break;
+            }
+        }
+    }
+
+    /// <summary>Asks for the aircraft position for the rescue vehicles at most every <see cref="RescueController.MoveEvery"/>.</summary>
+    private void PollRescue(SimConnect sc)
+    {
+        if (!_rescue.Active || clock.GetUtcNow() - _rescuePolled < RescueController.MoveEvery) return;
+        _rescuePolled = clock.GetUtcNow();
+        sc.RequestDataOnSimObject(Req.RescuePos, Def.Rescue, SimConnect.SIMCONNECT_OBJECT_ID_USER,
+            SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
     }
 
     public Task RunAsync(ISimSink sink, CancellationToken ct) =>
@@ -170,6 +245,11 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         }
         sc.OnRecvSimobjectData += (_, data) =>
         {
+            if ((Req)data.dwRequestID == Req.RescuePos)
+            {
+                ApplyRescue(sc, (RescuePos)data.dwData[0]);
+                return;
+            }
             if ((Req)data.dwRequestID != Req.Telemetry) return;
             var raw = (RawData)data.dwData[0];
             var before = pump.SimRate;
@@ -179,6 +259,18 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         };
         sc.OnRecvAssignedObjectId += (_, data) =>
         {
+            var slot = (int)data.dwRequestID - (int)Req.RescueSpawn;
+            if (slot >= 0 && slot < _rescueId.Length)
+            {
+                if (_rescueAsked[slot] > 0) _rescueAsked[slot]--;
+                if (_rescueRemoveWhenAssigned[slot] > 0)
+                {
+                    _rescueRemoveWhenAssigned[slot]--;
+                    sc.AIRemoveObject(data.dwObjectID, Req.RescueRemove);
+                }
+                else _rescueId[slot] = data.dwObjectID;
+                return;
+            }
             if ((Req)data.dwRequestID != Req.Smoke) return;
             if (_smokeAsked > 0) _smokeAsked--;
             if (_smokeRemoveWhenAssigned > 0)
@@ -193,6 +285,19 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             sc.AddToDataDefinition(Def.Telemetry, v.Name, v.Unit, SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.AddToDataDefinition(Def.Telemetry, "TITLE", null, SIMCONNECT_DATATYPE.STRING256, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.RegisterDataDefineStruct<RawData>(Def.Telemetry);
+
+        // T54: the aircraft for the rescue vehicles, and the waypoint list that drives them (MSFS SDK,
+        // SIMCONNECT_DATA_WAYPOINT and the AI WAYPOINT LIST SimVar, checked 2026-10-17).
+        (string Name, string Unit)[] rescueVars =
+        [
+            ("PLANE LATITUDE", "degrees"), ("PLANE LONGITUDE", "degrees"), ("PLANE ALTITUDE", "feet"),
+            ("PLANE HEADING DEGREES TRUE", "degrees"), ("GROUND VELOCITY", "knots"), ("SIM ON GROUND", "Bool"),
+            ("BRAKE PARKING POSITION", "Bool"),
+        ];
+        foreach (var (name, unit) in rescueVars)
+            sc.AddToDataDefinition(Def.Rescue, name, unit, SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
+        sc.RegisterDataDefineStruct<RescuePos>(Def.Rescue);
+        sc.AddToDataDefinition(Def.Waypoint, "AI WAYPOINT LIST", "number", SIMCONNECT_DATATYPE.WAYPOINT, 0f, SimConnect.SIMCONNECT_UNUSED);
 
         // Pause_EX1 reports full / active / sim pause; "Sim" reports running state. Both fire at once
         // with the current state on subscription (SDK docs, SubscribeToSystemEvent).
@@ -209,7 +314,11 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                 // Also poll on timeout: draining an empty queue is harmless and covers a missed signal.
                 signal.WaitOne(PollInterval);
                 sc.ReceiveMessage();
-                if (open) pump.Tick();
+                if (open)
+                {
+                    pump.Tick();
+                    PollRescue(sc);
+                }
             }
         }
         finally
@@ -220,6 +329,10 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             _smokeAsked = 0;
             _smokeRemoveWhenAssigned = 0;
             _smoke.SessionEnded();
+            Array.Clear(_rescueId);
+            Array.Clear(_rescueAsked);
+            Array.Clear(_rescueRemoveWhenAssigned);
+            _rescue.SessionEnded();
         }
         return ended ?? "stopped";
     }

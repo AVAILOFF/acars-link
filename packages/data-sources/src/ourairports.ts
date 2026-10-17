@@ -3,6 +3,7 @@ import {
   type AirportPlace,
   bearingDeg,
   type DivertAirport,
+  distanceNm,
   type Ofp,
   RoutePolyline,
   type RunwayNeed,
@@ -131,6 +132,135 @@ export function parseRunwayPoint(csv: string, icao: string, rwy: string): Runway
     };
   }
   return null;
+}
+
+/**
+ * The landing runway for the rescue services (T54): threshold of the landing end and its true
+ * course toward the other end, the length between the two ends' coordinates. OurAirports gives the
+ * runway ends (`le_*` / `he_*`), not displaced thresholds.
+ */
+export interface LandingRunway {
+  readonly ident: string;
+  readonly thrLat: number;
+  readonly thrLon: number;
+  readonly headingDeg: number;
+  readonly lengthM: number;
+}
+
+export async function fetchLandingRunway(
+  ctx: FetchContext,
+  icao: string,
+  rwy: string | null,
+  windFromDeg: number | null = null,
+): Promise<LandingRunway | null> {
+  const res = await request(ctx, OURAIRPORTS_RUNWAYS_URL);
+  expectOk(res, 'OurAirports');
+  return parseLandingRunway(res.body, icao, rwy, windFromDeg);
+}
+
+/**
+ * Runway `rwy` (`24L`, landing on that end) of `icao`; without `rwy`, or when it is not in the
+ * file, the longest open runway with coordinates at both ends, landing into the wind of
+ * `windFromDeg` (the end whose course is closer to it), on its `le` end without wind (user
+ * decision of T54, 2026-10-17). Null when no runway has coordinates.
+ */
+export function parseLandingRunway(
+  csv: string,
+  icao: string,
+  rwy: string | null,
+  windFromDeg: number | null = null,
+): LandingRunway | null {
+  const lines = csv.split(/\r?\n/);
+  const head = splitCsv(lines[0] ?? '');
+  const col = (name: string) => head.indexOf(name);
+  const idx = [
+    'airport_ident',
+    'closed',
+    'le_ident',
+    'le_latitude_deg',
+    'le_longitude_deg',
+    'he_ident',
+    'he_latitude_deg',
+    'he_longitude_deg',
+  ].map(col);
+  if (idx.some((i) => i < 0)) throw new DataSourceError('OurAirports: unexpected CSV header');
+  const [ident, closed, leId, leLat, leLon, heId, heLat, heLon] = idx as [
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+    number,
+  ];
+  const want = rwy?.trim().toUpperCase() ?? null;
+  let named: LandingRunway | null = null;
+  let longest: LandingRunway | null = null;
+  for (const line of lines.slice(1)) {
+    if (!line.includes(`"${icao}"`)) continue;
+    const c = splitCsv(line);
+    if (c[ident] !== icao) continue;
+    if ([c[leLat], c[leLon], c[heLat], c[heLon]].some((v) => v === undefined || v === '')) continue;
+    const [a, b, d, e] = [leLat, leLon, heLat, heLon].map((i) => Number(c[i]));
+    if (![a, b, d, e].every(Number.isFinite)) continue;
+    const le = { lat: a as number, lon: b as number };
+    const he = { lat: d as number, lon: e as number };
+    const lengthM = Math.round(distanceNm(le, he) * 1852);
+    if (lengthM <= 0) continue;
+    const end = (id: string, thr: typeof le, far: typeof le): LandingRunway => ({
+      ident: id,
+      thrLat: thr.lat,
+      thrLon: thr.lon,
+      headingDeg: bearingDeg(thr, far),
+      lengthM,
+    });
+    const [leName, heName] = [c[leId]?.toUpperCase() ?? '', c[heId]?.toUpperCase() ?? ''];
+    if (want !== null && named === null) {
+      if (leName === want) named = end(leName, le, he);
+      else if (heName === want) named = end(heName, he, le);
+    }
+    if (c[closed] !== '1' && (longest === null || lengthM > longest.lengthM)) {
+      const fromLe = end(leName, le, he);
+      const fromHe = end(heName, he, le);
+      longest =
+        windFromDeg !== null &&
+        angleOff(fromHe.headingDeg, windFromDeg) < angleOff(fromLe.headingDeg, windFromDeg)
+          ? fromHe
+          : fromLe;
+    }
+  }
+  return named ?? longest;
+}
+
+/** Angle between two courses, 0..180°. */
+function angleOff(a: number, b: number): number {
+  const d = Math.abs((((a - b) % 360) + 360) % 360);
+  return d > 180 ? 360 - d : d;
+}
+
+/**
+ * Idents of the large airports (`type = large_airport`) of OurAirports `airports.csv` — the
+ * "large airport" of the T54 vehicle rules.
+ */
+export async function fetchLargeAirports(ctx: FetchContext): Promise<string[]> {
+  const res = await request(ctx, OURAIRPORTS_AIRPORTS_URL);
+  expectOk(res, 'OurAirports');
+  return parseLargeAirports(res.body);
+}
+
+export function parseLargeAirports(csv: string): string[] {
+  const lines = csv.split(/\r?\n/);
+  const head = splitCsv(lines[0] ?? '');
+  const [ident, type] = [head.indexOf('ident'), head.indexOf('type')];
+  if (ident < 0 || type < 0) throw new DataSourceError('OurAirports: unexpected CSV header');
+  const out: string[] = [];
+  for (const line of lines.slice(1)) {
+    if (!line.includes('"large_airport"')) continue;
+    const c = splitCsv(line);
+    if (c[type] === 'large_airport' && c[ident]) out.push(c[ident] as string);
+  }
+  return out;
 }
 
 /**

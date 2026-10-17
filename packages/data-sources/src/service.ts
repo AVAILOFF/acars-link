@@ -39,8 +39,11 @@ import {
   fetchAirportFrequencies,
   fetchAirportPlaces,
   fetchDivertAirports,
+  fetchLandingRunway,
+  fetchLargeAirports,
   fetchRunwayPoint,
   fetchVhfStations,
+  type LandingRunway,
   type RunwayPoint,
 } from './ourairports.js';
 import { fetchQuakes } from './quakes.js';
@@ -840,6 +843,53 @@ export class ExternalDataService {
       const p = await fetchRunwayPoint(this.ctx, icao, rwy);
       await this.store(key, now, p);
       return p;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * The landing runway for the rescue services (OurAirports, T54): `rwy`, else the longest, into
+   * the wind `windFromDeg`; cached 30 days; null when unknown or the file cannot be had. Never
+   * throws.
+   */
+  async landingRunway(
+    icao: string,
+    rwy: string | null,
+    now: number,
+    windFromDeg: number | null = null,
+  ): Promise<LandingRunway | null> {
+    const wind = windFromDeg === null ? '' : `@${Math.round(windFromDeg)}`;
+    const key = `landing-rwy:${icao}:${rwy?.toUpperCase() ?? '*'}${wind}`;
+    try {
+      const hit = (await this.cached(key, now, 'freqs', (v) => {
+        const r = v as LandingRunway | null;
+        if (r !== null && !(Number.isFinite(r.thrLat) && Number.isFinite(r.lengthM)))
+          throw new Error('bad');
+      })) as LandingRunway | null | undefined;
+      if (hit !== undefined) return hit;
+      const r = await fetchLandingRunway(this.ctx, icao, rwy, windFromDeg);
+      await this.store(key, now, r);
+      return r;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Whether OurAirports lists the airport as `large_airport` (T54), cached 30 days; null when the
+   * file cannot be had. Never throws.
+   */
+  async isLargeAirport(icao: string, now: number): Promise<boolean | null> {
+    try {
+      let list = (await this.cached('large-airports', now, 'holidays', (v) => {
+        if (!Array.isArray(v)) throw new Error('bad');
+      })) as string[] | undefined;
+      if (list === undefined) {
+        list = await fetchLargeAirports(this.ctx);
+        await this.store('large-airports', now, list);
+      }
+      return list.includes(icao);
     } catch {
       return null;
     }

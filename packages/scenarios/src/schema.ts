@@ -323,6 +323,24 @@ export const SCENARIO_SCHEMA = {
           {
             type: 'object',
             additionalProperties: false,
+            required: ['rescue'],
+            properties: {
+              rescue: {
+                oneOf: [
+                  { const: 'stop' },
+                  {
+                    type: 'object',
+                    additionalProperties: false,
+                    required: ['level'],
+                    properties: { level: { enum: ['full', 'standby', 'medical'] } },
+                  },
+                ],
+              },
+            },
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
             required: ['vdgs'],
             properties: {
               vdgs: {

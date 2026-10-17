@@ -25,6 +25,7 @@ import {
   buildContext,
   compass8,
   type FuelTrack,
+  metarWind,
   RouteGeometry,
   type RunVariable,
   type ScenarioContext,
@@ -1525,6 +1526,27 @@ export class ScenarioEngine {
           airport: apt.icao,
           runway,
           ...(offset !== null ? { offset } : {}),
+        });
+        continue;
+      }
+      if (step.kind === 'rescue') {
+        const airport = this.st.divert ?? this.ofp.destination.icao;
+        const atDest = airport === this.ofp.destination.icao;
+        // Wind at the landing airport: live METAR (T13), else the OFP's; for the runway end.
+        const o = this.ofp;
+        const known = [o.origin, o.destination, ...o.alternates].find((a) => a.icao === airport);
+        const wind = metarWind(
+          liveWx(this.st.ext, airport, input.now)?.metar ?? known?.metar ?? null,
+        );
+        this.commands.push({
+          command: 'rescue',
+          scenarioId: sc.id,
+          t: input.now,
+          action: step.level === null ? 'stop' : 'start',
+          level: step.level,
+          airport,
+          runway: atDest ? (this.ofp.destination.planRwy ?? null) : null,
+          windFromDeg: step.level === null ? null : (wind?.from ?? null),
         });
         continue;
       }

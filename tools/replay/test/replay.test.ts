@@ -454,3 +454,45 @@ describe('airline memory in a recording (T14)', () => {
     );
   });
 });
+
+describe('rescue services in a replay (T54)', () => {
+  it('MEDICAL in cruise: the rescue command is on the timeline, the same on every run', () => {
+    const dir = join(import.meta.dirname, '../../../packages/scenarios/commands');
+    const commands: ScenarioFile[] = readdirSync(dir)
+      .filter((f) => f.endsWith('.yaml'))
+      .sort()
+      .map((f) => ({ file: f, source: readFileSync(join(dir, f), 'utf8') }));
+    const scenarios = pickScenarios({
+      base: [...base, ...commands],
+      extra: [],
+      recorded: [],
+      only: ['cmd_medical'],
+    }).scenarios;
+    const flight = generateSyntheticFlight({ ofp });
+    const first = normal.events[0];
+    const t0 = first !== undefined && 'now' in first ? first.now : 0;
+    const cruise = (flight.snapshots[stageIndex(flight, 'CRUISE', 600)]?.t ?? 0) - t0;
+    const pilot = [
+      { afterMin: cruise / 60_000, text: 'MEDICAL PAX UNCONSCIOUS' },
+      { afterMin: cruise / 60_000 + 1, text: 'CONTINUE' },
+    ];
+    const run = () =>
+      replay(normal, { scenarios, pilot }).timeline.flatMap((e) =>
+        e.kind === 'cmd' ? [e.command] : [],
+      );
+    const a = run();
+    expect(a).toEqual([
+      expect.objectContaining({
+        command: 'rescue',
+        scenarioId: 'cmd_medical',
+        action: 'start',
+        level: 'medical',
+        airport: ofp.destination.icao,
+        runway: ofp.destination.planRwy,
+      }),
+    ]);
+    expect(run()).toEqual(a);
+    const report = formatReport(replay(normal, { scenarios, pilot }), {});
+    expect(report).toContain('SIM        cmd_medical  rescue');
+  });
+});

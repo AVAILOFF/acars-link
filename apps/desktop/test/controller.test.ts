@@ -1,7 +1,14 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { distanceNm, generateSyntheticFlight, ManualClock, parseSimbriefOfp } from '@acars/core';
+import {
+  checkSimCommand,
+  DEFAULT_RESCUE_TITLES,
+  distanceNm,
+  generateSyntheticFlight,
+  ManualClock,
+  parseSimbriefOfp,
+} from '@acars/core';
 import { compareOutbound, parseJsonl, type Recording, replay } from '@acars/replay';
 import { loadScenarios } from '@acars/scenarios';
 import { MockTransport } from '@acars/transport';
@@ -627,6 +634,167 @@ describe('live data (T13)', () => {
       'smoke_start',
       'smoke_stop',
     ]);
+  });
+
+  describe('rescue services (T54)', () => {
+    const fixtures = join(import.meta.dirname, '../../../packages/data-sources/test/fixtures');
+    const settle = async () => {
+      for (let i = 0; i < 20; i++) await new Promise((r) => setTimeout(r, 0));
+    };
+    const rescue = (
+      level: 'full' | 'standby' | 'medical' | null,
+      airport = 'RJBB',
+      runway: string | null = '24R',
+      windFromDeg: number | null = null,
+    ) =>
+      ({
+        command: 'rescue',
+        action: level === null ? 'stop' : 'start',
+        level,
+        airport,
+        runway,
+        windFromDeg,
+        scenarioId: 'emergency_mayday',
+        t: T0,
+      }) as const;
+    type Sent = { command?: string; args?: Record<string, unknown> };
+
+    async function start(opts: { airports?: string } = {}) {
+      const simbrief = await readFile(OFP_FIXTURE, 'utf8');
+      const runways = await readFile(join(fixtures, 'ourairports-runways.csv'), 'utf8');
+      const airports =
+        opts.airports ?? (await readFile(join(fixtures, 'ourairports-airports.csv'), 'utf8'));
+      const http = new FakeHttp((req) =>
+        req.url.includes('runways.csv')
+          ? { status: 200, body: runways }
+          : req.url.includes('airports.csv')
+            ? { status: 200, body: airports }
+            : { status: 200, body: simbrief },
+      );
+      const s = await setup({ http });
+      await s.app.setSimbriefUsername('pilot42');
+      await s.app.updateSettings({ transport: 'offline' });
+      await s.app.loadOfp();
+      const socket = s.sockets.last();
+      socket.hello(2, 1, ['ping', 'rescue_start', 'rescue_stop', 'smoke_start', 'smoke_stop']);
+      await s.app.startFlight();
+      const sent = () => socket.sent as Sent[];
+      return { ...s, socket, sent };
+    }
+
+    it('MAYDAY: the planned runway, 8 trucks for an A35K, large non-North-American models; stop takes them down', async () => {
+      const { app, sent } = await start();
+      app.sendSimCommand(rescue('full'));
+      await settle();
+      const [cmd] = sent();
+      expect(cmd?.command).toBe('rescue_start');
+      const a = cmd?.args as Record<string, number | string>;
+      expect(a['level']).toBe('full');
+      // RJBB 24R: its threshold, about 230° true, about 4000 m.
+      expect(a['thrLat']).toBeCloseTo(34.45133, 4);
+      expect(a['thrLon']).toBeCloseTo(135.24001, 4);
+      expect(a['hdg']).toBeCloseTo(230.6, 0);
+      expect(a['lengthM']).toBeGreaterThan(3900);
+      expect(String(a['fire']).split('|')).toEqual(
+        Array.from({ length: 4 }, () => [
+          'ASO_Firetruck02',
+          'Microsoft_Truck_Fire_Medium_Red',
+        ]).flat(),
+      );
+      expect(a['medic']).toBe('');
+      expect(checkSimCommand('rescue_start', a)).toBeNull();
+
+      await app.stopFlight();
+      expect(sent().map((m) => m.command)).toEqual(['rescue_start', 'rescue_stop']);
+    });
+
+    it('PAN, then MAYDAY: standby then full; a lower level later changes nothing; MEDICAL adds the ambulance', async () => {
+      const { app, sent } = await start();
+      app.sendSimCommand(rescue('standby'));
+      await settle();
+      app.sendSimCommand(rescue('full'));
+      await settle();
+      app.sendSimCommand(rescue('standby'));
+      await settle();
+      app.sendSimCommand(rescue('medical'));
+      await settle();
+      expect(sent().map((m) => m.args?.['level'])).toEqual(['standby', 'full', 'full']);
+      expect(sent()[2]?.args?.['medic']).toBe('Van Asia High Roof Medic Japan');
+      expect(sent()[1]?.args?.['medic']).toBe('');
+    });
+
+    it('a diversion airport without a planned runway: its longest; not large in North America → city trucks', async () => {
+      const { app, sent } = await start({
+        airports: '"id","ident","type"\n1,"KSFO","medium_airport"',
+      });
+      app.sendSimCommand(rescue('medical', 'KSFO', null));
+      await settle();
+      expect(sent()[0]?.args).toMatchObject({
+        level: 'medical',
+        fire: '',
+        medic: 'Truck Utility NorthAm Medic',
+      });
+      app.sendSimCommand(rescue('full', 'KSFO', null));
+      await settle();
+      const a = sent()[1]?.args as Record<string, number | string>;
+      expect(a['fire']).toBe(
+        'Truck Fire Long 02|Microsoft_Truck_Fire_Long|Truck Fire Long 02|Microsoft_Truck_Fire_Long|Truck Fire Long 02|Microsoft_Truck_Fire_Long|Truck Fire Long 02|Microsoft_Truck_Fire_Long',
+      );
+      expect(a['medic']).toBe('Truck Utility NorthAm Medic');
+      expect(a['hdg']).toBeCloseTo(118, -1); // 10L, the longest of KSFO in the file
+    });
+
+    it('without a planned runway: the longest one, landing into the METAR wind', async () => {
+      const { app, sent } = await start();
+      app.sendSimCommand(rescue('full', 'KSFO', null, 290));
+      await settle();
+      expect(sent()[0]?.args?.['hdg']).toBeCloseTo(298, -1); // 28R, the other end of 10L
+    });
+
+    it('no runway coordinates: a line in the feed; switched off: nothing at all; titles from the settings', async () => {
+      const { app, sent } = await start();
+      app.sendSimCommand(rescue('full', 'ZZZZ', null));
+      await settle();
+      expect(sent()).toEqual([]);
+      expect(
+        app.state().feed.filter((e) => e.kind === 'system' && e.code === 'sim_command_failed'),
+      ).toMatchObject([
+        { params: { command: 'rescue', detail: 'no runway coordinates for ZZZZ' } },
+      ]);
+
+      await app.updateSettings({
+        rescueTitles: { ...DEFAULT_RESCUE_TITLES, fireLarge: ['FSDT_Firetruck_Panther_6x6_red'] },
+      });
+      app.sendSimCommand(rescue('standby'));
+      await settle();
+      expect(String(sent()[0]?.args?.['fire']).split('|')).toEqual(
+        Array.from({ length: 8 }, () => 'FSDT_Firetruck_Panther_6x6_red'),
+      );
+
+      await app.updateSettings({ rescue: false });
+      app.sendSimCommand(rescue('full'));
+      await settle();
+      expect(sent()).toHaveLength(1);
+    });
+
+    it('settings: on by default, siren off, titles checked', async () => {
+      const { app } = await start();
+      const s = await app.getSettings();
+      expect(s.rescue).toBe(true);
+      expect(s.rescueSiren).toBe(false);
+      expect(s.rescueTitles).toEqual(DEFAULT_RESCUE_TITLES);
+      await expect(
+        app.updateSettings({ rescueTitles: { ...DEFAULT_RESCUE_TITLES, fire: ['A|B'] } }),
+      ).rejects.toThrow(/rescueTitles/);
+      await expect(
+        app.updateSettings({ rescueTitles: { ...DEFAULT_RESCUE_TITLES, fire: [' A'] } }),
+      ).rejects.toThrow(/rescueTitles/);
+      const { fire: _, ...missing } = DEFAULT_RESCUE_TITLES;
+      await expect(
+        app.updateSettings({ rescueTitles: missing as typeof DEFAULT_RESCUE_TITLES }),
+      ).rejects.toThrow(/rescueTitles/);
+      expect(app.state().siren).toBe(false);
+    });
   });
 
   it('data link (T31): off by default; on, messages are delayed, the stations are recorded and replay the same', async () => {
