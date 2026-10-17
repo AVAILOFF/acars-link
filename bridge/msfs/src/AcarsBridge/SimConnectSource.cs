@@ -14,13 +14,14 @@ namespace AcarsBridge;
 /// non-modular SimObject, which the plain call supports). <c>rescue_start</c> / <c>rescue_stop</c> (T54) — fire trucks and
 /// an ambulance by their titles (<see cref="RescueController"/>), created with the same plain call and driven by
 /// <c>AI WAYPOINT LIST</c> (<c>SetDataOnSimObject</c> with <c>SIMCONNECT_DATA_WAYPOINT</c>); while they are wanted the
-/// aircraft position is also read every <see cref="RescueController.MoveEvery"/>.
+/// aircraft position is also read every <see cref="RescueController.MoveEvery"/>. A vehicle stands with its own
+/// simulation off (<c>SIM DISABLED</c> = 1, set as soon as its id is known) and drives with it on.
 /// </summary>
 public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy = null) : ISimSource, ICommandTarget
 {
-    private enum Def { Telemetry, Rescue, Waypoint }
-    /// <summary>Rescue vehicles are created with <c>RescueSpawn + slot</c>.</summary>
-    private enum Req { Telemetry, Smoke, SmokeRemove, RescuePos, RescueRemove, RescueSpawn = 100 }
+    private enum Def { Telemetry, Rescue, Waypoint, SimDisabled, VehiclePos }
+    /// <summary>Rescue vehicles are created with <c>RescueSpawn + slot</c>, their positions asked with <c>VehiclePos + slot</c>.</summary>
+    private enum Req { Telemetry, Smoke, SmokeRemove, RescuePos, RescueRemove, RescueSpawn = 100, VehiclePos = 200 }
     private enum Evt { Pause, Sim }
 
     /// <summary>Wire layout of the data definition: FLOAT64 × SimVars.Count, then TITLE as STRING256.</summary>
@@ -39,6 +40,20 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     private struct RescuePos
     {
         public double Lat, Lon, Alt, Hdg, Gs, OnGround, ParkingBrake;
+    }
+
+    /// <summary><c>SIM DISABLED</c> of a rescue vehicle (Bool as FLOAT64).</summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private struct SimDisabled
+    {
+        public double Value;
+    }
+
+    /// <summary>Where a rescue vehicle is: FLOAT64 × 2.</summary>
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private struct VehiclePos
+    {
+        public double Lat, Lon;
     }
 
     private const string ClientName = "ACARS Bridge";
@@ -69,6 +84,8 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     private readonly uint[] _rescueId = new uint[RescueController.MaxFire + 1];
     private readonly int[] _rescueAsked = new int[RescueController.MaxFire + 1];
     private readonly int[] _rescueRemoveWhenAssigned = new int[RescueController.MaxFire + 1];
+    /// <summary>The vehicle's own simulation should be on (it drives); off from its creation.</summary>
+    private readonly bool[] _rescueSimOn = new bool[RescueController.MaxFire + 1];
     private DateTimeOffset _rescuePolled;
 
     public IReadOnlyCollection<string> Commands { get; } = ["ping", "rescue_start", "rescue_stop", "smoke_start", "smoke_stop"];
@@ -143,7 +160,12 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                         OnGround = 1, Airspeed = 0,
                     };
                     _rescueAsked[x.Slot]++;
+                    _rescueSimOn[x.Slot] = false;
                     sc.AICreateSimulatedObject(x.Title, at, (Req)((int)Req.RescueSpawn + x.Slot));
+                    break;
+                case RescueActionKind.Simulate:
+                    _rescueSimOn[x.Slot] = x.On;
+                    if (_rescueId[x.Slot] != 0) SetSim(sc, _rescueId[x.Slot], x.On);
                     break;
                 case RescueActionKind.Remove:
                     if (_rescueId[x.Slot] != 0)
@@ -155,17 +177,24 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                         _rescueRemoveWhenAssigned[x.Slot]++;
                     break;
                 case RescueActionKind.Move when _rescueId[x.Slot] != 0:
-                    var wp = new SIMCONNECT_DATA_WAYPOINT
+                    SIMCONNECT_DATA_WAYPOINT Point(double lat, double lon) => new()
                     {
-                        Latitude = x.Lat, Longitude = x.Lon, Altitude = p.Alt,
+                        Latitude = lat, Longitude = lon, Altitude = p.Alt,
                         Flags = (uint)(SIMCONNECT_WAYPOINT_FLAGS.ON_GROUND | SIMCONNECT_WAYPOINT_FLAGS.SPEED_REQUESTED),
                         ktsSpeed = x.SpeedKt, percentThrottle = 0,
                     };
-                    sc.SetDataOnSimObject(Def.Waypoint, _rescueId[x.Slot], SIMCONNECT_DATA_SET_FLAG.DEFAULT, new object[] { wp });
+                    object[] list = double.IsNaN(x.Lat2)
+                        ? [Point(x.Lat, x.Lon)]
+                        : [Point(x.Lat, x.Lon), Point(x.Lat2, x.Lon2)];
+                    sc.SetDataOnSimObject(Def.Waypoint, _rescueId[x.Slot], SIMCONNECT_DATA_SET_FLAG.DEFAULT, list);
                     break;
             }
         }
     }
+
+    /// <summary><c>SIM DISABLED</c> of a vehicle: 0 while it drives, 1 while it stands (else it rolls away).</summary>
+    private static void SetSim(SimConnect sc, uint id, bool on) =>
+        sc.SetDataOnSimObject(Def.SimDisabled, id, SIMCONNECT_DATA_SET_FLAG.DEFAULT, new SimDisabled { Value = on ? 0 : 1 });
 
     /// <summary>Asks for the aircraft position for the rescue vehicles at most every <see cref="RescueController.MoveEvery"/>.</summary>
     private void PollRescue(SimConnect sc)
@@ -174,6 +203,12 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         _rescuePolled = clock.GetUtcNow();
         sc.RequestDataOnSimObject(Req.RescuePos, Def.Rescue, SimConnect.SIMCONNECT_OBJECT_ID_USER,
             SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
+        foreach (var slot in _rescue.Driving)
+        {
+            if (_rescueId[slot] == 0) continue;
+            sc.RequestDataOnSimObject((Req)((int)Req.VehiclePos + slot), Def.VehiclePos, _rescueId[slot],
+                SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
+        }
     }
 
     public Task RunAsync(ISimSink sink, CancellationToken ct) =>
@@ -250,6 +285,13 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                 ApplyRescue(sc, (RescuePos)data.dwData[0]);
                 return;
             }
+            var vehicle = (int)data.dwRequestID - (int)Req.VehiclePos;
+            if (vehicle >= 0 && vehicle < RescueController.MaxFire)
+            {
+                var v = (VehiclePos)data.dwData[0];
+                _rescue.VehiclePosition(vehicle, v.Lat, v.Lon);
+                return;
+            }
             if ((Req)data.dwRequestID != Req.Telemetry) return;
             var raw = (RawData)data.dwData[0];
             var before = pump.SimRate;
@@ -268,7 +310,11 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                     _rescueRemoveWhenAssigned[slot]--;
                     sc.AIRemoveObject(data.dwObjectID, Req.RescueRemove);
                 }
-                else _rescueId[slot] = data.dwObjectID;
+                else
+                {
+                    _rescueId[slot] = data.dwObjectID;
+                    SetSim(sc, data.dwObjectID, _rescueSimOn[slot]);
+                }
                 return;
             }
             if ((Req)data.dwRequestID != Req.Smoke) return;
@@ -298,6 +344,12 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             sc.AddToDataDefinition(Def.Rescue, name, unit, SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.RegisterDataDefineStruct<RescuePos>(Def.Rescue);
         sc.AddToDataDefinition(Def.Waypoint, "AI WAYPOINT LIST", "number", SIMCONNECT_DATATYPE.WAYPOINT, 0f, SimConnect.SIMCONNECT_UNUSED);
+        // SIM DISABLED: Bool, settable (SimVars, Miscellaneous Variables, SDK 2024, checked 2026-10-17).
+        sc.AddToDataDefinition(Def.SimDisabled, "SIM DISABLED", "Bool", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
+        sc.RegisterDataDefineStruct<SimDisabled>(Def.SimDisabled);
+        sc.AddToDataDefinition(Def.VehiclePos, "PLANE LATITUDE", "degrees", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
+        sc.AddToDataDefinition(Def.VehiclePos, "PLANE LONGITUDE", "degrees", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
+        sc.RegisterDataDefineStruct<VehiclePos>(Def.VehiclePos);
 
         // Pause_EX1 reports full / active / sim pause; "Sim" reports running state. Both fire at once
         // with the current state on subscription (SDK docs, SubscribeToSystemEvent).
@@ -332,6 +384,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             Array.Clear(_rescueId);
             Array.Clear(_rescueAsked);
             Array.Clear(_rescueRemoveWhenAssigned);
+            Array.Clear(_rescueSimOn);
             _rescue.SessionEnded();
         }
         return ended ?? "stopped";

@@ -76,15 +76,21 @@ public class RescueControllerTests
         Run(c, OnFinal(10));
         Assert.Empty(Run(c, OnFinal(0.2)));
 
-        var trail = Run(c, Rolling(500, 120)); // touchdown
+        var touch = Run(c, Rolling(500, 120)); // touchdown
         Assert.Equal(RescueStage.Trailing, c.Stage);
+        // First their own simulation goes on, then the route.
+        Assert.Equal(Enumerable.Repeat(RescueActionKind.Simulate, 4), touch.Take(4).Select(x => x.Kind));
+        Assert.All(touch.Take(4), x => Assert.True(x.On));
+        var trail = touch.Skip(4).ToList();
         Assert.Equal(4, trail.Count);
         Assert.All(trail, x => Assert.Equal(RescueActionKind.Move, x.Kind));
         for (var i = 0; i < 4; i++)
         {
-            // Column behind the aircraft: 25, 50, 75, 100 m back along its heading.
+            // Column behind the aircraft: 25, 50, 75, 100 m back along its heading, and a second point 30 m on.
             var (bLat, bLon) = RescueController.Offset(ThrLat, ThrLon, Hdg, 500 - 25 * (i + 1));
             Assert.InRange(Meters(bLat, bLon, trail[i].Lat, trail[i].Lon), 0, 0.5);
+            var (aLat, aLon) = RescueController.Offset(ThrLat, ThrLon, Hdg, 500 - 25 * (i + 1) + 30);
+            Assert.InRange(Meters(aLat, aLon, trail[i].Lat2, trail[i].Lon2), 0, 0.5);
             Assert.Equal(60, trail[i].SpeedKt); // 120 + 10, capped
         }
 
@@ -116,8 +122,21 @@ public class RescueControllerTests
         Assert.InRange(Meters(noseLat, noseLon, circle[0].Lat, circle[0].Lon), 0, 0.1);
         var (rightLat, rightLon) = RescueController.Offset(pLat, pLon, Hdg + 90, 50);
         Assert.InRange(Meters(rightLat, rightLon, circle[1].Lat, circle[1].Lon), 0, 0.1);
+        Assert.All(circle, x => Assert.True(double.IsNaN(x.Lat2))); // one point: the circle is the end
 
-        clock.Advance(RescueController.StayAfterStop - TimeSpan.FromSeconds(1));
+        // Arrived within 5 m: that truck stands again (simulation off); the others drive on.
+        Assert.Equal([0, 1, 2, 3], c.Driving);
+        c.VehiclePosition(0, circle[0].Lat, circle[0].Lon);
+        c.VehiclePosition(1, pLat, pLon); // still far
+        var arrived = Run(c, Rolling(1500, 0));
+        Assert.Equal([RescueAction.Sim(0, false)], arrived);
+        Assert.Equal([1, 2, 3], c.Driving);
+        // At the latest 30 s after the stop all stand, wherever they are.
+        clock.Advance(RescueController.CircleDriveMax);
+        Assert.Equal([1, 2, 3], Run(c, Rolling(1500, 0)).Select(x => x.Kind == RescueActionKind.Simulate && !x.On ? x.Slot : -1));
+        Assert.Empty(c.Driving);
+
+        clock.Advance(RescueController.StayAfterStop - RescueController.CircleDriveMax - TimeSpan.FromSeconds(1));
         Assert.Empty(Run(c, Rolling(1500, 0)));
         clock.Advance(TimeSpan.FromSeconds(1));
         var gone = Run(c, Rolling(1500, 0));
@@ -137,7 +156,7 @@ public class RescueControllerTests
         c.Start(Req(full: false));
         Run(c, OnFinal(10));
         Run(c, OnFinal(0.2));
-        Assert.Empty(Run(c, Rolling(500, 120)));
+        Assert.Empty(Run(c, Rolling(500, 120))); // no Simulate, no Move: they keep standing
         Assert.Equal(RescueStage.Staged, c.Stage);
         Run(c, Rolling(1500, 0));
         clock.Advance(TimeSpan.FromSeconds(3));
@@ -156,6 +175,18 @@ public class RescueControllerTests
         c.Start(Req(full: true));
         Assert.Empty(Run(c, OnFinal(5))); // same trucks, nothing created or removed
         Assert.Equal(4, Run(c, Rolling(400, 100)).Count(x => x.Kind == RescueActionKind.Move));
+    }
+
+    [Fact]
+    public void A_touch_and_go_stops_them_again()
+    {
+        var (c, _) = New();
+        c.Start(Req());
+        Run(c, OnFinal(10));
+        Run(c, Rolling(400, 100));
+        var up = Run(c, OnFinal(0.5));
+        Assert.Equal(RescueStage.Staged, c.Stage);
+        Assert.Equal(Enumerable.Range(0, 4).Select(i => RescueAction.Sim(i, false)), up);
     }
 
     [Fact]
