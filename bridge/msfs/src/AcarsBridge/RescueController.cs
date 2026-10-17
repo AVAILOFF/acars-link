@@ -99,7 +99,9 @@ public enum RescueStage
 /// to a crawl on the last waypoint);</item>
 /// <item>to the circle a truck goes straight when that line passes at least <see cref="ClearM"/> from the aircraft,
 /// else around it on an arc of <see cref="DetourM"/> in steps of at most <see cref="DetourStepDeg"/>, the short way;
-/// it has until <see cref="ArrivalLimit"/> of its route to get there;</item>
+/// it is stopped there only when it arrives, gets no closer by <see cref="ProgressM"/> in <see cref="NoProgressAfter"/>
+/// (stuck), or after <see cref="CircleDriveMax"/>;</item>
+/// <item>the trucks wait spread along the whole runway, so they are near wherever the aircraft stops;</item>
 /// <item>touchdown only after <see cref="TouchdownAfter"/> on the ground without a break, back to waiting only after
 /// <see cref="GoAroundAfter"/> in the air (a bounce or a slew does not restart the trucks);</item>
 /// <item>a driving truck is stopped by a one-point route at its last known place at 0 kt before its simulation goes
@@ -126,10 +128,8 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
 
     /// <summary>Waiting trucks: off the runway axis (right of the landing direction), m.</summary>
     public const double StageSideM = 45;
-    /// <summary>Between waiting trucks, m.</summary>
-    public const double StageGapM = 70;
-    /// <summary>First waiting truck past the threshold, m.</summary>
-    public const double StageFromThresholdM = 100;
+    /// <summary>The first and the last waiting truck are this far from the runway ends, m; the rest evenly between.</summary>
+    public const double StageFromEndM = 100;
     /// <summary>Following: truck i is (i + 1) × this behind the aircraft, m.</summary>
     public const double TrailM = 25;
     public const double CircleM = 50;
@@ -140,7 +140,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     /// <summary>Following speed: the aircraft's plus this, within <see cref="MinTrailKt"/>..<see cref="MaxTrailKt"/>.</summary>
     public const double TrailExtraKt = 10, MinTrailKt = 20, MaxTrailKt = 60;
     /// <summary>Speed to the points of the circle.</summary>
-    public const double CircleKt = 30;
+    public const double CircleKt = 40;
     /// <summary>Following: the second waypoint, past the target along the aircraft heading, m.</summary>
     public const double TrailAheadM = 30;
     /// <summary>A truck this close to its point on the circle has arrived: its simulation goes off, m.</summary>
@@ -155,10 +155,11 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     public static readonly TimeSpan TouchdownAfter = TimeSpan.FromSeconds(1);
     /// <summary>In the air without a break this long after touchdown: a go-around, the trucks wait again.</summary>
     public static readonly TimeSpan GoAroundAfter = TimeSpan.FromSeconds(5);
-    /// <summary>Speed the arrival limit counts with, m/s (about <see cref="CircleKt"/>).</summary>
-    public const double ArrivalMps = 15;
-    public static readonly TimeSpan ArrivalExtra = TimeSpan.FromSeconds(15);
-    public static readonly TimeSpan ArrivalMax = TimeSpan.FromSeconds(120);
+    /// <summary>On the way to the circle a truck that gets no closer by <see cref="ProgressM"/> in this long is stuck.</summary>
+    public static readonly TimeSpan NoProgressAfter = TimeSpan.FromSeconds(20);
+    public const double ProgressM = 10;
+    /// <summary>At the latest this long after the stop every truck is stopped wherever it is.</summary>
+    public static readonly TimeSpan CircleDriveMax = TimeSpan.FromMinutes(5);
 
     private readonly object _gate = new();
     private RescueRequest? _req;
@@ -183,7 +184,11 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     private readonly bool[] _waiting = new bool[MaxFire];
     /// <summary>Points on the circle of the trucks still driving there, and until when each may drive.</summary>
     private readonly (double Lat, double Lon)?[] _circle = new (double, double)?[MaxFire];
-    private readonly DateTimeOffset[] _circleUntil = new DateTimeOffset[MaxFire];
+    /// <summary>Closest a truck has come to its point on the circle, and when it last got closer by <see cref="ProgressM"/>.</summary>
+    private readonly double[] _circleBest = new double[MaxFire];
+    private readonly DateTimeOffset[] _circleProgressAt = new DateTimeOffset[MaxFire];
+    /// <summary>Where each truck is driving to now (diagnostics: distance to its target).</summary>
+    private readonly (double Lat, double Lon)?[] _target = new (double, double)?[MaxFire];
 
     private bool _medicSpawned;
     private bool _medicDone;
@@ -219,6 +224,12 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                 return list;
             }
         }
+    }
+
+    /// <summary>Where a truck is driving to now, null when it stands (diagnostics).</summary>
+    public (double Lat, double Lon)? TargetOf(int slot)
+    {
+        lock (_gate) return slot >= 0 && slot < MaxFire ? _target[slot] : null;
     }
 
     /// <summary>Where a driving truck is now (sim thread).</summary>
@@ -259,6 +270,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
             Array.Clear(_pos);
             Array.Clear(_circle);
             Array.Clear(_waiting);
+            Array.Clear(_target);
         }
     }
 
@@ -302,6 +314,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     /// </summary>
     private void Halt(int i, (double Lat, double Lon) fallback)
     {
+        _target[i] = null;
         _out.Add(RescueAction.Go(i, [_pos[i] ?? fallback], 0));
         _out.Add(RescueAction.Sim(i, false));
     }
@@ -348,7 +361,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                 var n = Math.Min(req.Fire.Count, MaxFire);
                 for (var i = 0; i < n; i++)
                 {
-                    var (lat, lon) = StagePoint(req, i);
+                    var (lat, lon) = StagePoint(req, i, n);
                     _out.Add(new(RescueActionKind.Spawn, i, req.Fire[i], lat, lon, Norm(req.Hdg - 90), 0));
                     _pos[i] = (lat, lon);
                 }
@@ -376,7 +389,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                     // A touch-and-go or go-around: back to waiting until the next touchdown, standing.
                     _stage = RescueStage.Staged;
                     for (var i = 0; i < _fireSpawned; i++)
-                        if (!_waiting[i]) Halt(i, StagePoint(req, i));
+                        if (!_waiting[i]) Halt(i, StagePoint(req, i, _fireSpawned));
                     Array.Clear(_waiting);
                     return;
                 }
@@ -391,7 +404,12 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                     _lastMove = now;
                     var kt = TrailKt(a);
                     for (var i = 0; i < _fireSpawned; i++)
-                        if (!_waiting[i]) _out.Add(RescueAction.Go(i, TrailRoute(a, i), kt));
+                    {
+                        if (_waiting[i]) continue;
+                        var trail = TrailRoute(a, i);
+                        _out.Add(RescueAction.Go(i, trail, kt));
+                        _target[i] = trail[0];
+                    }
                 }
                 StartFollowing(a); // after the update: a truck that starts now gets its first route once
                 return;
@@ -405,11 +423,20 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                 for (var i = 0; i < MaxFire; i++)
                 {
                     if (_circle[i] is not { } c) continue;
-                    var arrived = _pos[i] is { } p && Meters(p, c) <= ArrivedM;
-                    if (!arrived && now < _circleUntil[i]) continue;
+                    var d = _pos[i] is { } p ? Meters(p, c) : double.MaxValue;
+                    if (d <= _circleBest[i] - ProgressM)
+                    {
+                        _circleBest[i] = d;
+                        _circleProgressAt[i] = now;
+                    }
+                    var arrived = d <= ArrivedM;
+                    var stuck = now - _circleProgressAt[i] >= NoProgressAfter;
+                    var late = _stoppedAt is { } s && now - s >= CircleDriveMax;
+                    if (!arrived && !stuck && !late) continue;
                     Halt(i, c);
                     _circle[i] = null;
-                    Log($"rescue slot {i}: {(arrived ? "arrived on the circle" : "stops (its time to get there is up)")}");
+                    var why = arrived ? "arrived on the circle" : stuck ? $"stops: no closer in {NoProgressAfter.TotalSeconds:0} s, {d:0} m to go" : "stops: 5 min after the stop";
+                    Log($"rescue slot {i}: {why}");
                 }
                 return;
         }
@@ -431,6 +458,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
             _out.Add(RescueAction.TurnTo(i, Bearing(_pos[i], route[0])));
             _out.Add(RescueAction.Sim(i, true));
             _out.Add(RescueAction.Go(i, route, kt));
+            _target[i] = route[0];
         }
     }
 
@@ -462,34 +490,18 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
             var target = CirclePoint(a, i, _fireSpawned);
             var from = _pos[i] ?? Offset(a.Lat, a.Lon, a.HdgDeg + 180, TrailM * (i + 1));
             var route = CircleRoute(a, from, target);
-            var limit = ArrivalLimit(from, route);
-            Log($"rescue slot {i}: to the circle, {route.Length} waypoint(s), {limit.TotalSeconds:0} s");
+            Log($"rescue slot {i}: to the circle, {route.Length} waypoint(s), {Meters(from, target):0} m away");
             if (_waiting[i]) _out.Add(RescueAction.Sim(i, false)); // standing already
             else Halt(i, from);
             _out.Add(RescueAction.TurnTo(i, Bearing(from, route[0])));
             _out.Add(RescueAction.Sim(i, true));
             _out.Add(RescueAction.Go(i, route, CircleKt));
+            _target[i] = target;
             _circle[i] = target;
-            _circleUntil[i] = now + limit;
+            _circleBest[i] = Meters(from, target);
+            _circleProgressAt[i] = now;
         }
         Array.Clear(_waiting);
-    }
-
-    /// <summary>
-    /// How long a truck may take along <paramref name="route"/> from <paramref name="from"/>: its length at
-    /// <see cref="ArrivalMps"/>, twice, plus <see cref="ArrivalExtra"/>, at most <see cref="ArrivalMax"/>.
-    /// </summary>
-    public static TimeSpan ArrivalLimit((double Lat, double Lon) from, (double Lat, double Lon)[] route)
-    {
-        var m = 0.0;
-        var at = from;
-        foreach (var q in route)
-        {
-            m += Meters(at, q);
-            at = q;
-        }
-        var t = TimeSpan.FromSeconds(m / ArrivalMps * 2) + ArrivalExtra;
-        return t < ArrivalMax ? t : ArrivalMax;
     }
 
     private void Medic(RescueAircraft a, DateTimeOffset now)
@@ -537,12 +549,19 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         Array.Clear(_pos);
         Array.Clear(_circle);
         Array.Clear(_waiting);
+        Array.Clear(_target);
     }
 
-    /// <summary>Waiting place of truck <paramref name="i"/>: along the runway from the threshold, then right of it.</summary>
-    public static (double Lat, double Lon) StagePoint(RescueRequest r, int i)
+    /// <summary>
+    /// Waiting place of truck <paramref name="i"/> of <paramref name="n"/>: spread along the whole runway, the first
+    /// <see cref="StageFromEndM"/> past the threshold and the last as far before the other end (one truck: the middle),
+    /// <see cref="StageSideM"/> right of it (approved 2026-10-17). A runway shorter than 300 m counts as 300 m.
+    /// </summary>
+    public static (double Lat, double Lon) StagePoint(RescueRequest r, int i, int n)
     {
-        var (lat, lon) = Offset(r.ThrLat, r.ThrLon, r.Hdg, StageFromThresholdM + StageGapM * i);
+        var length = Math.Max(r.LengthM, 300);
+        var along = n <= 1 ? length / 2 : StageFromEndM + (length - 2 * StageFromEndM) * i / (n - 1);
+        var (lat, lon) = Offset(r.ThrLat, r.ThrLon, r.Hdg, along);
         return Offset(lat, lon, r.Hdg + 90, StageSideM);
     }
 

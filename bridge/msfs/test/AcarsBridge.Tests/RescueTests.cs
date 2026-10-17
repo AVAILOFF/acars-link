@@ -10,8 +10,11 @@ public class RescueControllerTests
 
     private static readonly string[] FourTrucks = ["ASO_Firetruck02", "Microsoft_Truck_Fire_Medium_Red", "ASO_Firetruck02", "Microsoft_Truck_Fire_Medium_Red"];
 
-    private static RescueRequest Req(bool full = true, string[]? fire = null, string[]? medic = null, double thrLat = ThrLat) =>
-        new(full, thrLat, ThrLon, Hdg, 3000, fire ?? FourTrucks, medic ?? []);
+    /// <summary>A runway of 410 m puts four trucks at 100, 170, 240 and 310 m: all behind a touchdown at 400 m.</summary>
+    private const double Short = 410;
+
+    private static RescueRequest Req(bool full = true, string[]? fire = null, string[]? medic = null, double thrLat = ThrLat, double lengthM = 3000) =>
+        new(full, thrLat, ThrLon, Hdg, lengthM, fire ?? FourTrucks, medic ?? []);
 
     private static (RescueController C, ManualClock Clock) New()
     {
@@ -56,16 +59,26 @@ public class RescueControllerTests
         for (var i = 0; i < 4; i++)
         {
             var x = spawn[i];
-            // On the runway axis 100 + 70 i m from the threshold, 45 m to the right of it, facing the runway.
-            var (axLat, axLon) = RescueController.Offset(ThrLat, ThrLon, Hdg, 100 + 70 * i);
+            // Spread along the whole 3000 m runway: 100, 1033, 1967, 2900 m from the threshold, 45 m right of the axis,
+            // facing the runway.
+            var along = 100 + 2800.0 * i / 3;
+            var (axLat, axLon) = RescueController.Offset(ThrLat, ThrLon, Hdg, along);
             Assert.InRange(Meters(axLat, axLon, x.Lat, x.Lon), 44.9, 45.1);
-            Assert.InRange(Meters(ThrLat, ThrLon, x.Lat, x.Lon), Math.Sqrt(Math.Pow(100 + 70 * i, 2) + 45 * 45) - 0.5,
-                Math.Sqrt(Math.Pow(100 + 70 * i, 2) + 45 * 45) + 0.5);
             var right = RescueController.Offset(axLat, axLon, Hdg + 90, 45);
             Assert.InRange(Meters(right.Lat, right.Lon, x.Lat, x.Lon), 0, 0.1);
             Assert.Equal(160, x.Hdg, 6);
         }
         Assert.Empty(Run(c, OnFinal(10))); // nothing more while waiting
+    }
+
+    [Fact]
+    public void One_truck_waits_at_the_middle_of_the_runway()
+    {
+        var (c, _) = New();
+        c.Start(Req(fire: ["Truck Fire Short"]));
+        var x = Assert.Single(Run(c, OnFinal(10)));
+        var (mLat, mLon) = RescueController.Offset(ThrLat, ThrLon, Hdg, 1500);
+        Assert.InRange(Meters(mLat, mLon, x.Lat, x.Lon), 44.9, 45.1);
     }
 
     /// <summary>Touchdown at <paramref name="m"/>: on the ground for <see cref="RescueController.TouchdownAfter"/>; the actions then.</summary>
@@ -82,7 +95,7 @@ public class RescueControllerTests
     public void Full_follows_after_touchdown_then_surrounds_the_stopped_aircraft_and_leaves_after_10_min()
     {
         var (c, clock) = New();
-        c.Start(Req());
+        c.Start(Req(lengthM: Short));
         var spawn = Run(c, OnFinal(10));
         Assert.Empty(Run(c, OnFinal(0.2)));
 
@@ -146,7 +159,7 @@ public class RescueControllerTests
         {
             var end = x.Route![^1];
             Assert.InRange(Meters(pLat, pLon, end.Lat, end.Lon), 49.9, 50.1);
-            Assert.Equal(30, x.SpeedKt);
+            Assert.Equal(40, x.SpeedKt);
         });
         var (noseLat, noseLon) = RescueController.Offset(pLat, pLon, Hdg, 50);
         Assert.InRange(Meters(noseLat, noseLon, goes[0].Route![^1].Lat, goes[0].Route![^1].Lon), 0, 0.1);
@@ -167,13 +180,21 @@ public class RescueControllerTests
         Assert.All(arrived, x => Assert.Equal(1, x.Slot));
         Assert.Equal(at, Assert.Single(arrived[0].Route!));
         Assert.Equal([0, 2, 3], c.Driving);
-        // At the latest the arrival limit of its route halts each truck, wherever it is (at most 120 s).
-        clock.Advance(RescueController.ArrivalMax);
-        var late = Run(c, Rolling(1500, 0));
-        Assert.Equal([0, 0, 2, 2, 3, 3], late.Select(x => x.Slot));
+        // Truck 0 gets closer by 10 m: it drives on; 2 and 3 get no closer in 20 s: stuck, halted.
+        var close = RescueController.Offset(behind.Lat, behind.Lon, Hdg, 20);
+        clock.Advance(TimeSpan.FromSeconds(10));
+        c.VehiclePosition(0, close.Lat, close.Lon);
+        Assert.Empty(Run(c, Rolling(1500, 0)));
+        clock.Advance(TimeSpan.FromSeconds(10));
+        var stuck = Run(c, Rolling(1500, 0));
+        Assert.Equal([2, 2, 3, 3], stuck.Select(x => x.Slot));
+        Assert.Equal([0], c.Driving);
+        // At the latest 5 min after the stop.
+        clock.Advance(RescueController.CircleDriveMax - TimeSpan.FromSeconds(20));
+        Assert.Equal([0, 0], Run(c, Rolling(1500, 0)).Select(x => x.Slot));
         Assert.Empty(c.Driving);
 
-        clock.Advance(RescueController.StayAfterStop - RescueController.ArrivalMax - TimeSpan.FromSeconds(1));
+        clock.Advance(RescueController.StayAfterStop - RescueController.CircleDriveMax - TimeSpan.FromSeconds(1));
         Assert.Empty(Run(c, Rolling(1500, 0)));
         clock.Advance(TimeSpan.FromSeconds(1));
         var gone = Run(c, Rolling(1500, 0));
@@ -184,17 +205,6 @@ public class RescueControllerTests
 
         c.SessionEnded(); // done stays done in a new session
         Assert.Empty(Run(c, Rolling(1500, 0)));
-    }
-
-    [Fact]
-    public void Arrival_limit_grows_with_the_route_up_to_120_s()
-    {
-        var a = (ThrLat, ThrLon);
-        var p150 = RescueController.Offset(ThrLat, ThrLon, 0, 150);
-        // 150 m at 15 m/s = 10 s, twice = 20 s, plus 15 s.
-        Assert.Equal(35, RescueController.ArrivalLimit(a, [p150]).TotalSeconds, 1);
-        var far = RescueController.Offset(ThrLat, ThrLon, 0, 2000);
-        Assert.Equal(RescueController.ArrivalMax, RescueController.ArrivalLimit(a, [far]));
     }
 
     [Fact]
@@ -229,7 +239,7 @@ public class RescueControllerTests
     public void Trucks_ahead_at_touchdown_wait_until_the_aircraft_has_passed()
     {
         var (c, clock) = New();
-        c.Start(Req());
+        c.Start(Req(lengthM: Short));
         Run(c, OnFinal(10));
         // Touchdown 150 m past the threshold: truck 0 (100 m) is behind, trucks 1-3 (170, 240, 310 m) ahead.
         var touch = Touchdown(c, clock, 150, 120);
@@ -328,9 +338,9 @@ public class RescueControllerTests
     public void Pan_then_mayday_keeps_the_staged_trucks_and_lets_them_follow()
     {
         var (c, clock) = New();
-        c.Start(Req(full: false));
+        c.Start(Req(full: false, lengthM: Short));
         Assert.Equal(4, Run(c, OnFinal(10)).Count);
-        c.Start(Req(full: true));
+        c.Start(Req(full: true, lengthM: Short));
         Assert.Empty(Run(c, OnFinal(5))); // same trucks, nothing created or removed
         Assert.Equal(4, Touchdown(c, clock, 400, 100).Count(x => x.Kind == RescueActionKind.Move));
     }
@@ -339,7 +349,7 @@ public class RescueControllerTests
     public void A_go_around_after_5_s_in_the_air_halts_them_again()
     {
         var (c, clock) = New();
-        c.Start(Req());
+        c.Start(Req(lengthM: Short));
         Run(c, OnFinal(10));
         Touchdown(c, clock, 400, 100);
         Assert.Empty(Run(c, OnFinal(0.5)));

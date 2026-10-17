@@ -246,7 +246,8 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         {
             var moved = SmokeController.DistanceNm(prev.Lat, prev.Lon, v.Lat, v.Lon) * 1852;
             var track = moved < 0.5 ? "-" : $"{RescueController.Bearing((prev.Lat, prev.Lon), (v.Lat, v.Lon)):0}";
-            Diag($"rescue slot {slot} {_rescueTitle[slot]} driving: sim hdg {RescueController.Norm(v.Hdg):0}, body z {v.BodyZ:0.0} ft/s, track {track}, moved {moved:0} m");
+            var to = _rescue.TargetOf(slot) is { } g ? $"{SmokeController.DistanceNm(v.Lat, v.Lon, g.Lat, g.Lon) * 1852:0} m" : "-";
+            Diag($"rescue slot {slot} {_rescueTitle[slot]} hdg {RescueController.Norm(v.Hdg):0}, body z {v.BodyZ:0.0} ft/s, track {track}, to target {to} (moved {moved:0} m in 2 s)");
         }
         _rescueTrace[slot] = (now, v.Lat, v.Lon);
     }
