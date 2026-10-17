@@ -199,6 +199,34 @@ public class RescueControllerTests
     }
 
     [Fact]
+    public void Trucks_ahead_at_touchdown_wait_until_the_aircraft_has_passed()
+    {
+        var (c, clock) = New();
+        c.Start(Req());
+        Run(c, OnFinal(10));
+        // Touchdown 150 m past the threshold: truck 0 (100 m) is behind, trucks 1-3 (170, 240, 310 m) ahead.
+        var touch = Run(c, Rolling(150, 120));
+        Assert.Equal(RescueStage.Trailing, c.Stage);
+        Assert.All(touch, x => Assert.Equal(0, x.Slot));
+        Assert.Equal([RescueActionKind.Turn, RescueActionKind.Simulate, RescueActionKind.Move], touch.Select(x => x.Kind));
+        Assert.Equal([0], c.Driving); // the waiting ones stand: no positions asked
+
+        clock.Advance(TimeSpan.FromMilliseconds(100));
+        // The aircraft has passed truck 1 (170 m): it starts now.
+        var next = Run(c, Rolling(200, 110));
+        Assert.Equal([1, 1, 1], next.Select(x => x.Slot));
+        Assert.Equal(RescueActionKind.Move, next[2].Kind);
+        Assert.Equal([0, 1], c.Driving);
+
+        clock.Advance(TimeSpan.FromMilliseconds(400));
+        var all = Run(c, Rolling(400, 100)); // the update for 0 and 1, then 2 and 3 start
+        Assert.Equal([0, 1], all.Take(2).Select(x => x.Slot));
+        Assert.All(all.Take(2), x => Assert.Equal(RescueActionKind.Move, x.Kind));
+        Assert.Equal([2, 2, 2, 3, 3, 3], all.Skip(2).Select(x => x.Slot));
+        Assert.Equal([0, 1, 2, 3], c.Driving);
+    }
+
+    [Fact]
     public void Standby_waits_and_never_moves()
     {
         var (c, clock) = New();

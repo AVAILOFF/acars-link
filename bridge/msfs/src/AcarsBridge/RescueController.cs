@@ -92,6 +92,8 @@ public enum RescueStage
 /// away — and on while it drives: from touchdown until it reaches its point on the circle (within
 /// <see cref="ArrivedM"/>, or after <see cref="CircleDriveMax"/>);</item>
 /// <item>before each route a truck is turned, standing, toward its first point, so the AI does not back up to it;</item>
+/// <item>at touchdown a truck ahead of the aircraft (along its heading) keeps standing until the aircraft has passed
+/// it, then follows;</item>
 /// <item>following trucks get two waypoints, so their target is never the last one (MSFS 2024 slows ground vehicles
 /// to a crawl on the last waypoint);</item>
 /// <item>to the circle a truck goes straight when that line passes at least <see cref="ClearM"/> from the aircraft,
@@ -157,6 +159,8 @@ public sealed class RescueController(TimeProvider clock)
 
     /// <summary>Where each truck is: its waiting place, then the positions the sim reports while it drives.</summary>
     private readonly (double Lat, double Lon)?[] _pos = new (double, double)?[MaxFire];
+    /// <summary>Trucks that were ahead of the aircraft at touchdown and still wait for it to pass.</summary>
+    private readonly bool[] _waiting = new bool[MaxFire];
     /// <summary>Points on the circle of the trucks still driving there.</summary>
     private readonly (double Lat, double Lon)?[] _circle = new (double, double)?[MaxFire];
 
@@ -185,7 +189,7 @@ public sealed class RescueController(TimeProvider clock)
             {
                 var list = new List<int>();
                 for (var i = 0; i < _fireSpawned; i++)
-                    if (_stage == RescueStage.Trailing || _circle[i] is not null) list.Add(i);
+                    if ((_stage == RescueStage.Trailing && !_waiting[i]) || _circle[i] is not null) list.Add(i);
                 return list;
             }
         }
@@ -227,6 +231,7 @@ public sealed class RescueController(TimeProvider clock)
             _stoppedAt = null;
             Array.Clear(_pos);
             Array.Clear(_circle);
+            Array.Clear(_waiting);
         }
     }
 
@@ -292,17 +297,11 @@ public sealed class RescueController(TimeProvider clock)
                 if (!a.OnGround) _airborne = true;
                 else if (_airborne && req.Full)
                 {
-                    // Touchdown: each truck turns, standing, toward its first point, then drives.
+                    // Touchdown: trucks the aircraft has passed start to follow; those ahead wait for it.
                     _stage = RescueStage.Trailing;
                     _lastMove = now;
-                    var kt0 = TrailKt(a);
-                    for (var i = 0; i < _fireSpawned; i++)
-                    {
-                        var route = TrailRoute(a, i);
-                        _out.Add(RescueAction.TurnTo(i, Bearing(_pos[i], route[0])));
-                        _out.Add(RescueAction.Sim(i, true));
-                        _out.Add(RescueAction.Go(i, route, kt0));
-                    }
+                    for (var i = 0; i < _fireSpawned; i++) _waiting[i] = true;
+                    StartFollowing(a);
                     return;
                 }
                 if (_airborne && Stands(now)) Stopped(a, req, now);
@@ -312,6 +311,7 @@ public sealed class RescueController(TimeProvider clock)
                 {
                     // A touch-and-go: back to waiting until the next touchdown, standing.
                     _stage = RescueStage.Staged;
+                    Array.Clear(_waiting);
                     for (var i = 0; i < _fireSpawned; i++) _out.Add(RescueAction.Sim(i, false));
                     return;
                 }
@@ -320,10 +320,14 @@ public sealed class RescueController(TimeProvider clock)
                     Stopped(a, req, now);
                     return;
                 }
-                if (now - _lastMove < MoveEvery) return;
-                _lastMove = now;
-                var kt = TrailKt(a);
-                for (var i = 0; i < _fireSpawned; i++) _out.Add(RescueAction.Go(i, TrailRoute(a, i), kt));
+                if (now - _lastMove >= MoveEvery)
+                {
+                    _lastMove = now;
+                    var kt = TrailKt(a);
+                    for (var i = 0; i < _fireSpawned; i++)
+                        if (!_waiting[i]) _out.Add(RescueAction.Go(i, TrailRoute(a, i), kt));
+                }
+                StartFollowing(a); // after the update: a truck that starts now gets its first route once
                 return;
             case RescueStage.Encircle:
                 if (_stoppedAt is { } t && now - t >= StayAfterStop)
@@ -344,6 +348,28 @@ public sealed class RescueController(TimeProvider clock)
         }
     }
 
+    /// <summary>
+    /// Waiting trucks the aircraft has passed (no longer ahead of it along its heading) turn, standing, toward their
+    /// place behind it, then drive.
+    /// </summary>
+    private void StartFollowing(RescueAircraft a)
+    {
+        var kt = TrailKt(a);
+        for (var i = 0; i < _fireSpawned; i++)
+        {
+            if (!_waiting[i] || (_pos[i] is { } p && AheadM(a, p) > 0)) continue;
+            _waiting[i] = false;
+            var route = TrailRoute(a, i);
+            _out.Add(RescueAction.TurnTo(i, Bearing(_pos[i], route[0])));
+            _out.Add(RescueAction.Sim(i, true));
+            _out.Add(RescueAction.Go(i, route, kt));
+        }
+    }
+
+    /// <summary>How far a point is ahead of the aircraft along its heading, m (negative = behind).</summary>
+    public static double AheadM(RescueAircraft a, (double Lat, double Lon) p) =>
+        Meters((a.Lat, a.Lon), p) * Math.Cos((Bearing((a.Lat, a.Lon), p) - a.HdgDeg) * Math.PI / 180);
+
     private static double TrailKt(RescueAircraft a) => Math.Clamp(a.GsKt + TrailExtraKt, MinTrailKt, MaxTrailKt);
 
     /// <summary>Following truck <paramref name="i"/>: its place behind the aircraft and a point past it.</summary>
@@ -361,6 +387,7 @@ public sealed class RescueController(TimeProvider clock)
     {
         _stage = RescueStage.Encircle;
         _stoppedAt = now;
+        Array.Clear(_waiting);
         if (!req.Full) return;
         for (var i = 0; i < _fireSpawned; i++)
         {
@@ -412,6 +439,7 @@ public sealed class RescueController(TimeProvider clock)
         _fireSpawned = 0;
         Array.Clear(_pos);
         Array.Clear(_circle);
+        Array.Clear(_waiting);
     }
 
     /// <summary>Waiting place of truck <paramref name="i"/>: along the runway from the threshold, then right of it.</summary>
