@@ -40,8 +40,11 @@ interface Store {
   /** Last successful save, to show "saved" next to the right field. */
   readonly saved: Busy | null;
   readonly tab: Tab;
+  /** The FMS scratchpad text, kept while the pilot switches tabs or the flight view unmounts. */
+  readonly draft: string;
 
   init(): Promise<() => void>;
+  setDraft(text: string): void;
   setTab(tab: Tab): void;
   dismissError(): void;
   loadOfp(): Promise<void>;
@@ -96,24 +99,33 @@ export const useStore = create<Store>()((set, get) => {
     busy: null,
     saved: null,
     tab: 'flight',
+    draft: '',
 
     async init() {
       const off = api().onState((app) => set({ app }));
-      const [app, settings, creds, scenarios] = await Promise.all([
-        api().getState(),
-        api().getSettings(),
-        api().getCredentials(),
-        api().listScenarios(),
-      ]);
-      set({
-        app,
-        settings,
-        creds,
-        scenarios: scenarios.ok ? scenarios.value : [],
-        error: scenarios.ok ? null : scenarios.error,
-      });
+      try {
+        const [app, settings, creds, scenarios] = await Promise.all([
+          api().getState(),
+          api().getSettings(),
+          api().getCredentials(),
+          api().listScenarios(),
+        ]);
+        set({
+          app,
+          settings,
+          creds,
+          scenarios: scenarios.ok ? scenarios.value : [],
+          error: scenarios.ok ? null : scenarios.error,
+        });
+      } catch (e) {
+        // The window would stay empty without a word: say why (the banner shows above the view).
+        set({
+          error: { code: 'internal', detail: e instanceof Error ? e.message : String(e) },
+        });
+      }
       return off;
     },
+    setDraft: (draft) => set({ draft }),
     setTab: (tab) => set({ tab, saved: null }),
     dismissError: () => set({ error: null }),
 

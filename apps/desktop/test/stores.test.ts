@@ -199,3 +199,48 @@ describe('settings', () => {
     await expect(store.setChance('dg_notoc', 1.25)).rejects.toThrow(AppFailure);
   });
 });
+
+describe('stores under overlapping calls', () => {
+  const defaults = defaultSettings('en-US');
+
+  it('settings: changes made at the same time are all kept', async () => {
+    const file = join(await tempDir(), 'settings.json');
+    const store = new SettingsStore(file, defaults);
+    await Promise.all([
+      store.update({ transport: 'offline' }),
+      store.update({ soundOnMessage: true }),
+      store.setScenario('fuel_slip', false),
+      store.setChance('medical_onboard', 5),
+      store.update({ messageGapSec: 30 }),
+    ]);
+    const again = await new SettingsStore(file, defaults).get();
+    expect(again).toMatchObject({ transport: 'offline', soundOnMessage: true, messageGapSec: 30 });
+    expect(again.scenarios).toEqual({ fuel_slip: false });
+    expect(again.chances).toEqual({ medical_onboard: 5 });
+  });
+
+  it('settings: a refused change does not block the next ones', async () => {
+    const file = join(await tempDir(), 'settings.json');
+    const store = new SettingsStore(file, defaults);
+    const results = await Promise.allSettled([
+      store.update({ bridgePort: 1 }),
+      store.update({ language: 'ru' }),
+    ]);
+    expect(results.map((r) => r.status)).toEqual(['rejected', 'fulfilled']);
+    expect((await new SettingsStore(file, defaults).get()).language).toBe('ru');
+  });
+
+  it('secrets: values saved at the same time are all kept', async () => {
+    const file = join(await tempDir(), 'secrets.json');
+    const store = new SecretStore(file, new FakeCipher());
+    await Promise.all([
+      store.set('hoppieLogon', 'CODE1234'),
+      store.set('simbriefUsername', 'pilot42'),
+      store.set('aerodataboxKey', 'K'.repeat(30)),
+    ]);
+    const again = new SecretStore(file, new FakeCipher());
+    expect(await again.get('hoppieLogon')).toBe('CODE1234');
+    expect(await again.get('simbriefUsername')).toBe('pilot42');
+    expect(await again.has('aerodataboxKey')).toBe(true);
+  });
+});

@@ -1,4 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import type { AppError } from '../../shared/api.js';
+import { errorKey } from './i18n.js';
 import { useStore } from './store.js';
 import { useT } from './ui.js';
 
@@ -41,6 +43,8 @@ export function RequestDialog({
   const [kind, setKind] = useState<RequestKind>(initial);
   const [airport, setAirport] = useState(destination);
   const [text, setText] = useState('');
+  // Why the last send failed: the error banner is behind the modal, so it is repeated here.
+  const [failed, setFailed] = useState<AppError | null>(null);
 
   // A modal <dialog>: focus trap, inert background and Esc come from the browser.
   useEffect(() => {
@@ -57,7 +61,9 @@ export function RequestDialog({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!canSend) return;
+    setFailed(null);
     if (await useStore.getState().sendPilotMessage(out)) onClose();
+    else setFailed(useStore.getState().error);
   };
 
   return (
@@ -139,7 +145,13 @@ export function RequestDialog({
             <div className="fms">
               <pre className="fms__screen modal-screen">{out === '' ? ' ' : out}</pre>
             </div>
-            <span className="field-hint">{t('pilot.hint')}</span>
+            {failed === null ? (
+              <span className="field-hint">{t('pilot.hint')}</span>
+            ) : (
+              <span className="field-hint" role="alert">
+                {t(errorKey(failed.code), { detail: failed.detail })}
+              </span>
+            )}
           </div>
         </div>
         <footer className="modal-foot">

@@ -9,7 +9,7 @@ import {
 import { DRONE_RISK_MAX, isDroneRiskKey, isDroneRiskValue } from '@acars/scenarios';
 import type { Language, Settings, SettingsPatch, TransportChoice } from '../shared/api.js';
 import { AppFailure } from './errors.js';
-import { readTextFile, writeTextFileAtomic } from './files.js';
+import { readTextFile, Serial, writeTextFileAtomic } from './files.js';
 
 /**
  * Non-secret settings, a JSON file in the user-data folder. Everything read from disk or
@@ -246,6 +246,7 @@ export const isChance = (p: unknown): p is number =>
 
 export class SettingsStore {
   private current: Settings | null = null;
+  private readonly writes = new Serial();
 
   constructor(
     private readonly file: string,
@@ -268,24 +269,29 @@ export class SettingsStore {
   }
 
   async update(patch: SettingsPatch): Promise<Settings> {
-    return this.save({ ...(await this.get()), ...validatePatch(patch) });
+    const p = validatePatch(patch);
+    return this.writes.run(async () => this.save({ ...(await this.get()), ...p }));
   }
 
   async setScenario(id: string, enabled: boolean): Promise<Settings> {
     if (!SCENARIO_ID_RE.test(id)) throw bad('scenario', 'bad id');
-    const s = await this.get();
-    return this.save({ ...s, scenarios: { ...s.scenarios, [id]: enabled } });
+    return this.writes.run(async () => {
+      const s = await this.get();
+      return this.save({ ...s, scenarios: { ...s.scenarios, [id]: enabled } });
+    });
   }
 
   /** Chance in percent, null = the scenario file's. */
   async setChance(id: string, percent: number | null): Promise<Settings> {
     if (!SCENARIO_ID_RE.test(id)) throw bad('scenario', 'bad id');
     if (percent !== null && !isChance(percent)) throw bad('chance', '0..100, one decimal');
-    const s = await this.get();
-    const chances = { ...s.chances };
-    if (percent === null) delete chances[id];
-    else chances[id] = percent;
-    return this.save({ ...s, chances });
+    return this.writes.run(async () => {
+      const s = await this.get();
+      const chances = { ...s.chances };
+      if (percent === null) delete chances[id];
+      else chances[id] = percent;
+      return this.save({ ...s, chances });
+    });
   }
 
   private async save(s: Settings): Promise<Settings> {

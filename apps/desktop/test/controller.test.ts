@@ -1057,6 +1057,64 @@ describe('airline memory (T14)', () => {
   });
 });
 
+describe('flight actions one at a time', () => {
+  it('a second start while the first one runs is refused: one session, one start in the feed', async () => {
+    const s = await setup();
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false });
+    await s.app.loadOfp();
+    const [a, b] = await Promise.all([
+      guard(() => s.app.startFlight()),
+      guard(() => s.app.startFlight()),
+    ]);
+    expect([a.ok, b.ok].sort()).toEqual([false, true]);
+    expect(a.ok ? b : a).toMatchObject({ ok: false, error: { code: 'bad_state' } });
+    expect(s.transports).toHaveLength(1);
+    expect(s.app.state().session).toBe('running');
+    const started = s.app
+      .state()
+      .feed.filter((e) => e.kind === 'system' && e.code === 'flight_started');
+    expect(started).toHaveLength(1);
+  });
+
+  it('a load while a start runs is refused; the started flight keeps its OFP', async () => {
+    const s = await setup();
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false });
+    await s.app.loadOfp();
+    const loads = () => s.app.state().flight?.requestId;
+    const before = loads();
+    const [start, load] = await Promise.all([
+      guard(() => s.app.startFlight()),
+      guard(() => s.app.loadOfp()),
+    ]);
+    expect(start.ok).toBe(true);
+    expect(load).toMatchObject({ ok: false, error: { code: 'bad_state' } });
+    expect(loads()).toBe(before);
+  });
+
+  it('stop: a memory file that cannot be written still ends the flight', async () => {
+    const dir = await tempDir();
+    const { FlagsStore } = await import('../src/main/flags.js');
+    const store = new FlagsStore(join(dir, 'airline-memory.json'));
+    const s = await setup({ flags: store });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false });
+    await s.app.loadOfp();
+    await s.app.startFlight();
+    store.set = async () => {
+      throw new Error('disk full');
+    };
+    expect(await guard(() => s.app.stopFlight())).toMatchObject({
+      ok: false,
+      error: { code: 'internal', detail: 'airline memory: disk full' },
+    });
+    expect(s.app.state().session).toBe('ready');
+    // A new flight can start; nothing is stuck.
+    expect(await guard(() => s.app.startFlight())).toMatchObject({ ok: true });
+  });
+});
+
 describe('irregular events by hand', () => {
   async function ready() {
     const s = await setup();

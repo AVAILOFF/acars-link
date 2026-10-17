@@ -188,7 +188,14 @@ function MessageRow({
         {pick === undefined ? (
           <span className="subject">{r.subject}</span>
         ) : (
-          <button type="button" className="subject" onClick={pick}>
+          <button
+            type="button"
+            className="subject"
+            onClick={(ev) => {
+              ev.stopPropagation(); // the row would pick it a second time
+              pick();
+            }}
+          >
             {r.subject}
           </button>
         )}

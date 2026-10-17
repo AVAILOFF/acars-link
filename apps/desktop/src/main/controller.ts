@@ -38,7 +38,7 @@ import type { Flags, FlagsStore } from './flags.js';
 import type { OpenRecording, RecordingSink } from './recording.js';
 import type { SecretStore } from './secrets.js';
 import { FlightSession } from './session.js';
-import type { SettingsStore } from './settings.js';
+import { type SettingsStore, validatePatch } from './settings.js';
 import { fetchOfp, normalizeSimbriefUsername } from './simbrief.js';
 import { specialGroupOn, specialGroups } from './special.js';
 import { VdgsWriter } from './vdgs.js';
@@ -136,6 +136,12 @@ export class AppController {
   /** Siren (T54): waits for the roll-out of a `full` landing, sounds until the aircraft stops. */
   private siren: 'idle' | 'on' | 'done' = 'idle';
   private sirenSetting = false;
+  /**
+   * A flight action (load, start, stop, end) is between its awaits. Another one now would see
+   * the state half-changed: two starts would make two sessions, a load could swap the OFP under
+   * a start. The UI disables the buttons too; this is the guard that does not depend on it.
+   */
+  private flightAction: string | null = null;
 
   constructor(private readonly o: AppControllerOptions) {
     this.data = new ExternalDataService({
@@ -399,12 +405,18 @@ export class AppController {
   }
 
   async updateSettings(patch: SettingsPatch): Promise<Settings> {
+    const ofp = this.ofp;
+    if (ofp !== null && this.session === null) {
+      // A station template the loaded flight cannot use is refused before it is saved, so the
+      // file, the UI and the flight summary never disagree.
+      this.summary(ofp, { ...(await this.o.settings.get()), ...validatePatch(patch) });
+    }
     const s = await this.o.settings.update(patch);
     this.bridge.setPort(s.bridgePort);
     this.sirenSetting = s.rescueSiren;
     if (this.ofp !== null && this.session === null) {
       this.flight = this.summary(this.ofp, s);
-      this.prefetch(this.ofp, s);
+      await this.prefetch(this.ofp, s);
     }
     this.o.onChange();
     return s;
@@ -503,7 +515,36 @@ export class AppController {
 
   // --- flight ---
 
-  async loadOfp(): Promise<FlightSummary> {
+  /** Runs one flight action at a time; another one meanwhile is refused (`bad_state`). */
+  private async exclusive<T>(name: string, fn: () => Promise<T>): Promise<T> {
+    if (this.flightAction !== null) {
+      throw new AppFailure('bad_state', `${this.flightAction} in progress`);
+    }
+    this.flightAction = name;
+    try {
+      return await fn();
+    } finally {
+      this.flightAction = null;
+    }
+  }
+
+  loadOfp(): Promise<FlightSummary> {
+    return this.exclusive('OFP load', () => this.doLoadOfp());
+  }
+
+  startFlight(): Promise<null> {
+    return this.exclusive('flight start', () => this.doStartFlight());
+  }
+
+  stopFlight(): Promise<null> {
+    return this.exclusive('flight stop', () => this.doStopFlight());
+  }
+
+  endFlight(to: unknown): Promise<null> {
+    return this.exclusive('flight end', () => this.doEndFlight(to));
+  }
+
+  private async doLoadOfp(): Promise<FlightSummary> {
     if (this.session !== null) throw new AppFailure('bad_state', 'stop the flight first');
     const username = await this.o.secrets.get('simbriefUsername');
     if (username === null || username === '') throw new AppFailure('no_username', 'not set');
@@ -530,7 +571,7 @@ export class AppController {
     } else this.data.stopFlight();
   }
 
-  async startFlight(): Promise<null> {
+  private async doStartFlight(): Promise<null> {
     if (this.session !== null) throw new AppFailure('bad_state', 'flight already running');
     const ofp = this.ofp;
     if (ofp === null) throw new AppFailure('bad_state', 'load the OFP first');
@@ -623,7 +664,7 @@ export class AppController {
     return null;
   }
 
-  async stopFlight(): Promise<null> {
+  private async doStopFlight(): Promise<null> {
     const s = this.session;
     if (s === null) throw new AppFailure('bad_state', 'no flight running');
     s.stop(this.o.now());
@@ -631,14 +672,19 @@ export class AppController {
     this.vdgs.clear();
     this.stopSmoke();
     this.stopRescue();
-    await this.saveMemory(s);
+    // The flight is over whatever happens to the memory file: a failed write must not leave a
+    // stopped session that the UI still shows as running.
     this.sessionFired = s.sessionFired;
     this.session = null;
-    this.o.onChange();
+    try {
+      await this.saveMemory(s);
+    } finally {
+      this.o.onChange();
+    }
     return null;
   }
 
-  async endFlight(to: unknown): Promise<null> {
+  private async doEndFlight(to: unknown): Promise<null> {
     const s = this.session;
     if (s === null) throw new AppFailure('bad_state', 'no flight running');
     if (to !== 'TURNAROUND' && to !== 'DONE') throw new AppFailure('invalid_input', 'end flight');
@@ -663,7 +709,12 @@ export class AppController {
   }
 
   /** Forgets the airline memory (T14 flags). */
-  async clearMemory(): Promise<null> {
+  clearMemory(): Promise<null> {
+    // Exclusive too: a start in progress reads the memory for the new flight.
+    return this.exclusive('memory clear', () => this.doClearMemory());
+  }
+
+  private async doClearMemory(): Promise<null> {
     if (this.session !== null) throw new AppFailure('bad_state', 'stop the flight first');
     await this.flagStore.set({});
     this.memory = [];

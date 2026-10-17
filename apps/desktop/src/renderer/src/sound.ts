@@ -20,8 +20,10 @@ export function useMessageSound(): void {
       seen.current = new Set(ids);
       return;
     }
-    const fresh = ids.filter((id) => !(seen.current as Set<string>).has(id));
-    for (const id of fresh) seen.current.add(id);
+    const known = seen.current;
+    const fresh = ids.filter((id) => !known.has(id));
+    // Feed ids are never reused: only the ids still in the feed need remembering.
+    seen.current = new Set(ids);
     if (fresh.length > 0 && enabled) playMessageSound(audio);
   }, [feed, enabled]);
 }

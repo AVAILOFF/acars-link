@@ -33,7 +33,8 @@ export function FlightView() {
   const selected =
     messages.find((m) => m.id === picked) ?? (messages.length > 0 ? messages.at(-1) : undefined);
   const select = (id: string) => {
-    setPicked(id);
+    // Picking the newest message goes back to following the newest one.
+    setPicked(id === messages.at(-1)?.id ? null : id);
     setSeen((s) => (s.has(id) ? s : new Set(s).add(id)));
   };
   const counts: Record<Filter, number> = {
@@ -421,11 +422,17 @@ function FmsPanel({
 function Scratchpad() {
   const t = useT();
   const busy = useStore((s) => s.busy);
-  const [text, setText] = useState('');
+  // In the store, not local state: a half-typed telex survives a tab switch.
+  const text = useStore((s) => s.draft);
+  const setText = useStore((s) => s.setDraft);
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (text.trim() === '' || busy !== null) return;
-    if (await useStore.getState().sendPilotMessage(text)) setText('');
+    const sent = text;
+    // Cleared only if nothing new was typed while it was being sent.
+    if (await useStore.getState().sendPilotMessage(sent)) {
+      if (useStore.getState().draft === sent) setText('');
+    }
   };
   return (
     <form className="fms__scratch" onSubmit={(e) => void submit(e)} title={t('pilot.hint')}>

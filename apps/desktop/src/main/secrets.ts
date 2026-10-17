@@ -1,5 +1,5 @@
 import { AppFailure } from './errors.js';
-import { readTextFile, writeTextFileAtomic } from './files.js';
+import { readTextFile, Serial, writeTextFileAtomic } from './files.js';
 
 /**
  * User secrets (CLAUDE.md, invariant 2): encrypted by the OS store — Electron `safeStorage`
@@ -25,6 +25,7 @@ interface SecretFile {
 
 export class SecretStore {
   private cache: Partial<Record<SecretKey, string>> | null = null;
+  private readonly writes = new Serial();
 
   constructor(
     private readonly file: string,
@@ -55,12 +56,14 @@ export class SecretStore {
       throw new AppFailure('secure_storage_unavailable', 'OS secure storage is not available');
     }
     const enc = Buffer.from(await this.cipher.encrypt(value)).toString('base64');
-    await this.save({ ...(await this.entries()), [key]: enc });
+    await this.writes.run(async () => this.save({ ...(await this.entries()), [key]: enc }));
   }
 
   async delete(key: SecretKey): Promise<void> {
-    const { [key]: _, ...rest } = await this.entries();
-    await this.save(rest);
+    await this.writes.run(async () => {
+      const { [key]: _, ...rest } = await this.entries();
+      await this.save(rest);
+    });
   }
 
   private async entries(): Promise<Partial<Record<SecretKey, string>>> {

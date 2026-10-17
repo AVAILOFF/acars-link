@@ -1,5 +1,5 @@
 import type { Value } from '@acars/core';
-import { readTextFile, writeTextFileAtomic } from './files.js';
+import { readTextFile, Serial, writeTextFileAtomic } from './files.js';
 
 /**
  * Airline memory between flights (T14): the scenarios' `flags.*` (an open MEL item, a banned
@@ -28,6 +28,7 @@ export function sanitizeFlags(raw: unknown): Record<string, Value> {
 
 export class FlagsStore {
   private current: Flags | null = null;
+  private readonly writes = new Serial();
 
   constructor(private readonly file: string) {}
 
@@ -46,8 +47,11 @@ export class FlagsStore {
 
   async set(flags: Flags): Promise<Flags> {
     const clean = sanitizeFlags(flags);
-    await writeTextFileAtomic(this.file, `${JSON.stringify(clean, null, 2)}\n`);
-    this.current = clean;
-    return clean;
+    // In call order: the last flight's flags win, not the slower write.
+    return this.writes.run(async () => {
+      await writeTextFileAtomic(this.file, `${JSON.stringify(clean, null, 2)}\n`);
+      this.current = clean;
+      return clean;
+    });
   }
 }

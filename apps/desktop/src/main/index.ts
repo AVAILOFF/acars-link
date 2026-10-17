@@ -6,6 +6,7 @@ import { fetchHttpClient, HoppieTransport, MockTransport } from '@acars/transpor
 import {
   app,
   BrowserWindow,
+  dialog,
   type IpcMainInvokeEvent,
   ipcMain,
   safeStorage,
@@ -159,7 +160,19 @@ async function main(): Promise<void> {
     win = null;
     lastSent = '';
   });
-  const loop = setInterval(() => ctl.tick(Date.now()), TICK_MS);
+  // A throw here would surface as a main-process error dialog every second; log it instead and
+  // keep the loop (and the next tick) going.
+  let lastTickError = '';
+  const loop = setInterval(() => {
+    try {
+      ctl.tick(Date.now());
+      lastTickError = '';
+    } catch (e) {
+      const text = e instanceof Error ? (e.stack ?? e.message) : String(e);
+      if (text !== lastTickError) console.error('main loop tick failed:', text);
+      lastTickError = text;
+    }
+  }, TICK_MS);
 
   app.on('window-all-closed', () => app.quit());
   app.on('before-quit', () => {
@@ -168,4 +181,12 @@ async function main(): Promise<void> {
   });
 }
 
-void main();
+// Without a window a failed start would leave an invisible process behind.
+main().catch((e: unknown) => {
+  console.error('start failed:', e);
+  dialog.showErrorBox(
+    'ACARS Sim',
+    `The app could not start: ${e instanceof Error ? e.message : String(e)}`,
+  );
+  app.exit(1);
+});

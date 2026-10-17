@@ -1,5 +1,5 @@
 import { DEFAULT_RESCUE_FLIPPED, DEFAULT_RESCUE_TITLES, RESCUE_TITLE_GROUPS } from '@acars/core';
-import { type FormEvent, type ReactNode, useState } from 'react';
+import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from 'react';
 import type { Language, TransportChoice } from '../../shared/api.js';
 import { testSiren } from './siren.js';
 import { playMessageSound } from './sound.js';
@@ -76,6 +76,14 @@ function Row({
       {children !== undefined && <div className="row-control">{children}</div>}
     </div>
   );
+}
+
+/** Enter in a field that saves on blur saves it too (the keyboard way, like the other forms). */
+function commitOnEnter(e: KeyboardEvent<HTMLInputElement>): void {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    e.currentTarget.blur();
+  }
 }
 
 function Saved({ what }: { what: 'username' | 'code' | 'adbKey' | 'settings' }) {
@@ -318,6 +326,7 @@ function NetworkForm() {
             spellCheck={false}
             defaultValue={settings.hubIcao}
             disabled={off}
+            onKeyDown={commitOnEnter}
             onBlur={(e) => {
               const v = e.currentTarget.value.trim().toUpperCase();
               if (v !== settings.hubIcao) void update({ hubIcao: v });
@@ -412,6 +421,7 @@ function NetworkForm() {
             maxLength={6}
             defaultValue={settings.aircraftIcaoHex}
             disabled={off || !settings.datalink}
+            onKeyDown={commitOnEnter}
             onBlur={(e) => {
               const v = e.currentTarget.value.trim();
               if (v !== settings.aircraftIcaoHex) void update({ aircraftIcaoHex: v });
