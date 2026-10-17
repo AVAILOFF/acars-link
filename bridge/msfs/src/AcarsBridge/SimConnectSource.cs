@@ -101,6 +101,9 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     private readonly double[] _rescueSpawnHdg = new double[RescueController.MaxFire + 1];
     /// <summary>Diagnostics: when the sim's own view of each moving truck was last asked for.</summary>
     private readonly DateTimeOffset[] _rescueSeen = new DateTimeOffset[RescueController.MaxFire];
+    /// <summary>Diagnostics: real intervals between position sets per truck (count, sum, max since the last report).</summary>
+    private readonly DateTimeOffset[] _rescuePlacedAt = new DateTimeOffset[RescueController.MaxFire];
+    private readonly (int N, double SumMs, double MaxMs, DateTimeOffset Since)[] _rescueRate = new (int, double, double, DateTimeOffset)[RescueController.MaxFire];
     private DateTimeOffset _rescuePolled, _rescueStepped;
 
     private static void Diag(string line) => Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {line}");
@@ -186,9 +189,30 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                     break;
                 case RescueActionKind.Place when _rescueId[x.Slot] != 0:
                     sc.SetDataOnSimObject(Def.Place, _rescueId[x.Slot], SIMCONNECT_DATA_SET_FLAG.DEFAULT, OnGroundAt(x.Lat, x.Lon, x.Hdg));
+                    TracePlaceRate(x.Slot);
                     break;
             }
         }
+    }
+
+    /// <summary>Diagnostics (2026-10-17, "slideshow"): every 2 s per truck, how often its position was really set.</summary>
+    private void TracePlaceRate(int slot)
+    {
+        var now = DateTimeOffset.UtcNow; // wall clock: the real interval, not the injected one
+        var r = _rescueRate[slot];
+        if (_rescuePlacedAt[slot] != default && now - _rescuePlacedAt[slot] < TimeSpan.FromSeconds(5))
+        {
+            var ms = (now - _rescuePlacedAt[slot]).TotalMilliseconds;
+            r = (r.N + 1, r.SumMs + ms, Math.Max(r.MaxMs, ms), r.Since == default ? now : r.Since);
+        }
+        else r = (0, 0, 0, now);
+        _rescuePlacedAt[slot] = now;
+        if (now - r.Since >= TimeSpan.FromSeconds(2) && r.N > 0)
+        {
+            Diag($"rescue slot {slot} {_rescueTitle[slot]} position sets: {r.N} in {(now - r.Since).TotalSeconds:0.0} s, interval avg {r.SumMs / r.N:0} ms, max {r.MaxMs:0} ms");
+            r = (0, 0, 0, now);
+        }
+        _rescueRate[slot] = r;
     }
 
     /// <summary>A place on the ground (OnGround = 1: the sim puts it on the terrain), standing.</summary>
@@ -425,6 +449,8 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             Array.Clear(_rescueAsked);
             Array.Clear(_rescueRemoveWhenAssigned);
             Array.Clear(_rescueSeen);
+            Array.Clear(_rescuePlacedAt);
+            Array.Clear(_rescueRate);
             _rescue.SessionEnded();
         }
         return ended ?? "stopped";
