@@ -68,12 +68,12 @@ public static class CommandCatalog
         ["rescue_stop"] = args => args.Count == 0 ? null : "rescue_stop takes no arguments",
     };
 
-    private static readonly string[] RescueArgs = ["level", "thrLat", "thrLon", "hdg", "lengthM", "fire", "medic"];
+    private static readonly string[] RescueArgs = ["level", "thrLat", "thrLon", "hdg", "lengthM", "side", "fire", "medic"];
 
     /// <summary>
     /// <c>rescue_start</c> (T54), the same rules as <c>checkRescueStart</c> in <c>@acars/core</c>: <c>level</c>
     /// <c>full</c> | <c>standby</c> | <c>medical</c>; the threshold <c>thrLat</c>, <c>thrLon</c>; <c>hdg</c> 0..360;
-    /// <c>lengthM</c> 0..10000; <c>fire</c> and <c>medic</c>: titles joined by <c>|</c>, at most
+    /// <c>lengthM</c> 0..10000; <c>side</c> <c>left</c> | <c>right</c>; <c>fire</c> and <c>medic</c>: titles joined by <c>|</c>, at most
     /// <see cref="RescueController.MaxFire"/>, none empty; no fire trucks with <c>medical</c>.
     /// </summary>
     private static string? ValidateRescueStart(IReadOnlyDictionary<string, JsonValue> args)
@@ -86,6 +86,7 @@ public static class CommandCatalog
         if (!args["thrLon"].TryGetValue<double>(out var lo) || !(lo >= -180 && lo <= 180)) return "thrLon must be -180..180";
         if (!args["hdg"].TryGetValue<double>(out var h) || !(h >= 0 && h < 360)) return "hdg must be 0..360";
         if (!args["lengthM"].TryGetValue<double>(out var len) || !(len > 0 && len <= 10_000)) return "lengthM must be 0..10000";
+        if (!args["side"].TryGetValue<string>(out var side) || side is not ("left" or "right")) return "side must be left or right";
         foreach (var name in (string[])["fire", "medic"])
         {
             if (!args[name].TryGetValue<string>(out var v)) return $"{name} must be a string";

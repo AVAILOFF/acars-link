@@ -11,6 +11,7 @@ import {
   selectProfile,
   stationCallsign,
   type TelemetrySnapshot,
+  upwindSide,
   vehicleTitles,
 } from '@acars/core';
 import { type DataCache, ExternalDataService } from '@acars/data-sources';
@@ -325,6 +326,7 @@ export class AppController {
       thrLon: Math.round(rwy.thrLon * 1e6) / 1e6,
       hdg: Math.round(rwy.headingDeg * 10) / 10 === 360 ? 0 : Math.round(rwy.headingDeg * 10) / 10,
       lengthM: rwy.lengthM,
+      side: upwindSide(rwy.headingDeg, next.windFromDeg),
       fire: fireTitles.join('|'),
       medic: medicTitles.join('|'),
     });

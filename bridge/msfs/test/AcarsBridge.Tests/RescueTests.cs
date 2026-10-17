@@ -10,11 +10,13 @@ public class RescueControllerTests
 
     private static readonly string[] FourTrucks = ["ASO_Firetruck02", "Microsoft_Truck_Fire_Medium_Red", "ASO_Firetruck02", "Microsoft_Truck_Fire_Medium_Red"];
 
-    /// <summary>A runway of 410 m puts four trucks at 100, 170, 240 and 310 m: all behind a touchdown at 400 m.</summary>
+    /// <summary>On a runway of 410 m all trucks wait at 400 m: behind a touchdown at 500 m.</summary>
     private const double Short = 410;
+    /// <summary>A runway of 810 m puts four trucks at 400, 470, 540 and 610 m.</summary>
+    private const double Spaced = 810;
 
-    private static RescueRequest Req(bool full = true, string[]? fire = null, string[]? medic = null, double thrLat = ThrLat, double lengthM = 3000) =>
-        new(full, thrLat, ThrLon, Hdg, lengthM, fire ?? FourTrucks, medic ?? []);
+    private static RescueRequest Req(bool full = true, string[]? fire = null, string[]? medic = null, double thrLat = ThrLat, double lengthM = 3000, bool left = false) =>
+        new(full, thrLat, ThrLon, Hdg, lengthM, fire ?? FourTrucks, medic ?? [], left);
 
     private static (RescueController C, ManualClock Clock) New()
     {
@@ -59,12 +61,12 @@ public class RescueControllerTests
         for (var i = 0; i < 4; i++)
         {
             var x = spawn[i];
-            // Spread along the whole 3000 m runway: 100, 1033, 1967, 2900 m from the threshold, 45 m right of the axis,
-            // facing the runway.
-            var along = 100 + 2800.0 * i / 3;
+            // From the touchdown zone to the far end of the 3000 m runway: 400, 1200, 2000, 2800 m from the threshold,
+            // 150 m right of the axis (no wind side given), facing the runway.
+            var along = 400 + 2400.0 * i / 3;
             var (axLat, axLon) = RescueController.Offset(ThrLat, ThrLon, Hdg, along);
-            Assert.InRange(Meters(axLat, axLon, x.Lat, x.Lon), 44.9, 45.1);
-            var right = RescueController.Offset(axLat, axLon, Hdg + 90, 45);
+            Assert.InRange(Meters(axLat, axLon, x.Lat, x.Lon), 149.9, 150.1);
+            var right = RescueController.Offset(axLat, axLon, Hdg + 90, 150);
             Assert.InRange(Meters(right.Lat, right.Lon, x.Lat, x.Lon), 0, 0.1);
             Assert.Equal(160, x.Hdg, 6);
         }
@@ -72,13 +74,15 @@ public class RescueControllerTests
     }
 
     [Fact]
-    public void One_truck_waits_at_the_middle_of_the_runway()
+    public void One_truck_waits_at_the_touchdown_zone_and_upwind_means_left_when_asked()
     {
         var (c, _) = New();
-        c.Start(Req(fire: ["Truck Fire Short"]));
+        c.Start(Req(fire: ["Truck Fire Short"], left: true));
         var x = Assert.Single(Run(c, OnFinal(10)));
-        var (mLat, mLon) = RescueController.Offset(ThrLat, ThrLon, Hdg, 1500);
-        Assert.InRange(Meters(mLat, mLon, x.Lat, x.Lon), 44.9, 45.1);
+        var (tLat, tLon) = RescueController.Offset(ThrLat, ThrLon, Hdg, 400);
+        var (lLat, lLon) = RescueController.Offset(tLat, tLon, Hdg - 90, 150);
+        Assert.InRange(Meters(lLat, lLon, x.Lat, x.Lon), 0, 0.1);
+        Assert.Equal(RescueController.Norm(Hdg + 90), x.Hdg, 6); // facing the runway from the left
     }
 
     /// <summary>Touchdown at <paramref name="m"/>: on the ground for <see cref="RescueController.TouchdownAfter"/>; the actions then.</summary>
@@ -239,24 +243,24 @@ public class RescueControllerTests
     public void Trucks_ahead_at_touchdown_wait_until_the_aircraft_has_passed()
     {
         var (c, clock) = New();
-        c.Start(Req(lengthM: Short));
+        c.Start(Req(lengthM: Spaced));
         Run(c, OnFinal(10));
-        // Touchdown 150 m past the threshold: truck 0 (100 m) is behind, trucks 1-3 (170, 240, 310 m) ahead.
-        var touch = Touchdown(c, clock, 150, 120);
+        // Touchdown 450 m past the threshold: truck 0 (400 m) is behind, trucks 1-3 (470, 540, 610 m) ahead.
+        var touch = Touchdown(c, clock, 450, 120);
         Assert.Equal(RescueStage.Trailing, c.Stage);
         Assert.All(touch, x => Assert.Equal(0, x.Slot));
         Assert.Equal([RescueActionKind.Turn, RescueActionKind.Simulate, RescueActionKind.Move], touch.Select(x => x.Kind));
         Assert.Equal([0], c.Driving); // the waiting ones stand: no positions asked
 
         clock.Advance(TimeSpan.FromMilliseconds(100));
-        // The aircraft has passed truck 1 (170 m): it starts now.
-        var next = Run(c, Rolling(200, 110));
+        // The aircraft has passed truck 1 (470 m): it starts now.
+        var next = Run(c, Rolling(500, 110));
         Assert.Equal([1, 1, 1], next.Select(x => x.Slot));
         Assert.Equal(RescueActionKind.Move, next[2].Kind);
         Assert.Equal([0, 1], c.Driving);
 
         clock.Advance(TimeSpan.FromMilliseconds(400));
-        var all = Run(c, Rolling(400, 100)); // the update for 0 and 1, then 2 and 3 start
+        var all = Run(c, Rolling(700, 100)); // the update for 0 and 1, then 2 and 3 start
         Assert.Equal([0, 1], all.Take(2).Select(x => x.Slot));
         Assert.All(all.Take(2), x => Assert.Equal(RescueActionKind.Move, x.Kind));
         Assert.Equal([2, 2, 2, 3, 3, 3], all.Skip(2).Select(x => x.Slot));
@@ -342,7 +346,7 @@ public class RescueControllerTests
         Assert.Equal(4, Run(c, OnFinal(10)).Count);
         c.Start(Req(full: true, lengthM: Short));
         Assert.Empty(Run(c, OnFinal(5))); // same trucks, nothing created or removed
-        Assert.Equal(4, Touchdown(c, clock, 400, 100).Count(x => x.Kind == RescueActionKind.Move));
+        Assert.Equal(4, Touchdown(c, clock, 500, 100).Count(x => x.Kind == RescueActionKind.Move));
     }
 
     [Fact]
@@ -351,7 +355,7 @@ public class RescueControllerTests
         var (c, clock) = New();
         c.Start(Req(lengthM: Short));
         Run(c, OnFinal(10));
-        Touchdown(c, clock, 400, 100);
+        Touchdown(c, clock, 500, 100);
         Assert.Empty(Run(c, OnFinal(0.5)));
         clock.Advance(RescueController.GoAroundAfter);
         var up = Run(c, OnFinal(0.5));
@@ -477,11 +481,12 @@ public class RescueControllerTests
         var args = new Dictionary<string, JsonValue>
         {
             ["level"] = JsonValue.Create("standby"), ["thrLat"] = JsonValue.Create(50.04), ["thrLon"] = JsonValue.Create(8.59),
-            ["hdg"] = JsonValue.Create(250.0), ["lengthM"] = JsonValue.Create(4000.0),
+            ["hdg"] = JsonValue.Create(250.0), ["lengthM"] = JsonValue.Create(4000.0), ["side"] = JsonValue.Create("left"),
             ["fire"] = JsonValue.Create("A|B"), ["medic"] = JsonValue.Create(""),
         };
         var r = RescueRequest.FromArgs(args);
         Assert.False(r.Full);
+        Assert.True(r.Left);
         Assert.Equal(["A", "B"], r.Fire);
         Assert.Empty(r.Medic);
     }
@@ -493,7 +498,7 @@ public class RescueCommandTests
         CommandCatalog.Parse($$"""{"type":"command","id":"r1","command":"{{command}}","args":{{args}}}""");
 
     private const string Ok =
-        """{"level":"full","thrLat":50.04,"thrLon":8.59,"hdg":250,"lengthM":4000,"fire":"ASO_Firetruck02|Truck Fire Short","medic":""}""";
+        """{"level":"full","thrLat":50.04,"thrLon":8.59,"hdg":250,"lengthM":4000,"side":"right","fire":"ASO_Firetruck02|Truck Fire Short","medic":""}""";
 
     [Fact]
     public void Rescue_commands_are_whitelisted()
@@ -501,7 +506,7 @@ public class RescueCommandTests
         Assert.Null(Parse("rescue_start", Ok).Error);
         Assert.Null(Parse("rescue_start", Ok.Replace("\"medic\":\"\"", "\"medic\":\"Car Bush Medic\"")).Error);
         Assert.Null(Parse("rescue_start",
-            """{"level":"medical","thrLat":0,"thrLon":0,"hdg":0,"lengthM":1,"fire":"","medic":"Truck Utility NorthAm Medic"}""").Error);
+            """{"level":"medical","thrLat":0,"thrLon":0,"hdg":0,"lengthM":1,"side":"left","fire":"","medic":"Truck Utility NorthAm Medic"}""").Error);
         Assert.Null(Parse("rescue_stop", "{}").Error);
 
         string? Why(string args) => Parse("rescue_start", args).Error?.Detail;
@@ -510,6 +515,7 @@ public class RescueCommandTests
         Assert.Matches("thrLon", Why(Ok.Replace("8.59", "\"8\""))!);
         Assert.Matches("hdg", Why(Ok.Replace("250", "360"))!);
         Assert.Matches("lengthM", Why(Ok.Replace("4000", "0"))!);
+        Assert.Matches("side", Why(Ok.Replace("\"right\"", "\"up\""))!);
         Assert.Matches("empty title", Why(Ok.Replace("Truck Fire Short", ""))!);
         Assert.Matches("empty title", Why(Ok.Replace("|Truck", "| Truck"))!);
         Assert.Matches("at most 8", Why(Ok.Replace("\"fire\":\"ASO_Firetruck02|Truck Fire Short\"", "\"fire\":\"a|b|c|d|e|f|g|h|i\""))!);

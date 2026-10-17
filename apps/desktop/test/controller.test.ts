@@ -699,6 +699,7 @@ describe('live data (T13)', () => {
         Array.from({ length: 4 }, () => ['ASO_Firetruck02', 'Truck Fire Airport Medium']).flat(),
       );
       expect(a['medic']).toBe('');
+      expect(a['side']).toBe('right'); // no wind given
       expect(checkSimCommand('rescue_start', a)).toBeNull();
 
       await app.stopFlight();
@@ -746,6 +747,7 @@ describe('live data (T13)', () => {
       app.sendSimCommand(rescue('full', 'KSFO', null, 290));
       await settle();
       expect(sent()[0]?.args?.['hdg']).toBeCloseTo(298, -1); // 28R, the other end of 10L
+      expect(sent()[0]?.args?.['side']).toBe('left'); // wind from 290, 8° left of course 298: upwind is left
     });
 
     it('no runway coordinates: a line in the feed; switched off: nothing at all; titles from the settings', async () => {

@@ -10,6 +10,7 @@ import {
   RESCUE_CATEGORY,
   rescueCategory,
   rescueRegion,
+  upwindSide,
   vehicleTitles,
 } from '../src/sim/rescue.js';
 
@@ -69,6 +70,15 @@ describe('rescue vehicles (T54)', () => {
     expect(medicGroup(t, 'FAOR')).toEqual(medicGroup(t, 'EGLL'));
   });
 
+  it('trucks wait upwind: the side the METAR wind comes from, right without wind', () => {
+    // Runway 24 (240°): wind from 300 is from the right, from 180 from the left.
+    expect(upwindSide(240, 300)).toBe('right');
+    expect(upwindSide(240, 180)).toBe('left');
+    expect(upwindSide(60, 300)).toBe('left'); // the other direction of the same runway
+    expect(upwindSide(240, 240)).toBe('right'); // straight along: right
+    expect(upwindSide(240, null)).toBe('right'); // calm, variable or no METAR
+  });
+
   it('fewer models than vehicles: they take turns; at most 8; empty group → none', () => {
     expect(vehicleTitles(['A', 'B'], 4)).toEqual(['A', 'B', 'A', 'B']);
     expect(vehicleTitles(['A', 'B', 'C'], 1)).toEqual(['A']);
@@ -86,6 +96,7 @@ describe('rescue vehicles (T54)', () => {
       thrLon: 8.59,
       hdg: 250,
       lengthM: 4000,
+      side: 'right',
       fire: 'ASO_Firetruck02|Truck Fire Short',
       medic: '',
     };
@@ -107,6 +118,7 @@ describe('rescue vehicles (T54)', () => {
       /at most 8/,
     );
     expect(checkSimCommand('rescue_start', { ...ok, level: 'medical' })).toMatch(/no fire/);
+    expect(checkSimCommand('rescue_start', { ...ok, side: 'up' })).toMatch(/side/);
     expect(checkSimCommand('rescue_start', { level: 'full' })).toMatch(/only/);
     expect(checkSimCommand('rescue_stop', {})).toBeNull();
     expect(checkSimCommand('rescue_stop', { x: 1 })).toMatch(/no arguments/);

@@ -4,13 +4,14 @@ namespace AcarsBridge;
 /// <param name="Full">Fire trucks follow the aircraft and surround it (<c>full</c>); false = they wait (<c>standby</c>).</param>
 /// <param name="Fire">SimObject titles of the fire trucks, one per truck; empty for <c>medical</c>.</param>
 /// <param name="Medic">Title of the ambulance; empty = none.</param>
+/// <param name="Left">The trucks wait left of the runway (landing direction); else right. The app picks the upwind side.</param>
 public sealed record RescueRequest(
     bool Full, double ThrLat, double ThrLon, double Hdg, double LengthM,
-    IReadOnlyList<string> Fire, IReadOnlyList<string> Medic)
+    IReadOnlyList<string> Fire, IReadOnlyList<string> Medic, bool Left = false)
 {
     /// <summary>
     /// Arguments of <c>rescue_start</c> already checked by <see cref="CommandCatalog"/>: <c>level</c>, <c>thrLat</c>,
-    /// <c>thrLon</c>, <c>hdg</c>, <c>lengthM</c>, <c>fire</c> and <c>medic</c> (titles joined by <c>|</c>).
+    /// <c>thrLon</c>, <c>hdg</c>, <c>lengthM</c>, <c>side</c>, <c>fire</c> and <c>medic</c> (titles joined by <c>|</c>).
     /// </summary>
     public static RescueRequest FromArgs(IReadOnlyDictionary<string, System.Text.Json.Nodes.JsonValue> args)
     {
@@ -19,12 +20,13 @@ public sealed record RescueRequest(
             args["level"].GetValue<string>() == "full",
             args["thrLat"].GetValue<double>(), args["thrLon"].GetValue<double>(),
             args["hdg"].GetValue<double>(), args["lengthM"].GetValue<double>(),
-            Titles(args["fire"].GetValue<string>()), Titles(args["medic"].GetValue<string>()));
+            Titles(args["fire"].GetValue<string>()), Titles(args["medic"].GetValue<string>()),
+            args["side"].GetValue<string>() == "left");
     }
 
     /// <summary>Same trucks at the same runway: only the level may differ.</summary>
     public bool SameFire(RescueRequest o) =>
-        ThrLat == o.ThrLat && ThrLon == o.ThrLon && Hdg == o.Hdg && Fire.SequenceEqual(o.Fire, StringComparer.Ordinal);
+        ThrLat == o.ThrLat && ThrLon == o.ThrLon && Hdg == o.Hdg && Left == o.Left && Fire.SequenceEqual(o.Fire, StringComparer.Ordinal);
 
     public bool SameMedic(RescueRequest o) =>
         ThrLat == o.ThrLat && ThrLon == o.ThrLon && Medic.SequenceEqual(o.Medic, StringComparer.Ordinal);
@@ -101,7 +103,8 @@ public enum RescueStage
 /// else around it on an arc of <see cref="DetourM"/> in steps of at most <see cref="DetourStepDeg"/>, the short way;
 /// it is stopped there only when it arrives, gets no closer by <see cref="ProgressM"/> in <see cref="NoProgressAfter"/>
 /// (stuck), or after <see cref="CircleDriveMax"/>;</item>
-/// <item>the trucks wait spread along the whole runway, so they are near wherever the aircraft stops;</item>
+/// <item>the trucks wait spread along the runway from the touchdown zone to the far end, <see cref="StageSideM"/> off
+/// its axis on the upwind side (the app sends it), facing it, so they are near wherever the aircraft stops;</item>
 /// <item>touchdown only after <see cref="TouchdownAfter"/> on the ground without a break, back to waiting only after
 /// <see cref="GoAroundAfter"/> in the air (a bounce or a slew does not restart the trucks);</item>
 /// <item>a driving truck is stopped by a one-point route at its last known place at 0 kt before its simulation goes
@@ -126,10 +129,12 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     /// <summary>How often a following truck gets a new waypoint.</summary>
     public static readonly TimeSpan MoveEvery = TimeSpan.FromMilliseconds(350);
 
-    /// <summary>Waiting trucks: off the runway axis (right of the landing direction), m.</summary>
-    public const double StageSideM = 45;
-    /// <summary>The first and the last waiting truck are this far from the runway ends, m; the rest evenly between.</summary>
-    public const double StageFromEndM = 100;
+    /// <summary>Waiting trucks: off the runway axis on the upwind side, m (user decision 2026-10-17).</summary>
+    public const double StageSideM = 150;
+    /// <summary>The first waiting truck: about the touchdown zone, this far past the threshold, m.</summary>
+    public const double StageFirstM = 400;
+    /// <summary>The last waiting truck: this far before the far end of the runway, m; the rest evenly between.</summary>
+    public const double StageLastFromEndM = 200;
     /// <summary>Following: truck i is (i + 1) × this behind the aircraft, m.</summary>
     public const double TrailM = 25;
     public const double CircleM = 50;
@@ -362,7 +367,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                 for (var i = 0; i < n; i++)
                 {
                     var (lat, lon) = StagePoint(req, i, n);
-                    _out.Add(new(RescueActionKind.Spawn, i, req.Fire[i], lat, lon, Norm(req.Hdg - 90), 0));
+                    _out.Add(new(RescueActionKind.Spawn, i, req.Fire[i], lat, lon, FacingRunway(req), 0));
                     _pos[i] = (lat, lon);
                 }
                 _fireSpawned = n;
@@ -553,17 +558,21 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     }
 
     /// <summary>
-    /// Waiting place of truck <paramref name="i"/> of <paramref name="n"/>: spread along the whole runway, the first
-    /// <see cref="StageFromEndM"/> past the threshold and the last as far before the other end (one truck: the middle),
-    /// <see cref="StageSideM"/> right of it (approved 2026-10-17). A runway shorter than 300 m counts as 300 m.
+    /// Waiting place of truck <paramref name="i"/> of <paramref name="n"/> (user decision 2026-10-17, from a description
+    /// of ARFF practice — a search summary, not a primary source): from <see cref="StageFirstM"/> past the threshold
+    /// (one truck: there) to <see cref="StageLastFromEndM"/> before the far end, evenly; on a runway too short for that
+    /// all wait at <see cref="StageFirstM"/>. <see cref="StageSideM"/> off the axis on the side of the request.
     /// </summary>
     public static (double Lat, double Lon) StagePoint(RescueRequest r, int i, int n)
     {
-        var length = Math.Max(r.LengthM, 300);
-        var along = n <= 1 ? length / 2 : StageFromEndM + (length - 2 * StageFromEndM) * i / (n - 1);
+        var last = Math.Max(r.LengthM - StageLastFromEndM, StageFirstM);
+        var along = n <= 1 ? StageFirstM : StageFirstM + (last - StageFirstM) * i / (n - 1);
         var (lat, lon) = Offset(r.ThrLat, r.ThrLon, r.Hdg, along);
-        return Offset(lat, lon, r.Hdg + 90, StageSideM);
+        return Offset(lat, lon, r.Hdg + (r.Left ? -90 : 90), StageSideM);
     }
+
+    /// <summary>Heading of a waiting truck: toward the runway from its side.</summary>
+    public static double FacingRunway(RescueRequest r) => Norm(r.Hdg + (r.Left ? 90 : -90));
 
     /// <summary>Point <paramref name="i"/> of <paramref name="n"/> on the circle around the aircraft, the first at its nose.</summary>
     public static (double Lat, double Lon) CirclePoint(RescueAircraft a, int i, int n) =>

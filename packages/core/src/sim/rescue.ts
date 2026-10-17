@@ -144,6 +144,17 @@ export function medicGroup(t: RescueTitles, icao: string): readonly string[] {
   }
 }
 
+/**
+ * Side of the runway the trucks wait on (user decision 2026-10-17, from a description of ARFF practice — a search
+ * summary, not a primary source): upwind, by the METAR wind direction relative to the landing course; calm, variable,
+ * no METAR, or the wind straight along the runway → right of the landing direction.
+ */
+export function upwindSide(runwayCourseDeg: number, windFromDeg: number | null): 'left' | 'right' {
+  if (windFromDeg === null) return 'right';
+  const rel = Math.sin(((windFromDeg - runwayCourseDeg) * Math.PI) / 180);
+  return rel < -1e-9 ? 'left' : 'right';
+}
+
 /** `count` titles from `group`, taking turns from the first; none for an empty group. */
 export function vehicleTitles(group: readonly string[], count: number): string[] {
   const g = group.map((s) => s.trim()).filter((s) => s !== '');

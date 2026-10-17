@@ -113,11 +113,12 @@ const VALIDATORS: Readonly<Record<SimCommandName, (args: SimCommandArgs) => stri
   rescue_stop: (args) => (Object.keys(args).length === 0 ? null : 'rescue_stop takes no arguments'),
 };
 
-const RESCUE_ARGS = ['level', 'thrLat', 'thrLon', 'hdg', 'lengthM', 'fire', 'medic'];
+const RESCUE_ARGS = ['level', 'thrLat', 'thrLon', 'hdg', 'lengthM', 'side', 'fire', 'medic'];
 
 /**
  * `rescue_start` (T54): `level` (`full` | `standby` | `medical`), the landing threshold `thrLat`,
- * `thrLon`, the runway's true course `hdg` and `lengthM`, and the SimObject titles `fire`, `medic`:
+ * `thrLon`, the runway's true course `hdg` and `lengthM`, the `side` of the runway the trucks wait on
+ * (`left` | `right` of the landing direction), and the SimObject titles `fire`, `medic`:
  * one per vehicle, joined by `|` (empty = none). Fire trucks only with `full` / `standby`.
  */
 function checkRescueStart(args: SimCommandArgs): string | null {
@@ -148,6 +149,7 @@ function checkRescueStart(args: SimCommandArgs): string | null {
       return `${name}: at most ${RESCUE_MAX_VEHICLES} titles`;
     if (titles.some((t) => t.trim() === '' || t !== t.trim())) return `${name}: empty title`;
   }
+  if (args['side'] !== 'left' && args['side'] !== 'right') return 'side must be left or right';
   if (level === 'medical' && fire !== '') return 'medical takes no fire trucks';
   return null;
 }
