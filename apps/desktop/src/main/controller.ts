@@ -1,6 +1,7 @@
 import {
   type CompiledScenario,
   destinationPoint,
+  fireFlips,
   fireGroup,
   fireTruckCount,
   medicGroup,
@@ -328,6 +329,7 @@ export class AppController {
       lengthM: rwy.lengthM,
       side: upwindSide(rwy.headingDeg, next.windFromDeg),
       fire: fireTitles.join('|'),
+      fireFlip: fireFlips(fireTitles, settings.rescueFlipped),
       medic: medicTitles.join('|'),
     });
   }

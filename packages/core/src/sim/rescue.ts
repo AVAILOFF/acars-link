@@ -112,6 +112,21 @@ export const DEFAULT_RESCUE_TITLES: RescueTitles = {
   medic: ['Truck Utility Europe Medic Box', 'Truck Utility Europe Medic Flush'],
 };
 
+/**
+ * Models drawn nose to tail with their sim heading: the bridge turns their heading by 180° (seen by a human in MSFS
+ * 2024, 2026-10-17: `Truck Fire Airport Medium` and `Microsoft_Truck_Fire_Medium_Red` reversed, `ASO_Firetruck02`
+ * and the ambulance right). Editable in the settings; a new model is checked by a human.
+ */
+export const DEFAULT_RESCUE_FLIPPED: readonly string[] = [
+  'Truck Fire Airport Medium',
+  'Microsoft_Truck_Fire_Medium_Red',
+];
+
+/** `fireFlip` of `rescue_start`: `1` for each title in `flipped`, else `0`. */
+export function fireFlips(titles: readonly string[], flipped: readonly string[]): string {
+  return titles.map((t) => (flipped.includes(t) ? '1' : '0')).join('|');
+}
+
 export type RescueRegion = 'NA' | 'JAPAN' | 'ASIA' | 'OTHER';
 
 /** Region of an airport by the first letters of its ICAO code. */

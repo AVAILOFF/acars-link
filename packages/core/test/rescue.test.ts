@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { AIRCRAFT_FAMILIES } from '../src/scenario/aircraft.js';
 import { checkSimCommand, SIM_COMMANDS } from '../src/sim/commands.js';
 import {
+  DEFAULT_RESCUE_FLIPPED,
   DEFAULT_RESCUE_TITLES,
   FIRE_TRUCKS,
+  fireFlips,
   fireGroup,
   fireTruckCount,
   medicGroup,
@@ -98,6 +100,7 @@ describe('rescue vehicles (T54)', () => {
       lengthM: 4000,
       side: 'right',
       fire: 'ASO_Firetruck02|Truck Fire Short',
+      fireFlip: '0|0',
       medic: '',
     };
     expect(checkSimCommand('rescue_start', ok)).toBeNull();
@@ -106,6 +109,7 @@ describe('rescue vehicles (T54)', () => {
         ...ok,
         level: 'medical',
         fire: '',
+        fireFlip: '',
         medic: 'Car Bush Medic',
       }),
     ).toBeNull();
@@ -119,6 +123,12 @@ describe('rescue vehicles (T54)', () => {
     );
     expect(checkSimCommand('rescue_start', { ...ok, level: 'medical' })).toMatch(/no fire/);
     expect(checkSimCommand('rescue_start', { ...ok, side: 'up' })).toMatch(/side/);
+    expect(checkSimCommand('rescue_start', { ...ok, fireFlip: '0' })).toMatch(/fireFlip/);
+    expect(checkSimCommand('rescue_start', { ...ok, fireFlip: '0|2' })).toMatch(/fireFlip/);
+    expect(
+      fireFlips(['ASO_Firetruck02', 'Truck Fire Airport Medium'], DEFAULT_RESCUE_FLIPPED),
+    ).toBe('0|1');
+    expect(fireFlips([], DEFAULT_RESCUE_FLIPPED)).toBe('');
     expect(checkSimCommand('rescue_start', { level: 'full' })).toMatch(/only/);
     expect(checkSimCommand('rescue_stop', {})).toBeNull();
     expect(checkSimCommand('rescue_stop', { x: 1 })).toMatch(/no arguments/);

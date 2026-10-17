@@ -15,7 +15,8 @@ namespace AcarsBridge;
 /// an ambulance by their titles (<see cref="RescueController"/>), created with the same plain call. Every vehicle stands
 /// with <c>SIM DISABLED</c> = 1 (set as soon as its id is known); the bridge moves the fire trucks itself, about every
 /// <see cref="RescueController.StepEvery"/>, with <c>SIMCONNECT_DATA_INITPOSITION</c> ("Initial Position", which the
-/// SDK allows "to incrementally move or reposition" objects not controlled by the user). While they are wanted the
+/// SDK allows "to incrementally move or reposition" objects not controlled by the user) on every visual frame (the
+/// "Frame" system event; the 100 ms timer only when no frame comes, e.g. paused). While they are wanted the
 /// aircraft position is read every <see cref="RescueController.MoveEvery"/>; diagnostics go to the console.
 /// </summary>
 public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy = null) : ISimSource, ICommandTarget
@@ -27,7 +28,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         Telemetry, Smoke, SmokeRemove, RescuePos, RescueRemove,
         RescueSpawn = 100, VehicleHdgInit = 400, VehicleSeen = 500,
     }
-    private enum Evt { Pause, Sim }
+    private enum Evt { Pause, Sim, Frame }
 
     /// <summary>Wire layout of the data definition: FLOAT64 × SimVars.Count, then TITLE as STRING256.</summary>
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi, Pack = 1)]
@@ -104,7 +105,9 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     /// <summary>Diagnostics: real intervals between position sets per truck (count, sum, max since the last report).</summary>
     private readonly DateTimeOffset[] _rescuePlacedAt = new DateTimeOffset[RescueController.MaxFire];
     private readonly (int N, double SumMs, double MaxMs, DateTimeOffset Since)[] _rescueRate = new (int, double, double, DateTimeOffset)[RescueController.MaxFire];
-    private DateTimeOffset _rescuePolled, _rescueStepped;
+    private DateTimeOffset _rescuePolled, _rescueStepped, _rescueFramed;
+    /// <summary>Without a "Frame" event this long (paused, a menu), the timer steps the trucks.</summary>
+    private static readonly TimeSpan FrameGap = TimeSpan.FromMilliseconds(250);
 
     private static void Diag(string line) => Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {line}");
 
@@ -233,7 +236,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     {
         if (!_rescue.Active) return;
         var now = clock.GetUtcNow();
-        if (now - _rescueStepped >= RescueController.StepEvery)
+        if (now - _rescueFramed >= FrameGap && now - _rescueStepped >= RescueController.StepEvery)
         {
             _rescueStepped = now;
             ApplyRescue(sc, _rescue.Step());
@@ -418,6 +421,15 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         // with the current state on subscription (SDK docs, SubscribeToSystemEvent).
         sc.SubscribeToSystemEvent(Evt.Pause, "Pause_EX1");
         sc.SubscribeToSystemEvent(Evt.Sim, "Sim");
+        // T54: "Frame" — "Request notifications every visual frame" (SubscribeToSystemEvent, SDK 2024, checked
+        // 2026-10-17): the moving trucks are stepped on every rendered frame, so they move smoothly.
+        sc.SubscribeToSystemEvent(Evt.Frame, "Frame");
+        sc.OnRecvEventFrame += (_, _) =>
+        {
+            if (!open || !_rescue.Moving) return;
+            _rescueFramed = clock.GetUtcNow();
+            ApplyRescue(sc, _rescue.Step());
+        };
 
         sc.RequestDataOnSimObject(Req.Telemetry, Def.Telemetry, SimConnect.SIMCONNECT_OBJECT_ID_USER,
             SIMCONNECT_PERIOD.SECOND, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);

@@ -1,4 +1,4 @@
-import { DEFAULT_RESCUE_TITLES, RESCUE_TITLE_GROUPS } from '@acars/core';
+import { DEFAULT_RESCUE_FLIPPED, DEFAULT_RESCUE_TITLES, RESCUE_TITLE_GROUPS } from '@acars/core';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import type { Language, TransportChoice } from '../../shared/api.js';
 import { testSiren } from './siren.js';
@@ -463,12 +463,40 @@ function NetworkForm() {
             />
           </Row>
         ))}
+        <Row
+          htmlFor="rescue-flipped"
+          title={t('set.rescueFlipped')}
+          hint={t('set.rescueFlippedHint')}
+        >
+          <textarea
+            id="rescue-flipped"
+            rows={2}
+            spellCheck={false}
+            key={settings.rescueFlipped.join('\n')}
+            defaultValue={settings.rescueFlipped.join('\n')}
+            disabled={off || !settings.rescue}
+            onBlur={(e) => {
+              const list = e.currentTarget.value
+                .split('\n')
+                .map((s) => s.trim())
+                .filter((s) => s !== '');
+              if (list.join('\n') !== settings.rescueFlipped.join('\n')) {
+                void update({ rescueFlipped: list });
+              }
+            }}
+          />
+        </Row>
         <Row title={t('set.rescueDefaults')}>
           <button
             type="button"
             className="btn"
             disabled={off || !settings.rescue}
-            onClick={() => void update({ rescueTitles: DEFAULT_RESCUE_TITLES })}
+            onClick={() =>
+              void update({
+                rescueTitles: DEFAULT_RESCUE_TITLES,
+                rescueFlipped: DEFAULT_RESCUE_FLIPPED,
+              })
+            }
           >
             {t('set.rescueReset')}
           </button>

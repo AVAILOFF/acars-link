@@ -326,6 +326,9 @@ const en = {
   'set.rescue.medicAsia': 'Ambulance: Asia (R, V, W, Z)',
   'set.rescue.medicNa': 'Ambulance: North America (K, C)',
   'set.rescue.medic': 'Ambulance: Europe and elsewhere',
+  'set.rescueFlipped': 'Models drawn reversed',
+  'set.rescueFlippedHint':
+    'Titles whose model faces backwards in MSFS: the bridge turns them 180°. Check a new model right after it appears; add it here if it stands backwards.',
   'set.rescueDefaults': 'Vehicle lists',
   'set.rescueReset': 'Reset to defaults',
   'set.soundTest': 'Play',
@@ -691,6 +694,9 @@ const ru: Record<MessageKey, string> = {
   'set.rescue.medicAsia': 'Скорая: Азия (R, V, W, Z)',
   'set.rescue.medicNa': 'Скорая: Северная Америка (K, C)',
   'set.rescue.medic': 'Скорая: Европа и остальные',
+  'set.rescueFlipped': 'Модели, нарисованные задом',
+  'set.rescueFlippedHint':
+    'Названия, у которых в MSFS нос модели смотрит назад: мост разворачивает их на 180°. Новую модель проверьте сразу после появления; стоит задом — впишите сюда.',
   'set.rescueDefaults': 'Списки машин',
   'set.rescueReset': 'По умолчанию',
   'set.soundTest': 'Прослушать',

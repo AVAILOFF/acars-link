@@ -68,7 +68,7 @@ public static class CommandCatalog
         ["rescue_stop"] = args => args.Count == 0 ? null : "rescue_stop takes no arguments",
     };
 
-    private static readonly string[] RescueArgs = ["level", "thrLat", "thrLon", "hdg", "lengthM", "side", "fire", "medic"];
+    private static readonly string[] RescueArgs = ["level", "thrLat", "thrLon", "hdg", "lengthM", "side", "fire", "fireFlip", "medic"];
 
     /// <summary>
     /// <c>rescue_start</c> (T54), the same rules as <c>checkRescueStart</c> in <c>@acars/core</c>: <c>level</c>
@@ -95,6 +95,12 @@ public static class CommandCatalog
             if (titles.Any(t => t.Trim().Length == 0 || t != t.Trim())) return $"{name}: empty title";
         }
         if (level == "medical" && args["fire"].GetValue<string>().Length > 0) return "medical takes no fire trucks";
+        // fireFlip: 0 | 1 per fire truck, joined by | like fire (1 = the model is drawn nose to tail with its heading).
+        if (!args["fireFlip"].TryGetValue<string>(out var flips)) return "fireFlip must be a string";
+        var fire = args["fire"].GetValue<string>();
+        var nFire = fire.Length == 0 ? 0 : fire.Split('|').Length;
+        var f = flips.Length == 0 ? [] : flips.Split('|');
+        if (f.Length != nFire || f.Any(x => x is not ("0" or "1"))) return "fireFlip: 0 or 1 per fire truck, joined by |";
         return null;
     }
 

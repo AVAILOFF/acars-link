@@ -5,13 +5,17 @@ namespace AcarsBridge;
 /// <param name="Fire">SimObject titles of the fire trucks, one per truck; empty for <c>medical</c>.</param>
 /// <param name="Medic">Title of the ambulance; empty = none.</param>
 /// <param name="Left">The trucks wait left of the runway (landing direction); else right. The app picks the upwind side.</param>
+/// <param name="Flip">Per fire truck: its model is drawn nose to tail with its sim heading (turn it 180°); null = none.</param>
 public sealed record RescueRequest(
     bool Full, double ThrLat, double ThrLon, double Hdg, double LengthM,
-    IReadOnlyList<string> Fire, IReadOnlyList<string> Medic, bool Left = false)
+    IReadOnlyList<string> Fire, IReadOnlyList<string> Medic, bool Left = false, IReadOnlyList<bool>? Flip = null)
 {
+    /// <summary>Truck <paramref name="i"/> is drawn reversed.</summary>
+    public bool Flipped(int i) => Flip is { } f && i < f.Count && f[i];
+
     /// <summary>
     /// Arguments of <c>rescue_start</c> already checked by <see cref="CommandCatalog"/>: <c>level</c>, <c>thrLat</c>,
-    /// <c>thrLon</c>, <c>hdg</c>, <c>lengthM</c>, <c>side</c>, <c>fire</c> and <c>medic</c> (titles joined by <c>|</c>).
+    /// <c>thrLon</c>, <c>hdg</c>, <c>lengthM</c>, <c>side</c>, <c>fire</c>, <c>fireFlip</c> and <c>medic</c> (joined by <c>|</c>).
     /// </summary>
     public static RescueRequest FromArgs(IReadOnlyDictionary<string, System.Text.Json.Nodes.JsonValue> args)
     {
@@ -21,12 +25,14 @@ public sealed record RescueRequest(
             args["thrLat"].GetValue<double>(), args["thrLon"].GetValue<double>(),
             args["hdg"].GetValue<double>(), args["lengthM"].GetValue<double>(),
             Titles(args["fire"].GetValue<string>()), Titles(args["medic"].GetValue<string>()),
-            args["side"].GetValue<string>() == "left");
+            args["side"].GetValue<string>() == "left",
+            Titles(args["fireFlip"].GetValue<string>()).Select(x => x == "1").ToArray());
     }
 
     /// <summary>Same trucks at the same runway: only the level may differ.</summary>
     public bool SameFire(RescueRequest o) =>
-        ThrLat == o.ThrLat && ThrLon == o.ThrLon && Hdg == o.Hdg && Left == o.Left && Fire.SequenceEqual(o.Fire, StringComparer.Ordinal);
+        ThrLat == o.ThrLat && ThrLon == o.ThrLon && Hdg == o.Hdg && Left == o.Left && Fire.SequenceEqual(o.Fire, StringComparer.Ordinal) &&
+        (Flip ?? []).SequenceEqual(o.Flip ?? []);
 
     public bool SameMedic(RescueRequest o) =>
         ThrLat == o.ThrLat && ThrLon == o.ThrLon && Medic.SequenceEqual(o.Medic, StringComparer.Ordinal);
@@ -86,8 +92,9 @@ public enum RescueStage
 /// the fire trucks itself: <see cref="Step"/>, about every <see cref="StepEvery"/>, advances each along its route at
 /// its speed and puts it there (<see cref="RescueActionKind.Place"/>), facing where it goes — no AI waypoints (the AI
 /// drove them in reverse, crawled on the last waypoint and did not stop);</item>
-/// <item>the fire truck models are drawn nose to tail with their sim heading: every heading of a fire truck the sim
-/// gets is turned by <see cref="FireDrawnFlipDeg"/>; the ambulance is drawn along it (seen by a human 2026-10-17);</item>
+/// <item>some fire truck models are drawn nose to tail with their sim heading: for the trucks the request flags
+/// (<see cref="RescueRequest.Flip"/>, a list in the app's settings) every heading the sim gets is turned by
+/// <see cref="FireDrawnFlipDeg"/>; the others and the ambulance are drawn along it (seen by a human 2026-10-17);</item>
 /// <item>at touchdown a truck ahead of the aircraft (along its heading) keeps standing until the aircraft has passed
 /// it, then follows;</item>
 /// <item>to the circle a truck goes straight when that line passes at least <see cref="ClearM"/> from the aircraft,
@@ -120,7 +127,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     public static readonly TimeSpan StepEvery = TimeSpan.FromMilliseconds(100);
     /// <summary>A longer gap between steps (a stall) is moved as this much, so a truck does not jump far.</summary>
     public static readonly TimeSpan StepMax = TimeSpan.FromMilliseconds(500);
-    /// <summary>Fire truck models are drawn with their nose this far from their sim heading.</summary>
+    /// <summary>A model drawn reversed has its nose this far from its sim heading.</summary>
     public const double FireDrawnFlipDeg = 180;
 
     /// <summary>Waiting trucks: off the runway axis on the upwind side, m (user decision 2026-10-17).</summary>
@@ -182,6 +189,8 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     /// <summary>Where each truck is and where it faces (visually), as the bridge put it.</summary>
     private readonly (double Lat, double Lon)?[] _pos = new (double, double)?[MaxFire];
     private readonly double[] _hdg = new double[MaxFire];
+    /// <summary>The truck's model is drawn reversed (from the request it was created for).</summary>
+    private readonly bool[] _flip = new bool[MaxFire];
     /// <summary>The points still ahead of a moving truck, and its speed, m/s; empty = it stands.</summary>
     private readonly List<(double Lat, double Lon)>[] _route = Enumerable.Range(0, MaxFire).Select(_ => new List<(double, double)>()).ToArray();
     private readonly double[] _mps = new double[MaxFire];
@@ -315,20 +324,20 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                     }
                 }
                 _pos[i] = at;
-                _out.Add(new(RescueActionKind.Place, i, "", at.Lat, at.Lon, Drawn(_hdg[i])));
+                _out.Add(new(RescueActionKind.Place, i, "", at.Lat, at.Lon, Drawn(_hdg[i], _flip[i])));
                 if (now - _traced[i] >= TraceEvery)
                 {
                     _traced[i] = now;
                     var to = _route[i].Count > 0 ? $"{Meters(at, _route[i][^1]):0} m" : "arrived";
-                    Log($"rescue slot {i} moving: hdg {_hdg[i]:0} (sim {Drawn(_hdg[i]):0}), {_mps[i] / MpsPerKt:0} kt, to target {to}");
+                    Log($"rescue slot {i} moving: hdg {_hdg[i]:0} (sim {Drawn(_hdg[i], _flip[i]):0}), {_mps[i] / MpsPerKt:0} kt, to target {to}");
                 }
             }
             return _out;
         }
     }
 
-    /// <summary>The heading the sim gets for a fire truck facing <paramref name="facing"/> (its drawing is turned).</summary>
-    public static double Drawn(double facing) => Norm(facing + FireDrawnFlipDeg);
+    /// <summary>The heading the sim gets for a truck facing <paramref name="facing"/>: turned when its model is drawn reversed.</summary>
+    public static double Drawn(double facing, bool flipped) => Norm(facing + (flipped ? FireDrawnFlipDeg : 0));
 
     private void TrackStop(RescueAircraft a, DateTimeOffset now)
     {
@@ -404,7 +413,8 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                     var (lat, lon) = StagePoint(req, i, n);
                     _pos[i] = (lat, lon);
                     _hdg[i] = FacingRunway(req);
-                    _out.Add(new(RescueActionKind.Spawn, i, req.Fire[i], lat, lon, Drawn(_hdg[i])));
+                    _flip[i] = req.Flipped(i);
+                    _out.Add(new(RescueActionKind.Spawn, i, req.Fire[i], lat, lon, Drawn(_hdg[i], _flip[i])));
                 }
                 _fireSpawned = n;
                 _stage = RescueStage.Staged;

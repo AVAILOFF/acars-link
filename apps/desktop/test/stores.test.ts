@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { DEFAULT_RESCUE_TITLES } from '@acars/core';
+import { DEFAULT_RESCUE_FLIPPED, DEFAULT_RESCUE_TITLES } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { AppFailure } from '../src/main/errors.js';
 import { SecretStore } from '../src/main/secrets.js';
@@ -75,6 +75,7 @@ describe('settings', () => {
       rescue: true,
       rescueSiren: false,
       rescueTitles: DEFAULT_RESCUE_TITLES,
+      rescueFlipped: DEFAULT_RESCUE_FLIPPED,
       scenarios: {},
       chances: {},
       droneRisk: {},
