@@ -416,6 +416,41 @@ public class RescueControllerTests
     }
 
     [Fact]
+    public void Ambulance_comes_along_when_the_aircraft_parks_again_elsewhere()
+    {
+        var (c, clock) = New();
+        c.Start(Req(full: false, fire: [], medic: ["Truck Utility Europe Medic Box"]));
+        Run(c, Rolling(800, 0, brake: true));
+        clock.Advance(TimeSpan.FromSeconds(3));
+        var first = Assert.Single(Run(c, Rolling(800, 0, brake: true)));
+        Assert.Equal(RescueActionKind.Spawn, first.Kind);
+
+        // Taxies 60 m on (the ambulance stays), parks there: closer than 100 m, nothing happens.
+        Run(c, Rolling(830, 10));
+        Run(c, Rolling(860, 0, brake: true));
+        clock.Advance(TimeSpan.FromSeconds(3));
+        Assert.Empty(Run(c, Rolling(860, 0, brake: true)));
+
+        // Taxies to the gate 1 km away, stops without the brake: nothing; with the brake: created anew beside it.
+        Run(c, Rolling(1900, 15));
+        Run(c, Rolling(1900, 0));
+        clock.Advance(TimeSpan.FromSeconds(3));
+        Assert.Empty(Run(c, Rolling(1900, 0)));
+        var again = Run(c, Rolling(1900, 0, brake: true));
+        Assert.Equal([RescueActionKind.Remove, RescueActionKind.Spawn], again.Select(x => x.Kind));
+        Assert.All(again, x => Assert.Equal(RescueController.MedicSlot, x.Slot));
+        var (pLat, pLon) = RescueController.Offset(ThrLat, ThrLon, Hdg, 1900);
+        var (lLat, lLon) = RescueController.Offset(pLat, pLon, Hdg - 90, 30);
+        Assert.InRange(Meters(lLat, lLon, again[1].Lat, again[1].Lon), 0, 0.1);
+
+        // The 10 minutes count from the new one.
+        clock.Advance(RescueController.StayAfterStop - TimeSpan.FromSeconds(1));
+        Assert.Empty(Run(c, Rolling(1900, 0, brake: true)));
+        clock.Advance(TimeSpan.FromSeconds(1));
+        Assert.Equal(RescueActionKind.Remove, Assert.Single(Run(c, Rolling(1900, 0, brake: true))).Kind);
+    }
+
+    [Fact]
     public void Ambulance_not_far_from_the_landing_airport()
     {
         var (c, clock) = New();

@@ -85,7 +85,8 @@ public enum RescueStage
 /// after touchdown and surround it once it stands; they are removed <see cref="StayAfterStop"/> after the stop,
 /// on <c>rescue_stop</c>, beyond <see cref="RemoveNm"/> (a go-around; created again when near) and with the sim
 /// session (created again in the next one while the request stands). The ambulance appears beside the aircraft once
-/// it is parked near the landing airport. Geometry and timings are the ERoD mod's (docs/07 T54 p. 8), the rest are
+/// it is parked near the landing airport, and is created again beside it at a later parked stop more than
+/// <see cref="MedicMovedM"/> away (no route: removed and created anew). Geometry and timings are the ERoD mod's (docs/07 T54 p. 8), the rest are
 /// game rules approved by the user (2026-10-17):
 /// <list type="bullet">
 /// <item>a vehicle's own simulation is off (<c>SIM DISABLED</c>) while it stands — created vehicles otherwise roll
@@ -134,6 +135,8 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     public const double CircleM = 50;
     /// <summary>Ambulance: left of the aircraft, m.</summary>
     public const double MedicSideM = 30;
+    /// <summary>The aircraft parks again this far from the ambulance: it is created anew beside the aircraft, m.</summary>
+    public const double MedicMovedM = 100;
     /// <summary>Following speed: the aircraft's plus this, within <see cref="MinTrailKt"/>..<see cref="MaxTrailKt"/>.</summary>
     public const double TrailExtraKt = 10, MinTrailKt = 20, MaxTrailKt = 60;
     /// <summary>Speed to the points of the circle.</summary>
@@ -185,6 +188,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     private bool _medicSpawned;
     private bool _medicDone;
     private DateTimeOffset _medicAt;
+    private (double Lat, double Lon) _medicPos;
 
     private readonly List<RescueAction> _out = [];
     /// <summary>What was last logged as the state (<see cref="Trace"/>).</summary>
@@ -502,6 +506,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         _medicFor = req;
         if (req.Medic.Count == 0) return;
         var nm = SmokeController.DistanceNm(a.Lat, a.Lon, req.ThrLat, req.ThrLon);
+        var parked = nm <= StageNm && a.ParkingBrake && Stands(now);
         if (_medicSpawned)
         {
             if (nm > RemoveNm || now - _medicAt >= StayAfterStop)
@@ -509,14 +514,20 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                 _out.Add(new(RescueActionKind.Remove, MedicSlot, "", 0, 0, 0, 0));
                 _medicSpawned = false;
                 _medicDone = now - _medicAt >= StayAfterStop;
+                return;
             }
-            return;
+            // Parked again elsewhere (a stop on the runway, then the gate): the ambulance comes along (approved 2026-10-17).
+            if (!parked || Meters((a.Lat, a.Lon), _medicPos) <= MedicMovedM) return;
+            _out.Add(new(RescueActionKind.Remove, MedicSlot, "", 0, 0, 0, 0));
+            _medicSpawned = false;
+            Log("rescue slot 8: the aircraft parked elsewhere, the ambulance is created beside it again");
         }
-        if (_medicDone || nm > StageNm || !a.ParkingBrake || !Stands(now)) return;
+        if (_medicDone || !parked) return;
         var (lat, lon) = Offset(a.Lat, a.Lon, a.HdgDeg - 90, MedicSideM);
         _out.Add(new(RescueActionKind.Spawn, MedicSlot, req.Medic[0], lat, lon, Norm(a.HdgDeg), 0));
         _medicSpawned = true;
         _medicAt = now;
+        _medicPos = (lat, lon);
     }
 
     private void RemoveFire()
