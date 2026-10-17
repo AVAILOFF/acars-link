@@ -97,7 +97,13 @@ public enum RescueStage
 /// <item>following trucks get two waypoints, so their target is never the last one (MSFS 2024 slows ground vehicles
 /// to a crawl on the last waypoint);</item>
 /// <item>to the circle a truck goes straight when that line passes at least <see cref="ClearM"/> from the aircraft,
-/// else around it on an arc of <see cref="DetourM"/> in steps of at most <see cref="DetourStepDeg"/>, the short way.</item>
+/// else around it on an arc of <see cref="DetourM"/> in steps of at most <see cref="DetourStepDeg"/>, the short way;
+/// it has until <see cref="ArrivalLimit"/> of its route to get there;</item>
+/// <item>touchdown only after <see cref="TouchdownAfter"/> on the ground without a break, back to waiting only after
+/// <see cref="GoAroundAfter"/> in the air (a bounce or a slew does not restart the trucks);</item>
+/// <item>a driving truck is stopped by a one-point route at its last known place at 0 kt before its simulation goes
+/// off: <c>SIM DISABLED</c> alone holds a vehicle without a route, not one that follows a waypoint list (seen by a
+/// human 2026-10-17).</item>
 /// </list>
 /// Thread-safe: commands arrive on a network thread, positions on the SimConnect thread. <paramref name="log"/> gets a
 /// line on every change of the stage or of what the controller sees (on the ground, airborne since staging, stands,
@@ -136,13 +142,20 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     public const double TrailAheadM = 30;
     /// <summary>A truck this close to its point on the circle has arrived: its simulation goes off, m.</summary>
     public const double ArrivedM = 5;
-    /// <summary>At the latest this long after the stop the trucks' simulation goes off wherever they are.</summary>
-    public static readonly TimeSpan CircleDriveMax = TimeSpan.FromSeconds(30);
+
     /// <summary>To the circle: straight when the line passes at least this far from the aircraft, m.</summary>
     public const double ClearM = 40;
     /// <summary>Otherwise around the aircraft on an arc of this radius, m, in steps of at most <see cref="DetourStepDeg"/>.</summary>
     public const double DetourM = 80;
     public const double DetourStepDeg = 45;
+    /// <summary>On the ground without a break this long: a touchdown.</summary>
+    public static readonly TimeSpan TouchdownAfter = TimeSpan.FromSeconds(1);
+    /// <summary>In the air without a break this long after touchdown: a go-around, the trucks wait again.</summary>
+    public static readonly TimeSpan GoAroundAfter = TimeSpan.FromSeconds(5);
+    /// <summary>Speed the arrival limit counts with, m/s (about <see cref="CircleKt"/>).</summary>
+    public const double ArrivalMps = 15;
+    public static readonly TimeSpan ArrivalExtra = TimeSpan.FromSeconds(15);
+    public static readonly TimeSpan ArrivalMax = TimeSpan.FromSeconds(120);
 
     private readonly object _gate = new();
     private RescueRequest? _req;
@@ -156,6 +169,8 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     /// <summary>Airborne since the trucks were staged: the next ground contact is the touchdown.</summary>
     private bool _airborne;
     private DateTimeOffset? _slowSince;
+    /// <summary>Since when the aircraft is on the ground / in the air without a break.</summary>
+    private DateTimeOffset? _groundSince, _airSince;
     private DateTimeOffset? _stoppedAt;
     private DateTimeOffset _lastMove;
 
@@ -163,8 +178,9 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     private readonly (double Lat, double Lon)?[] _pos = new (double, double)?[MaxFire];
     /// <summary>Trucks that were ahead of the aircraft at touchdown and still wait for it to pass.</summary>
     private readonly bool[] _waiting = new bool[MaxFire];
-    /// <summary>Points on the circle of the trucks still driving there.</summary>
+    /// <summary>Points on the circle of the trucks still driving there, and until when each may drive.</summary>
     private readonly (double Lat, double Lon)?[] _circle = new (double, double)?[MaxFire];
+    private readonly DateTimeOffset[] _circleUntil = new DateTimeOffset[MaxFire];
 
     private bool _medicSpawned;
     private bool _medicDone;
@@ -234,6 +250,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
             if (_stage != RescueStage.Done) _stage = RescueStage.Idle;
             _airborne = false;
             _slowSince = null;
+            _groundSince = _airSince = null;
             _stoppedAt = null;
             Array.Clear(_pos);
             Array.Clear(_circle);
@@ -260,6 +277,29 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     {
         if (!a.OnGround || a.GsKt >= StopKt) _slowSince = null;
         else _slowSince ??= now;
+        if (a.OnGround)
+        {
+            _groundSince ??= now;
+            _airSince = null;
+        }
+        else
+        {
+            _airSince ??= now;
+            _groundSince = null;
+        }
+    }
+
+    private bool Landed(DateTimeOffset now) => _groundSince is { } g && now - g >= TouchdownAfter;
+    private bool WentAround(DateTimeOffset now) => _airSince is { } t && now - t >= GoAroundAfter;
+
+    /// <summary>
+    /// Stops a driving truck: a one-point route at its last known place at 0 kt, then its simulation off (approved
+    /// 2026-10-17; whether the sim then holds it is a human check).
+    /// </summary>
+    private void Halt(int i, (double Lat, double Lon) fallback)
+    {
+        _out.Add(RescueAction.Go(i, [_pos[i] ?? fallback], 0));
+        _out.Add(RescueAction.Sim(i, false));
     }
 
     /// <summary>One line whenever the stage or what decides it changes.</summary>
@@ -315,7 +355,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                 return;
             case RescueStage.Staged:
                 if (!a.OnGround) _airborne = true;
-                else if (_airborne && req.Full)
+                else if (_airborne && req.Full && Landed(now))
                 {
                     // Touchdown: trucks the aircraft has passed start to follow; those ahead wait for it.
                     _stage = RescueStage.Trailing;
@@ -327,14 +367,16 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                 if (_airborne && Stands(now)) Stopped(a, req, now);
                 return;
             case RescueStage.Trailing:
-                if (!a.OnGround)
+                if (WentAround(now))
                 {
-                    // A touch-and-go: back to waiting until the next touchdown, standing.
+                    // A touch-and-go or go-around: back to waiting until the next touchdown, standing.
                     _stage = RescueStage.Staged;
+                    for (var i = 0; i < _fireSpawned; i++)
+                        if (!_waiting[i]) Halt(i, StagePoint(req, i));
                     Array.Clear(_waiting);
-                    for (var i = 0; i < _fireSpawned; i++) _out.Add(RescueAction.Sim(i, false));
                     return;
                 }
+                if (!a.OnGround) return; // a bounce: wait and see
                 if (Stands(now))
                 {
                     Stopped(a, req, now);
@@ -360,10 +402,10 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                 {
                     if (_circle[i] is not { } c) continue;
                     var arrived = _pos[i] is { } p && Meters(p, c) <= ArrivedM;
-                    if (!arrived && (_stoppedAt is not { } s || now - s < CircleDriveMax)) continue;
-                    _out.Add(RescueAction.Sim(i, false));
+                    if (!arrived && now < _circleUntil[i]) continue;
+                    Halt(i, c);
                     _circle[i] = null;
-                    Log($"rescue slot {i}: {(arrived ? "arrived on the circle" : "stops (30 s after the stop)")}");
+                    Log($"rescue slot {i}: {(arrived ? "arrived on the circle" : "stops (its time to get there is up)")}");
                 }
                 return;
         }
@@ -409,7 +451,6 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     {
         _stage = RescueStage.Encircle;
         _stoppedAt = now;
-        Array.Clear(_waiting);
         Log($"rescue: the aircraft stands, {(req.Full ? "trucks drive to the circle" : "standby trucks stay")}");
         if (!req.Full) return;
         for (var i = 0; i < _fireSpawned; i++)
@@ -417,13 +458,34 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
             var target = CirclePoint(a, i, _fireSpawned);
             var from = _pos[i] ?? Offset(a.Lat, a.Lon, a.HdgDeg + 180, TrailM * (i + 1));
             var route = CircleRoute(a, from, target);
-            Log($"rescue slot {i}: to the circle, {route.Length} waypoint(s)");
-            _out.Add(RescueAction.Sim(i, false));
+            var limit = ArrivalLimit(from, route);
+            Log($"rescue slot {i}: to the circle, {route.Length} waypoint(s), {limit.TotalSeconds:0} s");
+            if (_waiting[i]) _out.Add(RescueAction.Sim(i, false)); // standing already
+            else Halt(i, from);
             _out.Add(RescueAction.TurnTo(i, Bearing(from, route[0])));
             _out.Add(RescueAction.Sim(i, true));
             _out.Add(RescueAction.Go(i, route, CircleKt));
             _circle[i] = target;
+            _circleUntil[i] = now + limit;
         }
+        Array.Clear(_waiting);
+    }
+
+    /// <summary>
+    /// How long a truck may take along <paramref name="route"/> from <paramref name="from"/>: its length at
+    /// <see cref="ArrivalMps"/>, twice, plus <see cref="ArrivalExtra"/>, at most <see cref="ArrivalMax"/>.
+    /// </summary>
+    public static TimeSpan ArrivalLimit((double Lat, double Lon) from, (double Lat, double Lon)[] route)
+    {
+        var m = 0.0;
+        var at = from;
+        foreach (var q in route)
+        {
+            m += Meters(at, q);
+            at = q;
+        }
+        var t = TimeSpan.FromSeconds(m / ArrivalMps * 2) + ArrivalExtra;
+        return t < ArrivalMax ? t : ArrivalMax;
     }
 
     private void Medic(RescueAircraft a, DateTimeOffset now)

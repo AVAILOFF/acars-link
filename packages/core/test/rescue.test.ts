@@ -48,10 +48,7 @@ describe('rescue vehicles (T54)', () => {
   it('fire truck models by airport size and region', () => {
     const t = DEFAULT_RESCUE_TITLES;
     expect(fireGroup(t, 'KJFK', true)).toEqual(['Truck Fire Airport Medium']);
-    expect(fireGroup(t, 'EDDF', true)).toEqual([
-      'ASO_Firetruck02',
-      'Microsoft_Truck_Fire_Medium_Red',
-    ]);
+    expect(fireGroup(t, 'EDDF', true)).toEqual(['ASO_Firetruck02', 'Truck Fire Airport Medium']);
     expect(fireGroup(t, 'KBVY', false)).toEqual([
       'Truck Fire Long 02',
       'Microsoft_Truck_Fire_Long',

@@ -96,10 +96,14 @@ export const RESCUE_TITLE_GROUPS = [
   'medic',
 ] as const satisfies readonly (keyof RescueTitles)[];
 
-/** Defaults (docs/07 T54, decisions of 2026-10-17). The GSX Panther is not one: it is an add-on. */
+/**
+ * Defaults (docs/07 T54, decisions of 2026-10-17). The GSX Panther is not one: it is an add-on.
+ * `Microsoft_Truck_Fire_Medium_Red` was taken out of `fireLarge` after the human check: it drives visually in
+ * reverse (the sim moves it along its heading, the model is drawn the other way); it can be added back in the settings.
+ */
 export const DEFAULT_RESCUE_TITLES: RescueTitles = {
   fireLargeNa: ['Truck Fire Airport Medium'],
-  fireLarge: ['ASO_Firetruck02', 'Microsoft_Truck_Fire_Medium_Red'],
+  fireLarge: ['ASO_Firetruck02', 'Truck Fire Airport Medium'],
   fireNa: ['Truck Fire Long 02', 'Microsoft_Truck_Fire_Long'],
   fire: ['Truck Fire Short'],
   medicJapan: ['Van Asia High Roof Medic Japan'],

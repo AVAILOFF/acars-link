@@ -696,10 +696,7 @@ describe('live data (T13)', () => {
       expect(a['hdg']).toBeCloseTo(230.6, 0);
       expect(a['lengthM']).toBeGreaterThan(3900);
       expect(String(a['fire']).split('|')).toEqual(
-        Array.from({ length: 4 }, () => [
-          'ASO_Firetruck02',
-          'Microsoft_Truck_Fire_Medium_Red',
-        ]).flat(),
+        Array.from({ length: 4 }, () => ['ASO_Firetruck02', 'Truck Fire Airport Medium']).flat(),
       );
       expect(a['medic']).toBe('');
       expect(checkSimCommand('rescue_start', a)).toBeNull();

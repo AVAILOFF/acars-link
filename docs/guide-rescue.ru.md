@@ -98,7 +98,7 @@ MSFS: стандартные машины (объекты SimObject), созда
 |---|---|
 | `ASO_Firetruck02` | аэродромная, белая, 4 оси |
 | `Truck Fire Airport Medium` | аэродромная, салатовая |
-| `Microsoft_Truck_Fire_Medium_Red` | аэродромная, красная, с анимацией |
+| `Microsoft_Truck_Fire_Medium_Red` | аэродромная, красная, с анимацией; **едет задом наперёд** (проверка 2026-10-17), убрана из списков по умолчанию |
 | `FSDT_Firetruck_Panther_6x6_red` | Rosenbauer Panther из GSX (аддон), с анимацией |
 | `Truck Fire Long 02` | городская с лестницей (США) |
 | `Microsoft_Truck_Fire_Long` | городская с лестницей, с анимацией |
@@ -163,7 +163,7 @@ MSFS 2020 у вас нет: в отчёте T54 будет «в 2020 не про
 | Аэропорт | Пожарные машины |
 |---|---|
 | крупный, Северная Америка (`K`, `C`) | `Truck Fire Airport Medium` |
-| крупный, остальные регионы | `ASO_Firetruck02`, `Microsoft_Truck_Fire_Medium_Red` |
+| крупный, остальные регионы | `ASO_Firetruck02`, `Truck Fire Airport Medium` |
 | не крупный, Северная Америка | `Truck Fire Long 02`, `Microsoft_Truck_Fire_Long` |
 | не крупный, остальные регионы | `Truck Fire Short` |
 
