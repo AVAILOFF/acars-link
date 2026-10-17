@@ -23,7 +23,11 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
 {
     private enum Def { Telemetry, Rescue, Waypoint, SimDisabled, VehiclePos, Heading }
     /// <summary>Rescue vehicles are created with <c>RescueSpawn + slot</c>, their positions asked with <c>VehiclePos + slot</c>.</summary>
-    private enum Req { Telemetry, Smoke, SmokeRemove, RescuePos, RescueRemove, RescueSpawn = 100, VehiclePos = 200, VehicleHdg = 300 }
+    private enum Req
+    {
+        Telemetry, Smoke, SmokeRemove, RescuePos, RescueRemove,
+        RescueSpawn = 100, VehiclePos = 200, VehicleHdg = 300, VehicleHdgInit = 400, VehicleHdgLate = 500,
+    }
     private enum Evt { Pause, Sim }
 
     /// <summary>Wire layout of the data definition: FLOAT64 × SimVars.Count, then TITLE as STRING256.</summary>
@@ -62,7 +66,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct VehiclePos
     {
-        public double Lat, Lon;
+        public double Lat, Lon, Hdg, BodyZ;
     }
 
     private const string ClientName = "ACARS Bridge";
@@ -99,6 +103,14 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     private readonly string[] _rescueTitle = new string[RescueController.MaxFire + 1];
     private readonly double[] _rescueHdg = new double[RescueController.MaxFire + 1];
     private readonly bool[] _rescueHdgCheck = new bool[RescueController.MaxFire + 1];
+    /// <summary>Diagnostics (T54, 2026-10-17): when to read the heading again, and the last traced place of a driving truck.</summary>
+    private readonly DateTimeOffset?[] _rescueHdgLate = new DateTimeOffset?[RescueController.MaxFire + 1];
+    private readonly (DateTimeOffset T, double Lat, double Lon)?[] _rescueTrace = new (DateTimeOffset, double, double)?[RescueController.MaxFire];
+    private readonly double[] _rescueSpawnHdg = new double[RescueController.MaxFire + 1];
+    private static readonly TimeSpan HdgLateAfter = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan TraceEvery = TimeSpan.FromSeconds(2);
+
+    private static void Diag(string line) => Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {line}");
     private DateTimeOffset _rescuePolled;
 
     public IReadOnlyCollection<string> Commands { get; } = ["ping", "rescue_start", "rescue_stop", "smoke_start", "smoke_stop"];
@@ -176,6 +188,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                     _rescueSimOn[x.Slot] = false;
                     _rescueTitle[x.Slot] = x.Title;
                     _rescueHdg[x.Slot] = x.Hdg;
+                    _rescueSpawnHdg[x.Slot] = x.Hdg;
                     sc.AICreateSimulatedObject(x.Title, at, (Req)((int)Req.RescueSpawn + x.Slot));
                     break;
                 case RescueActionKind.Turn:
@@ -218,6 +231,24 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     {
         sc.SetDataOnSimObject(Def.Heading, _rescueId[slot], SIMCONNECT_DATA_SET_FLAG.DEFAULT, new Heading { Deg = _rescueHdg[slot] });
         _rescueHdgCheck[slot] = true;
+        _rescueHdgLate[slot] = clock.GetUtcNow() + HdgLateAfter;
+    }
+
+    /// <summary>
+    /// Every <see cref="TraceEvery"/> per driving truck: its heading, its speed along its own axis (VELOCITY BODY Z,
+    /// negative = backwards) and the direction it actually moved (diagnostics for the reverse driving, 2026-10-17).
+    /// </summary>
+    private void TraceDriving(int slot, VehiclePos v)
+    {
+        var now = clock.GetUtcNow();
+        if (_rescueTrace[slot] is { } last && now - last.T < TraceEvery) return;
+        if (_rescueTrace[slot] is { } prev)
+        {
+            var moved = SmokeController.DistanceNm(prev.Lat, prev.Lon, v.Lat, v.Lon) * 1852;
+            var track = moved < 0.5 ? "-" : $"{RescueController.Bearing((prev.Lat, prev.Lon), (v.Lat, v.Lon)):0}";
+            Diag($"rescue slot {slot} {_rescueTitle[slot]} driving: sim hdg {RescueController.Norm(v.Hdg):0}, body z {v.BodyZ:0.0} ft/s, track {track}, moved {moved:0} m");
+        }
+        _rescueTrace[slot] = (now, v.Lat, v.Lon);
     }
 
     /// <summary>Asks for the aircraft position for the rescue vehicles at most every <see cref="RescueController.MoveEvery"/>.</summary>
@@ -238,6 +269,13 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             if (!_rescueHdgCheck[slot] || _rescueId[slot] == 0) continue;
             _rescueHdgCheck[slot] = false;
             sc.RequestDataOnSimObject((Req)((int)Req.VehicleHdg + slot), Def.Heading, _rescueId[slot],
+                SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
+        }
+        for (var slot = 0; slot < _rescueHdgLate.Length; slot++)
+        {
+            if (_rescueHdgLate[slot] is not { } due || clock.GetUtcNow() < due || _rescueId[slot] == 0) continue;
+            _rescueHdgLate[slot] = null;
+            sc.RequestDataOnSimObject((Req)((int)Req.VehicleHdgLate + slot), Def.VehiclePos, _rescueId[slot],
                 SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
         }
     }
@@ -324,11 +362,28 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] rescue slot {turned} {_rescueTitle[turned]} hdg asked {_rescueHdg[turned]:0}, sim {RescueController.Norm(h.Deg):0}");
                 return;
             }
+            var created = (int)data.dwRequestID - (int)Req.VehicleHdgInit;
+            if (created >= 0 && created < _rescueId.Length)
+            {
+                // The heading the sim gave the new object (INITPOSITION.Heading), read before ours is set.
+                var h0 = (Heading)data.dwData[0];
+                Diag($"rescue slot {created} {_rescueTitle[created]} created: sim hdg {RescueController.Norm(h0.Deg):0} (INITPOSITION {_rescueSpawnHdg[created]:0})");
+                if (_rescueId[created] != 0) SetHeading(sc, created);
+                return;
+            }
+            var late = (int)data.dwRequestID - (int)Req.VehicleHdgLate;
+            if (late >= 0 && late < _rescueId.Length)
+            {
+                var v3 = (VehiclePos)data.dwData[0];
+                Diag($"rescue slot {late} {_rescueTitle[late]} 3 s after the set: sim hdg {RescueController.Norm(v3.Hdg):0} (asked {_rescueHdg[late]:0}), body z {v3.BodyZ:0.0} ft/s");
+                return;
+            }
             var vehicle = (int)data.dwRequestID - (int)Req.VehiclePos;
             if (vehicle >= 0 && vehicle < RescueController.MaxFire)
             {
                 var v = (VehiclePos)data.dwData[0];
                 _rescue.VehiclePosition(vehicle, v.Lat, v.Lon);
+                TraceDriving(vehicle, v);
                 return;
             }
             if ((Req)data.dwRequestID != Req.Telemetry) return;
@@ -353,7 +408,9 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                 {
                     _rescueId[slot] = data.dwObjectID;
                     SetSim(sc, data.dwObjectID, _rescueSimOn[slot]);
-                    SetHeading(sc, slot);
+                    // Read the heading of the creation first; ours is set when it comes (diagnostics, 2026-10-17).
+                    sc.RequestDataOnSimObject((Req)((int)Req.VehicleHdgInit + slot), Def.Heading, data.dwObjectID,
+                        SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
                 }
                 return;
             }
@@ -389,6 +446,9 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         sc.RegisterDataDefineStruct<SimDisabled>(Def.SimDisabled);
         sc.AddToDataDefinition(Def.VehiclePos, "PLANE LATITUDE", "degrees", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.AddToDataDefinition(Def.VehiclePos, "PLANE LONGITUDE", "degrees", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
+        // Diagnostics: heading and VELOCITY BODY Z ("true longitudinal speed, relative to aircraft Z axis", Aircraft Misc Variables).
+        sc.AddToDataDefinition(Def.VehiclePos, "PLANE HEADING DEGREES TRUE", "degrees", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
+        sc.AddToDataDefinition(Def.VehiclePos, "VELOCITY BODY Z", "feet per second", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.RegisterDataDefineStruct<VehiclePos>(Def.VehiclePos);
         // PLANE HEADING DEGREES TRUE: settable (Aircraft Misc Variables, SDK 2024, checked 2026-10-17); asked in degrees.
         sc.AddToDataDefinition(Def.Heading, "PLANE HEADING DEGREES TRUE", "degrees", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
@@ -429,6 +489,8 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             Array.Clear(_rescueRemoveWhenAssigned);
             Array.Clear(_rescueSimOn);
             Array.Clear(_rescueHdgCheck);
+            Array.Clear(_rescueHdgLate);
+            Array.Clear(_rescueTrace);
             _rescue.SessionEnded();
         }
         return ended ?? "stopped";
