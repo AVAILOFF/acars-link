@@ -35,35 +35,26 @@ public sealed record RescueRequest(
 /// <summary>The user's aircraft, as the rescue vehicles need it.</summary>
 public readonly record struct RescueAircraft(double Lat, double Lon, double HdgDeg, double GsKt, bool OnGround, bool ParkingBrake);
 
-
 public enum RescueActionKind
 {
     /// <summary>
-    /// Create <see cref="RescueAction.Title"/> at the point, facing <see cref="RescueAction.Hdg"/>. The sim thread
-    /// sets that heading again and <c>SIM DISABLED</c> = 1 once the object has an id (MSFS 2024, seen by a human
-    /// 2026-10-17: the heading of the creation was not kept, and a new object rolls away).
+    /// Create <see cref="RescueAction.Title"/> at the point with the heading <see cref="RescueAction.Hdg"/> (already
+    /// corrected for the drawing, <see cref="RescueController.FireDrawnFlipDeg"/>). The sim thread sets
+    /// <c>SIM DISABLED</c> = 1 once the object has an id: the bridge moves it itself.
     /// </summary>
     Spawn,
     /// <summary>Remove the object of the slot.</summary>
     Remove,
-    /// <summary>Send the object of the slot along <see cref="RescueAction.Route"/> at <see cref="RescueAction.SpeedKt"/> (<c>AI WAYPOINT LIST</c>).</summary>
-    Move,
-    /// <summary>Turn the object's own simulation on (<see cref="RescueAction.On"/>) or off: <c>SIM DISABLED</c> 0 / 1.</summary>
-    Simulate,
-    /// <summary>Set the object's heading to <see cref="RescueAction.Hdg"/> (<c>PLANE HEADING DEGREES TRUE</c>); only while it stands.</summary>
-    Turn,
+    /// <summary>
+    /// Put the object of the slot at the point with the heading <see cref="RescueAction.Hdg"/> (corrected for the
+    /// drawing): <c>SIMCONNECT_DATA_INITPOSITION</c> on the ground, ~<see cref="RescueController.StepEvery"/> apart while
+    /// it moves.
+    /// </summary>
+    Place,
 }
 
 /// <summary>One thing the sim thread does for a vehicle. Slots 0..7 are fire trucks, <see cref="RescueController.MedicSlot"/> the ambulance.</summary>
-public readonly record struct RescueAction(
-    RescueActionKind Kind, int Slot, string Title, double Lat, double Lon, double Hdg, double SpeedKt,
-    (double Lat, double Lon)[]? Route = null, bool On = false)
-{
-    public static RescueAction Sim(int slot, bool on) => new(RescueActionKind.Simulate, slot, "", 0, 0, 0, 0, On: on);
-    public static RescueAction TurnTo(int slot, double hdg) => new(RescueActionKind.Turn, slot, "", 0, 0, hdg, 0);
-    public static RescueAction Go(int slot, (double Lat, double Lon)[] route, double kt) =>
-        new(RescueActionKind.Move, slot, "", route[0].Lat, route[0].Lon, 0, kt, route);
-}
+public readonly record struct RescueAction(RescueActionKind Kind, int Slot, string Title, double Lat, double Lon, double Hdg);
 
 /// <summary>Where the fire trucks are in their work.</summary>
 public enum RescueStage
@@ -81,39 +72,36 @@ public enum RescueStage
 }
 
 /// <summary>
-/// Decides when the rescue vehicles of T54 exist in the sim and where they go; no SimConnect here, the sim thread
-/// carries out the returned <see cref="RescueAction"/>s. Fire trucks are created when the aircraft comes within
-/// <see cref="StageNm"/> of the landing threshold, beside the runway; with <c>full</c> they follow the aircraft
-/// after touchdown and surround it once it stands; they are removed <see cref="StayAfterStop"/> after the stop,
-/// on <c>rescue_stop</c>, beyond <see cref="RemoveNm"/> (a go-around; created again when near) and with the sim
-/// session (created again in the next one while the request stands). The ambulance appears beside the aircraft once
-/// it is parked near the landing airport, and is created again beside it at a later parked stop more than
-/// <see cref="MedicMovedM"/> away (no route: removed and created anew). Geometry and timings are the ERoD mod's (docs/07 T54 p. 8), the rest are
-/// game rules approved by the user (2026-10-17):
+/// Decides when the rescue vehicles of T54 exist in the sim and moves the fire trucks itself; no SimConnect here, the
+/// sim thread carries out the returned <see cref="RescueAction"/>s. Fire trucks are created when the aircraft comes
+/// within <see cref="StageNm"/> of the landing threshold, beside the runway; with <c>full</c> they follow the aircraft
+/// after touchdown and surround it once it stands; they are removed <see cref="StayAfterStop"/> after the stop, on
+/// <c>rescue_stop</c>, beyond <see cref="RemoveNm"/> (a go-around; created again when near) and with the sim session
+/// (created again in the next one while the request stands). The ambulance appears beside the aircraft once it is
+/// parked near the landing airport, and is created again beside it at a later parked stop more than
+/// <see cref="MedicMovedM"/> away. Geometry and timings are the ERoD mod's (docs/07 T54 p. 8), the rest are game rules
+/// approved by the user (2026-10-17):
 /// <list type="bullet">
-/// <item>a vehicle's own simulation is off (<c>SIM DISABLED</c>) while it stands — created vehicles otherwise roll
-/// away — and on while it drives: from touchdown until it reaches its point on the circle (within
-/// <see cref="ArrivedM"/>, or after <see cref="CircleDriveMax"/>);</item>
-/// <item>before each route a truck is turned, standing, toward its first point, so the AI does not back up to it;</item>
+/// <item>every vehicle stands with <c>SIM DISABLED</c> = 1 (created vehicles otherwise roll away), and the bridge moves
+/// the fire trucks itself: <see cref="Step"/>, about every <see cref="StepEvery"/>, advances each along its route at
+/// its speed and puts it there (<see cref="RescueActionKind.Place"/>), facing where it goes — no AI waypoints (the AI
+/// drove them in reverse, crawled on the last waypoint and did not stop);</item>
+/// <item>the fire truck models are drawn nose to tail with their sim heading: every heading of a fire truck the sim
+/// gets is turned by <see cref="FireDrawnFlipDeg"/>; the ambulance is drawn along it (seen by a human 2026-10-17);</item>
 /// <item>at touchdown a truck ahead of the aircraft (along its heading) keeps standing until the aircraft has passed
 /// it, then follows;</item>
-/// <item>following trucks get two waypoints, so their target is never the last one (MSFS 2024 slows ground vehicles
-/// to a crawl on the last waypoint);</item>
 /// <item>to the circle a truck goes straight when that line passes at least <see cref="ClearM"/> from the aircraft,
-/// else around it on an arc of <see cref="DetourM"/> in steps of at most <see cref="DetourStepDeg"/>, the short way;
-/// it is stopped there only when it arrives, gets no closer by <see cref="ProgressM"/> in <see cref="NoProgressAfter"/>
-/// (stuck), or after <see cref="CircleDriveMax"/>;</item>
+/// else around it on an arc of <see cref="DetourM"/> in steps of at most <see cref="DetourStepDeg"/>, the short way, at
+/// <see cref="CircleKt"/>; it stops when it arrives, gets no closer by <see cref="ProgressM"/> in
+/// <see cref="NoProgressAfter"/>, or after <see cref="CircleDriveMax"/>;</item>
 /// <item>the trucks wait spread along the runway from the touchdown zone to the far end, <see cref="StageSideM"/> off
-/// its axis on the upwind side (the app sends it), facing it, so they are near wherever the aircraft stops;</item>
+/// its axis on the upwind side (the app sends it), facing it;</item>
 /// <item>touchdown only after <see cref="TouchdownAfter"/> on the ground without a break, back to waiting only after
-/// <see cref="GoAroundAfter"/> in the air (a bounce or a slew does not restart the trucks);</item>
-/// <item>a driving truck is stopped by a one-point route at its last known place at 0 kt before its simulation goes
-/// off: <c>SIM DISABLED</c> alone holds a vehicle without a route, not one that follows a waypoint list (seen by a
-/// human 2026-10-17).</item>
+/// <see cref="GoAroundAfter"/> in the air.</item>
 /// </list>
-/// Thread-safe: commands arrive on a network thread, positions on the SimConnect thread. <paramref name="log"/> gets a
-/// line on every change of the stage or of what the controller sees (on the ground, airborne since staging, stands,
-/// trucks waiting) and on the events of the trucks (diagnostics for the human check, 2026-10-17).
+/// Thread-safe: commands arrive on a network thread, positions and steps on the SimConnect thread. <paramref name="log"/>
+/// gets a line on every change of the stage or of what the controller sees, on the events of the trucks, and every
+/// <see cref="TraceEvery"/> per moving truck (diagnostics for the human check).
 /// </summary>
 public sealed class RescueController(TimeProvider clock, Action<string>? log = null)
 {
@@ -126,8 +114,14 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     /// <summary>"Stands": slower than <see cref="StopKt"/> for this long.</summary>
     public static readonly TimeSpan StopAfter = TimeSpan.FromSeconds(2);
     public const double StopKt = 1;
-    /// <summary>How often a following truck gets a new waypoint.</summary>
+    /// <summary>How often a following truck gets a new target.</summary>
     public static readonly TimeSpan MoveEvery = TimeSpan.FromMilliseconds(350);
+    /// <summary>How often the bridge moves the trucks (about 10 Hz).</summary>
+    public static readonly TimeSpan StepEvery = TimeSpan.FromMilliseconds(100);
+    /// <summary>A longer gap between steps (a stall) is moved as this much, so a truck does not jump far.</summary>
+    public static readonly TimeSpan StepMax = TimeSpan.FromMilliseconds(500);
+    /// <summary>Fire truck models are drawn with their nose this far from their sim heading.</summary>
+    public const double FireDrawnFlipDeg = 180;
 
     /// <summary>Waiting trucks: off the runway axis on the upwind side, m (user decision 2026-10-17).</summary>
     public const double StageSideM = 150;
@@ -146,11 +140,8 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     public const double TrailExtraKt = 10, MinTrailKt = 20, MaxTrailKt = 60;
     /// <summary>Speed to the points of the circle.</summary>
     public const double CircleKt = 40;
-    /// <summary>Following: the second waypoint, past the target along the aircraft heading, m.</summary>
-    public const double TrailAheadM = 30;
-    /// <summary>A truck this close to its point on the circle has arrived: its simulation goes off, m.</summary>
+    /// <summary>A truck this close to its point on the circle has arrived, m.</summary>
     public const double ArrivedM = 5;
-
     /// <summary>To the circle: straight when the line passes at least this far from the aircraft, m.</summary>
     public const double ClearM = 40;
     /// <summary>Otherwise around the aircraft on an arc of this radius, m, in steps of at most <see cref="DetourStepDeg"/>.</summary>
@@ -165,6 +156,10 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     public const double ProgressM = 10;
     /// <summary>At the latest this long after the stop every truck is stopped wherever it is.</summary>
     public static readonly TimeSpan CircleDriveMax = TimeSpan.FromMinutes(5);
+    /// <summary>How often a moving truck is traced in the log.</summary>
+    public static readonly TimeSpan TraceEvery = TimeSpan.FromSeconds(2);
+
+    private const double MpsPerKt = 1852.0 / 3600;
 
     private readonly object _gate = new();
     private RescueRequest? _req;
@@ -182,18 +177,21 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     private DateTimeOffset? _groundSince, _airSince;
     private DateTimeOffset? _stoppedAt;
     private DateTimeOffset _lastMove;
+    private DateTimeOffset? _lastStep;
 
-    /// <summary>Where each truck is: its waiting place, then the positions the sim reports while it drives.</summary>
+    /// <summary>Where each truck is and where it faces (visually), as the bridge put it.</summary>
     private readonly (double Lat, double Lon)?[] _pos = new (double, double)?[MaxFire];
+    private readonly double[] _hdg = new double[MaxFire];
+    /// <summary>The points still ahead of a moving truck, and its speed, m/s; empty = it stands.</summary>
+    private readonly List<(double Lat, double Lon)>[] _route = Enumerable.Range(0, MaxFire).Select(_ => new List<(double, double)>()).ToArray();
+    private readonly double[] _mps = new double[MaxFire];
+    private readonly DateTimeOffset[] _traced = new DateTimeOffset[MaxFire];
     /// <summary>Trucks that were ahead of the aircraft at touchdown and still wait for it to pass.</summary>
     private readonly bool[] _waiting = new bool[MaxFire];
-    /// <summary>Points on the circle of the trucks still driving there, and until when each may drive.</summary>
+    /// <summary>Points on the circle of the trucks still going there, the closest they came, and when they last got closer.</summary>
     private readonly (double Lat, double Lon)?[] _circle = new (double, double)?[MaxFire];
-    /// <summary>Closest a truck has come to its point on the circle, and when it last got closer by <see cref="ProgressM"/>.</summary>
     private readonly double[] _circleBest = new double[MaxFire];
     private readonly DateTimeOffset[] _circleProgressAt = new DateTimeOffset[MaxFire];
-    /// <summary>Where each truck is driving to now (diagnostics: distance to its target).</summary>
-    private readonly (double Lat, double Lon)?[] _target = new (double, double)?[MaxFire];
 
     private bool _medicSpawned;
     private bool _medicDone;
@@ -202,7 +200,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
 
     private readonly List<RescueAction> _out = [];
     /// <summary>What was last logged as the state (<see cref="Trace"/>).</summary>
-    private string? _traced;
+    private string? _traceState;
 
     private void Log(string line) => log?.Invoke(line);
 
@@ -216,34 +214,23 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         get { lock (_gate) return _req is not null || _fireSpawned > 0 || _medicSpawned; }
     }
 
-    /// <summary>Slots of trucks that drive now (following, or on the way to the circle): their positions are wanted.</summary>
-    public IReadOnlyList<int> Driving
+    /// <summary>Some truck is moving: <see cref="Step"/> is wanted about every <see cref="StepEvery"/>.</summary>
+    public bool Moving
     {
         get
         {
             lock (_gate)
             {
-                var list = new List<int>();
-                for (var i = 0; i < _fireSpawned; i++)
-                    if ((_stage == RescueStage.Trailing && !_waiting[i]) || _circle[i] is not null) list.Add(i);
-                return list;
+                for (var i = 0; i < _fireSpawned; i++) if (_route[i].Count > 0) return true;
+                return false;
             }
         }
     }
 
-    /// <summary>Where a truck is driving to now, null when it stands (diagnostics).</summary>
-    public (double Lat, double Lon)? TargetOf(int slot)
+    /// <summary>Where a truck is (as the bridge put it), null when it is not in the sim.</summary>
+    public (double Lat, double Lon)? PositionOf(int slot)
     {
-        lock (_gate) return slot >= 0 && slot < MaxFire ? _target[slot] : null;
-    }
-
-    /// <summary>Where a driving truck is now (sim thread).</summary>
-    public void VehiclePosition(int slot, double lat, double lon)
-    {
-        lock (_gate)
-        {
-            if (slot >= 0 && slot < _fireSpawned) _pos[slot] = (lat, lon);
-        }
+        lock (_gate) return slot >= 0 && slot < _fireSpawned ? _pos[slot] : null;
     }
 
     /// <summary>
@@ -272,10 +259,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
             _slowSince = null;
             _groundSince = _airSince = null;
             _stoppedAt = null;
-            Array.Clear(_pos);
-            Array.Clear(_circle);
-            Array.Clear(_waiting);
-            Array.Clear(_target);
+            ClearTrucks();
         }
     }
 
@@ -294,6 +278,58 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         }
     }
 
+    /// <summary>
+    /// Moves every moving truck along its route by its speed × the time since the last step (at most
+    /// <see cref="StepMax"/>) and returns where to put them (the list is reused by the next call).
+    /// </summary>
+    public IReadOnlyList<RescueAction> Step()
+    {
+        lock (_gate)
+        {
+            _out.Clear();
+            var now = clock.GetUtcNow();
+            var dt = _lastStep is { } l ? now - l : StepEvery;
+            if (dt > StepMax) dt = StepMax;
+            _lastStep = now;
+            if (dt <= TimeSpan.Zero) return _out;
+            for (var i = 0; i < _fireSpawned; i++)
+            {
+                if (_route[i].Count == 0 || _pos[i] is not { } p) continue;
+                var left = _mps[i] * dt.TotalSeconds;
+                var at = p;
+                while (left > 0 && _route[i].Count > 0)
+                {
+                    var next = _route[i][0];
+                    var d = Meters(at, next);
+                    if (d > 0.01) _hdg[i] = Bearing(at, next);
+                    if (d <= left)
+                    {
+                        left -= d;
+                        at = next;
+                        _route[i].RemoveAt(0);
+                    }
+                    else
+                    {
+                        at = Offset(at.Lat, at.Lon, Bearing(at, next), left);
+                        left = 0;
+                    }
+                }
+                _pos[i] = at;
+                _out.Add(new(RescueActionKind.Place, i, "", at.Lat, at.Lon, Drawn(_hdg[i])));
+                if (now - _traced[i] >= TraceEvery)
+                {
+                    _traced[i] = now;
+                    var to = _route[i].Count > 0 ? $"{Meters(at, _route[i][^1]):0} m" : "arrived";
+                    Log($"rescue slot {i} moving: hdg {_hdg[i]:0} (sim {Drawn(_hdg[i]):0}), {_mps[i] / MpsPerKt:0} kt, to target {to}");
+                }
+            }
+            return _out;
+        }
+    }
+
+    /// <summary>The heading the sim gets for a fire truck facing <paramref name="facing"/> (its drawing is turned).</summary>
+    public static double Drawn(double facing) => Norm(facing + FireDrawnFlipDeg);
+
     private void TrackStop(RescueAircraft a, DateTimeOffset now)
     {
         if (!a.OnGround || a.GsKt >= StopKt) _slowSince = null;
@@ -310,19 +346,9 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         }
     }
 
+    private bool Stands(DateTimeOffset now) => _slowSince is { } s && now - s >= StopAfter;
     private bool Landed(DateTimeOffset now) => _groundSince is { } g && now - g >= TouchdownAfter;
     private bool WentAround(DateTimeOffset now) => _airSince is { } t && now - t >= GoAroundAfter;
-
-    /// <summary>
-    /// Stops a driving truck: a one-point route at its last known place at 0 kt, then its simulation off (approved
-    /// 2026-10-17; whether the sim then holds it is a human check).
-    /// </summary>
-    private void Halt(int i, (double Lat, double Lon) fallback)
-    {
-        _target[i] = null;
-        _out.Add(RescueAction.Go(i, [_pos[i] ?? fallback], 0));
-        _out.Add(RescueAction.Sim(i, false));
-    }
 
     /// <summary>One line whenever the stage or what decides it changes.</summary>
     private void Trace(RescueAircraft a, DateTimeOffset now)
@@ -332,12 +358,21 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         var state =
             $"rescue stage {_stage}, trucks {_fireSpawned}, on ground {a.OnGround}, airborne since staged {_airborne}, " +
             $"stands {Stands(now)}, waiting {waiting}, level {(_req?.Full == true ? "full" : _req is null ? "-" : "standby")}";
-        if (state == _traced) return;
-        _traced = state;
+        if (state == _traceState) return;
+        _traceState = state;
         Log($"{state} (gs {a.GsKt:0.0} kt)");
     }
 
-    private bool Stands(DateTimeOffset now) => _slowSince is { } s && now - s >= StopAfter;
+    /// <summary>Sends truck <paramref name="i"/> along <paramref name="route"/> at <paramref name="kt"/>.</summary>
+    private void Go(int i, IEnumerable<(double Lat, double Lon)> route, double kt)
+    {
+        _route[i].Clear();
+        _route[i].AddRange(route);
+        _mps[i] = kt * MpsPerKt;
+    }
+
+    /// <summary>Stops truck <paramref name="i"/> where it is.</summary>
+    private void Halt(int i) => _route[i].Clear();
 
     private void Fire(RescueAircraft a, DateTimeOffset now)
     {
@@ -367,8 +402,9 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                 for (var i = 0; i < n; i++)
                 {
                     var (lat, lon) = StagePoint(req, i, n);
-                    _out.Add(new(RescueActionKind.Spawn, i, req.Fire[i], lat, lon, FacingRunway(req), 0));
                     _pos[i] = (lat, lon);
+                    _hdg[i] = FacingRunway(req);
+                    _out.Add(new(RescueActionKind.Spawn, i, req.Fire[i], lat, lon, Drawn(_hdg[i])));
                 }
                 _fireSpawned = n;
                 _stage = RescueStage.Staged;
@@ -393,8 +429,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                 {
                     // A touch-and-go or go-around: back to waiting until the next touchdown, standing.
                     _stage = RescueStage.Staged;
-                    for (var i = 0; i < _fireSpawned; i++)
-                        if (!_waiting[i]) Halt(i, StagePoint(req, i, _fireSpawned));
+                    for (var i = 0; i < _fireSpawned; i++) Halt(i);
                     Array.Clear(_waiting);
                     return;
                 }
@@ -409,14 +444,9 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                     _lastMove = now;
                     var kt = TrailKt(a);
                     for (var i = 0; i < _fireSpawned; i++)
-                    {
-                        if (_waiting[i]) continue;
-                        var trail = TrailRoute(a, i);
-                        _out.Add(RescueAction.Go(i, trail, kt));
-                        _target[i] = trail[0];
-                    }
+                        if (!_waiting[i]) Go(i, [TrailPoint(a, i)], kt);
                 }
-                StartFollowing(a); // after the update: a truck that starts now gets its first route once
+                StartFollowing(a);
                 return;
             case RescueStage.Encircle:
                 if (_stoppedAt is { } t && now - t >= StayAfterStop)
@@ -434,11 +464,11 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                         _circleBest[i] = d;
                         _circleProgressAt[i] = now;
                     }
-                    var arrived = d <= ArrivedM;
+                    var arrived = d <= ArrivedM || (_route[i].Count == 0 && d < double.MaxValue);
                     var stuck = now - _circleProgressAt[i] >= NoProgressAfter;
                     var late = _stoppedAt is { } s && now - s >= CircleDriveMax;
                     if (!arrived && !stuck && !late) continue;
-                    Halt(i, c);
+                    Halt(i);
                     _circle[i] = null;
                     var why = arrived ? "arrived on the circle" : stuck ? $"stops: no closer in {NoProgressAfter.TotalSeconds:0} s, {d:0} m to go" : "stops: 5 min after the stop";
                     Log($"rescue slot {i}: {why}");
@@ -447,10 +477,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         }
     }
 
-    /// <summary>
-    /// Waiting trucks the aircraft has passed (no longer ahead of it along its heading) turn, standing, toward their
-    /// place behind it, then drive.
-    /// </summary>
+    /// <summary>Waiting trucks the aircraft has passed (no longer ahead of it along its heading) start to follow.</summary>
     private void StartFollowing(RescueAircraft a)
     {
         var kt = TrailKt(a);
@@ -459,11 +486,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
             if (!_waiting[i] || (_pos[i] is { } p && AheadM(a, p) > 0)) continue;
             _waiting[i] = false;
             Log($"rescue slot {i}: follows (the aircraft has passed it or it was behind)");
-            var route = TrailRoute(a, i);
-            _out.Add(RescueAction.TurnTo(i, Bearing(_pos[i], route[0])));
-            _out.Add(RescueAction.Sim(i, true));
-            _out.Add(RescueAction.Go(i, route, kt));
-            _target[i] = route[0];
+            Go(i, [TrailPoint(a, i)], kt);
         }
     }
 
@@ -473,38 +496,29 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
 
     private static double TrailKt(RescueAircraft a) => Math.Clamp(a.GsKt + TrailExtraKt, MinTrailKt, MaxTrailKt);
 
-    /// <summary>Following truck <paramref name="i"/>: its place behind the aircraft and a point past it.</summary>
-    private static (double Lat, double Lon)[] TrailRoute(RescueAircraft a, int i)
-    {
-        var target = Offset(a.Lat, a.Lon, a.HdgDeg + 180, TrailM * (i + 1));
-        return [target, Offset(target.Lat, target.Lon, a.HdgDeg, TrailAheadM)];
-    }
+    /// <summary>Following truck <paramref name="i"/>: its place behind the aircraft.</summary>
+    public static (double Lat, double Lon) TrailPoint(RescueAircraft a, int i) =>
+        Offset(a.Lat, a.Lon, a.HdgDeg + 180, TrailM * (i + 1));
 
-    /// <summary>
-    /// The aircraft stands after landing: <c>full</c> trucks stop, turn toward the first point of their way to the
-    /// circle and drive there; all wait for the removal.
-    /// </summary>
+    /// <summary>The aircraft stands after landing: <c>full</c> trucks drive to the circle; all wait for the removal.</summary>
     private void Stopped(RescueAircraft a, RescueRequest req, DateTimeOffset now)
     {
         _stage = RescueStage.Encircle;
         _stoppedAt = now;
         Log($"rescue: the aircraft stands, {(req.Full ? "trucks drive to the circle" : "standby trucks stay")}");
-        if (!req.Full) return;
-        for (var i = 0; i < _fireSpawned; i++)
+        if (req.Full)
         {
-            var target = CirclePoint(a, i, _fireSpawned);
-            var from = _pos[i] ?? Offset(a.Lat, a.Lon, a.HdgDeg + 180, TrailM * (i + 1));
-            var route = CircleRoute(a, from, target);
-            Log($"rescue slot {i}: to the circle, {route.Length} waypoint(s), {Meters(from, target):0} m away");
-            if (_waiting[i]) _out.Add(RescueAction.Sim(i, false)); // standing already
-            else Halt(i, from);
-            _out.Add(RescueAction.TurnTo(i, Bearing(from, route[0])));
-            _out.Add(RescueAction.Sim(i, true));
-            _out.Add(RescueAction.Go(i, route, CircleKt));
-            _target[i] = target;
-            _circle[i] = target;
-            _circleBest[i] = Meters(from, target);
-            _circleProgressAt[i] = now;
+            for (var i = 0; i < _fireSpawned; i++)
+            {
+                var target = CirclePoint(a, i, _fireSpawned);
+                var from = _pos[i] ?? TrailPoint(a, i);
+                var route = CircleRoute(a, from, target);
+                Log($"rescue slot {i}: to the circle, {route.Length} waypoint(s), {Meters(from, target):0} m away");
+                Go(i, route, CircleKt);
+                _circle[i] = target;
+                _circleBest[i] = Meters(from, target);
+                _circleProgressAt[i] = now;
+            }
         }
         Array.Clear(_waiting);
     }
@@ -514,7 +528,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         var req = _req;
         if (_medicFor is not null && (req is null || !_medicFor.SameMedic(req)))
         {
-            if (_medicSpawned) _out.Add(new(RescueActionKind.Remove, MedicSlot, "", 0, 0, 0, 0));
+            if (_medicSpawned) _out.Add(new(RescueActionKind.Remove, MedicSlot, "", 0, 0, 0));
             _medicSpawned = false;
             _medicDone = false;
             _medicFor = null;
@@ -528,20 +542,21 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         {
             if (nm > RemoveNm || now - _medicAt >= StayAfterStop)
             {
-                _out.Add(new(RescueActionKind.Remove, MedicSlot, "", 0, 0, 0, 0));
+                _out.Add(new(RescueActionKind.Remove, MedicSlot, "", 0, 0, 0));
                 _medicSpawned = false;
                 _medicDone = now - _medicAt >= StayAfterStop;
                 return;
             }
             // Parked again elsewhere (a stop on the runway, then the gate): the ambulance comes along (approved 2026-10-17).
             if (!parked || Meters((a.Lat, a.Lon), _medicPos) <= MedicMovedM) return;
-            _out.Add(new(RescueActionKind.Remove, MedicSlot, "", 0, 0, 0, 0));
+            _out.Add(new(RescueActionKind.Remove, MedicSlot, "", 0, 0, 0));
             _medicSpawned = false;
             Log("rescue slot 8: the aircraft parked elsewhere, the ambulance is created beside it again");
         }
         if (_medicDone || !parked) return;
         var (lat, lon) = Offset(a.Lat, a.Lon, a.HdgDeg - 90, MedicSideM);
-        _out.Add(new(RescueActionKind.Spawn, MedicSlot, req.Medic[0], lat, lon, Norm(a.HdgDeg), 0));
+        // The ambulance model is drawn along its sim heading: no correction.
+        _out.Add(new(RescueActionKind.Spawn, MedicSlot, req.Medic[0], lat, lon, Norm(a.HdgDeg)));
         _medicSpawned = true;
         _medicAt = now;
         _medicPos = (lat, lon);
@@ -549,12 +564,18 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
 
     private void RemoveFire()
     {
-        for (var i = 0; i < _fireSpawned; i++) _out.Add(new(RescueActionKind.Remove, i, "", 0, 0, 0, 0));
+        for (var i = 0; i < _fireSpawned; i++) _out.Add(new(RescueActionKind.Remove, i, "", 0, 0, 0));
         _fireSpawned = 0;
+        ClearTrucks();
+    }
+
+    private void ClearTrucks()
+    {
         Array.Clear(_pos);
         Array.Clear(_circle);
         Array.Clear(_waiting);
-        Array.Clear(_target);
+        Array.Clear(_traced);
+        foreach (var r in _route) r.Clear();
     }
 
     /// <summary>
@@ -571,7 +592,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         return Offset(lat, lon, r.Hdg + (r.Left ? -90 : 90), StageSideM);
     }
 
-    /// <summary>Heading of a waiting truck: toward the runway from its side.</summary>
+    /// <summary>Where a waiting truck faces: the runway, from its side.</summary>
     public static double FacingRunway(RescueRequest r) => Norm(r.Hdg + (r.Left ? 90 : -90));
 
     /// <summary>Point <paramref name="i"/> of <paramref name="n"/> on the circle around the aircraft, the first at its nose.</summary>

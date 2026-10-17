@@ -12,21 +12,20 @@ namespace AcarsBridge;
 /// <c>smoke_stop</c> (T34) — a smoke SimObject at a point, created by <c>AICreateSimulatedObject</c> when the
 /// aircraft is near (the EX1 variant is not in the managed wrapper of the SDK, so the smoke package is a
 /// non-modular SimObject, which the plain call supports). <c>rescue_start</c> / <c>rescue_stop</c> (T54) — fire trucks and
-/// an ambulance by their titles (<see cref="RescueController"/>), created with the same plain call and driven by
-/// <c>AI WAYPOINT LIST</c> (<c>SetDataOnSimObject</c> with <c>SIMCONNECT_DATA_WAYPOINT</c>); while they are wanted the
-/// aircraft position is also read every <see cref="RescueController.MoveEvery"/>. A vehicle stands with its own
-/// simulation off (<c>SIM DISABLED</c> = 1, set as soon as its id is known) and drives with it on; its heading is set
-/// again then (<c>PLANE HEADING DEGREES TRUE</c>) and read back to the console, and before each route it is turned
-/// toward the first point.
+/// an ambulance by their titles (<see cref="RescueController"/>), created with the same plain call. Every vehicle stands
+/// with <c>SIM DISABLED</c> = 1 (set as soon as its id is known); the bridge moves the fire trucks itself, about every
+/// <see cref="RescueController.StepEvery"/>, with <c>SIMCONNECT_DATA_INITPOSITION</c> ("Initial Position", which the
+/// SDK allows "to incrementally move or reposition" objects not controlled by the user). While they are wanted the
+/// aircraft position is read every <see cref="RescueController.MoveEvery"/>; diagnostics go to the console.
 /// </summary>
 public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy = null) : ISimSource, ICommandTarget
 {
-    private enum Def { Telemetry, Rescue, Waypoint, SimDisabled, VehiclePos, Heading }
-    /// <summary>Rescue vehicles are created with <c>RescueSpawn + slot</c>, their positions asked with <c>VehiclePos + slot</c>.</summary>
+    private enum Def { Telemetry, Rescue, SimDisabled, VehiclePos, Heading, Place }
+    /// <summary>Rescue vehicles are created with <c>RescueSpawn + slot</c>; diagnostic reads use <c>VehicleHdgInit / VehicleSeen + slot</c>.</summary>
     private enum Req
     {
         Telemetry, Smoke, SmokeRemove, RescuePos, RescueRemove,
-        RescueSpawn = 100, VehiclePos = 200, VehicleHdg = 300, VehicleHdgInit = 400, VehicleHdgLate = 500,
+        RescueSpawn = 100, VehicleHdgInit = 400, VehicleSeen = 500,
     }
     private enum Evt { Pause, Sim }
 
@@ -62,7 +61,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         public double Deg;
     }
 
-    /// <summary>Where a rescue vehicle is: FLOAT64 × 2.</summary>
+    /// <summary>Where a rescue vehicle is, its heading and VELOCITY BODY Z (diagnostics): FLOAT64 × 4.</summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct VehiclePos
     {
@@ -97,21 +96,14 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
     private readonly uint[] _rescueId = new uint[RescueController.MaxFire + 1];
     private readonly int[] _rescueAsked = new int[RescueController.MaxFire + 1];
     private readonly int[] _rescueRemoveWhenAssigned = new int[RescueController.MaxFire + 1];
-    /// <summary>The vehicle's own simulation should be on (it drives); off from its creation.</summary>
-    private readonly bool[] _rescueSimOn = new bool[RescueController.MaxFire + 1];
-    /// <summary>Title and the heading last asked for, by slot; whether that heading is to be read back (console).</summary>
+    /// <summary>Title and the heading of the creation, by slot (diagnostics).</summary>
     private readonly string[] _rescueTitle = new string[RescueController.MaxFire + 1];
-    private readonly double[] _rescueHdg = new double[RescueController.MaxFire + 1];
-    private readonly bool[] _rescueHdgCheck = new bool[RescueController.MaxFire + 1];
-    /// <summary>Diagnostics (T54, 2026-10-17): when to read the heading again, and the last traced place of a driving truck.</summary>
-    private readonly DateTimeOffset?[] _rescueHdgLate = new DateTimeOffset?[RescueController.MaxFire + 1];
-    private readonly (DateTimeOffset T, double Lat, double Lon)?[] _rescueTrace = new (DateTimeOffset, double, double)?[RescueController.MaxFire];
     private readonly double[] _rescueSpawnHdg = new double[RescueController.MaxFire + 1];
-    private static readonly TimeSpan HdgLateAfter = TimeSpan.FromSeconds(3);
-    private static readonly TimeSpan TraceEvery = TimeSpan.FromSeconds(2);
+    /// <summary>Diagnostics: when the sim's own view of each moving truck was last asked for.</summary>
+    private readonly DateTimeOffset[] _rescueSeen = new DateTimeOffset[RescueController.MaxFire];
+    private DateTimeOffset _rescuePolled, _rescueStepped;
 
     private static void Diag(string line) => Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {line}");
-    private DateTimeOffset _rescuePolled;
 
     public IReadOnlyCollection<string> Commands { get; } = ["ping", "rescue_start", "rescue_stop", "smoke_start", "smoke_stop"];
 
@@ -170,34 +162,18 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         }
     }
 
-    /// <summary>Message thread: carries out what <see cref="RescueController"/> decides for this position.</summary>
-    private void ApplyRescue(SimConnect sc, RescuePos p)
+    /// <summary>Message thread: carries out what <see cref="RescueController"/> decides.</summary>
+    private void ApplyRescue(SimConnect sc, IReadOnlyList<RescueAction> actions)
     {
-        var a = new RescueAircraft(p.Lat, p.Lon, p.Hdg, p.Gs, p.OnGround != 0, p.ParkingBrake != 0);
-        foreach (var x in _rescue.OnPosition(a))
+        foreach (var x in actions)
         {
             switch (x.Kind)
             {
                 case RescueActionKind.Spawn:
-                    var at = new SIMCONNECT_DATA_INITPOSITION
-                    {
-                        Latitude = x.Lat, Longitude = x.Lon, Altitude = 0, Pitch = 0, Bank = 0, Heading = x.Hdg,
-                        OnGround = 1, Airspeed = 0,
-                    };
                     _rescueAsked[x.Slot]++;
-                    _rescueSimOn[x.Slot] = false;
                     _rescueTitle[x.Slot] = x.Title;
-                    _rescueHdg[x.Slot] = x.Hdg;
                     _rescueSpawnHdg[x.Slot] = x.Hdg;
-                    sc.AICreateSimulatedObject(x.Title, at, (Req)((int)Req.RescueSpawn + x.Slot));
-                    break;
-                case RescueActionKind.Turn:
-                    _rescueHdg[x.Slot] = x.Hdg;
-                    if (_rescueId[x.Slot] != 0) SetHeading(sc, x.Slot);
-                    break;
-                case RescueActionKind.Simulate:
-                    _rescueSimOn[x.Slot] = x.On;
-                    if (_rescueId[x.Slot] != 0) SetSim(sc, _rescueId[x.Slot], x.On);
+                    sc.AICreateSimulatedObject(x.Title, OnGroundAt(x.Lat, x.Lon, x.Hdg), (Req)((int)Req.RescueSpawn + x.Slot));
                     break;
                 case RescueActionKind.Remove:
                     if (_rescueId[x.Slot] != 0)
@@ -208,75 +184,46 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                     else if (_rescueAsked[x.Slot] > _rescueRemoveWhenAssigned[x.Slot])
                         _rescueRemoveWhenAssigned[x.Slot]++;
                     break;
-                case RescueActionKind.Move when _rescueId[x.Slot] != 0:
-                    SIMCONNECT_DATA_WAYPOINT Point(double lat, double lon) => new()
-                    {
-                        Latitude = lat, Longitude = lon, Altitude = p.Alt,
-                        Flags = (uint)(SIMCONNECT_WAYPOINT_FLAGS.ON_GROUND | SIMCONNECT_WAYPOINT_FLAGS.SPEED_REQUESTED),
-                        ktsSpeed = x.SpeedKt, percentThrottle = 0,
-                    };
-                    var list = (x.Route ?? [(x.Lat, x.Lon)]).Select(q => (object)Point(q.Lat, q.Lon)).ToArray();
-                    sc.SetDataOnSimObject(Def.Waypoint, _rescueId[x.Slot], SIMCONNECT_DATA_SET_FLAG.DEFAULT, list);
+                case RescueActionKind.Place when _rescueId[x.Slot] != 0:
+                    sc.SetDataOnSimObject(Def.Place, _rescueId[x.Slot], SIMCONNECT_DATA_SET_FLAG.DEFAULT, OnGroundAt(x.Lat, x.Lon, x.Hdg));
                     break;
             }
         }
     }
 
-    /// <summary><c>SIM DISABLED</c> of a vehicle: 0 while it drives, 1 while it stands (else it rolls away).</summary>
-    private static void SetSim(SimConnect sc, uint id, bool on) =>
-        sc.SetDataOnSimObject(Def.SimDisabled, id, SIMCONNECT_DATA_SET_FLAG.DEFAULT, new SimDisabled { Value = on ? 0 : 1 });
-
-    /// <summary>Sets the asked heading of a vehicle and has it read back on the next poll.</summary>
-    private void SetHeading(SimConnect sc, int slot)
+    /// <summary>A place on the ground (OnGround = 1: the sim puts it on the terrain), standing.</summary>
+    private static SIMCONNECT_DATA_INITPOSITION OnGroundAt(double lat, double lon, double hdg) => new()
     {
-        sc.SetDataOnSimObject(Def.Heading, _rescueId[slot], SIMCONNECT_DATA_SET_FLAG.DEFAULT, new Heading { Deg = _rescueHdg[slot] });
-        _rescueHdgCheck[slot] = true;
-        _rescueHdgLate[slot] = clock.GetUtcNow() + HdgLateAfter;
-    }
+        Latitude = lat, Longitude = lon, Altitude = 0, Pitch = 0, Bank = 0, Heading = hdg, OnGround = 1, Airspeed = 0,
+    };
+
+    /// <summary><c>SIM DISABLED</c> = 1: the vehicle does not move by itself (created vehicles otherwise roll away).</summary>
+    private static void Hold(SimConnect sc, uint id) =>
+        sc.SetDataOnSimObject(Def.SimDisabled, id, SIMCONNECT_DATA_SET_FLAG.DEFAULT, new SimDisabled { Value = 1 });
 
     /// <summary>
-    /// Every <see cref="TraceEvery"/> per driving truck: its heading, its speed along its own axis (VELOCITY BODY Z,
-    /// negative = backwards) and the direction it actually moved (diagnostics for the reverse driving, 2026-10-17).
+    /// Moves the trucks about every <see cref="RescueController.StepEvery"/>, asks for the aircraft position every
+    /// <see cref="RescueController.MoveEvery"/>, and every 2 s for the sim's own view of each moving truck (console).
     /// </summary>
-    private void TraceDriving(int slot, VehiclePos v)
-    {
-        var now = clock.GetUtcNow();
-        if (_rescueTrace[slot] is { } last && now - last.T < TraceEvery) return;
-        if (_rescueTrace[slot] is { } prev)
-        {
-            var moved = SmokeController.DistanceNm(prev.Lat, prev.Lon, v.Lat, v.Lon) * 1852;
-            var track = moved < 0.5 ? "-" : $"{RescueController.Bearing((prev.Lat, prev.Lon), (v.Lat, v.Lon)):0}";
-            var to = _rescue.TargetOf(slot) is { } g ? $"{SmokeController.DistanceNm(v.Lat, v.Lon, g.Lat, g.Lon) * 1852:0} m" : "-";
-            Diag($"rescue slot {slot} {_rescueTitle[slot]} hdg {RescueController.Norm(v.Hdg):0}, body z {v.BodyZ:0.0} ft/s, track {track}, to target {to} (moved {moved:0} m in 2 s)");
-        }
-        _rescueTrace[slot] = (now, v.Lat, v.Lon);
-    }
-
-    /// <summary>Asks for the aircraft position for the rescue vehicles at most every <see cref="RescueController.MoveEvery"/>.</summary>
     private void PollRescue(SimConnect sc)
     {
-        if (!_rescue.Active || clock.GetUtcNow() - _rescuePolled < RescueController.MoveEvery) return;
-        _rescuePolled = clock.GetUtcNow();
+        if (!_rescue.Active) return;
+        var now = clock.GetUtcNow();
+        if (now - _rescueStepped >= RescueController.StepEvery)
+        {
+            _rescueStepped = now;
+            ApplyRescue(sc, _rescue.Step());
+        }
+        if (now - _rescuePolled < RescueController.MoveEvery) return;
+        _rescuePolled = now;
         sc.RequestDataOnSimObject(Req.RescuePos, Def.Rescue, SimConnect.SIMCONNECT_OBJECT_ID_USER,
             SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
-        foreach (var slot in _rescue.Driving)
+        if (!_rescue.Moving) return;
+        for (var slot = 0; slot < RescueController.MaxFire; slot++)
         {
-            if (_rescueId[slot] == 0) continue;
-            sc.RequestDataOnSimObject((Req)((int)Req.VehiclePos + slot), Def.VehiclePos, _rescueId[slot],
-                SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
-        }
-        for (var slot = 0; slot < _rescueHdgCheck.Length; slot++)
-        {
-            if (!_rescueHdgCheck[slot] || _rescueId[slot] == 0) continue;
-            _rescueHdgCheck[slot] = false;
-            sc.RequestDataOnSimObject((Req)((int)Req.VehicleHdg + slot), Def.Heading, _rescueId[slot],
-                SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
-        }
-        for (var slot = 0; slot < _rescueHdgLate.Length; slot++)
-        {
-            if (_rescueHdgLate[slot] is not { } due || clock.GetUtcNow() < due || _rescueId[slot] == 0) continue;
-            _rescueHdgLate[slot] = null;
-            sc.RequestDataOnSimObject((Req)((int)Req.VehicleHdgLate + slot), Def.VehiclePos, _rescueId[slot],
+            if (_rescueId[slot] == 0 || _rescue.PositionOf(slot) is null || now - _rescueSeen[slot] < RescueController.TraceEvery) continue;
+            _rescueSeen[slot] = now;
+            sc.RequestDataOnSimObject((Req)((int)Req.VehicleSeen + slot), Def.VehiclePos, _rescueId[slot],
                 SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
         }
     }
@@ -352,39 +299,26 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         {
             if ((Req)data.dwRequestID == Req.RescuePos)
             {
-                ApplyRescue(sc, (RescuePos)data.dwData[0]);
-                return;
-            }
-            var turned = (int)data.dwRequestID - (int)Req.VehicleHdg;
-            if (turned >= 0 && turned < _rescueId.Length)
-            {
-                // Diagnostics for the human check (T54, 2026-10-17): does the heading hold, by model?
-                var h = (Heading)data.dwData[0];
-                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] rescue slot {turned} {_rescueTitle[turned]} hdg asked {_rescueHdg[turned]:0}, sim {RescueController.Norm(h.Deg):0}");
+                var p = (RescuePos)data.dwData[0];
+                ApplyRescue(sc, _rescue.OnPosition(new RescueAircraft(p.Lat, p.Lon, p.Hdg, p.Gs, p.OnGround != 0, p.ParkingBrake != 0)));
                 return;
             }
             var created = (int)data.dwRequestID - (int)Req.VehicleHdgInit;
-            if (created >= 0 && created < _rescueId.Length)
+            if (created >= 0 && created <= RescueController.MaxFire)
             {
-                // The heading the sim gave the new object (INITPOSITION.Heading), read before ours is set.
+                // Diagnostics: the heading the sim gave the new object (INITPOSITION.Heading, drawing-corrected for trucks).
                 var h0 = (Heading)data.dwData[0];
                 Diag($"rescue slot {created} {_rescueTitle[created]} created: sim hdg {RescueController.Norm(h0.Deg):0} (INITPOSITION {_rescueSpawnHdg[created]:0})");
-                if (_rescueId[created] != 0) SetHeading(sc, created);
                 return;
             }
-            var late = (int)data.dwRequestID - (int)Req.VehicleHdgLate;
-            if (late >= 0 && late < _rescueId.Length)
+            var seen = (int)data.dwRequestID - (int)Req.VehicleSeen;
+            if (seen >= 0 && seen < RescueController.MaxFire)
             {
-                var v3 = (VehiclePos)data.dwData[0];
-                Diag($"rescue slot {late} {_rescueTitle[late]} 3 s after the set: sim hdg {RescueController.Norm(v3.Hdg):0} (asked {_rescueHdg[late]:0}), body z {v3.BodyZ:0.0} ft/s");
-                return;
-            }
-            var vehicle = (int)data.dwRequestID - (int)Req.VehiclePos;
-            if (vehicle >= 0 && vehicle < RescueController.MaxFire)
-            {
+                // Diagnostics: does the sim keep the truck where the bridge put it?
                 var v = (VehiclePos)data.dwData[0];
-                _rescue.VehiclePosition(vehicle, v.Lat, v.Lon);
-                TraceDriving(vehicle, v);
+                var ours = _rescue.PositionOf(seen);
+                var off = ours is { } o ? $"{SmokeController.DistanceNm(o.Lat, o.Lon, v.Lat, v.Lon) * 1852:0.0} m" : "-";
+                Diag($"rescue slot {seen} {_rescueTitle[seen]} in the sim: hdg {RescueController.Norm(v.Hdg):0}, body z {v.BodyZ:0.0} ft/s, {off} from where the bridge put it");
                 return;
             }
             if ((Req)data.dwRequestID != Req.Telemetry) return;
@@ -408,8 +342,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                 else
                 {
                     _rescueId[slot] = data.dwObjectID;
-                    SetSim(sc, data.dwObjectID, _rescueSimOn[slot]);
-                    // Read the heading of the creation first; ours is set when it comes (diagnostics, 2026-10-17).
+                    Hold(sc, data.dwObjectID);
                     sc.RequestDataOnSimObject((Req)((int)Req.VehicleHdgInit + slot), Def.Heading, data.dwObjectID,
                         SIMCONNECT_PERIOD.ONCE, SIMCONNECT_DATA_REQUEST_FLAG.DEFAULT, 0, 0, 0);
                 }
@@ -430,8 +363,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         sc.AddToDataDefinition(Def.Telemetry, "TITLE", null, SIMCONNECT_DATATYPE.STRING256, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.RegisterDataDefineStruct<RawData>(Def.Telemetry);
 
-        // T54: the aircraft for the rescue vehicles, and the waypoint list that drives them (MSFS SDK,
-        // SIMCONNECT_DATA_WAYPOINT and the AI WAYPOINT LIST SimVar, checked 2026-10-17).
+        // T54: the aircraft for the rescue vehicles.
         (string Name, string Unit)[] rescueVars =
         [
             ("PLANE LATITUDE", "degrees"), ("PLANE LONGITUDE", "degrees"), ("PLANE ALTITUDE", "feet"),
@@ -441,17 +373,20 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         foreach (var (name, unit) in rescueVars)
             sc.AddToDataDefinition(Def.Rescue, name, unit, SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.RegisterDataDefineStruct<RescuePos>(Def.Rescue);
-        sc.AddToDataDefinition(Def.Waypoint, "AI WAYPOINT LIST", "number", SIMCONNECT_DATATYPE.WAYPOINT, 0f, SimConnect.SIMCONNECT_UNUSED);
         // SIM DISABLED: Bool, settable (SimVars, Miscellaneous Variables, SDK 2024, checked 2026-10-17).
         sc.AddToDataDefinition(Def.SimDisabled, "SIM DISABLED", "Bool", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.RegisterDataDefineStruct<SimDisabled>(Def.SimDisabled);
+        // Moving a truck: "Initial Position" with SIMCONNECT_DATATYPE_INITPOSITION (SimConnect_SetDataOnSimObject, SDK 2024,
+        // checked 2026-10-17; SIMCONNECT_DATA_INITPOSITION: "can be used to incrementally move or reposition … any other
+        // aircraft not controlled by the user").
+        sc.AddToDataDefinition(Def.Place, "Initial Position", null, SIMCONNECT_DATATYPE.INITPOSITION, 0f, SimConnect.SIMCONNECT_UNUSED);
+        sc.RegisterDataDefineStruct<SIMCONNECT_DATA_INITPOSITION>(Def.Place);
+        // Diagnostics: position, heading and VELOCITY BODY Z ("true longitudinal speed, relative to aircraft Z axis").
         sc.AddToDataDefinition(Def.VehiclePos, "PLANE LATITUDE", "degrees", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.AddToDataDefinition(Def.VehiclePos, "PLANE LONGITUDE", "degrees", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
-        // Diagnostics: heading and VELOCITY BODY Z ("true longitudinal speed, relative to aircraft Z axis", Aircraft Misc Variables).
         sc.AddToDataDefinition(Def.VehiclePos, "PLANE HEADING DEGREES TRUE", "degrees", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.AddToDataDefinition(Def.VehiclePos, "VELOCITY BODY Z", "feet per second", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.RegisterDataDefineStruct<VehiclePos>(Def.VehiclePos);
-        // PLANE HEADING DEGREES TRUE: settable (Aircraft Misc Variables, SDK 2024, checked 2026-10-17); asked in degrees.
         sc.AddToDataDefinition(Def.Heading, "PLANE HEADING DEGREES TRUE", "degrees", SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);
         sc.RegisterDataDefineStruct<Heading>(Def.Heading);
 
@@ -468,7 +403,8 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             while (ended is null && !ct.IsCancellationRequested)
             {
                 // Also poll on timeout: draining an empty queue is harmless and covers a missed signal.
-                signal.WaitOne(PollInterval);
+                // While trucks move, wake often enough to move them about every RescueController.StepEvery.
+                signal.WaitOne(_rescue.Moving ? RescueController.StepEvery : PollInterval);
                 sc.ReceiveMessage();
                 if (open)
                 {
@@ -488,10 +424,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             Array.Clear(_rescueId);
             Array.Clear(_rescueAsked);
             Array.Clear(_rescueRemoveWhenAssigned);
-            Array.Clear(_rescueSimOn);
-            Array.Clear(_rescueHdgCheck);
-            Array.Clear(_rescueHdgLate);
-            Array.Clear(_rescueTrace);
+            Array.Clear(_rescueSeen);
             _rescue.SessionEnded();
         }
         return ended ?? "stopped";
