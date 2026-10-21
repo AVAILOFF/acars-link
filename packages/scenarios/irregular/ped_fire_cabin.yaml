@@ -49,6 +49,7 @@ steps:
               ~{flight.divert_nm} NM FROM PRESENT POS
               FIRE SERVICE ORDERED
               SEND NEW ETA WHEN ABLE
+        - rescue: { level: full }
         - wait: { phase: ON_BLOCK }
         - send:
             header: OPS MSG FIRE
@@ -65,6 +66,7 @@ steps:
               MONITOR CABIN
               ADVISE IF FIRE
               RESTARTS
+        - rescue: { level: full }
         - wait: { phase: ON_BLOCK }
         - send:
             header: OPS MSG FIRE

@@ -5,6 +5,7 @@ import { FlightView } from './FlightView.js';
 import { errorKey, phaseKey, systemText } from './i18n.js';
 import { ScenariosView } from './ScenariosView.js';
 import { SettingsView } from './SettingsView.js';
+import { useSiren } from './siren.js';
 import { useMessageSound } from './sound.js';
 import {
   atcStatus,
@@ -29,6 +30,7 @@ export function App() {
   const ready = useStore((s) => s.app !== null && s.settings !== null);
   const language = useStore((s) => s.settings?.language);
   useMessageSound();
+  useSiren();
 
   useEffect(() => {
     let off: (() => void) | undefined;

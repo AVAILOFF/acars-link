@@ -1,12 +1,19 @@
 import {
   type CompiledScenario,
   destinationPoint,
+  fireFlips,
+  fireGroup,
+  fireTruckCount,
+  medicGroup,
   type Ofp,
+  type RescueCommand,
   type SimCommand,
   type SmokeCommand,
   selectProfile,
   stationCallsign,
   type TelemetrySnapshot,
+  upwindSide,
+  vehicleTitles,
 } from '@acars/core';
 import { type DataCache, ExternalDataService } from '@acars/data-sources';
 import {
@@ -111,6 +118,24 @@ export class AppController {
   /** Names of the stored flags, for the UI. */
   private memory: readonly string[] = [];
   private readonly vdgs: VdgsWriter;
+  /**
+   * Rescue services asked for this flight (T54): the latest airport, the senior fire level (PAN →
+   * MAYDAY: `standby` → `full`, never back) and whether an ambulance is wanted. Null = none.
+   */
+  private rescue: {
+    airport: string;
+    runway: string | null;
+    windFromDeg: number | null;
+    fire: 'full' | 'standby' | null;
+    medic: boolean;
+  } | null = null;
+  /** A `rescue_start` was sent and not yet taken down. */
+  private rescueOn = false;
+  /** Bumped on every rescue request, so a late lookup of an older one is dropped. */
+  private rescueSeq = 0;
+  /** Siren (T54): waits for the roll-out of a `full` landing, sounds until the aircraft stops. */
+  private siren: 'idle' | 'on' | 'done' = 'idle';
+  private sirenSetting = false;
 
   constructor(private readonly o: AppControllerOptions) {
     this.data = new ExternalDataService({
@@ -160,6 +185,7 @@ export class AppController {
     this.session = null;
     this.vdgs.clear();
     this.stopSmoke();
+    this.stopRescue();
   }
 
   /**
@@ -183,6 +209,10 @@ export class AppController {
     }
     if (c.command === 'smoke') {
       void this.sendSmoke(c);
+      return null;
+    }
+    if (c.command === 'rescue') {
+      void this.sendRescue(c);
       return null;
     }
     return this.bridge.sendCommand(c.command, c.args);
@@ -225,6 +255,108 @@ export class AppController {
     this.bridge.sendCommand('smoke_stop');
   }
 
+  /**
+   * Rescue services (T54, game rules of 2026-10-17): the landing runway from OurAirports (planned,
+   * else the longest, landing into the METAR wind), fire trucks by the aircraft's category group and models by the airport (large
+   * or not, North America or not), the ambulance by region. The bridge gets the whole request each
+   * time; it keeps the vehicles that already stand when only the level or the ambulance changes.
+   */
+  private async sendRescue(c: RescueCommand): Promise<void> {
+    const settings = await this.o.settings.get();
+    if (!settings.rescue) return;
+    if (c.action === 'stop') {
+      this.stopRescue();
+      return;
+    }
+    const prev = this.rescue;
+    const rank = (f: 'full' | 'standby' | 'medical' | null) =>
+      f === 'full' ? 2 : f === 'standby' ? 1 : 0;
+    const asked = c.level === 'medical' ? null : c.level;
+    const next = {
+      airport: c.airport,
+      runway: c.runway,
+      windFromDeg: c.windFromDeg,
+      fire: rank(asked) >= rank(prev?.fire ?? null) ? asked : (prev?.fire ?? null),
+      medic: c.level === 'medical' || (prev?.medic ?? false),
+    };
+    if (
+      prev !== null &&
+      prev.airport === next.airport &&
+      prev.fire === next.fire &&
+      prev.medic === next.medic
+    ) {
+      return; // a lower level after a higher one, or the same again
+    }
+    this.rescue = next;
+    const seq = ++this.rescueSeq;
+    const fail = (detail: string) => {
+      this.feed.system(this.o.now(), 'sim_command_failed', {
+        command: 'rescue',
+        error: 'failed',
+        detail,
+      });
+      this.o.onChange();
+    };
+    const now = this.o.now();
+    const rwy = await this.data.landingRunway(next.airport, next.runway, now, next.windFromDeg);
+    if (seq !== this.rescueSeq || this.session === null) return; // superseded or flight over
+    if (rwy === null) {
+      return fail(
+        `no runway coordinates for ${next.airport}${next.runway ? ` RWY ${next.runway}` : ''}`,
+      );
+    }
+    const large = next.fire === null ? false : await this.data.isLargeAirport(next.airport, now);
+    if (seq !== this.rescueSeq || this.session === null) return;
+    const ofp = this.ofp;
+    const t = settings.rescueTitles;
+    const fireTitles =
+      next.fire === null
+        ? []
+        : vehicleTitles(
+            fireGroup(t, next.airport, large === true),
+            fireTruckCount(ofp?.aircraft.icao),
+          );
+    const medicTitles = next.medic ? vehicleTitles(medicGroup(t, next.airport), 1) : [];
+    if (fireTitles.length === 0 && medicTitles.length === 0) {
+      return fail('no vehicle titles in the settings');
+    }
+    this.rescueOn = true;
+    this.bridge.sendCommand('rescue_start', {
+      level: next.fire ?? 'medical',
+      thrLat: Math.round(rwy.thrLat * 1e6) / 1e6,
+      thrLon: Math.round(rwy.thrLon * 1e6) / 1e6,
+      hdg: Math.round(rwy.headingDeg * 10) / 10 === 360 ? 0 : Math.round(rwy.headingDeg * 10) / 10,
+      lengthM: rwy.lengthM,
+      side: upwindSide(rwy.headingDeg, next.windFromDeg),
+      fire: fireTitles.join('|'),
+      fireFlip: fireFlips(fireTitles, settings.rescueFlipped),
+      medic: medicTitles.join('|'),
+    });
+  }
+
+  /** Takes the rescue vehicles down (alarm over, end of the flight, app exit). */
+  private stopRescue(): void {
+    this.rescue = null;
+    this.rescueSeq++;
+    this.siren = 'idle';
+    if (!this.rescueOn) return;
+    this.rescueOn = false;
+    this.bridge.sendCommand('rescue_stop');
+  }
+
+  /** The siren follows the roll-out of a `full` landing until the aircraft first stops. */
+  private updateSiren(s: TelemetrySnapshot): void {
+    const phase = this.session?.phase ?? null;
+    const rollOut = phase === 'LANDED' || phase === 'TAXI_IN';
+    if (this.siren === 'idle') {
+      if (this.rescueOn && this.rescue?.fire === 'full' && rollOut && s.onGround && s.gsKt >= 1) {
+        this.siren = 'on';
+      }
+    } else if (this.siren === 'on' && (!rollOut || s.gsKt < 1)) {
+      this.siren = 'done';
+    }
+  }
+
   private onCommandResult(r: CommandResult): void {
     if (r.ok) return;
     this.feed.system(this.o.now(), 'sim_command_failed', {
@@ -256,6 +388,7 @@ export class AppController {
       feed: this.feed.entries,
       memory: this.memory,
       irregular: s?.irregular ?? [],
+      siren: this.sirenSetting && this.siren === 'on',
     };
   }
 
@@ -268,6 +401,7 @@ export class AppController {
   async updateSettings(patch: SettingsPatch): Promise<Settings> {
     const s = await this.o.settings.update(patch);
     this.bridge.setPort(s.bridgePort);
+    this.sirenSetting = s.rescueSiren;
     if (this.ofp !== null && this.session === null) {
       this.flight = this.summary(this.ofp, s);
       this.prefetch(this.ofp, s);
@@ -403,6 +537,7 @@ export class AppController {
     if (this.scenarioError !== null) throw new AppFailure('scenarios_invalid', this.scenarioError);
     const settings = await this.o.settings.get();
     const flight = this.summary(ofp, settings);
+    this.sirenSetting = settings.rescueSiren;
     let transport: Transport;
     if (settings.transport === 'hoppie') {
       const logon = await this.o.secrets.get('hoppieLogon');
@@ -495,6 +630,7 @@ export class AppController {
     this.data.stopFlight();
     this.vdgs.clear();
     this.stopSmoke();
+    this.stopRescue();
     await this.saveMemory(s);
     this.sessionFired = s.sessionFired;
     this.session = null;
@@ -573,6 +709,7 @@ export class AppController {
 
   private onTelemetry(s: TelemetrySnapshot): void {
     this.session?.pushTelemetry(s);
+    this.updateSiren(s);
   }
 
   private summary(ofp: Ofp, settings: Settings): FlightSummary {

@@ -8,7 +8,13 @@ import {
 
 describe('sim commands (T21)', () => {
   it('whitelist', () => {
-    expect(SIM_COMMANDS).toEqual(['ping', 'smoke_start', 'smoke_stop']);
+    expect(SIM_COMMANDS).toEqual([
+      'ping',
+      'smoke_start',
+      'smoke_stop',
+      'rescue_start',
+      'rescue_stop',
+    ]);
     expect(isSimCommandName('ping')).toBe(true);
     expect(isSimCommandName('set_lvar')).toBe(false);
     expect(isSimCommandName(1)).toBe(false);

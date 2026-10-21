@@ -309,6 +309,28 @@ const en = {
   'set.gapHint':
     'Aircraft fetch telexes about once a minute; closer messages arrive together. Answers to your requests go first. Applies to the next flight.',
   'set.sound': 'Sound on new message',
+  'set.group.rescue': 'Rescue services in the simulator',
+  'set.rescue': 'Rescue services in the simulator',
+  'set.rescueHint':
+    'After MAYDAY, PAN, a cabin fire or a medical case, fire trucks and an ambulance meet the aircraft at the landing airport (needs the MSFS bridge). Game rules, not real airport services.',
+  'set.rescueSiren': 'Siren',
+  'set.rescueSirenHint':
+    'On the PC speakers, not in the simulator: after a MAYDAY landing, from touchdown until the aircraft stops.',
+  'set.rescueTitlesHint':
+    'SimObject titles, one per line, without the livery in brackets (DevMode → SimObject Spawner). Fewer models than vehicles: they take turns.',
+  'set.rescue.fireLargeNa': 'Fire trucks: large airport, North America (K, C)',
+  'set.rescue.fireLarge': 'Fire trucks: large airport, elsewhere',
+  'set.rescue.fireNa': 'Fire trucks: other airport, North America',
+  'set.rescue.fire': 'Fire trucks: other airport, elsewhere',
+  'set.rescue.medicJapan': 'Ambulance: Japan (RJ, RO)',
+  'set.rescue.medicAsia': 'Ambulance: Asia (R, V, W, Z)',
+  'set.rescue.medicNa': 'Ambulance: North America (K, C)',
+  'set.rescue.medic': 'Ambulance: Europe and elsewhere',
+  'set.rescueFlipped': 'Models drawn reversed',
+  'set.rescueFlippedHint':
+    'Titles whose model faces backwards in MSFS: the bridge turns them 180°. Check a new model right after it appears; add it here if it stands backwards.',
+  'set.rescueDefaults': 'Vehicle lists',
+  'set.rescueReset': 'Reset to defaults',
   'set.soundTest': 'Play',
   'set.soundHint': 'A short sound when a message from the airline appears in the feed.',
   'set.liveData': 'Live data',
@@ -655,6 +677,28 @@ const ru: Record<MessageKey, string> = {
   'set.gapHint':
     'Самолёт забирает telex примерно раз в минуту; сообщения чаще приходят пачкой. Ответы на ваши запросы идут первыми. Действует со следующего рейса.',
   'set.sound': 'Звук при новом сообщении',
+  'set.group.rescue': 'Аварийные службы в симуляторе',
+  'set.rescue': 'Аварийные службы в симуляторе',
+  'set.rescueHint':
+    'После MAYDAY, PAN, пожара в салоне или медицинского случая самолёт встречают пожарные машины и скорая в аэропорту посадки (нужен мост MSFS). Игровые правила, а не реальные службы аэропорта.',
+  'set.rescueSiren': 'Сирена',
+  'set.rescueSirenHint':
+    'Из колонок ПК, не в симуляторе: после посадки с MAYDAY, от касания до остановки.',
+  'set.rescueTitlesHint':
+    'Названия SimObject, по одному в строке, без ливреи в скобках (DevMode → SimObject Spawner). Моделей меньше, чем машин, — чередуются.',
+  'set.rescue.fireLargeNa': 'Пожарные: крупный аэропорт, Северная Америка (K, C)',
+  'set.rescue.fireLarge': 'Пожарные: крупный аэропорт, остальные регионы',
+  'set.rescue.fireNa': 'Пожарные: не крупный, Северная Америка',
+  'set.rescue.fire': 'Пожарные: не крупный, остальные регионы',
+  'set.rescue.medicJapan': 'Скорая: Япония (RJ, RO)',
+  'set.rescue.medicAsia': 'Скорая: Азия (R, V, W, Z)',
+  'set.rescue.medicNa': 'Скорая: Северная Америка (K, C)',
+  'set.rescue.medic': 'Скорая: Европа и остальные',
+  'set.rescueFlipped': 'Модели, нарисованные задом',
+  'set.rescueFlippedHint':
+    'Названия, у которых в MSFS нос модели смотрит назад: мост разворачивает их на 180°. Новую модель проверьте сразу после появления; стоит задом — впишите сюда.',
+  'set.rescueDefaults': 'Списки машин',
+  'set.rescueReset': 'По умолчанию',
   'set.soundTest': 'Прослушать',
   'set.soundHint': 'Короткий звук, когда в ленте появляется сообщение от авиакомпании.',
   'set.liveData': 'Живые данные',

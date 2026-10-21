@@ -1,4 +1,11 @@
-import { DEFAULT_STATION } from '@acars/core';
+import {
+  DEFAULT_RESCUE_FLIPPED,
+  DEFAULT_RESCUE_TITLES,
+  DEFAULT_STATION,
+  RESCUE_MAX_VEHICLES,
+  RESCUE_TITLE_GROUPS,
+  type RescueTitles,
+} from '@acars/core';
 import { DRONE_RISK_MAX, isDroneRiskKey, isDroneRiskValue } from '@acars/scenarios';
 import type { Language, Settings, SettingsPatch, TransportChoice } from '../shared/api.js';
 import { AppFailure } from './errors.js';
@@ -38,6 +45,10 @@ export function defaultSettings(locale: string): Settings {
     specialSport: true,
     specialAviation: true,
     specialOther: true,
+    rescue: true,
+    rescueSiren: false,
+    rescueTitles: DEFAULT_RESCUE_TITLES,
+    rescueFlipped: DEFAULT_RESCUE_FLIPPED,
     scenarios: {},
     chances: {},
     droneRisk: {},
@@ -99,6 +110,25 @@ export function validatePatch(patch: unknown): SettingsPatch {
         out.droneRisk = t;
         break;
       }
+      case 'rescueTitles': {
+        const t = parseRescueTitles(value);
+        if (t === null) {
+          throw bad(key, `{group: [titles]}, up to ${RESCUE_MAX_VEHICLES} per group, no |`);
+        }
+        out.rescueTitles = t;
+        break;
+      }
+      case 'rescueFlipped': {
+        if (
+          !Array.isArray(value) ||
+          value.length > 64 ||
+          !value.every((t) => typeof t === 'string' && TITLE_RE.test(t))
+        ) {
+          throw bad(key, 'a list of up to 64 titles, no |');
+        }
+        out.rescueFlipped = value as string[];
+        break;
+      }
       case 'recordFlights':
       case 'liveData':
       case 'soundOnMessage':
@@ -111,6 +141,8 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'specialSport':
       case 'specialAviation':
       case 'specialOther':
+      case 'rescue':
+      case 'rescueSiren':
         if (typeof value !== 'boolean') throw bad(key, 'true or false');
         out[key] = value;
         break;
@@ -132,6 +164,26 @@ function parseDroneRisk(v: unknown): Record<string, number> | null {
     out[k] = Math.round(m * 100) / 100;
   }
   return out;
+}
+
+/** A SimObject title: printable ASCII without `|` (the bridge's separator), trimmed. */
+const TITLE_RE = /^[\x21-\x7b\x7d\x7e](?:[\x20-\x7b\x7d\x7e]{0,126}[\x21-\x7b\x7d\x7e])?$/;
+
+/** Every group of {@link RescueTitles}, each a list of titles; else null. */
+function parseRescueTitles(v: unknown): RescueTitles | null {
+  if (typeof v !== 'object' || v === null || Array.isArray(v)) return null;
+  const r = v as Record<string, unknown>;
+  if (Object.keys(r).some((k) => !(RESCUE_TITLE_GROUPS as readonly string[]).includes(k))) {
+    return null;
+  }
+  const out: Record<string, string[]> = {};
+  for (const g of RESCUE_TITLE_GROUPS) {
+    const list = r[g];
+    if (!Array.isArray(list) || list.length > RESCUE_MAX_VEHICLES) return null;
+    if (!list.every((t) => typeof t === 'string' && TITLE_RE.test(t))) return null;
+    out[g] = list as string[];
+  }
+  return out as unknown as RescueTitles;
 }
 
 /** Settings from disk: unknown or bad values fall back to the defaults, one by one. */
@@ -159,6 +211,10 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'specialSport',
     'specialAviation',
     'specialOther',
+    'rescue',
+    'rescueSiren',
+    'rescueTitles',
+    'rescueFlipped',
     'droneRisk',
   ] as const;
   for (const key of keys) {

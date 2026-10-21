@@ -60,6 +60,7 @@ steps:
               CREW INFO: {reply.arg|or:NO ADDL INFO}
               AMBULANCE AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
+        - rescue: { level: medical }
         - wait: { phase: ON_BLOCK }
         - send:
             header: OPS MSG MEDICAL
@@ -74,6 +75,7 @@ steps:
               CONTINUE TO {ofp.dest}
               CREW INFO: {reply.arg|or:NO ADDL INFO}
               PLEASE REQUEST PRIORITY WITH ATC
+        - rescue: { level: medical }
         - wait: { phase: ON_BLOCK }
         - send:
             header: OPS MSG MEDICAL

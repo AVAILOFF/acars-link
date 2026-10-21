@@ -1,5 +1,7 @@
+import { DEFAULT_RESCUE_FLIPPED, DEFAULT_RESCUE_TITLES, RESCUE_TITLE_GROUPS } from '@acars/core';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import type { Language, TransportChoice } from '../../shared/api.js';
+import { testSiren } from './siren.js';
 import { playMessageSound } from './sound.js';
 
 /** Choices for the gap between messages, seconds. */
@@ -415,6 +417,89 @@ function NetworkForm() {
               if (v !== settings.aircraftIcaoHex) void update({ aircraftIcaoHex: v });
             }}
           />
+        </Row>
+      </Group>
+
+      <Group id="rescue" title={t('set.group.rescue')}>
+        <Switch
+          checked={settings.rescue}
+          disabled={off}
+          onChange={(v) => void update({ rescue: v })}
+          hint={t('set.rescueHint')}
+        >
+          {t('set.rescue')}
+        </Switch>
+        <Row htmlFor="siren" title={t('set.rescueSiren')} hint={t('set.rescueSirenHint')}>
+          <button type="button" className="btn" onClick={() => testSiren()}>
+            {t('set.soundTest')}
+          </button>
+          <SwitchInput
+            id="siren"
+            checked={settings.rescueSiren}
+            disabled={off || !settings.rescue}
+            onChange={(v) => void update({ rescueSiren: v })}
+          />
+        </Row>
+        <p className="sheet-note">{t('set.rescueTitlesHint')}</p>
+        {RESCUE_TITLE_GROUPS.map((g) => (
+          <Row key={g} htmlFor={`rescue-${g}`} title={t(`set.rescue.${g}`)}>
+            <textarea
+              id={`rescue-${g}`}
+              rows={2}
+              spellCheck={false}
+              // A new key after a save or a reset puts the stored list back in the field.
+              key={settings.rescueTitles[g].join('\n')}
+              defaultValue={settings.rescueTitles[g].join('\n')}
+              disabled={off || !settings.rescue}
+              onBlur={(e) => {
+                const list = e.currentTarget.value
+                  .split('\n')
+                  .map((s) => s.trim())
+                  .filter((s) => s !== '');
+                if (list.join('\n') !== settings.rescueTitles[g].join('\n')) {
+                  void update({ rescueTitles: { ...settings.rescueTitles, [g]: list } });
+                }
+              }}
+            />
+          </Row>
+        ))}
+        <Row
+          htmlFor="rescue-flipped"
+          title={t('set.rescueFlipped')}
+          hint={t('set.rescueFlippedHint')}
+        >
+          <textarea
+            id="rescue-flipped"
+            rows={2}
+            spellCheck={false}
+            key={settings.rescueFlipped.join('\n')}
+            defaultValue={settings.rescueFlipped.join('\n')}
+            disabled={off || !settings.rescue}
+            onBlur={(e) => {
+              const list = e.currentTarget.value
+                .split('\n')
+                .map((s) => s.trim())
+                .filter((s) => s !== '');
+              if (list.join('\n') !== settings.rescueFlipped.join('\n')) {
+                void update({ rescueFlipped: list });
+              }
+            }}
+          />
+        </Row>
+        <Row title={t('set.rescueDefaults')}>
+          <button
+            type="button"
+            className="btn"
+            disabled={off || !settings.rescue}
+            onClick={() =>
+              void update({
+                rescueTitles: DEFAULT_RESCUE_TITLES,
+                rescueFlipped: DEFAULT_RESCUE_FLIPPED,
+              })
+            }
+          >
+            {t('set.rescueReset')}
+          </button>
         </Row>
       </Group>
 

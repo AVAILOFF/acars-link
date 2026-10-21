@@ -33,6 +33,7 @@ steps:
               ~{flight.divert_nm} NM FROM PRESENT POS
               AMBULANCE AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
+        - rescue: { level: medical }
         - wait: { phase: ON_BLOCK }
         - send:
             header: OPS MSG MEDICAL
@@ -46,6 +47,7 @@ steps:
               MEDICAL UPDATE NOTED
               CONTINUE TO {ofp.dest}
               PLEASE REQUEST PRIORITY WITH ATC
+        - rescue: { level: medical }
         - wait: { phase: ON_BLOCK }
         - send:
             header: OPS MSG MEDICAL

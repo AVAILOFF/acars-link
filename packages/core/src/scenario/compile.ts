@@ -13,6 +13,8 @@ import {
   DISTANCE_TARGETS,
   LOOP_OUTCOMES,
   PILOT_COMMANDS,
+  RESCUE_LEVELS,
+  type RescueLevel,
   type ScenarioDef,
   SET_TARGETS,
   type Step,
@@ -84,6 +86,7 @@ export type CompiledStep =
         readonly side: readonly [number, number];
       } | null;
     }
+  | { readonly kind: 'rescue'; readonly level: RescueLevel | null }
   | { readonly kind: 'draw'; readonly options: readonly CompiledDrawOption[] }
   | {
       readonly kind: 'loop';
@@ -515,6 +518,18 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
           spread = { along, side: [lo as number, hi as number] };
         }
         steps.push({ kind: 'smoke', action: 'start', at: sm.start, spread });
+        continue;
+      }
+      if ('rescue' in s) {
+        const r = s.rescue;
+        if (r === 'stop') {
+          steps.push({ kind: 'rescue', level: null });
+          continue;
+        }
+        if (!(RESCUE_LEVELS as readonly unknown[]).includes(r?.level)) {
+          fail(`${path}.rescue`, 'must be stop or { level: full | standby | medical }');
+        }
+        steps.push({ kind: 'rescue', level: r.level });
         continue;
       }
       if ('vdgs' in s) {

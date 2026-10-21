@@ -199,6 +199,20 @@ export interface SmokeStep {
       };
 }
 
+/**
+ * Rescue services at the landing airport (T54): `{ level: full }` — fire trucks wait beside the
+ * runway, follow the aircraft after touchdown and surround it when it stops; `standby` — they wait
+ * and do not move; `medical` — an ambulance beside the aircraft once it is parked. The airport is
+ * `flight.divert`, else the destination. `stop` — take them all down. Needs the sim bridge;
+ * without it nothing happens in the sim.
+ */
+export interface RescueStep {
+  readonly rescue: 'stop' | { readonly level: RescueLevel };
+}
+
+export const RESCUE_LEVELS = ['full', 'standby', 'medical'] as const;
+export type RescueLevel = (typeof RESCUE_LEVELS)[number];
+
 /** A value `draw` gives a run variable: a literal, or `[min, max]` — a uniform integer. */
 export type DrawValue = string | number | boolean | null | readonly [number, number];
 
@@ -253,6 +267,7 @@ export type Step =
   | SetStep
   | VdgsStep
   | SmokeStep
+  | RescueStep
   | DrawStep
   | LoopStep
   | BreakStep
