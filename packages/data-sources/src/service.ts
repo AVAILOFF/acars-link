@@ -73,14 +73,14 @@ import { fetchWx } from './wx.js';
  * Schedule: weather of the OFP airports at start and every 10 min, plus any airport the
  * pilot asks for (`REQ WX`, core event `DATA_REQUEST`); VATSIM at start and every 5 min
  * from the climb to the approach; EONET at start and every hour; the destination's stands
- * once (cached 30 days). With the ROPS station (T23, `startFlight(…, { firs: true })`): the
+ * once (cached 30 days). With the XATC station (T23, `startFlight(…, { firs: true })`): the
  * VATSpy FIR boundaries once (cached 7 days) — the FIRs along the route go to the core, and
  * with every VATSIM fetch the online centres covering them; FIR and country of the origin and
  * destination and the origin's frequencies from OurAirports (T24, cached 30 days). Space
  * launches (T28) at start and every hour, cached 30 min: Launch Library allows 15 requests an
  * hour without a key. The window is from an hour before the flight started to an hour after
  * now + the OFP block time (the remaining time is not known here; more is harmless). With the
- * ROPS station: the active NAT tracks from natTrak (T27) at start and every hour, cached 30 min.
+ * XATC station: the active NAT tracks from natTrak (T27) at start and every hour, cached 30 min.
  *
  * Special events (T29, `startFlight(…, { special })`, per group, approved 2026-10-09): aviation —
  * NOAA scales and the OVATION aurora every 30 min, volcanic ash SIGMETs every 15 min; other —
@@ -145,10 +145,10 @@ export const SPECIAL_GROUPS: Readonly<Record<SpecialGroup, readonly DataSourceKi
   sport: ['f1', 'nhl'],
 };
 const SPECIAL_SOURCES: ReadonlySet<DataSourceKind> = new Set(Object.values(SPECIAL_GROUPS).flat());
-/** Sources of the ROPS station only (`startFlight(…, { firs: true })`). */
-const ROPS_SOURCES: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs', 'nattracks']);
-/** ROPS sources fetched once per flight (the others refresh on their schedule). */
-const ROPS_ONCE: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs']);
+/** Sources of the XATC station only (`startFlight(…, { firs: true })`). */
+const XATC_SOURCES: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs', 'nattracks']);
+/** XATC sources fetched once per flight (the others refresh on their schedule). */
+const XATC_ONCE: ReadonlySet<DataSourceKind> = new Set(['firs', 'freqs']);
 /** Source of the data link simulation only (`startFlight(…, { datalink: true })`, T31). */
 const DATALINK_SOURCES: ReadonlySet<DataSourceKind> = new Set(['vhf']);
 /** Fetched once per flight. */
@@ -264,7 +264,7 @@ interface Flight {
   readonly ofp: Ofp;
   /** Origin, destination, alternates. */
   readonly airports: readonly string[];
-  /** FIR boundaries and centres for the ROPS station (T23). */
+  /** FIR boundaries and centres for the XATC station (T23). */
   readonly firs: boolean;
   /** The conditional VHF stations of the data link simulation (T31). */
   readonly datalink: boolean;
@@ -333,7 +333,7 @@ export class ExternalDataService {
 
   /**
    * A new flight (also right after the OFP is loaded, to prefetch). Fetching starts on tick.
-   * `firs`: also the FIR boundaries and centres for the ROPS station (T23). `special`: the
+   * `firs`: also the FIR boundaries and centres for the XATC station (T23). `special`: the
    * groups of special events whose sources to use (T29; none by default).
    */
   startFlight(
@@ -375,7 +375,7 @@ export class ExternalDataService {
       DATA_SOURCES.filter(
         (k) =>
           this.enabled.has(k) &&
-          (!ROPS_SOURCES.has(k) || firs) &&
+          (!XATC_SOURCES.has(k) || firs) &&
           (!DATALINK_SOURCES.has(k) || datalink) &&
           (!SPECIAL_SOURCES.has(k) || special.has(k)) &&
           ((k !== 'connex' && k !== 'routes') || connexKey !== null),
@@ -450,7 +450,7 @@ export class ExternalDataService {
       if (s.inFlight || (now < s.nextAt && !asked)) continue;
       const p = DATA_POLICY[kind];
       if (p.maxTries !== null && s.fails >= p.maxTries) continue;
-      if ((ONCE.has(kind) || ROPS_ONCE.has(kind)) && s.fetched) continue;
+      if ((ONCE.has(kind) || XATC_ONCE.has(kind)) && s.fetched) continue;
       if (kind === 'vatsim' && s.fetched && (phase === null || !VATSIM_PHASES.has(phase))) {
         s.nextAt = now + (p.refreshMs ?? 0);
         continue;

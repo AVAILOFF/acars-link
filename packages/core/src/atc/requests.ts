@@ -6,7 +6,7 @@ import { aircraftLimits } from './performance.js';
 import { type RoutePosition, starEntryIndex } from './route.js';
 
 /**
- * Pilot requests to the ROPS station (T25, docs/07). Downlinks as FBW A32NX sends them
+ * Pilot requests to the XATC station (T25, docs/07). Downlinks as FBW A32NX sends them
  * (FANS-A, values without `@` on the network): DM6 `REQUEST FL350`, DM9 `REQUEST CLIMB TO
  * FL350`, DM10 `REQUEST DESCEND TO 11000FT`, DM18 `REQUEST M.78` / `REQUEST 280KT`, DM22
  * `REQUEST DIRECT TO MOLKA`; a reason element (`DUE TO WEATHER`) may follow. Answers are

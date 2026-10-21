@@ -28,14 +28,14 @@ import {
   type DclState,
   parseDclRequest,
 } from './dcl.js';
-import { atcUnitName, FirMap, ropsStation } from './fir.js';
+import { atcUnitName, FirMap, xatcStation } from './fir.js';
 import { levelText } from './levels.js';
 import { type OclContext, type OclEvent, OclService, type OclState, parseRcl } from './oceanic.js';
 import { type AtcRequest, decide, parseRequest, type RefusalReason } from './requests.js';
 import { routePosition, starEntryIndex } from './route.js';
 
 /**
- * ROPS ATC station (T23, docs/07): a simulated CPDLC ground station for the own pilot only,
+ * XATC station (T23, docs/07): a simulated CPDLC ground station for the own pilot only,
  * one per FIR, on Hoppie. The aircraft logs on (`REQUEST LOGON`), the station answers
  * `LOGON ACCEPTED` and `CURRENT ATC UNIT`; at a FIR boundary it hands the aircraft over
  * (`HANDOVER @<next>`), and the aircraft logs on to the next station by itself — the Hoppie
@@ -58,7 +58,7 @@ import { routePosition, starEntryIndex } from './route.js';
  * UNIT` (a phrase of real Hoppie stations).
  */
 
-export const ROPS_ID = '#rops';
+export const XATC_ID = '#xatc';
 
 /** How long the old station still listens after a HANDOVER (for the aircraft's LOGOFF). */
 export const HANDOVER_LISTEN_MS = 10 * 60_000;
@@ -81,7 +81,7 @@ export const DIVERT_DESCENT_FT = 10_000;
 /** Descent distance of the diversion: 3 NM per 1000 ft plus this margin, NM (T48). */
 export const DIVERT_DESCENT_MARGIN_NM = 20;
 
-export interface RopsOptions {
+export interface XatcOptions {
   readonly enabled: boolean;
   /** Step aside where a live VATSIM centre covers the FIR (default true). */
   readonly standAside?: boolean;
@@ -171,7 +171,7 @@ export type AtcEvent =
       readonly text: string;
     };
 
-export interface RopsState {
+export interface XatcState {
   readonly v: 1;
   /** FIR the aircraft is in. */
   readonly fir: string | null;
@@ -274,16 +274,16 @@ export interface RequestState {
 }
 
 /** What the station needs besides the OFP (T24: squawk/DCL seed, the telex display profile). */
-export interface RopsDeps {
+export interface XatcDeps {
   readonly seed: string | number;
   readonly profile?: DisplayProfile;
 }
 
-export interface RopsTickInput {
+export interface XatcTickInput {
   readonly now: number;
   readonly phase: FlightPhase;
   readonly telemetry: TelemetrySnapshot | null;
-  /** The aircraft's messages to ROPS stations (`to` set), oldest first. */
+  /** The aircraft's messages to XATC stations (`to` set), oldest first. */
   readonly inbound: readonly PilotMessage[];
   readonly ext: ExtState;
   /** The flight's diversion airport (T48), null/absent = none. */
@@ -292,7 +292,7 @@ export interface RopsTickInput {
   readonly hold?: { readonly since: number; readonly min: number } | null;
 }
 
-export interface RopsTickOutput {
+export interface XatcTickOutput {
   readonly outbound: readonly OutboundMessage[];
   readonly events: readonly AtcEvent[];
 }
@@ -300,10 +300,10 @@ export interface RopsTickOutput {
 const ENDED: ReadonlySet<FlightPhase> = new Set(['ON_BLOCK', 'TURNAROUND', 'DONE']);
 /** Phases with a level watch (T47); from the approach on, levels come by voice. */
 const WATCHED: ReadonlySet<FlightPhase> = new Set(['CLIMB', 'CRUISE', 'DESCENT']);
-/** Station callsigns ROPS may own: `X` + 3 letters (FIRs, T23; airports, T24). */
-export const ROPS_CALLSIGN = /^X[A-Z]{3}$/;
+/** Station callsigns XATC may own: `X` + 3 letters (FIRs, T23; airports, T24). */
+export const XATC_CALLSIGN = /^X[A-Z]{3}$/;
 
-export const EMPTY_ROPS: RopsState = {
+export const EMPTY_XATC: XatcState = {
   v: 1,
   fir: null,
   connected: null,
@@ -313,7 +313,7 @@ export const EMPTY_ROPS: RopsState = {
   ended: false,
 };
 
-export class RopsStation {
+export class XatcStation {
   private st: {
     fir: string | null;
     connected: string | null;
@@ -361,15 +361,15 @@ export class RopsStation {
 
   constructor(
     private readonly ofp: Ofp,
-    options: RopsOptions,
-    deps: RopsDeps,
-    state: RopsState = EMPTY_ROPS,
+    options: XatcOptions,
+    deps: XatcDeps,
+    state: XatcState = EMPTY_XATC,
   ) {
     this.standAside = options.standAside ?? true;
     this.randomDirects = options.randomDirects ?? true;
     this.seed = deps.seed;
-    const copy = JSON.parse(JSON.stringify(state)) as RopsState;
-    if (copy.v !== 1) throw new Error(`unsupported RopsState version ${String(copy.v)}`);
+    const copy = JSON.parse(JSON.stringify(state)) as XatcState;
+    if (copy.v !== 1) throw new Error(`unsupported XatcState version ${String(copy.v)}`);
     this.st = {
       fir: copy.fir,
       connected: copy.connected,
@@ -405,10 +405,10 @@ export class RopsStation {
     this.ocl = new OclService(ofp, deps.seed, deps.profile ?? DEFAULT_PROFILE, copy.ocl);
   }
 
-  getState(): RopsState {
+  getState(): XatcState {
     return JSON.parse(
       JSON.stringify({ v: 1, ...this.st, dcl: this.dcl.getState(), ocl: this.ocl.getState() }),
-    ) as RopsState;
+    ) as XatcState;
   }
 
   /** Departure clearance station while it is open (T24), or null. */
@@ -418,7 +418,7 @@ export class RopsStation {
 
   /** Station the aircraft should log on to now (the FIR's), or null. */
   get station(): string | null {
-    return this.st.fir === null || this.st.ended ? null : ropsStation(this.st.fir);
+    return this.st.fir === null || this.st.ended ? null : xatcStation(this.st.fir);
   }
 
   get connected(): string | null {
@@ -441,7 +441,7 @@ export class RopsStation {
     return [...out].sort();
   }
 
-  tick(input: RopsTickInput): RopsTickOutput {
+  tick(input: XatcTickInput): XatcTickOutput {
     const outbound: OutboundMessage[] = [];
     const events: AtcEvent[] = [];
     const now = input.now;
@@ -450,7 +450,7 @@ export class RopsStation {
       ra: CpdlcResponse,
       mrn: number | null,
       text: string,
-      scenarioId = ROPS_ID,
+      scenarioId = XATC_ID,
     ): number => {
       const min = (this.st.min[from] ?? 0) + 1;
       this.st.min[from] = min;
@@ -523,7 +523,7 @@ export class RopsStation {
       const area = map.locate(pos);
       if (area !== null && area.id !== this.st.fir) {
         this.st.fir = area.id;
-        const station = ropsStation(area.id);
+        const station = xatcStation(area.id);
         events.push({
           type: 'ATC_STATION',
           t: now,
@@ -590,7 +590,7 @@ export class RopsStation {
 
   private receive(
     m: PilotMessage,
-    input: RopsTickInput,
+    input: XatcTickInput,
     map: FirMap | null,
     send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => number,
     events: AtcEvent[],
@@ -716,7 +716,7 @@ export class RopsStation {
     text: string,
     mrn: number,
     station: string,
-    input: RopsTickInput,
+    input: XatcTickInput,
     map: FirMap | null,
   ): void {
     const tm = input.telemetry;
@@ -791,7 +791,7 @@ export class RopsStation {
    * logged-on aircraft with telemetry, not while a live controller has the FIR.
    */
   private autoClearances(
-    input: RopsTickInput,
+    input: XatcTickInput,
     map: FirMap | null,
     send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => number,
     events: AtcEvent[],
@@ -887,7 +887,7 @@ export class RopsStation {
    * live controller) the airline's message is all.
    */
   private airlineLink(
-    input: RopsTickInput,
+    input: XatcTickInput,
     send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => number,
     events: AtcEvent[],
   ): void {
@@ -998,7 +998,7 @@ export class RopsStation {
    * descent, the T48 diversion descent) is reached.
    */
   private watchLevel(
-    input: RopsTickInput,
+    input: XatcTickInput,
     send: (from: string, ra: CpdlcResponse, mrn: number | null, text: string) => number,
     events: AtcEvent[],
   ): void {

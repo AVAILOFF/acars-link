@@ -529,7 +529,7 @@ export class AppController {
       // T30: onward departures only with the user's own AeroDataBox key (C1, C10).
       const connexKey = await this.o.secrets.get('aerodataboxKey').catch(() => null);
       this.data.startFlight(ofp, this.o.now(), {
-        firs: settings.rops,
+        firs: settings.xatc,
         datalink: settings.datalink,
         special: specialGroups(settings),
         connexKey,
@@ -610,18 +610,18 @@ export class AppController {
             },
           }
         : {}),
-      ...(settings.rops
+      ...(settings.xatc
         ? {
-            rops: {
+            xatc: {
               enabled: true,
-              standAside: settings.ropsStandAside,
-              randomDirects: settings.ropsRandomDirects,
+              standAside: settings.xatcStandAside,
+              randomDirects: settings.xatcRandomDirects,
             },
           }
         : {}),
     });
     // The station needs the FIR boundaries (live data).
-    if (settings.rops && !settings.liveData) this.feed.system(now, 'atc_needs_data');
+    if (settings.xatc && !settings.liveData) this.feed.system(now, 'atc_needs_data');
     // The conditional VHF stations come from live data; without them only SATCOM is a link.
     if (settings.datalink && !settings.liveData) this.feed.system(now, 'link_needs_data');
     if (Object.keys(flags).length > 0) {

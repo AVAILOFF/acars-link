@@ -8,11 +8,11 @@ import {
   type FlightPhase,
   type Ofp,
   type PilotMessage,
-  type RopsOptions,
   type SimCommand,
   stationCallsign,
   type TelemetrySnapshot,
   type Value,
+  type XatcOptions,
 } from '@acars/core';
 import type { DataSourceKind, ExternalDataService } from '@acars/data-sources';
 import { encodeLine, type RecordingEvent, recordingHeader } from '@acars/replay';
@@ -68,8 +68,8 @@ export interface FlightSessionOptions {
   readonly simTime?: boolean;
   /** Commands to the simulator the core produced (T21), sent on by the controller. */
   readonly simCommands?: (c: SimCommand) => void;
-  /** ROPS ATC station (T23); absent = off. */
-  readonly rops?: RopsOptions;
+  /** XATC station (T23); absent = off. */
+  readonly xatc?: XatcOptions;
   /** Data link simulation (T31); absent = off. */
   readonly datalink?: {
     readonly satcom: boolean;
@@ -156,7 +156,7 @@ export class FlightSession {
       ...(o.data == null ? {} : { dataWaitMs: DATA_WAIT_MS }),
       ...(o.flags === undefined ? {} : { flags: o.flags }),
       ...(o.minGapMs === undefined ? {} : { minGapMs: o.minGapMs }),
-      ...(o.rops === undefined ? {} : { rops: o.rops }),
+      ...(o.xatc === undefined ? {} : { xatc: o.xatc }),
       ...(o.datalink === undefined ? {} : { datalink: o.datalink }),
       namesVersion: NAMES_VERSION,
       nextLegVersion: NEXT_LEG_VERSION,
@@ -188,7 +188,7 @@ export class FlightSession {
         ...(o.flags === undefined || Object.keys(o.flags).length === 0 ? {} : { flags: o.flags }),
         ...probabilities(o.scenarios),
         ...(o.minGapMs === undefined || o.minGapMs === 0 ? {} : { minGapMs: o.minGapMs }),
-        ...(o.rops === undefined ? {} : { rops: o.rops }),
+        ...(o.xatc === undefined ? {} : { xatc: o.xatc }),
         ...(o.datalink === undefined ? {} : { datalink: o.datalink }),
         namesVersion: NAMES_VERSION,
         nextLegVersion: NEXT_LEG_VERSION,
@@ -234,7 +234,7 @@ export class FlightSession {
     };
   }
 
-  /** ROPS station (T23): where to log on and where the aircraft is logged on; null = off. */
+  /** XATC station (T23): where to log on and where the aircraft is logged on; null = off. */
   get atc(): AtcView | null {
     return this.core.atc;
   }
@@ -630,7 +630,7 @@ export class FlightSession {
   }
 }
 
-/** Feed code of a message that went to the wrong ROPS station (T49). */
+/** Feed code of a message that went to the wrong XATC station (T49). */
 function misroutedCode(
   e: Extract<CoreOutput['events'][number], { type: 'ATC_MISROUTED' }>,
 ): SystemCode {

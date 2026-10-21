@@ -5,7 +5,7 @@ import { checkLevel, levelText } from './levels.js';
 import { type RoutePosition, starEntryIndex } from './route.js';
 
 /**
- * Clearances the ROPS station sends on its own (T26, docs/07; the Direct To rule replaced by
+ * Clearances the XATC station sends on its own (T26, docs/07; the Direct To rule replaced by
  * the user's decision of 2026-10-10, T38):
  * - at most one random Direct To per FIR, at the first contact with the FIR's station in cruise
  *   (more than 50 NM before TOD): 50 % (seeded), 1–5 min after the contact, to the FIR exit

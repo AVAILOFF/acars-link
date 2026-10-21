@@ -99,7 +99,7 @@ export interface OutboundMessage {
   readonly from: string;
   /** Aircraft callsign (recipient). */
   readonly to: string;
-  /** `cpdlc`: an ATC uplink of the ROPS station (T23), sent as a Hoppie `cpdlc` packet. */
+  /** `cpdlc`: an ATC uplink of the XATC station (T23), sent as a Hoppie `cpdlc` packet. */
   readonly kind: 'telex' | 'cpdlc';
   /** Packet header of a `cpdlc` message (`atc/cpdlc.ts`). */
   readonly cpdlc?: CpdlcHeader;
@@ -576,7 +576,7 @@ export class ScenarioEngine {
     return this.byId.has(id);
   }
 
-  /** Diversion airport (a scenario's or the pilot's), null = none (T48: the ROPS station reads it). */
+  /** Diversion airport (a scenario's or the pilot's), null = none (T48: the XATC station reads it). */
   get divert(): string | null {
     return this.st.divert;
   }

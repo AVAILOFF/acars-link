@@ -1337,7 +1337,7 @@ async function readRecordingOrNull(s: Awaited<ReturnType<typeof setup>>) {
   return readRecording(s.recordings);
 }
 
-describe('ROPS ATC station (T23)', () => {
+describe('XATC station (T23)', () => {
   // Two rectangular FIRs across the RCTP → RJBB route, in the VATSpy formats.
   const box = (id: string, w: number, s: number, e: number, n: number) => ({
     type: 'Feature',
@@ -1363,7 +1363,7 @@ describe('ROPS ATC station (T23)', () => {
   });
   const dat = '[FIRs]\nRCAA|Taipei||RCAA\nRJJJ|Fukuoka||RJJJ\n[UIRs]\n';
 
-  async function ropsHttp(): Promise<FakeHttp> {
+  async function xatcHttp(): Promise<FakeHttp> {
     const simbrief = await readFile(OFP_FIXTURE, 'utf8');
     return new FakeHttp((req) => {
       if (req.url.includes('simbrief')) return { status: 200, body: simbrief };
@@ -1374,10 +1374,10 @@ describe('ROPS ATC station (T23)', () => {
   }
 
   it('polls the FIR station, answers the logon by CPDLC, hands over; recorded and replayed', async () => {
-    const http = await ropsHttp();
+    const http = await xatcHttp();
     const s = await setup({ http });
     await s.app.setSimbriefUsername('pilot42');
-    await s.app.updateSettings({ transport: 'offline', rops: true });
+    await s.app.updateSettings({ transport: 'offline', xatc: true });
     await s.app.loadOfp();
     s.sockets.last().hello();
     await s.app.startFlight();
@@ -1425,7 +1425,7 @@ describe('ROPS ATC station (T23)', () => {
       expect(codes).toContain(c);
 
     const rec = await readRecording(s.recordings);
-    expect(rec.header.rops).toEqual({ enabled: true, standAside: true, randomDirects: true });
+    expect(rec.header.xatc).toEqual({ enabled: true, standAside: true, randomDirects: true });
     const out = rec.events.flatMap((e) =>
       e.type === 'out' && e.packet !== undefined ? [e.packet] : [],
     );
@@ -1437,10 +1437,10 @@ describe('ROPS ATC station (T23)', () => {
   });
 
   it('PDC (T24): request telex to X+origin, FSM and CLD by CPDLC, WILCO confirms; replayed', async () => {
-    const http = await ropsHttp();
+    const http = await xatcHttp();
     const s = await setup({ http });
     await s.app.setSimbriefUsername('pilot42');
-    await s.app.updateSettings({ transport: 'offline', rops: true });
+    await s.app.updateSettings({ transport: 'offline', xatc: true });
     await s.app.loadOfp();
     s.sockets.last().hello();
     await s.app.startFlight();
@@ -1490,9 +1490,9 @@ describe('ROPS ATC station (T23)', () => {
   });
 
   it('without live data: one note in the feed, no FIR station', async () => {
-    const s = await setup({ http: await ropsHttp() });
+    const s = await setup({ http: await xatcHttp() });
     await s.app.setSimbriefUsername('pilot42');
-    await s.app.updateSettings({ transport: 'offline', rops: true, liveData: false });
+    await s.app.updateSettings({ transport: 'offline', xatc: true, liveData: false });
     await s.app.loadOfp();
     s.sockets.last().hello();
     await s.app.startFlight();

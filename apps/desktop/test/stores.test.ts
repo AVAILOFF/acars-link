@@ -80,7 +80,7 @@ describe('settings', () => {
       liveData: true,
       soundOnMessage: false,
       messageGapSec: 60,
-      rops: false,
+      xatc: false,
       datalink: false,
       datalinkSatcom: true,
       aircraftIcaoHex: '',
@@ -88,8 +88,8 @@ describe('settings', () => {
       simTime: false,
       turnaround: true,
       datalinkHeaderInText: false,
-      ropsStandAside: true,
-      ropsRandomDirects: true,
+      xatcStandAside: true,
+      xatcRandomDirects: true,
       specialSport: true,
       specialAviation: true,
       specialOther: true,
@@ -141,15 +141,15 @@ describe('settings', () => {
       { bridgePort: 80 },
       { bridgePort: 47830.5 },
       { recordFlights: 'yes' },
-      { rops: 1 },
+      { xatc: 1 },
       { datalink: 1 },
       { datalinkSatcom: 'yes' },
       { aircraftIcaoHex: '4249E' },
       { aircraftIcaoHex: '4249EG' },
       { aircraftIcaoHex: 4249 },
       { datalinkHeaderInText: 1 },
-      { ropsStandAside: 'no' },
-      { ropsRandomDirects: 'off' },
+      { xatcStandAside: 'no' },
+      { xatcRandomDirects: 'off' },
       { messageGapSec: -1 },
       { messageGapSec: 1.5 },
       { messageGapSec: 601 },
@@ -207,6 +207,15 @@ describe('settings', () => {
     });
     expect(sanitize({ recordFlights: false }, defaults).recordFlights).toBe(false);
     expect(sanitize('garbage', defaults)).toEqual(defaults);
+  });
+
+  it('reads the keys saved before T58, when the XATC station was called ROPS', () => {
+    const old = { rops: true, ropsStandAside: false, ropsRandomDirects: false };
+    const s = sanitize(old, defaults);
+    expect([s.xatc, s.xatcStandAside, s.xatcRandomDirects]).toEqual([true, false, false]);
+    expect(s).not.toHaveProperty('rops');
+    // Today's key wins over the old one.
+    expect(sanitize({ rops: true, xatc: false }, defaults).xatc).toBe(false);
   });
 
   it('persists updates and scenario switches', async () => {

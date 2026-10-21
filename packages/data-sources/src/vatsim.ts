@@ -67,7 +67,7 @@ export async function fetchVatsim(
   return { stations: parseVatsimFeed(json), centers: parseVatsimCenters(json) };
 }
 
-/** Centres (facility 6 CTR) and FSS (1) on an air-band frequency, for the ROPS station (T23). */
+/** Centres (facility 6 CTR) and FSS (1) on an air-band frequency, for the XATC station (T23). */
 export function parseVatsimCenters(json: unknown): VatsimCenter[] {
   if (!isObj(json) || !Array.isArray(json['controllers'])) {
     throw new DataSourceError('VATSIM: no controllers[] in the feed');

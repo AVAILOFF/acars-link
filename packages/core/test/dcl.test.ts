@@ -86,7 +86,7 @@ function fly(
     scenarios: [],
     seed: o.seed ?? 'dcl',
     profile: o.profile ?? WIDE,
-    rops: { enabled: true, ...(o.standAside === undefined ? {} : { standAside: o.standAside }) },
+    xatc: { enabled: true, ...(o.standAside === undefined ? {} : { standAside: o.standAside }) },
   });
   core.startFlight();
   const out: OutboundMessage[] = [];

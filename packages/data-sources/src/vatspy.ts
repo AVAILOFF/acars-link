@@ -19,7 +19,7 @@ import {
 } from './common.js';
 
 /**
- * FIR boundaries for the ROPS station (T23, docs/06 "Границы FIR"): VATSpy Data Project,
+ * FIR boundaries for the XATC station (T23, docs/06 "Границы FIR"): VATSpy Data Project,
  * `https://github.com/vatsimnetwork/vatspy-data-project` (licence CC BY-SA 4.0, checked
  * 2026-10-09, release v2610.1). Approved as an approximation of the real FIRs (docs/07 T23):
  * downloaded and cached by the app, not stored in the repository.

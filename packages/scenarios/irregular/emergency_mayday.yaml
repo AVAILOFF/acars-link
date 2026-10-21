@@ -1,14 +1,14 @@
-# MAYDAY sent to the ROPS station (DM56, T47): the station answers ROGER MAYDAY at once and
+# MAYDAY sent to the XATC station (DM56, T47): the station answers ROGER MAYDAY at once and
 # the airline's emergency desk follows. It starts by hand only (the core forces it after the
 # MAYDAY); probability 0 keeps it from starting on its own. DIVERT (default after 5 min) goes
-# to the nearest suitable airport (T50: the OFP's, or a reserve one), and so reaches the ROPS station (T48).
+# to the nearest suitable airport (T50: the OFP's, or a reserve one), and so reaches the XATC station (T48).
 id: emergency_mayday
 version: 1
 category: irregular
 title: MAYDAY declared
 title_ru: "Объявлен MAYDAY"
-description: "The crew declared MAYDAY to ATC through the ROPS station. The airline emergency desk offers DIVERT to the nearest suitable airport (default DIVERT after 5 min) and alerts rescue and medical services there. Starts only after a MAYDAY to ROPS."
-description_ru: "Экипаж объявил MAYDAY станции ROPS. Аварийный центр авиакомпании предлагает диверсию на ближайший подходящий аэропорт (через 5 мин — DIVERT) и поднимает пожарных и медиков. Запускается только после MAYDAY на станцию ROPS."
+description: "The crew declared MAYDAY to ATC through the XATC station. The airline emergency desk offers DIVERT to the nearest suitable airport (default DIVERT after 5 min) and alerts rescue and medical services there. Starts only after a MAYDAY to XATC."
+description_ru: "Экипаж объявил MAYDAY станции XATC. Аварийный центр авиакомпании предлагает диверсию на ближайший подходящий аэропорт (через 5 мин — DIVERT) и поднимает пожарных и медиков. Запускается только после MAYDAY на станцию XATC."
 enabled_by_default: true
 trigger:
   on: phase

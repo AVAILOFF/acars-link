@@ -14,11 +14,11 @@ import {
   type OutboundMessage,
   type PilotMessage,
   parseSimbriefOfp,
-  RopsStation,
   type TelemetrySnapshot,
+  XatcStation,
 } from '../src/index.js';
 
-/** T48: the airline's diversion and holding reach the aircraft through the ROPS station. */
+/** T48: the airline's diversion and holding reach the aircraft through the XATC station. */
 
 const ofp = parseSimbriefOfp(
   JSON.parse(
@@ -106,11 +106,11 @@ function run(
 ) {
   const seed = o.seed ?? 'link';
   const plan = o.ofp ?? ofp;
-  let st = new RopsStation(plan, OPTIONS, { seed });
+  let st = new XatcStation(plan, OPTIONS, { seed });
   const out: OutboundMessage[] = [];
   const events: AtcEvent[] = [];
   for (let i = 0; i < ticks; i++) {
-    if (i === o.resumeAt) st = new RopsStation(plan, OPTIONS, { seed }, st.getState());
+    if (i === o.resumeAt) st = new XatcStation(plan, OPTIONS, { seed }, st.getState());
     const now = T0 + i * STEP;
     const r = st.tick({
       now,
