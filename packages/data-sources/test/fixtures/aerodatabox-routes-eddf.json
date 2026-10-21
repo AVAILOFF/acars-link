@@ -1,0 +1,254 @@
+{
+  "routes": [
+    {
+      "destination": {
+        "icao": "EDDM",
+        "iata": "MUC",
+        "name": "Munich",
+        "countryCode": "DE"
+      },
+      "averageDailyFlights": 12.5,
+      "operators": [
+        {
+          "name": "Condor",
+          "iata": "DE",
+          "icao": "CFG"
+        },
+        {
+          "name": "Eurowings Discover",
+          "iata": "4Y",
+          "icao": "OCN"
+        },
+        {
+          "name": "GCK"
+        },
+        {
+          "name": "Kuwait Airways",
+          "iata": "KU",
+          "icao": "KAC"
+        },
+        {
+          "name": "Lufthansa",
+          "iata": "LH",
+          "icao": "DLH"
+        },
+        {
+          "name": "Lufthansa City Airlines",
+          "iata": "VL",
+          "icao": "LHX"
+        },
+        {
+          "name": "VJH"
+        }
+      ]
+    },
+    {
+      "destination": {
+        "icao": "EDDB",
+        "iata": "BER",
+        "name": "Berlin Brandenburg",
+        "countryCode": "DE"
+      },
+      "averageDailyFlights": 10.5,
+      "operators": [
+        {
+          "name": "Air Moorea",
+          "icao": "TAH"
+        },
+        {
+          "name": "Condor",
+          "iata": "DE",
+          "icao": "CFG"
+        },
+        {
+          "name": "DigaJet",
+          "icao": "DGJ"
+        },
+        {
+          "name": "Lufthansa",
+          "iata": "LH",
+          "icao": "DLH"
+        },
+        {
+          "name": "Lufthansa City Airlines",
+          "iata": "VL",
+          "icao": "LHX"
+        },
+        {
+          "name": "NetJets Europe",
+          "icao": "NJE"
+        },
+        {
+          "name": "Nouvelair Tunisie",
+          "iata": "BJ",
+          "icao": "LBT"
+        },
+        {
+          "name": "SmartWings",
+          "iata": "QS",
+          "icao": "TVS"
+        },
+        {
+          "name": "Songbird Airways",
+          "iata": "6K",
+          "icao": "SGB"
+        }
+      ]
+    },
+    {
+      "destination": {
+        "icao": "EGLL",
+        "iata": "LHR",
+        "name": "London Heathrow",
+        "countryCode": "GB"
+      },
+      "averageDailyFlights": 8.5,
+      "operators": [
+        {
+          "name": "British Airways",
+          "iata": "BA",
+          "icao": "BAW"
+        },
+        {
+          "name": "Lufthansa",
+          "iata": "LH",
+          "icao": "DLH"
+        },
+        {
+          "name": "Lufthansa City Airlines",
+          "iata": "VL",
+          "icao": "LHX"
+        }
+      ]
+    },
+    {
+      "destination": {
+        "icao": "LEPA",
+        "iata": "PMI",
+        "name": "Palma De Mallorca",
+        "countryCode": "ES"
+      },
+      "averageDailyFlights": 6.5,
+      "operators": [
+        {
+          "name": "AlbaStar",
+          "iata": "AP",
+          "icao": "LAV"
+        },
+        {
+          "name": "Atlasglobal",
+          "iata": "KK",
+          "icao": "KKK"
+        },
+        {
+          "name": "Condor",
+          "iata": "DE",
+          "icao": "CFG"
+        },
+        {
+          "name": "Eurowings Discover",
+          "iata": "4Y",
+          "icao": "OCN"
+        },
+        {
+          "name": "Lufthansa",
+          "iata": "LH",
+          "icao": "DLH"
+        },
+        {
+          "name": "TUIfly",
+          "iata": "X3",
+          "icao": "TUI"
+        }
+      ]
+    },
+    {
+      "destination": {
+        "icao": "LIRF",
+        "iata": "FCO",
+        "name": "Rome Leonardo da Vinci–Fiumicino",
+        "countryCode": "IT"
+      },
+      "averageDailyFlights": 5.5,
+      "operators": [
+        {
+          "name": "Condor",
+          "iata": "DE",
+          "icao": "CFG"
+        },
+        {
+          "name": "easyJet",
+          "iata": "U2",
+          "icao": "EZY"
+        },
+        {
+          "name": "ITA Airways",
+          "iata": "AZ",
+          "icao": "ITY"
+        },
+        {
+          "name": "Lufthansa",
+          "iata": "LH",
+          "icao": "DLH"
+        }
+      ]
+    },
+    {
+      "destination": {
+        "icao": "KJFK",
+        "iata": "JFK",
+        "name": "New York John F Kennedy",
+        "countryCode": "US"
+      },
+      "averageDailyFlights": 3.5,
+      "operators": [
+        {
+          "name": "Condor",
+          "iata": "DE",
+          "icao": "CFG"
+        },
+        {
+          "name": "Delta Air Lines",
+          "iata": "DL",
+          "icao": "DAL"
+        },
+        {
+          "name": "EAT Leipzig",
+          "iata": "QY",
+          "icao": "BCS"
+        },
+        {
+          "name": "Lufthansa",
+          "iata": "LH",
+          "icao": "DLH"
+        },
+        {
+          "name": "Masair",
+          "iata": "M7",
+          "icao": "MAA"
+        },
+        {
+          "name": "Singapore Airlines",
+          "iata": "SQ",
+          "icao": "SIA"
+        }
+      ]
+    },
+    {
+      "destination": {
+        "icao": "OMDB",
+        "iata": "DXB",
+        "name": "Dubai",
+        "countryCode": "AE"
+      },
+      "averageDailyFlights": 2.5,
+      "operators": [
+        {
+          "name": "Emirates",
+          "iata": "EK",
+          "icao": "UAE"
+        }
+      ]
+    }
+  ]
+}

@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createRng } from '@acars/core';
+import { ROUTES_CACHE_PREFIX, ROUTES_RETENTION_MS } from '@acars/data-sources';
 import { fetchHttpClient, HoppieTransport, MockTransport } from '@acars/transport';
 import {
   app,
@@ -114,6 +115,9 @@ async function main(): Promise<void> {
   const recordings = join(userData, 'recordings');
   // T30 C9: AeroDataBox data older than 7 days leave the recordings.
   purgeOldConnex(recordings, Date.now());
+  // T55 R5: AeroDataBox route statistics older than 7 days leave the data cache.
+  const dataCache = new FileDataCache(join(userData, 'cache'));
+  await dataCache.purgeOlder(ROUTES_CACHE_PREFIX, ROUTES_RETENTION_MS, Date.now());
   const http = fetchHttpClient();
   const clock = { now: () => Date.now() };
   let controller: AppController | null = null;
@@ -146,7 +150,7 @@ async function main(): Promise<void> {
       if (error !== '') throw new Error(error);
     },
     onChange,
-    dataCache: new FileDataCache(join(userData, 'cache')),
+    dataCache,
     flags: new FlagsStore(join(userData, 'airline-memory.json')),
     vdgsDir: gsxVdgsDir(app.getPath('appData')),
   });

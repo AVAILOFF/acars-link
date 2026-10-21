@@ -220,6 +220,10 @@ function fly(
     synthetic?: boolean;
     /** AeroDataBox departures of the destination (T30), passed at start. */
     connex?: ExtDataUpdate['connex'];
+    /** AeroDataBox route statistics of the destination (T55), passed at start. */
+    routes?: ExtDataUpdate['routes'];
+    /** Core `nextLegVersion` (T55: 3 reads `onwardRoute` from the AeroDataBox data). */
+    nextLegVersion?: 1 | 2 | 3;
   } = {},
 ): Run {
   const core = AcarsCore.create({
@@ -230,6 +234,7 @@ function fly(
     // The synthetic onward flight with a number is a test hook; real flights: OpenFlights routes.
     syntheticConnections: o.synthetic ?? true,
     ...(o.flags === undefined ? {} : { flags: o.flags }),
+    ...(o.nextLegVersion === undefined ? {} : { nextLegVersion: o.nextLegVersion }),
   });
   core.startFlight();
   const out: OutboundMessage[] = [];
@@ -262,6 +267,7 @@ function fly(
             ...(gates === undefined ? {} : { stands: gates }),
             ...(o.cold === true ? cold : {}),
             ...(o.connex === undefined ? {} : { connex: o.connex }),
+            ...(o.routes === undefined ? {} : { routes: o.routes }),
           }
         : undefined;
     const r = core.tick({
@@ -436,6 +442,25 @@ describe('chains inside a flight', () => {
     expect(textsOf(r, 'short_connection')[0]).toMatch(/\d+ PAX TO ONWARD FLT/);
     expect(textsOf(r, 'connection_made')[0]).toContain('ONWARD FLT WILL WAIT');
     for (const m of r.out) expect(m.message.text).not.toMatch(/ANA\d{3}/);
+  });
+
+  it('next leg version 3 (T55): an own route in the AeroDataBox statistics is an onward flight', () => {
+    const set = ['short_connection', 'connection_made'].map(byId);
+    const o = { delayMin: 30, synthetic: false, nextLegVersion: 3 } as const;
+    const routes = (operators: string[]) => ({
+      icao: kg.destination.icao,
+      list: [{ dest: 'RJTT', daily: 6.5, operators }],
+    });
+    // SJX is not in OpenFlights; with its route in the statistics it flies on.
+    const r = fly(c, set, { ...o, routes: routes(['ANA', 'SJX']) });
+    expect(ids(r).filter((x) => x !== '#ops')).toEqual(['short_connection', 'connection_made']);
+    expect(textsOf(r, 'short_connection')[0]).toMatch(/\d+ PAX TO ONWARD FLT/);
+    // Only other airlines on the route, or version 2: as before (OpenFlights).
+    expect(ids(fly(c, set, { ...o, routes: routes(['ANA']) })).filter((x) => x !== '#ops')).toEqual(
+      [],
+    );
+    const v2 = fly(c, set, { ...o, nextLegVersion: 2, routes: routes(['SJX']) });
+    expect(ids(v2).filter((x) => x !== '#ops')).toEqual([]);
   });
 
   it('a real departure (T30, AeroDataBox) replaces the synthetic one, with the source line', () => {

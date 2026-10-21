@@ -250,9 +250,10 @@ export interface ScenarioEngineOptions {
   readonly namesVersion?: 1 | 2;
   /**
    * How the next leg is chosen (T53, `ops-data.ts`): 1 = always back to the origin (as recorded
-   * before T53), 2 = from the hub after a flight into it (default).
+   * before T53), 2 = from the hub after a flight into it (default), 3 = first from the AeroDataBox
+   * data of the flight (T55: `connex`, then `routes`), else as 2.
    */
-  readonly nextLegVersion?: 1 | 2;
+  readonly nextLegVersion?: 1 | 2 | 3;
   /** The user's hub airport (T53), instead of the OpenFlights one; absent = OpenFlights. */
   readonly hub?: string;
   /**
@@ -609,7 +610,10 @@ export class ScenarioEngine {
   private rebuildData(): void {
     const delay = this.st.delayMs ?? 0;
     const at = (ms: number) => (ms === 0 ? this.ofp : delayedOfp(this.ofp, ms, true));
-    const built = buildFlightData(at(delay), this.seed, this.nextLeg);
+    // T55: the next leg from the AeroDataBox data of the flight once they are here.
+    const ext = this.st.ext;
+    const legs = { ...this.nextLeg, live: { connex: ext.connex, routes: ext.routes } };
+    const built = buildFlightData(at(delay), this.seed, legs);
     const raised = this.st.delayRaisedMs;
     const data =
       raised === 0
@@ -618,7 +622,7 @@ export class ScenarioEngine {
             ...built,
             ops: {
               ...built.ops,
-              ctot: buildFlightData(at(delay - raised), this.seed, this.nextLeg).ops.ctot,
+              ctot: buildFlightData(at(delay - raised), this.seed, legs).ops.ctot,
             },
           };
     const stands = this.st.ext.stands;
@@ -692,9 +696,15 @@ export class ScenarioEngine {
           : 1;
     }
     if (input.data !== undefined) {
-      const before = this.st.ext.stands;
+      const before = this.st.ext;
       this.st.ext = applyExtData(this.st.ext, input.data, this.ofp, this.polyline);
-      if (this.st.ext.stands !== before) this.rebuildData();
+      const ext = this.st.ext;
+      if (
+        ext.stands !== before.stands ||
+        (this.nextLeg.version === 3 &&
+          (ext.connex !== before.connex || ext.routes !== before.routes))
+      )
+        this.rebuildData();
     }
     this.trackFuel(input);
     this.trackTouchdown(input);
@@ -775,6 +785,26 @@ export class ScenarioEngine {
     return (path) => (path in vars ? vars[path as RunVariable] : this.look(path));
   }
 
+  /**
+   * Does the airline fly on from the destination (T43)? With next leg version 3 (T55): yes when
+   * the AeroDataBox data show an own operating departure or an own route; else OpenFlights.
+   */
+  private onwardRoute(): boolean {
+    if (this.nextLeg.version === 3) {
+      const { connex, routes } = this.st.ext;
+      const dest = this.ofp.destination.icao;
+      if (connex?.icao === dest && connex.list.some((f) => !f.codeshare)) return true;
+      const own = this.ofp.airlineIcao;
+      if (
+        own !== null &&
+        routes?.icao === dest &&
+        routes.list.some((r) => r.operators.includes(own))
+      )
+        return true;
+    }
+    return this.irr.onwardRoute;
+  }
+
   /** Rebuilds the tick's context (after a delay, a diversion, a first message of a scenario). */
   private refresh(): void {
     const input = this.tickInput as EngineTickInput;
@@ -797,7 +827,12 @@ export class ScenarioEngine {
       seed: this.seed,
       fuel: this.st.fuel,
       touchdownFpm: this.st.touchdown?.fpm ?? null,
-      irr: { ...this.irr, newGate: this.newGate, connectKnown: this.syntheticConnections },
+      irr: {
+        ...this.irr,
+        onwardRoute: this.onwardRoute(),
+        newGate: this.newGate,
+        connectKnown: this.syntheticConnections,
+      },
       ...(this.runwayNeeds === undefined ? {} : { runwayNeeds: this.runwayNeeds }),
     });
   }

@@ -21,6 +21,11 @@ export interface ConnexFlight {
   readonly gate: string | null;
   /** Marketed by the airline, operated by another (`codeshareStatus: IsCodeshared`). */
   readonly codeshare: boolean;
+  /**
+   * `aircraft.model` as AeroDataBox writes it (`Airbus A320 NEO`, T55); null when the answer had
+   * none or once purged. Absent in recordings made before T55.
+   */
+  readonly model?: string | null;
 }
 
 /** Departures of the destination `icao` in the window of C5. */

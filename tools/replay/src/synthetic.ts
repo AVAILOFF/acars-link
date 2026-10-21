@@ -38,7 +38,7 @@ export function recordingFromSnapshots(
       scenarios: meta.scenarios,
       sessionFired: [],
       namesVersion: 2,
-      nextLegVersion: 2,
+      nextLegVersion: 3,
       lateStartVersion: 2,
     }),
     events: eventsFromSnapshots(snapshots),

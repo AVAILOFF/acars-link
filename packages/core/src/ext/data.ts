@@ -2,6 +2,7 @@ import type { VhfStation } from '../datalink/link.js';
 import { distanceNm, interpolate, type LatLon } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';
 import type { ConnexData } from './connex.js';
+import type { RouteStatsData } from './routes.js';
 import {
   type AshSigmet,
   type AuroraForecast,
@@ -244,6 +245,8 @@ export interface ExtDataUpdate {
   readonly nhl?: readonly NhlGame[];
   /** Departures of the airline from the destination (AeroDataBox, T30); replaces the list. */
   readonly connex?: ConnexData;
+  /** Route statistics of the destination (AeroDataBox, T55); replaces the list. */
+  readonly routes?: RouteStatsData;
 }
 
 /** A natural event placed against the planned route (once, when it arrives). */
@@ -320,6 +323,8 @@ export interface ExtState {
   readonly nhl?: Readonly<Record<string, SeenNhlGame>>;
   /** T30; absent in states saved before T30. */
   readonly connex?: ConnexData | null;
+  /** T55; absent in states saved before T55. */
+  readonly routes?: RouteStatsData | null;
 }
 
 export const EMPTY_EXT: ExtState = {
@@ -366,6 +371,7 @@ export function checkExtDataUpdate(x: unknown): ExtDataUpdate {
   const { wx, atc, events, stands, firs, centers, airports, freqs, launches, natTracks } = x;
   checkSpecial(x, bad);
   checkConnex(x['connex'], bad);
+  checkRoutes(x['routes'], bad);
   if (wx !== undefined) {
     if (!isObj(wx)) bad('wx');
     for (const [icao, r] of Object.entries(wx as object)) {
@@ -585,9 +591,29 @@ function checkConnex(c: unknown, bad: (why: string) => never): void {
       !numOrNull(f['std']) ||
       !(f['terminal'] === null || CONNEX_GATE.test(String(f['terminal']))) ||
       !(f['gate'] === null || CONNEX_GATE.test(String(f['gate']))) ||
-      typeof f['codeshare'] !== 'boolean'
+      typeof f['codeshare'] !== 'boolean' ||
+      !(f['model'] === undefined || f['model'] === null || connexModel(f['model']))
     )
       bad('connex item');
+  }
+}
+
+/** `aircraft.model` of a departure (T55): free text, printable, short. */
+const connexModel = (v: unknown) => isStr(v) && v.length <= 60 && /^[ -~]*$/.test(v);
+
+/** The T55 field of an update. */
+function checkRoutes(r: unknown, bad: (why: string) => never): void {
+  if (r === undefined) return;
+  if (!isObj(r) || !ICAO.test(String(r['icao'])) || !Array.isArray(r['list'])) bad('routes');
+  for (const x of (r as { list: unknown[] }).list) {
+    if (
+      !isObj(x) ||
+      !ICAO.test(String(x['dest'])) ||
+      !(x['daily'] === null || (isNum(x['daily']) && x['daily'] >= 0)) ||
+      !Array.isArray(x['operators']) ||
+      !x['operators'].every((o) => isStr(o) && /^[A-Z]{3}$/.test(o))
+    )
+      bad('routes item');
   }
 }
 
@@ -786,6 +812,9 @@ export function applyExtData(
   if (u.natTracks !== undefined) next = { ...next, natTracks: [...u.natTracks] };
   if (u.connex !== undefined && u.connex.icao === ofp.destination.icao) {
     next = { ...next, connex: { icao: u.connex.icao, list: [...u.connex.list] } };
+  }
+  if (u.routes !== undefined && u.routes.icao === ofp.destination.icao) {
+    next = { ...next, routes: { icao: u.routes.icao, list: [...u.routes.list] } };
   }
   if (u.vhf !== undefined) next = { ...next, vhf: u.vhf.map((v) => ({ ...v })) };
   if (u.places !== undefined) next = { ...next, places: { ...next.places, ...u.places } };

@@ -1,7 +1,9 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DEFAULT_RESCUE_FLIPPED, DEFAULT_RESCUE_TITLES } from '@acars/core';
+import { ROUTES_CACHE_PREFIX, ROUTES_RETENTION_MS } from '@acars/data-sources';
 import { describe, expect, it } from 'vitest';
+import { FileDataCache } from '../src/main/data-cache.js';
 import { AppFailure } from '../src/main/errors.js';
 import { SecretStore } from '../src/main/secrets.js';
 import { defaultSettings, SettingsStore, sanitize, validatePatch } from '../src/main/settings.js';
@@ -45,6 +47,23 @@ describe('SecretStore (OS-encrypted file)', () => {
     expect(await new SecretStore(file, new FakeCipher()).get('hoppieLogon')).toBeNull();
     await writeFile(file, JSON.stringify({ v: 1, entries: { hoppieLogon: 'Zm9v' } }));
     expect(await new SecretStore(file, new FakeCipher()).get('hoppieLogon')).toBeNull();
+  });
+});
+
+describe('FileDataCache.purgeOlder (T55 R5)', () => {
+  it('route statistics older than 7 days and broken ones go; others stay', async () => {
+    const dir = await tempDir();
+    const cache = new FileDataCache(dir);
+    const now = Date.parse('2026-10-21T00:00:00Z');
+    const key = (icao: string) => `${ROUTES_CACHE_PREFIX}${icao}`;
+    await cache.set(key('EDDF'), { t: now - ROUTES_RETENTION_MS - 1, value: [] });
+    await cache.set(key('EDDM'), { t: now - 3_600_000, value: [] });
+    await cache.set('stands:EDDF', { t: now - 60 * 86_400_000, value: [] });
+    await writeFile(join(dir, 'adb-routes_KJFK.json'), '{broken');
+    expect(await cache.purgeOlder(ROUTES_CACHE_PREFIX, ROUTES_RETENTION_MS, now)).toBe(2);
+    expect((await readdir(dir)).sort()).toEqual(['adb-routes_EDDM.json', 'stands_EDDF.json']);
+    expect(await cache.get(key('EDDM'))).toEqual({ t: now - 3_600_000, value: [] });
+    expect(await new FileDataCache(join(dir, 'none')).purgeOlder('x', 1, now)).toBe(0);
   });
 });
 

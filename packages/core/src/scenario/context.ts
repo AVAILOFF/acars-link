@@ -265,6 +265,7 @@ export const CONTEXT_VARIABLES = [
   'ops.next_orig',
   'ops.next_dest',
   'ops.next_std',
+  'ops.next_src',
   'flight.fuel_stable',
   'flight.fuel_before_kg',
   'flight.fuel_uplift_kg',
@@ -641,6 +642,8 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'ops.next_orig': ops.nextOrig,
       'ops.next_dest': ops.nextDest,
       'ops.next_std': ops.nextStd,
+      // C4 (T55): attribution line of a message with the AeroDataBox next leg; empty otherwise.
+      'ops.next_src': ops.nextLive === null ? '' : CONNEX_ATTRIBUTION,
       'ops.cabin_crew': ops.cabinCrew,
     },
   );

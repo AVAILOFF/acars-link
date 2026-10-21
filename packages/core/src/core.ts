@@ -87,8 +87,8 @@ export interface CoreOptions {
   readonly runwayNeeds?: ScenarioEngineOptions['runwayNeeds'];
   /** Generator of person names, see `ScenarioEngineOptions.namesVersion` (T43); default 2. */
   readonly namesVersion?: 1 | 2;
-  /** Next leg, see `ScenarioEngineOptions.nextLegVersion` (T53); default 2. */
-  readonly nextLegVersion?: 1 | 2;
+  /** Next leg, see `ScenarioEngineOptions.nextLegVersion` (T53, T55); default 2. */
+  readonly nextLegVersion?: 1 | 2 | 3;
   /** The user's hub airport (T53), see `ScenarioEngineOptions.hub`. */
   readonly hub?: string;
   /** Start close to the departure, see `ScenarioEngineOptions.lateStartVersion`; default 1. */

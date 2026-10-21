@@ -43,3 +43,58 @@ describe('purgeConnex', () => {
     expect((purgeConnex(broken) as string).endsWith('{"type":"tick","data":{"connex"')).toBe(true);
   });
 });
+
+describe('purgeConnex: T55 data', () => {
+  const t55 = JSON.stringify({
+    type: 'tick',
+    now: 1,
+    telemetry: null,
+    data: {
+      t: 1,
+      connex: {
+        icao: 'EDDF',
+        list: [
+          {
+            number: 'LH958',
+            dest: 'EGBB',
+            std: 1,
+            terminal: null,
+            gate: null,
+            codeshare: false,
+            model: 'Airbus A320 (Sharklets)',
+          },
+        ],
+      },
+      routes: { icao: 'EDDF', list: [{ dest: 'EDDM', daily: 18.57, operators: ['DLH'] }] },
+    },
+  });
+
+  it('the aircraft model and the daily average go; codes stay', () => {
+    const purged = purgeConnex(`${[header, t55].join('\n')}\n`) as string;
+    const data = JSON.parse(purged.split('\n')[1] as string).data;
+    expect(data.connex.list[0]).toEqual({
+      number: 'LH958',
+      dest: 'EGBB',
+      std: null,
+      terminal: null,
+      gate: null,
+      codeshare: false,
+      model: null,
+    });
+    expect(data.routes.list).toEqual([{ dest: 'EDDM', daily: null, operators: ['DLH'] }]);
+    expect(hasPurgedConnex(purged)).toBe(true);
+    expect(purgeConnex(purged)).toBeNull();
+  });
+
+  it('route statistics alone are purged too', () => {
+    const only = JSON.stringify({
+      type: 'tick',
+      now: 1,
+      telemetry: null,
+      data: { t: 1, routes: { icao: 'EDDF', list: [{ dest: 'EDDM', daily: 3, operators: [] }] } },
+    });
+    const purged = purgeConnex(`${[header, only].join('\n')}\n`) as string;
+    expect(purged).toContain('"daily":null');
+    expect(hasPurgedConnex(purged)).toBe(true);
+  });
+});
