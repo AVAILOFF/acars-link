@@ -68,8 +68,8 @@ export interface RecordingHeader {
   readonly minGapMs?: number;
   /** Core `namesVersion` (T43); absent = 1, the names of recordings made before it. */
   readonly namesVersion?: 1 | 2;
-  /** Core `nextLegVersion` (T53); absent = 1, the next leg of recordings made before it. */
-  readonly nextLegVersion?: 1 | 2;
+  /** Core `nextLegVersion` (T53, T55); absent = 1, the next leg of recordings made before it. */
+  readonly nextLegVersion?: 1 | 2 | 3;
   /** Core `lateStartVersion`; absent = 1, the late start of recordings made before it. */
   readonly lateStartVersion?: 1 | 2;
   /** Core `hub` (T53): the user's hub; absent = OpenFlights. */
@@ -216,7 +216,7 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     throw bad('minGapMs');
   if (x['namesVersion'] !== undefined && x['namesVersion'] !== 1 && x['namesVersion'] !== 2)
     throw bad('namesVersion');
-  if (x['nextLegVersion'] !== undefined && x['nextLegVersion'] !== 1 && x['nextLegVersion'] !== 2)
+  if (x['nextLegVersion'] !== undefined && ![1, 2, 3].includes(x['nextLegVersion'] as number))
     throw bad('nextLegVersion');
   if (
     x['lateStartVersion'] !== undefined &&

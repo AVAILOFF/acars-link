@@ -83,6 +83,7 @@ describe('AeroDataBox adapter', () => {
         terminal: '1',
         gate: '12',
         codeshare: false,
+        model: null,
       },
       {
         number: 'JX9862',
@@ -91,6 +92,7 @@ describe('AeroDataBox adapter', () => {
         terminal: null,
         gate: null,
         codeshare: true,
+        model: null,
       },
       {
         number: 'JX868',
@@ -99,6 +101,7 @@ describe('AeroDataBox adapter', () => {
         terminal: 'T1',
         gate: null,
         codeshare: false,
+        model: null,
       },
     ]);
     expect(parseConnex(JSON.parse(fixture), 'ANA')[0]?.gate).toBe('5');

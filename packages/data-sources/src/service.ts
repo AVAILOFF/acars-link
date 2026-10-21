@@ -23,13 +23,14 @@ import {
   type ParkingStand,
   type PublicHoliday,
   RoutePolyline,
+  type RouteStatsData,
   runwayNeedFor,
   type SpaceLaunch,
   type SpaceWeather,
   type VhfStation,
   type WxReport,
 } from '@acars/core';
-import { fetchConnex } from './aerodatabox.js';
+import { fetchConnex, fetchRouteStats } from './aerodatabox.js';
 import { DataSourceError, type FetchContext, type HttpClient, ICAO_RE } from './common.js';
 import { fetchEonetEvents } from './eonet.js';
 import { fetchAirportCountries, fetchHolidays } from './holidays.js';
@@ -89,7 +90,9 @@ import { fetchWx } from './wx.js';
  *
  * Onward departures (T30, `startFlight(…, { connexKey })`, docs/07 C5): one AeroDataBox request
  * per flight with the user's key, no disk cache (C9); one retry after a network error, timeout or
- * 5xx; a rejected key or an exhausted quota ends the source for the flight.
+ * 5xx; a rejected key or an exhausted quota ends the source for the flight. With the same key the
+ * route statistics of the destination (T55, 6 units): from the disk cache when younger than 7
+ * days (R5), else one request.
  */
 
 export type DataSourceKind =
@@ -110,7 +113,8 @@ export type DataSourceKind =
   | 'holidays'
   | 'f1'
   | 'nhl'
-  | 'connex';
+  | 'connex'
+  | 'routes';
 export const DATA_SOURCES: readonly DataSourceKind[] = [
   'wx',
   'vatsim',
@@ -130,6 +134,7 @@ export const DATA_SOURCES: readonly DataSourceKind[] = [
   'f1',
   'nhl',
   'connex',
+  'routes',
 ];
 
 /** Groups of the special events (T29); each is switched on in the app's settings. */
@@ -155,6 +160,7 @@ const ONCE: ReadonlySet<DataSourceKind> = new Set([
   'divert',
   'holidays',
   'connex',
+  'routes',
 ]);
 
 export interface CacheEntry {
@@ -200,6 +206,10 @@ interface Policy {
 
 const MIN = 60_000;
 const HOUR = 60 * MIN;
+/** How long route statistics may stay in the cache (T55 R5); the app deletes older files. */
+export const ROUTES_RETENTION_MS = 7 * 24 * HOUR;
+/** Cache key prefix of the route statistics (T55). */
+export const ROUTES_CACHE_PREFIX = 'adb-routes:';
 export const DATA_POLICY: Readonly<Record<DataSourceKind, Policy>> = {
   wx: { refreshMs: 10 * MIN, cacheMs: 5 * MIN, retryMs: 2 * MIN, maxTries: null },
   vatsim: { refreshMs: 5 * MIN, cacheMs: MIN, retryMs: 2 * MIN, maxTries: null },
@@ -220,6 +230,8 @@ export const DATA_POLICY: Readonly<Record<DataSourceKind, Policy>> = {
   nhl: { refreshMs: 15 * MIN, cacheMs: 10 * MIN, retryMs: 10 * MIN, maxTries: null },
   // T30 C5: once, never from a cache, one retry.
   connex: { refreshMs: null, cacheMs: 0, retryMs: 2 * MIN, maxTries: 2 },
+  // T55 R5: on disk for at most 7 days (the AeroDataBox terms, p. 5.5).
+  routes: { refreshMs: null, cacheMs: ROUTES_RETENTION_MS, retryMs: 2 * MIN, maxTries: 2 },
 };
 
 /** VATSIM refreshes only here (the first fetch at start goes in any phase). */
@@ -296,6 +308,7 @@ export class ExternalDataService {
     f1: F1Race | null | undefined;
     nhl: NhlGame[] | null;
     connex: ConnexData | null;
+    routes: RouteStatsData | null;
   } = empty();
   /** VATSpy data of the flight (T23) and the ids of the route's FIRs. */
   private vatspy: { data: VatspyData; route: ReadonlySet<string> } | null = null;
@@ -365,7 +378,7 @@ export class ExternalDataService {
           (!ROPS_SOURCES.has(k) || firs) &&
           (!DATALINK_SOURCES.has(k) || datalink) &&
           (!SPECIAL_SOURCES.has(k) || special.has(k)) &&
-          (k !== 'connex' || connexKey !== null),
+          ((k !== 'connex' && k !== 'routes') || connexKey !== null),
       ).map((k) => [k, { inFlight: false, nextAt: now, fails: 0, fetched: false, failing: false }]),
     );
     this.wxExtra.clear();
@@ -473,7 +486,8 @@ export class ExternalDataService {
       p.holidays !== null ||
       p.f1 !== undefined ||
       p.nhl !== null ||
-      p.connex !== null;
+      p.connex !== null ||
+      p.routes !== null;
     if (!has) return { update: null, notes };
     return {
       update: {
@@ -499,6 +513,7 @@ export class ExternalDataService {
         ...(p.f1 === undefined ? {} : { f1: p.f1 }),
         ...(p.nhl === null ? {} : { nhl: p.nhl }),
         ...(p.connex === null ? {} : { connex: p.connex }),
+        ...(p.routes === null ? {} : { routes: p.routes }),
       },
       notes,
     };
@@ -776,6 +791,21 @@ export class ExternalDataService {
           if (v !== null) this.pending.connex = v;
         };
       }
+      case 'routes': {
+        const icao = flight.ofp.destination.icao;
+        const key = `${ROUTES_CACHE_PREFIX}${icao}`;
+        let list = (await this.cached(key, now, kind, (v) =>
+          checkExtDataUpdate({ t: 0, routes: { icao, list: v } }),
+        )) as RouteStatsData['list'] | undefined;
+        if (list === undefined) {
+          list = (await fetchRouteStats(this.ctx, flight.connexKey ?? '', icao)).list;
+          await this.store(key, now, list);
+        }
+        const routes = { icao, list };
+        return () => {
+          this.pending.routes = routes;
+        };
+      }
       case 'stands': {
         const icao = flight.ofp.destination.icao;
         let list = (await this.cached(`stands:${icao}`, now, kind, (v) =>
@@ -960,6 +990,7 @@ function empty() {
     f1: undefined,
     nhl: null,
     connex: null,
+    routes: null,
   };
 }
 

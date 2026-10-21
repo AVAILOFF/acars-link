@@ -98,12 +98,13 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
   f1: 'Jolpica (F1)',
   nhl: 'NHL',
   connex: 'AeroDataBox (onward flights)',
+  routes: 'AeroDataBox (route statistics)',
 };
 
 /** Person names of new flights (core `namesVersion`, T43); recorded in the header. */
 const NAMES_VERSION = 2;
 /** Next leg of new flights (core `nextLegVersion`, T53); recorded in the header. */
-const NEXT_LEG_VERSION = 2;
+const NEXT_LEG_VERSION = 3;
 /** Start close to the departure (core `lateStartVersion`): messages fitted to the time left. */
 const LATE_START_VERSION = 2;
 

@@ -1,0 +1,574 @@
+{
+  "departures": [
+    {
+      "movement": {
+        "airport": {
+          "icao": "EGBB",
+          "iata": "BHX",
+          "name": "Birmingham"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 19:00Z",
+          "local": "2026-10-21 21:00+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 958",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A320 (Sharklets)"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "EGBB",
+          "iata": "BHX",
+          "name": "Birmingham"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 19:00Z",
+          "local": "2026-10-21 21:00+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "NH 5867",
+      "status": "Expected",
+      "codeshareStatus": "IsCodeshared",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A320 (Sharklets)"
+      },
+      "airline": {
+        "name": "ANA",
+        "iata": "NH",
+        "icao": "ANA"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "EBBR",
+          "iata": "BRU",
+          "name": "Brussels"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 19:15Z",
+          "local": "2026-10-21 21:15+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "SN 2618",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A319"
+      },
+      "airline": {
+        "name": "Brussels",
+        "iata": "SN",
+        "icao": "BEL"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "EBBR",
+          "iata": "BRU",
+          "name": "Brussels"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 19:15Z",
+          "local": "2026-10-21 21:15+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 5590",
+      "status": "Expected",
+      "codeshareStatus": "IsCodeshared",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A319"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "EPPO",
+          "iata": "POZ",
+          "name": "Poznań"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 19:30Z",
+          "local": "2026-10-21 21:30+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 1390",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Embraer 195"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "ZSPD",
+          "iata": "PVG",
+          "name": "Shanghai"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 19:35Z",
+          "local": "2026-10-21 21:35+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 732",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A350-900"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "LIPZ",
+          "iata": "VCE",
+          "name": "Venice"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 19:50Z",
+          "local": "2026-10-21 21:50+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 332",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A319"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "BIKF",
+          "iata": "KEF",
+          "name": "Reykjavik"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 20:00Z",
+          "local": "2026-10-21 22:00+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 846",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A321 NEO"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "SBGR",
+          "iata": "GRU",
+          "name": "São Paulo"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 20:15Z",
+          "local": "2026-10-21 22:15+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 506",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Boeing 747"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "FAOR",
+          "iata": "JNB",
+          "name": "Jo'anna"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 20:30Z",
+          "local": "2026-10-21 22:30+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 572",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Boeing 747-8"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "OMDB",
+          "iata": "DXB",
+          "name": "Dubai"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 20:40Z",
+          "local": "2026-10-21 22:40+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "EK 48",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Boeing 777"
+      },
+      "airline": {
+        "name": "Emirates",
+        "iata": "EK",
+        "icao": "UAE"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "FACT",
+          "iata": "CPT",
+          "name": "Cape Town"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 20:45Z",
+          "local": "2026-10-21 22:45+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 576",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Boeing 787-9"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "EDDM",
+          "iata": "MUC",
+          "name": "Munich"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 21:00Z",
+          "local": "2026-10-21 23:00+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 128",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A320 (Sharklets)"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "LEMD",
+          "iata": "MAD",
+          "name": "Madrid"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 21:15Z",
+          "local": "2026-10-21 23:15+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "IB 1332",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Regional-Jet"
+      },
+      "airline": {
+        "name": "Iberia",
+        "iata": "IB",
+        "icao": "IBE"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "EGLL",
+          "iata": "LHR",
+          "name": "London"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 21:25Z",
+          "local": "2026-10-21 23:25+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "JL 7132",
+      "status": "Expected",
+      "codeshareStatus": "IsCodeshared",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A320 NEO"
+      },
+      "airline": {
+        "name": "JL"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "ENGM",
+          "iata": "OSL",
+          "name": "Oslo"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 21:35Z",
+          "local": "2026-10-21 23:35+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 858",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A320 NEO"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "LSZH",
+          "iata": "ZRH",
+          "name": "Zurich"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 21:50Z",
+          "local": "2026-10-21 23:50+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 1184",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Embraer 190"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "EKCH",
+          "iata": "CPH",
+          "name": "Copenhagen"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 22:00Z",
+          "local": "2026-10-22 00:00+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 824",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A320 (Sharklets)"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "EKCH",
+          "iata": "CPH",
+          "name": "Copenhagen"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 22:00Z",
+          "local": "2026-10-22 00:00+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LH 824",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A320 (Sharklets)"
+      },
+      "airline": {
+        "name": "Lufthansa",
+        "iata": "LH",
+        "icao": "DLH"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "LOWL",
+          "iata": "LNZ",
+          "name": "Linz"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 22:10Z",
+          "local": "2026-10-22 00:10+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "DX 192",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "ATR 72"
+      },
+      "airline": {
+        "name": "Danish Air",
+        "iata": "DX",
+        "icao": "DTR"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "LSZH",
+          "iata": "ZRH",
+          "name": "Zurich"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 22:20Z",
+          "local": "2026-10-22 00:20+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "LX 1069",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Airbus A220-300"
+      },
+      "airline": {
+        "name": "SWISS",
+        "iata": "LX",
+        "icao": "SWR"
+      }
+    },
+    {
+      "movement": {
+        "airport": {
+          "icao": "LGIR",
+          "iata": "HER",
+          "name": "Heraklion"
+        },
+        "scheduledTime": {
+          "utc": "2026-10-21 22:40Z",
+          "local": "2026-10-22 00:40+02:00"
+        },
+        "quality": ["Basic", "Live"]
+      },
+      "number": "X3 4202",
+      "status": "Expected",
+      "codeshareStatus": "IsOperator",
+      "isCargo": false,
+      "aircraft": {
+        "model": "Boeing 737 MAX 8"
+      },
+      "airline": {
+        "name": "TUIfly",
+        "iata": "X3",
+        "icao": "TUI"
+      }
+    }
+  ]
+}

@@ -26,6 +26,7 @@ steps:
               STD {ops.next_std|hhmm}Z
               CLEANING AND CATERING
               ON THE WAY
+              {ops.next_src}
             footer: "STATION OPS {name:ops}"
       TIMEOUT:
         - wait: { until: "ops.turn_avail_min <= 0", timeout_min: 0.02 }
@@ -39,6 +40,7 @@ steps:
                     NEW TIME WILL BE ADVISED
                     CLEANING AND CATERING
                     ON THE WAY
+                    {ops.next_src}
                   footer: "STATION OPS {name:ops}"
             TIMEOUT:
               - send:
@@ -49,4 +51,5 @@ steps:
                     STD {ops.next_std|hhmm}Z
                     CLEANING AND CATERING
                     ON THE WAY
+                    {ops.next_src}
                   footer: "STATION OPS {name:ops}"

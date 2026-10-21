@@ -1,6 +1,10 @@
+import { modelFamily } from '../ext/aircraft-models.js';
 import { airlineHub, airlineType, hubRoutesFor } from '../ext/airline.js';
+import { type ConnexData, connexCandidates } from '../ext/connex.js';
+import { type RouteStatsData, routeCandidates } from '../ext/routes.js';
 import type { Ofp } from '../ofp/types.js';
 import { createRng, type Rng } from '../random/rng.js';
+import { aircraftInfo } from './aircraft.js';
 
 /**
  * Per-flight "airline data" that several scenarios must agree on (T07): the last-minute
@@ -49,6 +53,11 @@ export interface FlightOps {
   readonly nextOrig: string;
   readonly nextDest: string;
   readonly nextStd: number;
+  /**
+   * Where the next leg comes from (T55): `fids` — a real departure (number, place, STD),
+   * `routes` — a route of the airline from the statistics (place only), null — OpenFlights / back.
+   */
+  readonly nextLive: 'fids' | 'routes' | null;
   readonly cabinCrew: number;
   /** How much earlier a ready (RDY) flight may get its CTOT, minutes (T44, assumption). */
   readonly rdyGainMin: number;
@@ -65,12 +74,19 @@ const MIN = 60_000;
 
 /**
  * How the next leg is chosen (T53): version 1 = always back to the origin with number + 1 (as
- * recorded before T53); 2 = after a flight into the hub, a route of the airline from the hub.
- * `hub`: the user's hub (setting), instead of the OpenFlights one.
+ * recorded before T53); 2 = after a flight into the hub, a route of the airline from the hub;
+ * 3 (T55) = first a real departure of the airline from the destination (`live.connex`), then a
+ * route from its statistics (`live.routes`), else as 2. `hub`: the user's hub (setting), instead
+ * of the OpenFlights one.
  */
 export interface NextLegOptions {
-  readonly version: 1 | 2;
+  readonly version: 1 | 2 | 3;
   readonly hub: string | null;
+  /** AeroDataBox data of the flight (version 3). */
+  readonly live?: {
+    readonly connex?: ConnexData | null | undefined;
+    readonly routes?: RouteStatsData | null | undefined;
+  };
 }
 
 const NEXT_LEG_DEFAULT: NextLegOptions = { version: 2, hub: null };
@@ -118,7 +134,7 @@ export function buildFlightData(
   const seats = ofp.aircraft.maxPax ?? pax;
   // Appended last: the draw order of older recordings stays.
   const rdyGainMin = rng.int(5, 15);
-  const next = nextLeg(ofp, seed, nextLegOptions);
+  const next = nextLeg(ofp, seed, nextLegOptions, turnaroundMin);
 
   return {
     load: {
@@ -144,7 +160,8 @@ export function buildFlightData(
       nextFlight: next.flight,
       nextOrig: ofp.destination.icao,
       nextDest: next.dest,
-      nextStd: roundTo5Min(t.schedInMs + turnaroundMin * MIN),
+      nextStd: next.std ?? roundTo5Min(t.schedInMs + turnaroundMin * MIN),
+      nextLive: next.live,
       // The OFP crew list when there is one (T43); else one per 50 seats.
       cabinCrew: ofp.crew?.cabin || Math.max(1, Math.ceil(seats / 50)),
       rdyGainMin,
@@ -163,10 +180,20 @@ function nextLeg(
   ofp: Ofp,
   seed: number | string,
   o: NextLegOptions,
-): { readonly flight: string; readonly dest: string } {
+  turnaroundMin: number,
+): NextLeg {
+  if (o.version === 3) {
+    const live = liveNextLeg(ofp, seed, o, turnaroundMin);
+    if (live !== null) return live;
+  }
   const orig = ofp.origin.icao;
   const dest = ofp.destination.icao;
-  const back = { flight: flightNumber(ofp, (n) => n + 1), dest: orig };
+  const back: NextLeg = {
+    flight: flightNumber(ofp, (n) => n + 1),
+    dest: orig,
+    std: null,
+    live: null,
+  };
   if (o.version === 1) return back;
   const hub = o.hub ?? airlineHub(ofp.airlineIcao);
   if (hub === null || dest !== hub || orig === hub) return back;
@@ -174,7 +201,71 @@ function nextLeg(
   if (routes.length === 0) return back;
   const rng = createRng(`${String(seed)}/#next`);
   const to = rng.pick(routes);
-  return { flight: flightNumber(ofp, (n, digits) => randomNumber(rng, n, digits)), dest: to };
+  return {
+    flight: flightNumber(ofp, (n, digits) => randomNumber(rng, n, digits)),
+    dest: to,
+    std: null,
+    live: null,
+  };
+}
+
+interface NextLeg {
+  readonly flight: string;
+  readonly dest: string;
+  /** Real STD (level 1); null = STA + turnaround. */
+  readonly std: number | null;
+  readonly live: FlightOps['nextLive'];
+}
+
+/**
+ * Levels 1 and 2 of T55 (approved by the user 2026-10-16, R1–R4). Level 1: an own operating
+ * departure (not a codeshare, R3) from the destination of the same T40 family by its
+ * `aircraft.model` (R2), not before STA + turnaround, not back to the origin — its number (the
+ * airline's ICAO code + the digits), place and STD (R1). Level 2: an own route from the
+ * statistics, not back, weighted by the daily average, under a seeded number; the STD stays STA +
+ * turnaround (R4, user's decision 2026-10-21). Own Rng stream `#next-live`; null = neither.
+ */
+function liveNextLeg(
+  ofp: Ofp,
+  seed: number | string,
+  o: NextLegOptions,
+  turnaroundMin: number,
+): NextLeg | null {
+  const rng = createRng(`${String(seed)}/#next-live`);
+  const family = aircraftInfo(ofp.aircraft.icao)?.family ?? null;
+  const earliest = ofp.times.schedInMs + turnaroundMin * MIN;
+  const flights =
+    family === null || ofp.airlineIcao === null
+      ? []
+      : connexCandidates(o.live?.connex, ofp).filter(
+          (f) =>
+            !f.codeshare &&
+            (f.std as number) >= earliest &&
+            f.dest !== ofp.origin.icao &&
+            modelFamily(f.model) === family &&
+            /\d+[A-Z]?$/.test(f.number),
+        );
+  if (flights.length > 0) {
+    const f = rng.pick(flights);
+    const digits = /(\d+[A-Z]?)$/.exec(f.number)?.[1] as string;
+    return { flight: `${ofp.airlineIcao}${digits}`, dest: f.dest, std: f.std, live: 'fids' };
+  }
+  const routes = routeCandidates(o.live?.routes, ofp);
+  if (routes.length === 0) return null;
+  // Weights in hundredths of a flight a day (the source gives two decimals).
+  const weights = routes.map((r) => Math.max(1, Math.round((r.daily as number) * 100)));
+  let x = rng.int(
+    1,
+    weights.reduce((a, b) => a + b, 0),
+  );
+  let i = 0;
+  while (x > (weights[i] as number)) x -= weights[i++] as number;
+  return {
+    flight: flightNumber(ofp, (n, digits) => randomNumber(rng, n, digits)),
+    dest: (routes[i] as (typeof routes)[number]).dest,
+    std: null,
+    live: 'routes',
+  };
 }
 
 /** A number of `digits` digits other than `n`. */

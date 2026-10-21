@@ -1295,7 +1295,7 @@ describe('gap between messages', () => {
     await s.app.startFlight();
     fly(s);
     const rec = await readRecordingOrNull(s);
-    expect(rec.header.nextLegVersion).toBe(2);
+    expect(rec.header.nextLegVersion).toBe(3);
     expect(rec.header.hub).toBe('RJBB');
     const r = replay(rec, {
       scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),

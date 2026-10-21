@@ -1,4 +1,4 @@
-import type { ConnexData, ConnexFlight, Ofp } from '@acars/core';
+import type { ConnexData, ConnexFlight, Ofp, RouteStat, RouteStatsData } from '@acars/core';
 import { CONNEX_FROM_MIN, CONNEX_TO_MIN } from '@acars/core';
 import { DataSourceError, type FetchContext, ICAO_RE, isObj, parseJson } from './common.js';
 
@@ -16,7 +16,11 @@ import { DataSourceError, type FetchContext, ICAO_RE, isObj, parseJson } from '.
  * Kept: departures of the OFP airline (`airline.icao`), not cargo, not cancelled or diverted,
  * with an ICAO destination and a scheduled UTC time. Terms of use (ed. 2026-10-11): attribution
  * on the free plan (C4), no copy kept longer than 7 days (C9), personal non-commercial use (C3).
- * The field shapes are from the OpenAPI spec; a live answer is `[ПРОВЕРИТЬ]` (C6).
+ * Live answer of 2026-10-21 (EDDF, T55): a codeshare is its own departure with `IsCodeshared`
+ * and the marketing airline in `airline`; `aircraft.model` was filled for every departure.
+ *
+ * Route statistics (T55, level 2): `GET /airports/icao/{ICAO}/stats/routes/daily` (Tier 3, 6
+ * units), cached on disk by the service for 7 days (R5).
  */
 
 /** C11: the only gateway for now; API.Market and the direct one — `[ПРИ РЕЛИЗЕ]`. */
@@ -56,6 +60,33 @@ export async function fetchConnex(
 ): Promise<ConnexData | null> {
   const url = connexUrl(ofp);
   if (url === null || ofp.airlineIcao === null) return null;
+  const icao = ofp.destination.icao;
+  const body = await get(ctx, key, url);
+  if (body === null) return { icao, list: [] };
+  return { icao, list: parseConnex(parseJson(body, 'AeroDataBox'), ofp.airlineIcao) };
+}
+
+/** The route statistics URL (T55) of an airport. */
+export function routeStatsUrl(icao: string): string {
+  return `${AERODATABOX_GATEWAY.base}/airports/icao/${icao}/stats/routes/daily`;
+}
+
+/** Route statistics of the airport (T55); 204 = none. */
+export async function fetchRouteStats(
+  ctx: FetchContext,
+  key: string,
+  icao: string,
+): Promise<RouteStatsData> {
+  if (!ICAO_RE.test(icao)) throw new DataSourceError('AeroDataBox: bad airport code', true);
+  const body = await get(ctx, key, routeStatsUrl(icao));
+  return { icao, list: body === null ? [] : parseRouteStats(parseJson(body, 'AeroDataBox')) };
+}
+
+/**
+ * One request with the user's key; the body, or null on 204. 401/403/429 and other 4xx end the
+ * source for the flight, network errors, timeouts and 5xx may be retried.
+ */
+async function get(ctx: FetchContext, key: string, url: string): Promise<string | null> {
   let res: { status: number; body: string };
   try {
     res = await ctx.http.request({
@@ -73,8 +104,7 @@ export async function fetchConnex(
     // Never the URL or headers in the message: the key must not reach a log.
     throw new DataSourceError(`AeroDataBox: ${e instanceof Error ? e.name : 'network error'}`);
   }
-  const icao = ofp.destination.icao;
-  if (res.status === 204) return { icao, list: [] };
+  if (res.status === 204) return null;
   if (res.status >= 500) throw new DataSourceError(`AeroDataBox: HTTP ${res.status}`);
   if (res.status === 401 || res.status === 403) {
     throw new DataSourceError(`AeroDataBox: key rejected (${res.status})`, true);
@@ -83,7 +113,41 @@ export async function fetchConnex(
   if (res.status < 200 || res.status >= 300) {
     throw new DataSourceError(`AeroDataBox: HTTP ${res.status}`, true);
   }
-  return { icao, list: parseConnex(parseJson(res.body, 'AeroDataBox'), ofp.airlineIcao) };
+  return res.body;
+}
+
+/**
+ * Routes of a `DailyRouteStatContract` answer (`{routes: [...]}`): the destination's ICAO code,
+ * the daily average and the operators' ICAO codes (R5; operators without one are dropped).
+ */
+export function parseRouteStats(json: unknown): RouteStat[] {
+  if (!isObj(json) || !Array.isArray(json['routes'])) {
+    throw new DataSourceError('AeroDataBox: unexpected answer');
+  }
+  const out: RouteStat[] = [];
+  for (const r of json['routes']) {
+    if (!isObj(r) || !isObj(r['destination']) || !Array.isArray(r['operators'])) continue;
+    const dest = r['destination']['icao'];
+    const daily = r['averageDailyFlights'];
+    if (typeof dest !== 'string' || !ICAO_RE.test(dest)) continue;
+    if (typeof daily !== 'number' || !Number.isFinite(daily) || daily < 0) continue;
+    const operators = [
+      ...new Set(
+        r['operators']
+          .map((o) => (isObj(o) ? o['icao'] : null))
+          .filter((c): c is string => typeof c === 'string' && /^[A-Z]{3}$/.test(c)),
+      ),
+    ].sort();
+    if (operators.length > 0) out.push({ dest, daily: Math.round(daily * 100) / 100, operators });
+  }
+  return out;
+}
+
+/** `aircraft.model` (T55): trimmed printable text up to 60 characters; null otherwise. */
+function model(a: unknown): string | null {
+  if (!isObj(a) || typeof a['model'] !== 'string') return null;
+  const m = a['model'].trim().replace(/\s+/g, ' ');
+  return m.length > 0 && m.length <= 60 && /^[ -~]+$/.test(m) ? m : null;
 }
 
 const CANCELLED = new Set(['Canceled', 'CanceledUncertain', 'Diverted']);
@@ -134,6 +198,7 @@ export function parseConnex(json: unknown, airline: string): ConnexFlight[] {
       terminal: code(mv['terminal']),
       gate: code(mv['gate']),
       codeshare: f['codeshareStatus'] === 'IsCodeshared',
+      model: model(f['aircraft']),
     });
   }
   return out;
