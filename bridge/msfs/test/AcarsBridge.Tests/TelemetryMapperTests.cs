@@ -36,11 +36,20 @@ public class TelemetryMapperTests
     [Fact]
     public void Wire_keys_match_ts_snapshot_keys()
     {
+        // simUtcMs is optional on the wire (omitted when null), so a default snapshot lacks it.
         var expected = JsonNode.Parse(File.ReadAllText(Repo.File("reference/telemetry.sample.json")))!.AsObject()
-            .Select(p => p.Key).Order();
+            .Select(p => p.Key).Where(k => k != "simUtcMs").Order();
         var actual = JsonNode.Parse(JsonSerializer.Serialize(new TelemetrySnapshot(), Protocol.Json))!.AsObject()
             .Select(p => p.Key).Order();
         Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void Sim_utc_comes_from_absolute_time_and_is_omitted_without_a_date()
+    {
+        Assert.Equal("ABSOLUTE TIME", SimVars.Definitions[SimVars.AbsTime].Name);
+        Assert.Equal(1791374400000, TelemetryMapper.Map(Frames.Sample(), false, Now).SimUtcMs);
+        Assert.Null(TelemetryMapper.Map(Frames.Sample().With(SimVars.AbsTime, 0), false, Now).SimUtcMs);
     }
 
     [Fact]

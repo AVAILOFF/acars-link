@@ -63,6 +63,9 @@ import type { PilotCommand, StartWindow, TimeRef } from './types.js';
  * the difference (rounded up to 5 min): `sched_*`/`est_*` time triggers, `ofp.est_*`, the
  * CTOT and the next leg move by the delay, so the pre-departure documents come in their
  * order and spacing instead of all at once. `ofp.sched_*` (STD/STA) stay as published.
+ * With more time than that but less than the longest `sched_out − N` trigger (e.g. 30 or 50 min
+ * before STD), nothing is delayed: those offsets are scaled by `left / longest` so the whole
+ * sequence fits before the departure, in the same order.
  *
  * Two-way (T12, docs/05 "Исполнение" 5): pilot telexes (`inbound`) are handled first on a
  * tick. A message whose first word is an option of a waiting `wait: reply` answers it (the
@@ -228,8 +231,18 @@ export interface ScenarioEngineOptions {
   readonly station?: string;
   /** Scenario ids already run in this app session (`cooldown: per_session`). */
   readonly sessionFired?: readonly string[];
-  /** Minutes before `sched_out` a flight must start not to count as delayed. Default 35. */
+  /**
+   * Minutes before `sched_out` a flight must start not to count as delayed. Default 35 (version
+   * 1) or {@link FIT_LATE_START_LEAD_MIN} (version 2).
+   */
   readonly lateStartLeadMin?: number;
+  /**
+   * Start close to the departure: 1 = a delay for anything under `lateStartLeadMin` and the
+   * earlier messages all at once (as recorded before), 2 = the `sched_out − N` messages are
+   * fitted into the time left (e.g. 30 or 50 min before STD), delay only under 20 min.
+   * Default 1; the app asks for 2 and records it in the header.
+   */
+  readonly lateStartVersion?: 1 | 2;
   /**
    * Generator of `{name:…}` (T43, `names.ts`): 1 = surnames by the origin's ICAO prefix (as
    * recorded before T43), 2 = by the airline's country (default).
@@ -326,6 +339,8 @@ export interface ScenarioEngineState {
   readonly delayRaisedMs?: number;
   /** What the delay is made of, with IATA delay codes (T43); absent in older states. */
   readonly delayParts?: readonly DelayPart[];
+  /** Factor of the pre-departure offsets (`sched_out` − N) fitted to the time left; absent = 1. */
+  readonly preScale?: number;
 }
 
 interface PendingWx {
@@ -341,7 +356,11 @@ export const OPS_REPLY_ID = '#ops';
 
 export const DEFAULT_STATION = 'OPS{flight}';
 export const DEFAULT_LATE_START_LEAD_MIN = 35;
+/** Late start of version 2 (fitted pre-departure messages): below this a delay is declared. */
+export const FIT_LATE_START_LEAD_MIN = 20;
 const DELAY_STEP_MS = 5 * 60_000;
+/** The last minute before the first compressed pre-departure message is kept free. */
+const PRE_SCALE_MARGIN_MS = 60_000;
 /** Fuel readings within this of each other are one level (docs/04 `fuelStable`). */
 const FUEL_TOLERANCE_KG = 100;
 /** Weather fetched longer ago than this is refreshed for `REQ WX` (when the app fetches). */
@@ -421,7 +440,11 @@ export class ScenarioEngine {
     touchdown: { fpm: number | null } | null;
     delayRaisedMs: number;
     delayParts: DelayPart[];
+    preScale: number;
   };
+  /** Longest `sched_out − N` offset among the scenarios, ms (0 = none). */
+  private readonly preSpanMs: number;
+  private readonly fitPre: boolean;
   /** Context of the current tick; rebuilt when a command or a send changes it. */
   private ctx: ScenarioContext | null = null;
   /** Inside `receive`: messages are answers to the pilot. */
@@ -442,7 +465,10 @@ export class ScenarioEngine {
     if (!(this.dataWaitMs >= 0)) throw new RangeError('dataWaitMs must be ≥ 0');
     this.seed = options.seed;
     this.namesVersion = options.namesVersion ?? 2;
-    this.leadMs = (options.lateStartLeadMin ?? DEFAULT_LATE_START_LEAD_MIN) * 60_000;
+    this.fitPre = options.lateStartVersion === 2;
+    this.leadMs =
+      (options.lateStartLeadMin ??
+        (this.fitPre ? FIT_LATE_START_LEAD_MIN : DEFAULT_LATE_START_LEAD_MIN)) * 60_000;
     if (!(this.leadMs >= 0)) throw new RangeError('lateStartLeadMin must be ≥ 0');
     this.data = buildFlightData(options.ofp, options.seed, this.nextLeg);
     this.irr = buildIrregularData(options.ofp, options.seed, this.data.ops.transferPax);
@@ -481,7 +507,15 @@ export class ScenarioEngine {
       touchdown: null,
       delayRaisedMs: 0,
       delayParts: [],
+      preScale: 1,
     };
+    let span = 0;
+    for (const s of this.ordered) {
+      const tr = s.def.trigger;
+      if (tr.on === 'time' && tr.at.rel === 'sched_out' && tr.at.offset_min < 0)
+        span = Math.max(span, -tr.at.offset_min * 60_000);
+    }
+    this.preSpanMs = span;
     this.rebuildData();
   }
 
@@ -524,6 +558,7 @@ export class ScenarioEngine {
     e.st.touchdown = copy.touchdown ?? null;
     e.st.delayRaisedMs = copy.delayRaisedMs ?? 0;
     e.st.delayParts = [...(copy.delayParts ?? [])];
+    e.st.preScale = copy.preScale ?? 1;
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
     e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
@@ -648,6 +683,13 @@ export class ScenarioEngine {
       this.setDelay(late > 0 ? Math.ceil(late / DELAY_STEP_MS) * DELAY_STEP_MS : 0);
       const ms = this.st.delayMs ?? 0;
       if (ms > 0) this.st.delayParts.push({ code: LATE_START_CODE, ms });
+      // Less time than the whole pre-departure sequence: squeeze it into what is left, in the
+      // same order and proportions, so every message still comes before the departure.
+      const left = this.ofp.times.schedOutMs + ms - input.now - PRE_SCALE_MARGIN_MS;
+      this.st.preScale =
+        this.fitPre && this.preSpanMs > 0 && left < this.preSpanMs
+          ? Math.max(0, left) / this.preSpanMs
+          : 1;
     }
     if (input.data !== undefined) {
       const before = this.st.ext.stands;
@@ -1255,7 +1297,9 @@ export class ScenarioEngine {
         const ref = ctx[TIME_REF_VAR[tr.at.rel]];
         // `ofp.est_*` in the context already include the delay, `ofp.sched_*` do not.
         const shift = tr.at.rel.startsWith('sched_') ? (this.st.delayMs ?? 0) : 0;
-        return typeof ref === 'number' && input.now >= ref + shift + tr.at.offset_min * 60_000;
+        const off = tr.at.offset_min;
+        const min = tr.at.rel === 'sched_out' && off < 0 ? off * this.st.preScale : off;
+        return typeof ref === 'number' && input.now >= ref + shift + min * 60_000;
       }
       case 'distance': {
         const d = ctx[DIST_VAR[tr.dist.to]];

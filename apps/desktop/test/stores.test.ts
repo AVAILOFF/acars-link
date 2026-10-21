@@ -66,6 +66,8 @@ describe('settings', () => {
       datalinkSatcom: true,
       aircraftIcaoHex: '',
       hubIcao: '',
+      simTime: false,
+      turnaround: true,
       datalinkHeaderInText: false,
       ropsStandAside: true,
       ropsRandomDirects: true,
@@ -86,6 +88,16 @@ describe('settings', () => {
   it('the ICAO hex of the aircraft: six hex digits, stored upper case, or empty (T32)', () => {
     expect(validatePatch({ aircraftIcaoHex: '4249ea' })).toEqual({ aircraftIcaoHex: '4249EA' });
     expect(validatePatch({ aircraftIcaoHex: '' })).toEqual({ aircraftIcaoHex: '' });
+  });
+
+  it('time from the sim and the turnaround: booleans, sim time off and turnaround on by default', () => {
+    expect(defaultSettings('en-US')).toMatchObject({ simTime: false, turnaround: true });
+    expect(validatePatch({ simTime: true, turnaround: false })).toEqual({
+      simTime: true,
+      turnaround: false,
+    });
+    expect(() => validatePatch({ simTime: 'yes' })).toThrow();
+    expect(() => validatePatch({ turnaround: 1 })).toThrow();
   });
 
   it('my hub: four letters, stored upper case, or empty (T53)', () => {

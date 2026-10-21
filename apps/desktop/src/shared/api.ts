@@ -55,6 +55,16 @@ export interface Settings {
    * Empty = the OpenFlights hub of the airline. Stored upper case.
    */
   readonly hubIcao: string;
+  /**
+   * Time from the simulator: the flight's clock (STD/STA, delays, times in messages) is the sim's
+   * UTC, not the PC's. Needs a bridge that sends `simUtcMs`; the flight waits for it. Default off.
+   */
+  readonly simTime: boolean;
+  /**
+   * The user flies the turnaround (next leg with the same aircraft). Off: no "next leg",
+   * "aircraft change" and "welcome / turnaround" messages. Default on.
+   */
+  readonly turnaround: boolean;
   /** Put the AES/GES header (a decoder format, not a cockpit one) in the message text. Default off. */
   readonly datalinkHeaderInText: boolean;
   /** ROPS steps aside where a live VATSIM centre covers the FIR. Default on. */

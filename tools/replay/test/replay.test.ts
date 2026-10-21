@@ -165,8 +165,28 @@ describe('replay through the core', () => {
   it('late start: a short boarding is replayed as a delayed flight', () => {
     const late = syntheticRecording({ ofp, scenarios: enabled }, { boardingSec: 5 * 60 });
     const out = replay(late, { scenarios: all });
-    expect(out.delayMs).toBe(30 * 60_000);
-    expect(out.timeline[0]).toMatchObject({ kind: 'late_start', delayMin: 30 });
+    // 5 min left: under the 20 min of version 2 → delayed by 15, the rest fitted to 20 min.
+    expect(out.delayMs).toBe(15 * 60_000);
+    expect(out.timeline[0]).toMatchObject({ kind: 'late_start', delayMin: 15 });
+  });
+
+  it.each([30, 50])('%i min before STD: no delay, every document comes before STD', (min) => {
+    const rec = syntheticRecording({ ofp, scenarios: enabled }, { boardingSec: min * 60 });
+    // Without the slot: its delay would move the later documents past the (synthetic) pushback.
+    const out = replay(rec, { scenarios: all.filter((s) => s.id !== 'slot_ctot') });
+    expect(out.timeline.some((e) => e.kind === 'late_start')).toBe(false);
+    const std = ofp.times.schedOutMs;
+    const sent = (id: string) => out.outbound.filter((m) => m.scenarioId === id);
+    for (const id of ['crew_info', 'prelim_loadsheet', 'takeoff_data', 'final_loadsheet']) {
+      expect(sent(id), id).toHaveLength(1);
+      expect(sent(id)[0]?.t ?? Infinity, id).toBeLessThan(std);
+    }
+    const order = out.outbound
+      .map((m) => m.scenarioId)
+      .filter((id) =>
+        ['crew_info', 'prelim_loadsheet', 'takeoff_data', 'final_loadsheet'].includes(id),
+      );
+    expect(order).toEqual(['crew_info', 'prelim_loadsheet', 'takeoff_data', 'final_loadsheet']);
   });
 
   it('end and stop lines: end outside ON_BLOCK is reported, events after stop are ignored', () => {

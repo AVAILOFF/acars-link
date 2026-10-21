@@ -61,6 +61,11 @@ export interface FlightSessionOptions {
   readonly minGapMs?: number;
   /** The user's hub (core `hub`, T53); absent = OpenFlights. */
   readonly hub?: string;
+  /**
+   * Time from the sim: the flight's clock is the sim's (UTC), not the PC's. The core starts with
+   * the first snapshot that has `simUtcMs`; the recording holds the shifted times.
+   */
+  readonly simTime?: boolean;
   /** Commands to the simulator the core produced (T21), sent on by the controller. */
   readonly simCommands?: (c: SimCommand) => void;
   /** ROPS ATC station (T23); absent = off. */
@@ -99,6 +104,8 @@ const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
 const NAMES_VERSION = 2;
 /** Next leg of new flights (core `nextLegVersion`, T53); recorded in the header. */
 const NEXT_LEG_VERSION = 2;
+/** Start close to the departure (core `lateStartVersion`): messages fitted to the time left. */
+const LATE_START_VERSION = 2;
 
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */
 export const DATA_WAIT_MS = 60_000;
@@ -132,8 +139,13 @@ export class FlightSession {
   private readonly simCommands: (c: SimCommand) => void;
   /** ATC callsigns the transport polls (T23), as last told. */
   private listening = '';
+  /** "Time from the sim" is on; the flight waits for the first sim time. */
+  private readonly simTime: boolean;
+  /** Sim UTC minus the bridge clock, ms; null until the first snapshot with `simUtcMs`. */
+  private simOffset: number | null = null;
 
   constructor(o: FlightSessionOptions) {
+    this.simTime = o.simTime === true;
     this.core = AcarsCore.create({
       ofp: o.ofp,
       scenarios: o.scenarios,
@@ -147,6 +159,7 @@ export class FlightSession {
       ...(o.datalink === undefined ? {} : { datalink: o.datalink }),
       namesVersion: NAMES_VERSION,
       nextLegVersion: NEXT_LEG_VERSION,
+      lateStartVersion: LATE_START_VERSION,
       ...(o.hub === undefined ? {} : { hub: o.hub }),
     });
     this.data = o.data ?? null;
@@ -178,6 +191,7 @@ export class FlightSession {
         ...(o.datalink === undefined ? {} : { datalink: o.datalink }),
         namesVersion: NAMES_VERSION,
         nextLegVersion: NEXT_LEG_VERSION,
+        lateStartVersion: LATE_START_VERSION,
         ...(o.hub === undefined ? {} : { hub: o.hub }),
       }),
     );
@@ -257,11 +271,11 @@ export class FlightSession {
   }
 
   /** A pilot telex typed in the app: into the feed now, to the core with the next tick. */
-  pilotMessage(text: string, now: number): void {
+  pilotMessage(text: string, wallNow: number): void {
     if (this.stopped) return;
     this.feed.add({
       kind: 'inbound',
-      t: now,
+      t: this.clock(wallNow),
       from: this.callsign,
       to: this.station,
       type: 'app',
@@ -275,15 +289,45 @@ export class FlightSession {
     if (!this.stopped) this.forced.push(id);
   }
 
-  tick(now: number): void {
+  /**
+   * Wall time → the flight's clock. With "time from the sim" the clock is the wall clock shifted by
+   * the sim's offset, fixed by the first snapshot that carries `simUtcMs` (so the phase machine,
+   * which scales time by `simRate` itself, keeps its meaning); otherwise the wall clock.
+   */
+  private clock(t: number): number {
+    return t + (this.simOffset ?? 0);
+  }
+
+  /** Waiting for the first sim time: nothing reaches the core before the clock is known. */
+  private anchorSimTime(): boolean {
+    if (!this.simTime || this.simOffset !== null) return true;
+    const first = this.queue.find((s) => s.simUtcMs !== undefined);
+    if (first?.simUtcMs === undefined) return false;
+    this.simOffset = first.simUtcMs - first.t;
+    return true;
+  }
+
+  tick(wallNow: number): void {
     if (this.stopped) return;
-    const batch: (TelemetrySnapshot | null)[] = this.queue.splice(0);
+    if (!this.anchorSimTime()) {
+      this.transport.tick();
+      this.drainTransport();
+      return;
+    }
+    const now = this.clock(wallNow);
+    const batch: (TelemetrySnapshot | null)[] = this.queue
+      .splice(0)
+      .map((s) => (this.simOffset === null ? s : { ...s, t: s.t + this.simOffset }));
     if (batch.length === 0) batch.push(null);
-    const fetched = this.data?.take(now) ?? { update: null, notes: [] };
+    const taken = this.data?.take(wallNow) ?? { update: null, notes: [] };
+    const fetched =
+      this.simOffset === null || taken.update === null
+        ? taken
+        : { ...taken, update: { ...taken.update, t: this.clock(taken.update.t) } };
     for (const n of fetched.notes) {
       const source = DATA_SOURCE_NAMES[n.source];
-      if (n.ok) this.feed.system(n.t, 'data_restored', { source });
-      else this.feed.system(n.t, 'data_failed', { source, error: n.error ?? '' });
+      if (n.ok) this.feed.system(this.clock(n.t), 'data_restored', { source });
+      else this.feed.system(this.clock(n.t), 'data_failed', { source, error: n.error ?? '' });
     }
     batch.forEach((s, i) => {
       if (s !== null) this.last = s;
@@ -304,7 +348,8 @@ export class FlightSession {
   }
 
   /** User decision at ON_BLOCK; throws in any other phase. */
-  endFlight(to: 'TURNAROUND' | 'DONE', now: number): void {
+  endFlight(to: 'TURNAROUND' | 'DONE', wallNow: number): void {
+    const now = this.clock(wallNow);
     const out = this.core.endFlight(to, now);
     this.record({ type: 'end', now, to });
     this.apply(out, now);
@@ -313,8 +358,9 @@ export class FlightSession {
   }
 
   /** Stops ticking. Telexes not sent yet are dropped. */
-  stop(now: number): void {
+  stop(wallNow: number): void {
     if (this.stopped) return;
+    const now = this.clock(wallNow);
     this.stopped = true;
     for (const feedId of this.outbound.values()) {
       this.feed.updateOutbound(feedId, { delivery: 'dropped' });
@@ -533,7 +579,7 @@ export class FlightSession {
         case 'SENT': {
           const id = this.outbound.get(e.id);
           if (id !== undefined)
-            this.feed.updateOutbound(id, { delivery: 'sent', detail: null, t: e.t });
+            this.feed.updateOutbound(id, { delivery: 'sent', detail: null, t: this.clock(e.t) });
           this.outbound.delete(e.id);
           break;
         }
@@ -559,7 +605,7 @@ export class FlightSession {
           });
           this.feed.add({
             kind: 'inbound',
-            t: e.t,
+            t: this.clock(e.t),
             from: e.message.from,
             to: e.message.to,
             type: e.message.type,
@@ -567,7 +613,7 @@ export class FlightSession {
           });
           break;
         case 'STATUS':
-          this.onStatus(e.t, e.status, e.reason ?? null);
+          this.onStatus(this.clock(e.t), e.status, e.reason ?? null);
           break;
       }
     }

@@ -51,6 +51,7 @@ internal static class Frames
         v[SimVars.Xpdr] = 1;
         v[SimVars.SimRate] = 1;
         v[SimVars.Touchdown] = 3.2;
+        v[SimVars.AbsTime] = SimVars.UnixEpochAbsSeconds + 1791374400;
         return new SimFrame(v, "FenixA320_DLH\0");
     }
 

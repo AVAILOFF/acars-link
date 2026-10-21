@@ -33,7 +33,7 @@ describe('generateSyntheticFlight — shape', () => {
     );
     expect(Object.keys(s[0] as object).sort()).toEqual(
       Object.keys(sample)
-        .filter((k) => k !== 'touchdownFpm')
+        .filter((k) => k !== 'touchdownFpm' && k !== 'simUtcMs')
         .sort(),
     );
   });

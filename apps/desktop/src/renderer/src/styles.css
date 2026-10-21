@@ -678,6 +678,7 @@ input.short {
 
 .force-form {
   display: flex;
+  margin: var(--s-3) 0;
   align-items: center;
   gap: var(--s-3);
   min-width: 0;
@@ -810,7 +811,7 @@ input.short {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 300px;
+  min-height: 220px;
 }
 
 .fms-bezel {
@@ -829,15 +830,18 @@ input.short {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 160px;
-  overflow: auto;
+  min-height: 80px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .fms-text {
   flex: 1;
   margin: 0;
   font: inherit;
-  white-space: pre;
+  /* Telexes without line breaks (pilot's own, long lines) wrap at the screen width instead of being cut. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* The scratchpad is part of the screen: no field box; focus rings the bezel (spec §5). */
@@ -1096,6 +1100,24 @@ input.short {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  border-radius: 0;
+}
+
+/* Messages window: table plus the action row as its footer. */
+.msg-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border-radius: var(--r-sheet);
+  background: var(--sheet-row);
+  overflow: hidden;
+}
+
+.msg-foot {
+  padding: var(--s-3);
+  border-top: 1px solid var(--sheet-line);
+  background: var(--sheet-bg);
 }
 
 .msg-table {

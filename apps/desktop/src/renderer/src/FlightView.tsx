@@ -86,35 +86,36 @@ export function FlightView() {
             />
           </label>
         </div>
-        <div className="toolbar">
-          <button
-            type="button"
-            className="btn primary"
-            disabled={!running || busy !== null}
-            title={disabledWhy}
-            onClick={() => setRequest('text')}
-          >
-            {t('toolbar.new')}
-          </button>
-          <button
-            type="button"
-            className="btn"
-            disabled={!running || busy !== null}
-            title={disabledWhy}
-            onClick={() => setRequest('wx')}
-          >
-            {t('toolbar.request')}
-          </button>
-          {running && app.irregular.length > 0 && <ForceForm list={app.irregular} />}
+        <div className="msg-card">
+          <MessageTable
+            entries={app.feed}
+            filter={filter}
+            query={query}
+            selectedId={selected?.id ?? null}
+            seen={seen}
+            onSelect={select}
+          />
+          <div className="toolbar msg-foot">
+            <button
+              type="button"
+              className="btn primary"
+              disabled={!running || busy !== null}
+              title={disabledWhy}
+              onClick={() => setRequest('text')}
+            >
+              {t('toolbar.new')}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={!running || busy !== null}
+              title={disabledWhy}
+              onClick={() => setRequest('wx')}
+            >
+              {t('toolbar.request')}
+            </button>
+          </div>
         </div>
-        <MessageTable
-          entries={app.feed}
-          filter={filter}
-          query={query}
-          selectedId={selected?.id ?? null}
-          seen={seen}
-          onSelect={select}
-        />
       </section>
       <aside className="context" aria-label={t('ctx.label')}>
         <FlightCard app={app} />
@@ -305,39 +306,6 @@ function Param({ k, v, unit }: { k: string; v: string; unit: string }) {
         <span className="param-unit"> {unit}</span>
       </dd>
     </div>
-  );
-}
-
-/** "Run now" for an irregular scenario of the running flight; the result goes to the feed. */
-function ForceForm({ list }: { list: AppState['irregular'] }) {
-  const t = useT();
-  const busy = useStore((s) => s.busy);
-  const text = useUiText();
-  const [id, setId] = useState(list[0]?.id ?? '');
-  const current = list.some((x) => x.id === id) ? id : (list[0]?.id ?? '');
-  return (
-    <form
-      className="force-form"
-      title={t('force.hint')}
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (current !== '') void useStore.getState().forceScenario(current);
-      }}
-    >
-      <label htmlFor="force-id" className="force-label">
-        {t('force.label')}
-      </label>
-      <select id="force-id" value={current} onChange={(e) => setId(e.currentTarget.value)}>
-        {list.map((s) => (
-          <option key={s.id} value={s.id}>
-            {text(s.title)}
-          </option>
-        ))}
-      </select>
-      <button type="submit" className="btn" disabled={busy !== null || current === ''}>
-        {t('force.run')}
-      </button>
-    </form>
   );
 }
 

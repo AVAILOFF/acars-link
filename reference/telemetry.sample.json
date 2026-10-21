@@ -22,5 +22,6 @@
   "simRate": 1,
   "paused": false,
   "aircraftTitle": "FenixA320_DLH",
-  "touchdownFpm": 192
+  "touchdownFpm": 192,
+  "simUtcMs": 1791374400000
 }

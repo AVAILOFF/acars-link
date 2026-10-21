@@ -278,6 +278,14 @@ function NetworkForm() {
             <option value="offline">{t('set.transport.offline')}</option>
           </select>
         </Row>
+        <Switch
+          checked={settings.simTime}
+          disabled={off}
+          onChange={(v) => void update({ simTime: v })}
+          hint={t('set.simTimeHint')}
+        >
+          {t('set.simTime')}
+        </Switch>
       </Group>
 
       <Group id="messages" title={t('set.group.messages')}>
@@ -309,6 +317,14 @@ function NetworkForm() {
             onChange={(v) => void update({ soundOnMessage: v })}
           />
         </Row>
+        <Switch
+          checked={settings.turnaround}
+          disabled={off}
+          onChange={(v) => void update({ turnaround: v })}
+          hint={t('set.turnaroundHint')}
+        >
+          {t('set.turnaround')}
+        </Switch>
         <Row htmlFor="hub-icao" title={t('set.hubIcao')} hint={t('set.hubIcaoHint')}>
           <input
             id="hub-icao"
