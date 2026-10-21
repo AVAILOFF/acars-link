@@ -4,7 +4,7 @@ import { atcHints, lacksCpdlc, NO_CPDLC_AIRCRAFT } from '../src/shared/atc-hints
 const atc = { station: 'XFIN', connected: null, dcl: 'XFHK' };
 const base = { atc, aircraftTitle: 'FenixA320_DLH', phase: 'PUSHBACK', callsign: 'FIN4E' } as const;
 
-describe('ROPS hints under Status (T49)', () => {
+describe('XATC hints under Status (T49)', () => {
   it('says where to log on and where to send the PDC', () => {
     expect(atcHints(base)).toEqual([{ key: 'atc.hint', params: { fir: 'XFIN', dcl: 'XFHK' } }]);
     expect(atcHints({ ...base, atc: { ...atc, dcl: null } })).toEqual([
@@ -15,7 +15,7 @@ describe('ROPS hints under Status (T49)', () => {
     ]);
   });
 
-  it('no hints when ROPS is off', () => {
+  it('no hints when XATC is off', () => {
     expect(atcHints({ ...base, atc: null })).toEqual([]);
   });
 

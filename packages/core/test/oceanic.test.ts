@@ -21,9 +21,9 @@ import {
   parseRcl,
   parseSimbriefOfp,
   pointText,
-  RopsStation,
   type TelemetrySnapshot,
   trackPoint,
+  XatcStation,
 } from '../src/index.js';
 
 /**
@@ -377,7 +377,7 @@ describe('RCL errors and windows (2020_001 §4.5, §10; 2023_001 rev 6 §2.2)', 
   });
 });
 
-describe('through the ROPS station (Hoppie packets)', () => {
+describe('through the XATC station (Hoppie packets)', () => {
   const ofp = natOfp();
   const square = (w: number, s: number, e: number, n: number) => [
     [
@@ -406,7 +406,7 @@ describe('through the ROPS station (Hoppie packets)', () => {
   });
 
   it('logon, the RCL as a CPDLC packet, telex answers from the station, ROGER = CLA', () => {
-    const st = new RopsStation(ofp, { enabled: true, randomDirects: false }, { seed: 'ocl' });
+    const st = new XatcStation(ofp, { enabled: true, randomDirects: false }, { seed: 'ocl' });
     const out: OutboundMessage[] = [];
     const events: AtcEvent[] = [];
     let clx: number | null = null;
@@ -442,7 +442,7 @@ describe('through the ROPS station (Hoppie packets)', () => {
   });
 
   it('an RCL on a route without a NAT area: MESSAGE NOT SUPPORTED, as before T27', () => {
-    const st = new RopsStation(kg, { enabled: true }, { seed: 'ocl' });
+    const st = new XatcStation(kg, { enabled: true }, { seed: 'ocl' });
     const fukuoka: FirArea = {
       ...SCOTTISH,
       id: 'RJJJ',

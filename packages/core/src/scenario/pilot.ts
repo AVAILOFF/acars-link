@@ -15,7 +15,7 @@ export interface PilotMessage {
   readonly type: string;
   readonly text: string;
   /**
-   * Our callsign the message was addressed to (T23). Messages to a ROPS ATC station go to
+   * Our callsign the message was addressed to (T23). Messages to a XATC station go to
    * the station, the rest to the airline; absent (older recordings, typed in the app) = the
    * airline.
    */

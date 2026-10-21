@@ -6,9 +6,9 @@ import {
   isTelemetrySnapshot,
   type Ofp,
   type PilotMessage,
-  type RopsOptions,
   type TelemetrySnapshot,
   type Value,
+  type XatcOptions,
 } from '@acars/core';
 
 /**
@@ -78,8 +78,8 @@ export interface RecordingHeader {
   readonly probabilities?: Readonly<Record<string, number>>;
   /** Airline memory the flight started with (T14 `flags.*`); absent = none. */
   readonly flags?: Readonly<Record<string, Value>>;
-  /** ROPS ATC station (T23); absent = off. */
-  readonly rops?: RopsOptions;
+  /** XATC station (T23); absent = off. */
+  readonly xatc?: XatcOptions;
   /** Data link simulation (T31); absent = off. */
   readonly datalink?: {
     readonly satcom: boolean;
@@ -230,7 +230,8 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     throw bad('probabilities');
   if (x['dataWaitMs'] !== undefined && !(isNum(x['dataWaitMs']) && x['dataWaitMs'] >= 0))
     throw bad('dataWaitMs');
-  const r = x['rops'];
+  // Recordings made before T58 call the XATC station `rops`.
+  const r = x['xatc'] ?? x['rops'];
   if (
     r !== undefined &&
     !(
@@ -240,7 +241,7 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
       (r['randomDirects'] === undefined || typeof r['randomDirects'] === 'boolean')
     )
   )
-    throw bad('rops');
+    throw bad('xatc');
   const dl = x['datalink'];
   if (
     dl !== undefined &&
@@ -252,6 +253,10 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     )
   )
     throw bad('datalink');
+  if ('rops' in x) {
+    const { rops: _, ...rest } = x;
+    return (r === undefined ? rest : { ...rest, xatc: r }) as unknown as RecordingHeader;
+  }
   return x as unknown as RecordingHeader;
 }
 

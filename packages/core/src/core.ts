@@ -1,10 +1,10 @@
 import {
   type AtcEvent,
-  ROPS_CALLSIGN,
-  type RopsOptions,
-  type RopsState,
-  RopsStation,
-} from './atc/rops.js';
+  XATC_CALLSIGN,
+  type XatcOptions,
+  type XatcState,
+  XatcStation,
+} from './atc/xatc.js';
 import { type DatalinkState, LinkChannel, type LinkView } from './datalink/link.js';
 import type { ExtDataUpdate, ExtState } from './ext/data.js';
 import { linkHeaderLines, withLinkHeader } from './format/formatter.js';
@@ -64,8 +64,8 @@ export interface CoreOutput {
   readonly phase: FlightPhase;
   readonly events: readonly CoreEvent[];
   /**
-   * ATC station callsigns the transport should poll now (T23 ROPS): an ATC station waits for
-   * the aircraft's logon, so it is polled before it sent anything. Empty without ROPS.
+   * ATC station callsigns the transport should poll now (T23 XATC): an ATC station waits for
+   * the aircraft's logon, so it is polled before it sent anything. Empty without XATC.
    */
   readonly listen: readonly string[];
 }
@@ -101,8 +101,8 @@ export interface CoreOptions {
    * in the outbox; answers to the pilot go first.
    */
   readonly minGapMs?: number;
-  /** ROPS ATC station (T23); absent = off. */
-  readonly rops?: RopsOptions;
+  /** XATC station (T23); absent = off. */
+  readonly xatc?: XatcOptions;
   /**
    * Simulation of the data link (T31, `datalink/link.ts`): each outgoing message waits for the
    * delay of the VHF station or satellite in reach, or for any link at all. `satcom`: the
@@ -123,8 +123,10 @@ export interface CoreState {
   readonly engine: ScenarioEngineState;
   /** Telexes waiting for the gap (`minGapMs`); absent in states saved before it. */
   readonly outbox?: OutboxState;
-  /** ROPS station (T23); absent in states saved before it or without ROPS. */
-  readonly rops?: RopsState;
+  /** XATC station (T23); absent in states saved before it or without XATC. */
+  readonly xatc?: XatcState;
+  /** The same, in states saved before T58 (the station was called ROPS); `xatc` wins. */
+  readonly rops?: XatcState;
   /** Data link (T31); absent in states saved before it or without the link simulation. */
   readonly link?: DatalinkState;
 }
@@ -151,7 +153,7 @@ export class AcarsCore {
     private readonly fsm: PhaseMachine,
     private readonly engine: ScenarioEngine,
     options: CoreOptions,
-    private readonly rops: RopsStation | null,
+    private readonly xatc: XatcStation | null,
     private link: LinkChannel | null,
   ) {
     this.headerInText = options.datalink?.headerInText === true;
@@ -170,7 +172,7 @@ export class AcarsCore {
       fsm,
       new ScenarioEngine(engineOptions(options)),
       options,
-      ropsOf(options, undefined),
+      xatcOf(options, undefined),
       linkOf(options, undefined),
     );
   }
@@ -186,7 +188,7 @@ export class AcarsCore {
       PhaseMachine.fromState(state.phase, options.phaseConfig),
       ScenarioEngine.fromState(state.engine, engineOptions(options)),
       options,
-      ropsOf(options, state.rops),
+      xatcOf(options, state.xatc ?? state.rops),
       linkOf(options, state.link),
     );
     if (state.outbox !== undefined) {
@@ -215,15 +217,15 @@ export class AcarsCore {
     return this.engine.flags;
   }
 
-  /** The ROPS station (T23): where to log on, where the aircraft is logged on; null = off. */
+  /** The XATC station (T23): where to log on, where the aircraft is logged on; null = off. */
   get atc(): {
     readonly station: string | null;
     readonly connected: string | null;
     readonly dcl: string | null;
   } | null {
-    return this.rops === null
+    return this.xatc === null
       ? null
-      : { station: this.rops.station, connected: this.rops.connected, dcl: this.rops.dclStation };
+      : { station: this.xatc.station, connected: this.xatc.connected, dcl: this.xatc.dclStation };
   }
 
   /** External data the core holds (T13). */
@@ -237,7 +239,7 @@ export class AcarsCore {
       phase: this.fsm.getState(),
       engine: this.engine.getState(),
       outbox: JSON.parse(JSON.stringify({ queue: this.queue, lastAt: this.lastAt })) as OutboxState,
-      ...(this.rops === null ? {} : { rops: this.rops.getState() }),
+      ...(this.xatc === null ? {} : { xatc: this.xatc.getState() }),
       ...(this.link === null ? {} : { link: this.link.getState() }),
     };
   }
@@ -280,9 +282,9 @@ export class AcarsCore {
     data?: ExtDataUpdate,
     force?: readonly string[],
   ): CoreOutput {
-    // Messages to a ROPS station go to it, the rest to the airline (T23).
+    // Messages to a XATC station go to it, the rest to the airline (T23).
     const toAtc = (m: PilotMessage) =>
-      this.rops !== null && m.to !== undefined && m.to !== this.airline && ROPS_CALLSIGN.test(m.to);
+      this.xatc !== null && m.to !== undefined && m.to !== this.airline && XATC_CALLSIGN.test(m.to);
     const forceAll = [...this.emergencies, ...(force ?? [])];
     this.emergencies = [];
     const out = this.engine.tick({
@@ -298,7 +300,7 @@ export class AcarsCore {
       ...(forceAll.length === 0 ? {} : { force: forceAll }),
     });
     // ATC uplinks are not airline telexes: they skip the outbox gap.
-    const atc = this.rops?.tick({
+    const atc = this.xatc?.tick({
       now,
       phase: this.fsm.phase,
       telemetry: this.fsm.lastSnapshot,
@@ -307,7 +309,7 @@ export class AcarsCore {
       divert: this.engine.divert,
       hold: this.engine.hold,
     }) ?? { outbound: [], events: [] };
-    // MAYDAY / PAN to ROPS: the airline's chain starts on the next tick (T47).
+    // MAYDAY / PAN to XATC: the airline's chain starts on the next tick (T47).
     for (const e of atc.events) {
       if (e.type !== 'ATC_EMERGENCY') continue;
       const id = e.kind === 'MAYDAY' ? 'emergency_mayday' : 'emergency_pan';
@@ -319,7 +321,7 @@ export class AcarsCore {
       commands: out.commands,
       phase: this.fsm.phase,
       events: [...phaseEvents, ...out.events, ...atc.events] as CoreEvent[],
-      listen: this.rops?.listen ?? [],
+      listen: this.xatc?.listen ?? [],
     };
   }
 
@@ -372,12 +374,12 @@ function linkOf(o: CoreOptions, state: DatalinkState | undefined): LinkChannel |
   });
 }
 
-function ropsOf(o: CoreOptions, state: RopsState | undefined): RopsStation | null {
-  if (o.rops?.enabled !== true) return null;
+function xatcOf(o: CoreOptions, state: XatcState | undefined): XatcStation | null {
+  if (o.xatc?.enabled !== true) return null;
   const seed = o.seed ?? `${o.ofp.callsign}/${o.ofp.source.requestId}`;
-  return new RopsStation(
+  return new XatcStation(
     o.ofp,
-    o.rops,
+    o.xatc,
     { seed, ...(o.profile === undefined ? {} : { profile: o.profile }) },
     state,
   );

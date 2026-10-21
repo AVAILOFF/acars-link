@@ -15,7 +15,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { loadScenarios } from '../src/index.js';
 
-/** T47: MAYDAY / PAN to the ROPS station start the airline's emergency chain. */
+/** T47: MAYDAY / PAN to the XATC station start the airline's emergency chain. */
 
 const dir = (name: string) => join(import.meta.dirname, '..', name);
 const read = (name: string) =>
@@ -65,7 +65,7 @@ function fly(say: ReadonlyMap<number, readonly PilotMessage[]>, ids: readonly st
     ofp,
     scenarios: only(...ids),
     seed: 't47',
-    rops: { enabled: true, randomDirects: false },
+    xatc: { enabled: true, randomDirects: false },
   });
   core.startFlight();
   const out: OutboundMessage[] = [];

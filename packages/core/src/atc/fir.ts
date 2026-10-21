@@ -2,7 +2,7 @@ import type { FirArea } from '../ext/data.js';
 import type { LatLon } from '../geo/geo.js';
 
 /**
- * FIR lookup for the ROPS station (T23). Boundaries come as external data (`CoreInput.data`,
+ * FIR lookup for the XATC station (T23). Boundaries come as external data (`CoreInput.data`,
  * VATSpy `Boundaries.geojson`, docs/06 "Границы FIR"): GeoJSON order `[lon, lat]`, polygons
  * already split at the antimeridian, so a planar even-odd test on lon/lat is enough.
  *
@@ -113,7 +113,7 @@ function bbox(ring: readonly (readonly [number, number])[]): [number, number, nu
  * (`EDGG` → `XDGG`). ICAO assigns no location indicators starting with `X`, so the code
  * cannot be a real unit's and does not catch other pilots' logons (approved 2026-10-09).
  */
-export function ropsStation(firId: string): string {
+export function xatcStation(firId: string): string {
   if (!/^[A-Z]{4}$/.test(firId)) throw new RangeError(`not a FIR id: ${firId}`);
   return `X${firId.slice(1)}`;
 }

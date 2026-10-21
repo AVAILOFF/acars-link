@@ -157,7 +157,7 @@ describe('descent clearance level', () => {
   });
 });
 
-describe('ROPS station sends clearances on its own (T26)', () => {
+describe('XATC station sends clearances on its own (T26)', () => {
   const TAIPEI: FirArea = {
     id: 'RCAA',
     name: 'Taipei',
@@ -198,8 +198,8 @@ describe('ROPS station sends clearances on its own (T26)', () => {
     randomDirects?: boolean,
   ) {
     const flight = generateSyntheticFlight({ ofp: o });
-    const rops = { enabled: true, ...(randomDirects === undefined ? {} : { randomDirects }) };
-    const core = AcarsCore.create({ ofp: o, scenarios: [], seed, rops });
+    const xatc = { enabled: true, ...(randomDirects === undefined ? {} : { randomDirects }) };
+    const core = AcarsCore.create({ ofp: o, scenarios: [], seed, xatc });
     core.startFlight();
     const out: OutboundMessage[] = [];
     const events: CoreEvent[] = [];

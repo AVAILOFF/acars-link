@@ -18,11 +18,11 @@ import {
   parseRequest,
   parseSimbriefOfp,
   type RequestContext,
-  RopsStation,
   routePosition,
   starEntryIndex,
   type TelemetrySnapshot,
   TRAFFIC_HOLD_MS,
+  XatcStation,
 } from '../src/index.js';
 
 /** T25: cruising levels, pilot requests and the station's answers. */
@@ -241,7 +241,7 @@ describe('decisions', () => {
   });
 });
 
-describe('ROPS station answers requests (T25)', () => {
+describe('XATC station answers requests (T25)', () => {
   const FUKUOKA: FirArea = {
     id: 'RJJJ',
     name: 'Fukuoka',
@@ -297,7 +297,7 @@ describe('ROPS station answers requests (T25)', () => {
 
   /** Ticks every 5 s; `say` maps a tick index to the aircraft's messages. */
   function run(say: ReadonlyMap<number, readonly PilotMessage[]>, ticks: number, seed = 'req') {
-    const st = new RopsStation(ofp, { enabled: true }, { seed });
+    const st = new XatcStation(ofp, { enabled: true }, { seed });
     const out: OutboundMessage[] = [];
     const events: AtcEvent[] = [];
     for (let i = 0; i < ticks; i++) {
@@ -427,13 +427,13 @@ describe('ROPS station answers requests (T25)', () => {
       '/data2/4/1/WU/MAINTAIN @M.85@',
     ]);
 
-    const first = new RopsStation(ofp, { enabled: true }, { seed: 'req' });
+    const first = new XatcStation(ofp, { enabled: true }, { seed: 'req' });
     for (let i = 0; i < 4; i++) {
       const now = T0 + i * 5000;
       first.tick({ now, phase: 'CRUISE', telemetry: tm(now), inbound: say.get(i) ?? [], ext });
     }
     expect(first.getState().req?.pending).toHaveLength(2);
-    const second = new RopsStation(ofp, { enabled: true }, { seed: 'req' }, first.getState());
+    const second = new XatcStation(ofp, { enabled: true }, { seed: 'req' }, first.getState());
     const out: OutboundMessage[] = [];
     for (let i = 4; i < 20; i++) {
       const now = T0 + i * 5000;

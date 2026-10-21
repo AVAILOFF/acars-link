@@ -80,7 +80,7 @@ function fly(
     /** Data that arrives later (tick index → update). */
     later?: Readonly<Record<number, Readonly<Record<string, AirportPlace | null>>>>;
     dataWaitMs?: number;
-    rops?: boolean;
+    xatc?: boolean;
     seed?: string;
   } = {},
 ): Run {
@@ -89,7 +89,7 @@ function fly(
     scenarios,
     seed: o.seed ?? 't51',
     ...(o.dataWaitMs === undefined ? {} : { dataWaitMs: o.dataWaitMs }),
-    ...(o.rops === true ? { rops: { enabled: true, randomDirects: false } } : {}),
+    ...(o.xatc === true ? { xatc: { enabled: true, randomDirects: false } } : {}),
   });
   core.startFlight();
   const out: OutboundMessage[] = [];
@@ -99,7 +99,7 @@ function fly(
   let after = 0;
   flight.snapshots.forEach((s, i) => {
     const places = i === 0 ? o.places : asked ? o.later?.[i - after] : undefined;
-    const inbound = [...pending, ...(i === 5 && o.rops === true ? [logon] : [])];
+    const inbound = [...pending, ...(i === 5 && o.xatc === true ? [logon] : [])];
     pending = [];
     const r = core.tick({
       now: s.t,
@@ -109,7 +109,7 @@ function fly(
         ? {
             data: {
               t: s.t,
-              ...(i === 0 && o.rops === true ? { firs: [WORLD] } : {}),
+              ...(i === 0 && o.xatc === true ? { firs: [WORLD] } : {}),
               ...(places === undefined ? {} : { places }),
             },
           }
@@ -257,11 +257,11 @@ describe('looking the airport up', () => {
   });
 });
 
-describe('ROPS follows the named airport', () => {
+describe('XATC follows the named airport', () => {
   it('a direct to an airport the app looked up', () => {
     const near = flight.snapshots[stageIndex(flight, 'CRUISE', 90)] as { lat: number; lon: number };
     const r = fly([scenario('medical_onboard')], 'medical_onboard', 'DIVERT ZZAA', {
-      rops: true,
+      xatc: true,
       // A place 8 NM from where the question comes: the descent is computed for it.
       places: { ZZAA: { lat: near.lat + 8 / 60, lon: near.lon } },
     });
