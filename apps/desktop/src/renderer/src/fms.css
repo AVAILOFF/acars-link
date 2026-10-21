@@ -40,13 +40,13 @@
   background: var(--fms-bg);
   color: var(--fms-text);
   font: var(--fms-lg) / var(--fms-lh) var(--fms-font);
-  width: calc(var(--fms-cols) * 1ch + 24px);
+  width: calc(var(--fms-cols) * 1ch + 28px);
   max-width: 100%;
   padding: 10px 12px;
   border-radius: 4px;
   text-transform: uppercase;
   white-space: pre;
-  overflow-x: auto;
+  overflow-x: hidden;
   text-shadow: none;
 }
 

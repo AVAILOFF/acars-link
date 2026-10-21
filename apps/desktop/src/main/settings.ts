@@ -39,6 +39,8 @@ export function defaultSettings(locale: string): Settings {
     datalinkSatcom: true,
     aircraftIcaoHex: '',
     hubIcao: '',
+    simTime: false,
+    turnaround: true,
     datalinkHeaderInText: false,
     ropsStandAside: true,
     ropsRandomDirects: true,
@@ -129,6 +131,8 @@ export function validatePatch(patch: unknown): SettingsPatch {
         out.rescueFlipped = value as string[];
         break;
       }
+      case 'simTime':
+      case 'turnaround':
       case 'recordFlights':
       case 'liveData':
       case 'soundOnMessage':
@@ -205,6 +209,8 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'datalinkSatcom',
     'aircraftIcaoHex',
     'hubIcao',
+    'simTime',
+    'turnaround',
     'datalinkHeaderInText',
     'ropsStandAside',
     'ropsRandomDirects',

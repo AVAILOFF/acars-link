@@ -91,6 +91,8 @@ export interface CoreOptions {
   readonly nextLegVersion?: 1 | 2;
   /** The user's hub airport (T53), see `ScenarioEngineOptions.hub`. */
   readonly hub?: string;
+  /** Start close to the departure, see `ScenarioEngineOptions.lateStartVersion`; default 1. */
+  readonly lateStartVersion?: 1 | 2;
   /** `flags.*` left by earlier flights (T14); read back with {@link AcarsCore.flags}. */
   readonly flags?: Readonly<Record<string, Value>>;
   /**
@@ -398,5 +400,6 @@ function engineOptions(o: CoreOptions) {
     ...(o.namesVersion === undefined ? {} : { namesVersion: o.namesVersion }),
     ...(o.nextLegVersion === undefined ? {} : { nextLegVersion: o.nextLegVersion }),
     ...(o.hub === undefined ? {} : { hub: o.hub }),
+    ...(o.lateStartVersion === undefined ? {} : { lateStartVersion: o.lateStartVersion }),
   };
 }

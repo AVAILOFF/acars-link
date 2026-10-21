@@ -20,6 +20,11 @@ import {
 
 export const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 export const STANDS_RADIUS_M = 4000;
+/**
+ * The public server queues and runs a query for up to ~30 s (KBOS, checked 2026-10-18: 200 after
+ * 30 s); the default 15 s adapter timeout cut it off and the gate stayed "will be advised".
+ */
+export const STANDS_TIMEOUT_MS = 45_000;
 
 export function standsQuery(lat: number, lon: number): string {
   const at = `around:${STANDS_RADIUS_M},${lat.toFixed(5)},${lon.toFixed(5)}`;
@@ -30,7 +35,7 @@ export async function fetchStands(
   ctx: FetchContext,
   airport: { readonly lat: number; readonly lon: number },
 ): Promise<ParkingStand[]> {
-  const res = await request(ctx, OVERPASS_URL, {
+  const res = await request({ ...ctx, timeoutMs: STANDS_TIMEOUT_MS }, OVERPASS_URL, {
     method: 'POST',
     body: `data=${encodeURIComponent(standsQuery(airport.lat, airport.lon))}`,
     contentType: 'application/x-www-form-urlencoded',

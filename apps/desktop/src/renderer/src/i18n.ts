@@ -286,6 +286,12 @@ const en = {
   'set.transport': 'Send messages via',
   'set.transport.hoppie': 'Hoppie ACARS',
   'set.transport.offline': 'Offline (feed only)',
+  'set.simTime': 'Time from the simulator',
+  'set.simTimeHint':
+    'The flight runs on the simulator clock (UTC): STD/STA, delays and the times in messages follow it instead of the PC clock. Needs the sim bridge; the flight starts once the sim time arrives. Anchored at the start of the flight, so at a sim rate other than 1x the message times drift from the sim clock. Live data (weather, events) is real time: with a sim date far from today turn it off. Applies to the next flight.',
+  'set.turnaround': 'I fly the turnaround',
+  'set.turnaroundHint':
+    'Off: no messages about the next leg, aircraft change and turnaround after landing. Applies to the next flight.',
   'set.hubIcao': 'My hub (airport ICAO)',
   'set.hubIcaoHint':
     'After a flight into the hub the next leg goes on from it on a route of the airline (OpenFlights, 2014) flown with this aircraft type. Empty = the hub from OpenFlights. Applies to the next flight.',
@@ -653,6 +659,12 @@ const ru: Record<MessageKey, string> = {
   'set.transport': 'Отправлять сообщения через',
   'set.transport.hoppie': 'Hoppie ACARS',
   'set.transport.offline': 'Офлайн (только лента)',
+  'set.simTime': 'Время из симулятора',
+  'set.simTimeHint':
+    'Рейс идёт по часам симулятора (UTC): STD/STA, задержки и время в сообщениях считаются по ним, а не по часам ПК. Нужен мост к симулятору; рейс стартует, когда придёт время симулятора. Привязка делается в начале рейса, поэтому при скорости симуляции не 1x время в сообщениях расходится с часами симулятора. Живые данные (погода, события) — реальное время: при дате в симуляторе, далёкой от сегодняшней, их лучше выключить. Применяется к следующему рейсу.',
+  'set.turnaround': 'Я лечу оборот',
+  'set.turnaroundHint':
+    'Выключено: после посадки не приходят сообщения о следующем рейсе, смене самолёта и обороте. Применяется к следующему рейсу.',
   'set.hubIcao': 'Мой хаб (ICAO аэропорта)',
   'set.hubIcaoHint':
     'После рейса в хаб следующий рейс идёт из него по маршруту авиакомпании (OpenFlights, 2014), на котором летал этот тип самолёта. Пусто — хаб из OpenFlights. Действует со следующего рейса.',

@@ -51,6 +51,11 @@ export interface TelemetrySnapshot {
    * meaningful right after landing. Absent in older recordings and sources without the SimVar.
    */
   readonly touchdownFpm?: number;
+  /**
+   * The sim clock, epoch ms UTC (SimVar ABSOLUTE TIME, zulu). Absent in older recordings and
+   * sources without a date. The app may use it as the flight's clock (setting "time from the sim").
+   */
+  readonly simUtcMs?: number;
 }
 
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
@@ -87,6 +92,7 @@ export function isTelemetrySnapshot(x: unknown): x is TelemetrySnapshot {
     isArr(s['engN2'], isNum) &&
     isArr(s['doorsOpen'], isNum) &&
     typeof s['aircraftTitle'] === 'string' &&
-    (s['touchdownFpm'] === undefined || isNum(s['touchdownFpm']))
+    (s['touchdownFpm'] === undefined || isNum(s['touchdownFpm'])) &&
+    (s['simUtcMs'] === undefined || isNum(s['simUtcMs']))
   );
 }

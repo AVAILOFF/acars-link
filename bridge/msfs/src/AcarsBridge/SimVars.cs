@@ -22,6 +22,9 @@ public sealed record SimVarDef(string Name, string Unit);
 ///   feet per second, not settable (MSFS 2024 SDK docs, 2026-10-15). The sim keeps it until the next
 ///   touchdown; the sign (down = positive?) is [ПРОВЕРИТЬ человеком], the mapper takes the magnitude.</item>
 /// </list>
+/// ABSOLUTE TIME: environment variable, "seconds since 12:00 am 1/1/1AD", zulu, read-only (MSFS 2024 SDK
+/// docs, Environment Variables, 2026-10-18); read through SimConnect. Forum reports say time SimVars were wrong
+/// before MSFS 2024 SU1 — [ПРОВЕРИТЬ человеком] against the in-sim clock.
 /// TITLE is requested separately as STRING256 (see SimConnectSource).
 /// </summary>
 public static class SimVars
@@ -50,7 +53,11 @@ public static class SimVars
     public const int Xpdr = ExitFirst + Exits; // 27
     public const int SimRate = Xpdr + 1; // 28
     public const int Touchdown = SimRate + 1; // 29
-    public const int Count = Touchdown + 1;
+    public const int AbsTime = Touchdown + 1; // 30
+    public const int Count = AbsTime + 1;
+
+    /// <summary>Seconds from 0001-01-01 to the Unix epoch (ABSOLUTE TIME counts from 1/1/1 AD).</summary>
+    public const double UnixEpochAbsSeconds = 62135596800;
 
     public static readonly IReadOnlyList<SimVarDef> Definitions = Build();
 
@@ -80,6 +87,7 @@ public static class SimVars
         d.Add(new("TRANSPONDER STATE:1", "Enum"));
         d.Add(new("SIMULATION RATE", "number"));
         d.Add(new("PLANE TOUCHDOWN NORMAL VELOCITY", "feet per second"));
+        d.Add(new("ABSOLUTE TIME", "seconds"));
         return d;
     }
 }
@@ -135,11 +143,20 @@ public static class TelemetryMapper
             SimRate = Round(f[SimVars.SimRate], 3),
             Paused = paused,
             TouchdownFpm = Round(Math.Abs(f[SimVars.Touchdown]) * 60, 0),
+            SimUtcMs = SimUtc(f[SimVars.AbsTime]),
             AircraftTitle = CString(f.Title),
         };
     }
 
     private static bool Flag(double v) => v >= 0.5;
+
+    /// <summary>Sim UTC, epoch ms, from ABSOLUTE TIME; null while the sim reports no usable date (before year 2000).</summary>
+    private static long? SimUtc(double absSeconds)
+    {
+        var unix = absSeconds - SimVars.UnixEpochAbsSeconds;
+        if (double.IsNaN(unix) || double.IsInfinity(unix) || unix < 946_684_800) return null;
+        return (long)Math.Round(unix * 1000, MidpointRounding.AwayFromZero);
+    }
 
     /// <summary>STRING256 may carry a NUL terminator and padding.</summary>
     private static string CString(string s)

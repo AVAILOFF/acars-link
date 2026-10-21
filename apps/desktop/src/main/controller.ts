@@ -90,6 +90,13 @@ export const isIrregularEvent = (c: CompiledScenario): boolean =>
 /** The scenario whose chance depends on the destination country (T38). */
 export const DRONE_SCENARIO_ID = 'drone_activity';
 
+/** Scenarios about the next leg with the same aircraft; off with the "turnaround" setting off. */
+export const TURNAROUND_SCENARIOS: readonly string[] = [
+  'next_leg',
+  'aircraft_change',
+  'welcome_turnaround',
+];
+
 /** Identifies the app to aviationweather.gov, VATSIM, NASA and Overpass (they ask for it). */
 export const DATA_USER_AGENT = 'ACARS-Sim/0.1 (flight simulator ACARS; personal use)';
 
@@ -557,6 +564,7 @@ export class AppController {
       Object.keys(settings.droneRisk).length === 0 ? DRONE_RISK_DEFAULT : settings.droneRisk;
     const enabled = this.scenarios
       .filter((c) => specialGroupOn(c.id, settings))
+      .filter((c) => settings.turnaround || !TURNAROUND_SCENARIOS.includes(c.id))
       .filter((c) => settings.scenarios[c.id] ?? c.def.enabled_by_default)
       .map((c) => {
         const pct = isIrregularEvent(c) ? settings.chances[c.id] : undefined;
@@ -591,6 +599,7 @@ export class AppController {
       flags,
       minGapMs: settings.messageGapSec * 1000,
       ...(settings.hubIcao === '' ? {} : { hub: settings.hubIcao }),
+      ...(settings.simTime ? { simTime: true } : {}),
       simCommands: (c) => this.sendSimCommand(c),
       ...(settings.datalink
         ? {

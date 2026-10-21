@@ -36,7 +36,8 @@ import {
 
 const BASE_SCENARIOS_COMPILED = loadScenarios(BASE_SCENARIOS);
 const ofp = parseSimbriefOfp(JSON.parse(await readFile(OFP_FIXTURE, 'utf8')));
-const flight = generateSyntheticFlight({ ofp });
+// 65 min at the gate: the whole pre-departure sequence fits, nothing is fitted to the time left.
+const flight = generateSyntheticFlight({ ofp, boardingSec: 65 * 60 });
 const T0 = flight.snapshots[0]?.t ?? 0;
 
 async function setup(
@@ -294,17 +295,15 @@ describe('late start', () => {
     }
     const feed = app.state().feed;
     expect(feed).toContainEqual(
-      expect.objectContaining({ kind: 'system', code: 'late_start', params: { min: '30' } }),
+      expect.objectContaining({ kind: 'system', code: 'late_start', params: { min: '15' } }),
     );
     // Documents, not a burst; an irregular reaction to the delay (crew duty, T14) may come too.
     const irregular = new Set(
       BASE_SCENARIOS_COMPILED.filter((c) => c.def.category === 'irregular').map((c) => c.id),
     );
-    expect(
-      outbound(feed)
-        .filter((m) => m.t === start && !irregular.has(m.scenarioId))
-        .map((m) => m.scenarioId),
-    ).toEqual(['crew_info']);
+    const docs = outbound(feed).filter((m) => !irregular.has(m.scenarioId));
+    expect(docs.filter((m) => m.t === start)).toEqual([]);
+    expect(docs[0]?.scenarioId).toBe('crew_info');
   });
 
   it('on time: no late_start note', async () => {
@@ -405,7 +404,7 @@ describe('flight recording (T11)', () => {
       }),
     });
     await offlineFlight(t);
-    fly(t, 0, 30);
+    fly(t, 0, 1500); // crew_info comes 20 min into the 65 min at the gate
     await t.app.stopFlight();
     const failed = t.app
       .state()
@@ -1302,6 +1301,34 @@ describe('gap between messages', () => {
       scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
     });
     expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+  });
+});
+
+describe('turnaround setting', () => {
+  it('off: next leg, aircraft change and welcome/turnaround are not in the flight', async () => {
+    const s = await setup();
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false, turnaround: false });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    fly(s);
+    const ids = (await readRecordingOrNull(s)).header.scenarios;
+    expect(ids.length).toBeGreaterThan(0);
+    for (const id of ['next_leg', 'aircraft_change', 'welcome_turnaround']) {
+      expect(ids).not.toContain(id);
+    }
+  });
+
+  it('on (default): they are there', async () => {
+    const s = await setup();
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    fly(s);
+    expect((await readRecordingOrNull(s)).header.scenarios).toContain('next_leg');
   });
 });
 

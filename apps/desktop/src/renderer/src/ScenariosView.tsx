@@ -1,6 +1,6 @@
 import type { ScenarioCategory } from '@acars/core';
 import { useEffect, useState } from 'react';
-import type { ScenarioInfo } from '../../shared/api.js';
+import type { AppState, ScenarioInfo } from '../../shared/api.js';
 import { SwitchInput } from './Switch.js';
 import { useStore } from './store.js';
 import { useT, useUiText } from './ui.js';
@@ -12,6 +12,7 @@ export function ScenariosView() {
   const busy = useStore((s) => s.busy);
   const setScenario = useStore((s) => s.setScenario);
   const text = useUiText();
+  const irregular = useStore((s) => s.app?.irregular) ?? [];
 
   const groups = new Map<ScenarioCategory, ScenarioInfo[]>();
   for (const s of scenarios) groups.set(s.category, [...(groups.get(s.category) ?? []), s]);
@@ -22,6 +23,7 @@ export function ScenariosView() {
         {t('scen.title')}
       </h2>
       <p className={running ? 'hint warn' : 'hint'}>{t(running ? 'scen.running' : 'scen.hint')}</p>
+      {running && irregular.length > 0 && <ForceForm list={irregular} />}
       {[...groups].map(([category, list]) => (
         <section key={category} className="group" aria-labelledby={`cat-${category}`}>
           <h3 id={`cat-${category}`} className="group-title">
@@ -213,5 +215,38 @@ function DroneRiskTable({ defaults }: { defaults: Readonly<Record<string, number
         )}
       </div>
     </details>
+  );
+}
+
+/** "Run now" for an irregular scenario of the running flight; the result goes to the feed. */
+function ForceForm({ list }: { list: AppState['irregular'] }) {
+  const t = useT();
+  const busy = useStore((s) => s.busy);
+  const text = useUiText();
+  const [id, setId] = useState(list[0]?.id ?? '');
+  const current = list.some((x) => x.id === id) ? id : (list[0]?.id ?? '');
+  return (
+    <form
+      className="force-form"
+      title={t('force.hint')}
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (current !== '') void useStore.getState().forceScenario(current);
+      }}
+    >
+      <label htmlFor="force-id" className="force-label">
+        {t('force.label')}
+      </label>
+      <select id="force-id" value={current} onChange={(e) => setId(e.currentTarget.value)}>
+        {list.map((s) => (
+          <option key={s.id} value={s.id}>
+            {text(s.title)}
+          </option>
+        ))}
+      </select>
+      <button type="submit" className="btn" disabled={busy !== null || current === ''}>
+        {t('force.run')}
+      </button>
+    </form>
   );
 }
