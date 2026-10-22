@@ -52,6 +52,7 @@ pnpm hoppie:telex --to <АВИА> [--from OPS…] [--text …] [--listen 180]   
 pnpm replay run <запись.jsonl> [--scenarios <yaml|папка>] [--only id,…] [--check] [--pilot "<мин>=<текст>"]   # прогон записи через ядро (tools/replay); --pilot — сообщения пилота
 pnpm replay synth --ofp <simbrief.json> --out <файл.jsonl>   # синтетический полёт как запись; pnpm replay --help
 pnpm desktop:dist     # установщик Windows: apps/desktop/release/ACARS-Link-Setup-<версия>.exe (NSIS, без подписи; мост — в resources/bridge)
+pnpm licenses         # тексты лицензий npm-пакетов бандла и .NET → apps/desktop/build/third-party-licenses.txt (часть desktop:dist)
 pnpm icon             # иконка приложения: design/logo/*.svg → apps/desktop/build/icon.{ico,png} (рендер через Electron)
 pnpm bridge:publish   # мост как самодостаточный exe (.NET не нужен) → bridge/msfs/publish
 pnpm bridge:build     # dotnet build bridge/msfs (C# мост, .NET 8; с SimConnect: -p:MsfsSdk="C:\MSFS 2024 SDK")
