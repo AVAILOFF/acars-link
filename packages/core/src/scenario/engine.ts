@@ -65,7 +65,8 @@ import type { PilotCommand, StartWindow, TimeRef } from './types.js';
  * order and spacing instead of all at once. `ofp.sched_*` (STD/STA) stay as published.
  * With more time than that but less than the longest `sched_out − N` trigger (e.g. 30 or 50 min
  * before STD), nothing is delayed: those offsets are scaled by `left / longest` so the whole
- * sequence fits before the departure, in the same order.
+ * sequence fits before the departure, in the same order. Version 3 takes the longest trigger only
+ * among the scenarios that can still start in this flight ({@link ScenarioEngine.liveSpanMs}).
  *
  * Two-way (T12, docs/05 "Исполнение" 5): pilot telexes (`inbound`) are handled first on a
  * tick. A message whose first word is an option of a waiting `wait: reply` answers it (the
@@ -257,10 +258,12 @@ export interface ScenarioEngineOptions {
   /**
    * Start close to the departure: 1 = a delay for anything under `lateStartLeadMin` and the
    * earlier messages all at once (as recorded before), 2 = the `sched_out − N` messages are
-   * fitted into the time left (e.g. 30 or 50 min before STD), delay only under 20 min.
-   * Default 1; the app asks for 2 and records it in the header.
+   * fitted into the time left (e.g. 30 or 50 min before STD), delay only under 20 min, 3 = as 2,
+   * but the longest `sched_out − N` counts only scenarios that can start in this flight (not the
+   * ones whose airline memory, OFP condition, cooldown or dice already rule them out).
+   * Default 1; the app asks for 3 and records it in the header.
    */
-  readonly lateStartVersion?: 1 | 2;
+  readonly lateStartVersion?: 1 | 2 | 3;
   /**
    * Generator of `{name:…}` (T43, `names.ts`): 1 = surnames by the origin's ICAO prefix (as
    * recorded before T43), 2 = by the airline's country (default).
@@ -388,6 +391,11 @@ const WX_FRESH_MS = 15 * 60_000;
 const MAX_FLAGS = 64;
 const MAX_FLAG_TEXT = 80;
 
+/** Variables a condition may read to be judged on the first tick (late start version 3). */
+function isKnownAtStart(path: string): boolean {
+  return path === 'phase' || path.startsWith('flags.') || path.startsWith('ofp.');
+}
+
 const PHASE_ORDER: ReadonlyMap<FlightPhase, number> = new Map(FLIGHT_PHASES.map((p, i) => [p, i]));
 
 /** `current` is `target` or later in the flight (GO_AROUND counts as after APPROACH). */
@@ -464,6 +472,8 @@ export class ScenarioEngine {
   /** Longest `sched_out − N` offset among the scenarios, ms (0 = none). */
   private readonly preSpanMs: number;
   private readonly fitPre: boolean;
+  /** Late start version 3: the span counts only scenarios that can start ({@link liveSpanMs}). */
+  private readonly fitLive: boolean;
   /** Context of the current tick; rebuilt when a command or a send changes it. */
   private ctx: ScenarioContext | null = null;
   /** Inside `receive`: messages are answers to the pilot. */
@@ -484,7 +494,8 @@ export class ScenarioEngine {
     if (!(this.dataWaitMs >= 0)) throw new RangeError('dataWaitMs must be ≥ 0');
     this.seed = options.seed;
     this.namesVersion = options.namesVersion ?? 2;
-    this.fitPre = options.lateStartVersion === 2;
+    this.fitPre = options.lateStartVersion === 2 || options.lateStartVersion === 3;
+    this.fitLive = options.lateStartVersion === 3;
     this.leadMs =
       (options.lateStartLeadMin ??
         (this.fitPre ? FIT_LATE_START_LEAD_MIN : DEFAULT_LATE_START_LEAD_MIN)) * 60_000;
@@ -725,10 +736,8 @@ export class ScenarioEngine {
       // Less time than the whole pre-departure sequence: squeeze it into what is left, in the
       // same order and proportions, so every message still comes before the departure.
       const left = this.ofp.times.schedOutMs + ms - input.now - PRE_SCALE_MARGIN_MS;
-      this.st.preScale =
-        this.fitPre && this.preSpanMs > 0 && left < this.preSpanMs
-          ? Math.max(0, left) / this.preSpanMs
-          : 1;
+      const span = this.fitLive ? this.liveSpanMs(input) : this.preSpanMs;
+      this.st.preScale = this.fitPre && span > 0 && left < span ? Math.max(0, left) / span : 1;
     }
     if (input.data !== undefined) {
       const before = this.st.ext;
@@ -801,6 +810,38 @@ export class ScenarioEngine {
       this.tickInput = null;
     }
     return { outbound, commands, events };
+  }
+
+  /**
+   * Late start version 3: the longest `sched_out − N` among the scenarios that can still start
+   * in this flight, on the first tick. A scenario is left out when a condition that reads only
+   * values known at the start (`flags.*`, `ofp.*`, `phase`) is false, when its cooldown blocks it,
+   * or when its first roll of the dice (peeked on a copy of its Rng, so the real roll is the same)
+   * fails. Conditions on live data (`tm.*`, `wx.*`, `ext.*` …) may still turn true: kept in.
+   */
+  private liveSpanMs(input: EngineTickInput): number {
+    this.tickInput = input;
+    this.refresh();
+    let span = 0;
+    try {
+      for (const sc of this.ordered) {
+        const tr = sc.def.trigger;
+        if (!(tr.on === 'time' && tr.at.rel === 'sched_out' && tr.at.offset_min < 0)) continue;
+        const ms = -tr.at.offset_min * 60_000;
+        if (ms <= span) continue;
+        const known = sc.conditions.filter((c) => c.vars.every(isKnownAtStart));
+        if (!known.every((c) => c.test(this.look))) continue;
+        const s = this.st.scenarios[sc.id] as ScenarioState;
+        if (this.blocker(sc, s, input.now) !== null) continue;
+        const dice = rngFromState((this.rngs.get(sc.id) as Rng).getState());
+        if (!dice.chance(sc.probability)) continue;
+        span = ms;
+      }
+    } finally {
+      this.ctx = null;
+      this.tickInput = null;
+    }
+    return span;
   }
 
   private get context(): ScenarioContext {

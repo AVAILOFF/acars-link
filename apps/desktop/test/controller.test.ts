@@ -320,6 +320,47 @@ describe('late start', () => {
   });
 });
 
+describe('OFP date (docs/05 "Дата OFP")', () => {
+  it('a plan for yesterday runs today at its times, the feed and the recording say so', async () => {
+    const s = await setup();
+    const DAY = 86_400_000;
+    s.clock.set(ofp.times.schedOutMs + DAY - 40 * 60_000);
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline' });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    expect(s.app.state().flight?.schedOutMs).toBe(ofp.times.schedOutMs + DAY);
+    const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+    expect(s.app.state().feed).toContainEqual(
+      expect.objectContaining({
+        kind: 'system',
+        code: 'ofp_date',
+        params: {
+          date: iso(ofp.times.schedOutMs + DAY),
+          planned: iso(ofp.times.schedOutMs),
+        },
+      }),
+    );
+    await s.app.stopFlight();
+    const rec = await readRecording(s.recordings);
+    expect(rec.header.ofp.times.schedOutMs).toBe(ofp.times.schedOutMs + DAY);
+  });
+
+  it('within 12 h of STD: no shift, no note', async () => {
+    const s = await setup();
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline' });
+    await s.app.loadOfp();
+    s.sockets.last().hello();
+    await s.app.startFlight();
+    expect(s.app.state().flight?.schedOutMs).toBe(ofp.times.schedOutMs);
+    expect(s.app.state().feed.some((e) => e.kind === 'system' && e.code === 'ofp_date')).toBe(
+      false,
+    );
+  });
+});
+
 describe('flight recording (T11)', () => {
   async function offlineFlight(s: Awaited<ReturnType<typeof setup>>) {
     await s.app.setSimbriefUsername('pilot42');

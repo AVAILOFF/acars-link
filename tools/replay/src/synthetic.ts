@@ -39,7 +39,7 @@ export function recordingFromSnapshots(
       sessionFired: [],
       namesVersion: 2,
       nextLegVersion: 3,
-      lateStartVersion: 2,
+      lateStartVersion: 3,
     }),
     events: eventsFromSnapshots(snapshots),
   };
