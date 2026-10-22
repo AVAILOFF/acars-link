@@ -34,10 +34,10 @@ export interface Settings {
    */
   readonly messageGapSec: number;
   /**
-   * ROPS ATC station (T23): a simulated CPDLC station per FIR on Hoppie (`X` + FIR, e.g.
+   * XATC station (T23): a simulated CPDLC station per FIR on Hoppie (`X` + FIR, e.g.
    * XDGG) for the own aircraft. Needs live data (FIR boundaries). Off by default.
    */
-  readonly rops: boolean;
+  readonly xatc: boolean;
   /**
    * Data link simulation (T31): messages wait for the delay of a conditional VHF station or an
    * Inmarsat satellite (and for a link at all). Needs live data (stations near the route). Off by default.
@@ -67,10 +67,10 @@ export interface Settings {
   readonly turnaround: boolean;
   /** Put the AES/GES header (a decoder format, not a cockpit one) in the message text. Default off. */
   readonly datalinkHeaderInText: boolean;
-  /** ROPS steps aside where a live VATSIM centre covers the FIR. Default on. */
-  readonly ropsStandAside: boolean;
-  /** ROPS sends up to 3 random Direct To per flight (T26). Default on. */
-  readonly ropsRandomDirects: boolean;
+  /** XATC steps aside where a live VATSIM centre covers the FIR. Default on. */
+  readonly xatcStandAside: boolean;
+  /** XATC sends up to 3 random Direct To per flight (T26). Default on. */
+  readonly xatcRandomDirects: boolean;
   /**
    * Special events (T29) by group; a group that is off has its scenarios off and its sources not
    * asked. Default on. Sport: F1, NHL. Aviation: space weather, aurora, eclipse, volcanic ash,
@@ -193,7 +193,7 @@ export interface TransportView {
   readonly reason: string | null;
 }
 
-/** ROPS station state (T23). */
+/** XATC station state (T23). */
 export interface AtcView {
   /** Station to log on to (the FIR's), null before the FIR is known. */
   readonly station: string | null;
@@ -322,7 +322,7 @@ export interface AppState {
   readonly bridge: BridgeView;
   readonly telemetry: TelemetryView | null;
   readonly transport: TransportView | null;
-  /** ROPS station of the running flight (T23); null = off or no flight. */
+  /** XATC station of the running flight (T23); null = off or no flight. */
   readonly atc: AtcView | null;
   /** Data link of the running flight (T31); null = off or no flight. */
   readonly link: LinkWindow | null;

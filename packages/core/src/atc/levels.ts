@@ -1,5 +1,5 @@
 /**
- * Cruising levels for the ROPS station (T25, docs/07; sources in docs/06 "Эшелоны").
+ * Cruising levels for the XATC station (T25, docs/07; sources in docs/06 "Эшелоны").
  *
  * Table: SERA Appendix 3 (Regulation (EU) No 923/2012), the same as ICAO Annex 2, App. 3,
  * table a (feet, RVSM FL290–410): odd levels FL10, 30 … 290, 310 … 410, 450, 490; even

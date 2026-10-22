@@ -34,7 +34,7 @@ export function defaultSettings(locale: string): Settings {
     liveData: true,
     soundOnMessage: false,
     messageGapSec: 60,
-    rops: false,
+    xatc: false,
     datalink: false,
     datalinkSatcom: true,
     aircraftIcaoHex: '',
@@ -42,8 +42,8 @@ export function defaultSettings(locale: string): Settings {
     simTime: false,
     turnaround: true,
     datalinkHeaderInText: false,
-    ropsStandAside: true,
-    ropsRandomDirects: true,
+    xatcStandAside: true,
+    xatcRandomDirects: true,
     specialSport: true,
     specialAviation: true,
     specialOther: true,
@@ -136,12 +136,12 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'recordFlights':
       case 'liveData':
       case 'soundOnMessage':
-      case 'rops':
+      case 'xatc':
       case 'datalink':
       case 'datalinkSatcom':
       case 'datalinkHeaderInText':
-      case 'ropsStandAside':
-      case 'ropsRandomDirects':
+      case 'xatcStandAside':
+      case 'xatcRandomDirects':
       case 'specialSport':
       case 'specialAviation':
       case 'specialOther':
@@ -190,10 +190,27 @@ function parseRescueTitles(v: unknown): RescueTitles | null {
   return out as unknown as RescueTitles;
 }
 
+/** Keys of settings saved before T58 (the XATC station was called ROPS) → today's keys. */
+const LEGACY_KEYS = {
+  rops: 'xatc',
+  ropsStandAside: 'xatcStandAside',
+  ropsRandomDirects: 'xatcRandomDirects',
+} as const;
+
+/** Old keys read as today's; a today's key, when present, wins. */
+function legacyKeys(r: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...r };
+  for (const [old, key] of Object.entries(LEGACY_KEYS)) {
+    if (old in out && !(key in out)) out[key] = out[old];
+    delete out[old];
+  }
+  return out;
+}
+
 /** Settings from disk: unknown or bad values fall back to the defaults, one by one. */
 export function sanitize(raw: unknown, defaults: Settings): Settings {
   if (typeof raw !== 'object' || raw === null) return defaults;
-  const r = raw as Record<string, unknown>;
+  const r = legacyKeys(raw as Record<string, unknown>);
   let s = defaults;
   const keys = [
     'language',
@@ -204,7 +221,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'liveData',
     'soundOnMessage',
     'messageGapSec',
-    'rops',
+    'xatc',
     'datalink',
     'datalinkSatcom',
     'aircraftIcaoHex',
@@ -212,8 +229,8 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'simTime',
     'turnaround',
     'datalinkHeaderInText',
-    'ropsStandAside',
-    'ropsRandomDirects',
+    'xatcStandAside',
+    'xatcRandomDirects',
     'specialSport',
     'specialAviation',
     'specialOther',

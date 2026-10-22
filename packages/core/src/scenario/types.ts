@@ -145,7 +145,7 @@ export type SetValue = string | number | boolean | null;
  * Assignments (T14): `flags.<name>` — airline memory that later scenarios of this flight and of
  * the next flights read (`null` clears it); `flight.divert` — diversion airport (ICAO, only in
  * the air, not the destination); `ops.arr_gate` — the arrival gate from now on; `flight.delay_min` (T43) — raise the flight's delay to at least
- * this many minutes (before OUT), as a pilot `DELAY` would; `flight.hold` (T48) — minutes of holding announced to the ROPS station in the air (`null` ends it).
+ * this many minutes (before OUT), as a pilot `DELAY` would; `flight.hold` (T48) — minutes of holding announced to the XATC station in the air (`null` ends it).
  */
 export interface SetStep {
   readonly set: Readonly<Record<string, SetValue>>;

@@ -42,7 +42,7 @@ steps:
       reply: { options: [HOLD, DIVERT], timeout_min: 8, default: HOLD }
   - branch:
       HOLD:
-        # The ROPS station gives the holding clearance and a new time at every update (T48, T50);
+        # The XATC station gives the holding clearance and a new time at every update (T48, T50);
         # null below ends it.
         - set: { flight.hold: 20 }
         - send:

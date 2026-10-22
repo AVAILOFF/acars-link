@@ -78,10 +78,10 @@ describe('system feed text', () => {
 
   it('shows station callsigns of a handover as they are, not as flight phases', () => {
     expect(systemText(translator('en'), 'atc_handover', { from: 'XFIN', to: 'XENM' })).toBe(
-      'ROPS: handover XFIN → XENM',
+      'XATC: handover XFIN → XENM',
     );
     expect(systemText(translator('ru'), 'atc_handover', { from: 'XFIN', to: 'XENM' })).toBe(
-      'ROPS: передача XFIN → XENM',
+      'XATC: передача XFIN → XENM',
     );
   });
 

@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { loadScenarios } from '../src/index.js';
 import { withHoldMin } from './hold.js';
 
-/** T48: the airline's diversion and holding reach the aircraft through the ROPS station. */
+/** T48: the airline's diversion and holding reach the aircraft through the XATC station. */
 
 const dir = (name: string) => join(import.meta.dirname, '..', name);
 const read = (name: string) =>
@@ -76,7 +76,7 @@ function fly(
     ofp,
     scenarios: only(...ids),
     seed: 't48',
-    rops: { enabled: true, randomDirects: false },
+    xatc: { enabled: true, randomDirects: false },
   });
   core.startFlight();
   const out: OutboundMessage[] = [];
@@ -97,7 +97,7 @@ function fly(
 const cp = (out: readonly OutboundMessage[]) =>
   out.filter((m) => m.kind === 'cpdlc').map((m) => m.message.text);
 
-describe('airline → ROPS (T48)', () => {
+describe('airline → XATC (T48)', () => {
   const cruise = stageIndex(flight, 'CRUISE', 600);
   const altn = ofp.alternates[0]?.icao as string;
 

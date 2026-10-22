@@ -13,7 +13,7 @@ const en = {
   'set.group.general': 'General',
   'set.group.messages': 'Messages',
   'set.group.data': 'Live data & events',
-  'set.group.rops': 'ROPS ATC station',
+  'set.group.xatc': 'XATC station',
   'set.group.datalink': 'Datalink',
   'set.group.records': 'Recordings & airline memory',
   'set.group.connection': 'Connection',
@@ -146,31 +146,31 @@ const en = {
   'sys.data_failed': 'Live data unavailable: {source} ({error}); messages use the OFP',
   'sys.data_restored': 'Live data available again: {source}',
   'sys.memory': 'Airline memory from earlier flights: {names}',
-  'sys.atc_station': 'ROPS: {fir} — log on to {station} ({unit})',
-  'sys.atc_logon': 'ROPS: logon to {station} accepted',
-  'sys.atc_logon_refused': 'ROPS: logon to {station} refused ({reason})',
-  'sys.atc_handover': 'ROPS: handover {from} → {to}',
-  'sys.atc_logoff': 'ROPS: {station} logged off ({by})',
+  'sys.atc_station': 'XATC: {fir} — log on to {station} ({unit})',
+  'sys.atc_logon': 'XATC: logon to {station} accepted',
+  'sys.atc_logon_refused': 'XATC: logon to {station} refused ({reason})',
+  'sys.atc_handover': 'XATC: handover {from} → {to}',
+  'sys.atc_logoff': 'XATC: {station} logged off ({by})',
   'sys.atc_live':
-    'ROPS: live VATSIM ATC in {fir} — {callsign} {frequency}; the station steps aside',
-  'sys.atc_unsupported': 'ROPS: {station} does not handle "{text}" yet',
+    'XATC: live VATSIM ATC in {fir} — {callsign} {frequency}; the station steps aside',
+  'sys.atc_unsupported': 'XATC: {station} does not handle "{text}" yet',
   'sys.atc_emergency':
-    'ROPS: {kind} received by {station} — the airline emergency desk is notified',
-  'sys.atc_level_check': 'ROPS: {station} asks to confirm the assigned level ({level} ft, {why})',
+    'XATC: {kind} received by {station} — the airline emergency desk is notified',
+  'sys.atc_level_check': 'XATC: {station} asks to confirm the assigned level ({level} ft, {why})',
   'sys.atc_logon_wrong':
-    'ROPS: {station} is not the station of your FIR — log on (CPDLC) to {expected}',
+    'XATC: {station} is not the station of your FIR — log on (CPDLC) to {expected}',
   'sys.atc_misrouted_pdc':
-    'ROPS: {station} takes CPDLC only (logon, requests). Send the PDC request as a telex to {target}',
+    'XATC: {station} takes CPDLC only (logon, requests). Send the PDC request as a telex to {target}',
   'sys.atc_misrouted_pdc_closed':
-    'ROPS: {station} takes CPDLC only; the PDC request is not available now (PDC works on the ground before take-off)',
+    'XATC: {station} takes CPDLC only; the PDC request is not available now (PDC works on the ground before take-off)',
   'sys.atc_misrouted_logon':
-    'ROPS: {station} is the PDC station — it takes the PDC request (telex) only. Log on (CPDLC) to {target}',
+    'XATC: {station} is the PDC station — it takes the PDC request (telex) only. Log on (CPDLC) to {target}',
   'sys.atc_misrouted_logon_fir':
-    'ROPS: {station} is the PDC station — it takes the PDC request (telex) only. Log on to the FIR station shown in Status',
+    'XATC: {station} is the PDC station — it takes the PDC request (telex) only. Log on to the FIR station shown in Status',
   'sys.atc_misrouted_fir':
-    'ROPS: {station} takes CPDLC only (logon, requests); the telex was ignored',
+    'XATC: {station} takes CPDLC only (logon, requests); the telex was ignored',
   'sys.atc_misrouted_dcl':
-    'ROPS: {station} takes the PDC request (telex) and WILCO to its clearance only; the message was ignored',
+    'XATC: {station} takes the PDC request (telex) and WILCO to its clearance only; the message was ignored',
   'sys.flt_nbr_hint':
     'After landing the aircraft drops INIT: enter FLT NBR {callsign} again to receive the messages at the gate',
   'atc.hint': 'CPDLC logon → {fir} · PDC (telex) → {dcl}',
@@ -180,9 +180,9 @@ const en = {
     'This aircraft has no CPDLC: only the PDC request (telex to X…) works, logon and ATC requests do not',
   'atc.fltNbr':
     'After landing: enter FLT NBR {callsign} again, or the aircraft will not fetch the messages',
-  'sys.atc_request': 'ROPS: {station} — "{request}" → {reply}',
-  'sys.atc_auto': 'ROPS: {station} — {text}',
-  'sys.atc_needs_data': 'ROPS needs live data (FIR boundaries): turn on "Live data" in Settings',
+  'sys.atc_request': 'XATC: {station} — "{request}" → {reply}',
+  'sys.atc_auto': 'XATC: {station} — {text}',
+  'sys.atc_needs_data': 'XATC needs live data (FIR boundaries): turn on "Live data" in Settings',
   'sys.link_needs_data':
     'The data link simulation needs live data (VHF stations): without it only SATCOM is a link',
   'sys.atc_dcl_request': 'PDC: request received by {station}',
@@ -197,7 +197,7 @@ const en = {
   'sys.atc_ocl_confirmed': 'Oceanic: clearance confirmed (ROGER)',
   'sys.atc_ocl_cancelled': 'Oceanic: no ROGER in 10 min, clearance cancelled',
   'atc.dcl': 'PDC from {station}',
-  'status.atc': 'ROPS ATC',
+  'status.atc': 'XATC',
   'status.link': 'Data link',
   'link.vhf': 'VHF {station} ({nm} NM)',
   'link.satcom': 'SATCOM {station} ({el}°)',
@@ -208,12 +208,12 @@ const en = {
   'atc.logon': 'log on to {station}',
   'atc.connected': 'connected to {station}',
   'atc.wait': 'waiting for FIR data',
-  'set.rops': 'ROPS ATC station (CPDLC)',
-  'set.ropsHint':
+  'set.xatc': 'XATC station (CPDLC)',
+  'set.xatcHint':
     'A simulated CPDLC station per FIR for your aircraft on Hoppie: log on to X + the FIR code (EDGG → XDGG); at FIR boundaries it hands you over. On the ground, the departure clearance (PDC/DCL) comes from X + the airport code (EDDF → XDDF). Needs live data (FIR boundaries from VATSpy). Applies to the next flight.',
-  'set.ropsStandAside': 'Step aside for live VATSIM controllers',
-  'set.ropsRandomDirects': 'Random Direct To',
-  'set.ropsRandomDirectsHint':
+  'set.xatcStandAside': 'Step aside for live VATSIM controllers',
+  'set.xatcRandomDirects': 'Random Direct To',
+  'set.xatcRandomDirectsHint':
     'Up to 3 times per flight in cruise the station clears you direct to a fix ahead on your route. Applies to the next flight.',
   'set.datalink': 'Data link simulation (VHF / SATCOM)',
   'set.datalinkHint':
@@ -230,7 +230,7 @@ const en = {
   'set.specialOther': 'Other (public holiday, earthquake at the destination)',
   'set.specialHint':
     'Real events from free sources, at most one message per flight in cruise (space weather and volcanic ash come separately). Needs live data. Applies to the next flight.',
-  'set.ropsStandAsideHint':
+  'set.xatcStandAsideHint':
     'Where a VATSIM centre covering the FIR is online, the station logs you off and names the controller.',
 
   'scen.title': 'Scenarios',
@@ -386,7 +386,7 @@ const ru: Record<MessageKey, string> = {
   'set.group.general': 'Общие',
   'set.group.messages': 'Сообщения',
   'set.group.data': 'Живые данные и события',
-  'set.group.rops': 'Станция УВД ROPS',
+  'set.group.xatc': 'Станция УВД XATC',
   'set.group.datalink': 'Канал передачи данных',
   'set.group.records': 'Записи и память авиакомпании',
   'set.group.connection': 'Подключение',
@@ -519,30 +519,30 @@ const ru: Record<MessageKey, string> = {
   'sys.data_failed': 'Живые данные недоступны: {source} ({error}); сообщения по OFP',
   'sys.data_restored': 'Живые данные снова доступны: {source}',
   'sys.memory': 'Память авиакомпании с прошлых рейсов: {names}',
-  'sys.atc_station': 'ROPS: {fir} — логон на {station} ({unit})',
-  'sys.atc_logon': 'ROPS: логон на {station} принят',
-  'sys.atc_logon_refused': 'ROPS: логон на {station} отклонён ({reason})',
-  'sys.atc_handover': 'ROPS: передача {from} → {to}',
-  'sys.atc_logoff': 'ROPS: {station} — logoff ({by})',
-  'sys.atc_live': 'ROPS: в {fir} живой диспетчер VATSIM — {callsign} {frequency}; станция уступает',
-  'sys.atc_unsupported': 'ROPS: {station} пока не обрабатывает «{text}»',
+  'sys.atc_station': 'XATC: {fir} — логон на {station} ({unit})',
+  'sys.atc_logon': 'XATC: логон на {station} принят',
+  'sys.atc_logon_refused': 'XATC: логон на {station} отклонён ({reason})',
+  'sys.atc_handover': 'XATC: передача {from} → {to}',
+  'sys.atc_logoff': 'XATC: {station} — logoff ({by})',
+  'sys.atc_live': 'XATC: в {fir} живой диспетчер VATSIM — {callsign} {frequency}; станция уступает',
+  'sys.atc_unsupported': 'XATC: {station} пока не обрабатывает «{text}»',
   'sys.atc_emergency':
-    'ROPS: {kind} принят станцией {station} — аварийный центр авиакомпании уведомлён',
-  'sys.atc_level_check': 'ROPS: {station} просит подтвердить выданный эшелон ({level} ft, {why})',
+    'XATC: {kind} принят станцией {station} — аварийный центр авиакомпании уведомлён',
+  'sys.atc_level_check': 'XATC: {station} просит подтвердить выданный эшелон ({level} ft, {why})',
   'sys.atc_logon_wrong':
-    'ROPS: {station} — не станция вашего FIR; логон (CPDLC) нужен на {expected}',
+    'XATC: {station} — не станция вашего FIR; логон (CPDLC) нужен на {expected}',
   'sys.atc_misrouted_pdc':
-    'ROPS: {station} принимает только CPDLC (логон, запросы). Запрос PDC отправьте telex на {target}',
+    'XATC: {station} принимает только CPDLC (логон, запросы). Запрос PDC отправьте telex на {target}',
   'sys.atc_misrouted_pdc_closed':
-    'ROPS: {station} принимает только CPDLC; запрос PDC сейчас недоступен (PDC работает на земле до взлёта)',
+    'XATC: {station} принимает только CPDLC; запрос PDC сейчас недоступен (PDC работает на земле до взлёта)',
   'sys.atc_misrouted_logon':
-    'ROPS: {station} — станция PDC, она принимает только запрос PDC (telex). Логон (CPDLC) — на {target}',
+    'XATC: {station} — станция PDC, она принимает только запрос PDC (telex). Логон (CPDLC) — на {target}',
   'sys.atc_misrouted_logon_fir':
-    'ROPS: {station} — станция PDC, она принимает только запрос PDC (telex). Логон — на станцию FIR из «Состояния»',
+    'XATC: {station} — станция PDC, она принимает только запрос PDC (telex). Логон — на станцию FIR из «Состояния»',
   'sys.atc_misrouted_fir':
-    'ROPS: {station} принимает только CPDLC (логон, запросы); telex проигнорирован',
+    'XATC: {station} принимает только CPDLC (логон, запросы); telex проигнорирован',
   'sys.atc_misrouted_dcl':
-    'ROPS: {station} принимает только запрос PDC (telex) и WILCO на её клиренс; сообщение проигнорировано',
+    'XATC: {station} принимает только запрос PDC (telex) и WILCO на её клиренс; сообщение проигнорировано',
   'sys.flt_nbr_hint':
     'После посадки самолёт сбрасывает INIT: введите FLT NBR {callsign} снова, чтобы получить сообщения на стоянке',
   'atc.hint': 'Логон CPDLC → {fir} · PDC (telex) → {dcl}',
@@ -552,10 +552,10 @@ const ru: Record<MessageKey, string> = {
     'У этого самолёта нет CPDLC: доступен только запрос PDC (telex на X…), логон и запросы УВД — нет',
   'atc.fltNbr':
     'После посадки введите FLT NBR {callsign} снова, иначе самолёт не заберёт сообщения',
-  'sys.atc_request': 'ROPS: {station} — «{request}» → {reply}',
-  'sys.atc_auto': 'ROPS: {station} — {text}',
+  'sys.atc_request': 'XATC: {station} — «{request}» → {reply}',
+  'sys.atc_auto': 'XATC: {station} — {text}',
   'sys.atc_needs_data':
-    'Для ROPS нужны живые данные (границы FIR): включите «Живые данные» в настройках',
+    'Для XATC нужны живые данные (границы FIR): включите «Живые данные» в настройках',
   'sys.link_needs_data':
     'Для имитации линии нужны живые данные (станции VHF): без них линией остаётся только SATCOM',
   'sys.atc_dcl_request': 'PDC: запрос принят станцией {station}',
@@ -570,7 +570,7 @@ const ru: Record<MessageKey, string> = {
   'sys.atc_ocl_confirmed': 'Океан: клиренс подтверждён (ROGER)',
   'sys.atc_ocl_cancelled': 'Океан: нет ROGER за 10 мин, клиренс отменён',
   'atc.dcl': 'PDC со станции {station}',
-  'status.atc': 'ROPS УВД',
+  'status.atc': 'XATC УВД',
   'status.link': 'Линия передачи',
   'link.vhf': 'VHF {station} ({nm} NM)',
   'link.satcom': 'SATCOM {station} ({el}°)',
@@ -581,12 +581,12 @@ const ru: Record<MessageKey, string> = {
   'atc.logon': 'логон на {station}',
   'atc.connected': 'связь с {station}',
   'atc.wait': 'ждём данные FIR',
-  'set.rops': 'Станция УВД ROPS (CPDLC)',
-  'set.ropsHint':
+  'set.xatc': 'Станция УВД XATC (CPDLC)',
+  'set.xatcHint':
     'Имитация станции CPDLC для вашего самолёта на Hoppie, своя в каждой FIR: логон на X + код FIR (EDGG → XDGG), на границе FIR — передача следующей. На земле разрешение на вылет (PDC/DCL) выдаёт станция X + код аэропорта (EDDF → XDDF). Нужны живые данные (границы FIR из VATSpy). Действует со следующего рейса.',
-  'set.ropsStandAside': 'Уступать живым диспетчерам VATSIM',
-  'set.ropsRandomDirects': 'Случайные Direct To',
-  'set.ropsRandomDirectsHint':
+  'set.xatcStandAside': 'Уступать живым диспетчерам VATSIM',
+  'set.xatcRandomDirects': 'Случайные Direct To',
+  'set.xatcRandomDirectsHint':
     'До 3 раз за полёт в крейсере станция даёт прямо на точку впереди по маршруту. Действует со следующего рейса.',
   'set.datalink': 'Имитация линии передачи (VHF / SATCOM)',
   'set.datalinkHint':
@@ -603,7 +603,7 @@ const ru: Record<MessageKey, string> = {
   'set.specialOther': 'Другое (праздник, землетрясение у аэропорта назначения)',
   'set.specialHint':
     'Реальные события из бесплатных источников, не больше одного сообщения за рейс, в крейсере (космическая погода и пепел — отдельно). Нужны живые данные. Действует со следующего рейса.',
-  'set.ropsStandAsideHint':
+  'set.xatcStandAsideHint':
     'Если онлайн центр VATSIM этой FIR, станция завершает связь (logoff) и сообщает позывной диспетчера.',
 
   'scen.title': 'Сценарии',

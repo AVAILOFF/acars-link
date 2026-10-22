@@ -2,7 +2,7 @@ import type { FlightPhase } from '@acars/core';
 import type { AtcView } from './api.js';
 
 /**
- * Aircraft whose `aircraftTitle` matches have no CPDLC through Hoppie: ROPS can serve their PDC
+ * Aircraft whose `aircraftTitle` matches have no CPDLC through Hoppie: XATC can serve their PDC
  * request (telex) only (docs/07 T49 item 4, decision 2026-10-10). Filled only from a human
  * check or the add-on's documentation, with the date. Empty so far: Fenix A320 has CPDLC (ATC
  * MENU → CONNECTION, checked 2026-10-10); an unknown aircraft gets no hint.

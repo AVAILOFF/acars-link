@@ -85,6 +85,23 @@ describe('JSONL format', () => {
     expect(() => parseJsonl('')).toThrow(/empty/);
   });
 
+  it('reads `rops` of recordings made before T58 as `xatc`', () => {
+    const xatc = { enabled: true, standAside: false, randomDirects: true };
+    const withXatc: Recording = { ...normal, header: { ...normal.header, xatc } };
+    const [h, ...rest] = encodeRecording(withXatc).split('\n');
+    const { xatc: _, ...header } = JSON.parse(h as string);
+    const old = parseJsonl([JSON.stringify({ ...header, rops: xatc }), ...rest].join('\n'));
+    if (old.kind !== 'recording') throw new Error('not a recording');
+    expect(old.recording.header.xatc).toEqual(xatc);
+    expect(old.recording.header).not.toHaveProperty('rops');
+    const texts = (rec: Recording) =>
+      replay(rec, { scenarios: all }).outbound.map((m) => m.message.text);
+    expect(texts(old.recording)).toEqual(texts(withXatc));
+    expect(() =>
+      parseJsonl([JSON.stringify({ ...header, rops: { enabled: 1 } }), ...rest].join('\n')),
+    ).toThrow(/xatc/);
+  });
+
   it('reads bare snapshot files (bridge --replay format) and writes them back', () => {
     const snaps = snapshotsOf(normal);
     const text = snaps.map((s) => `${JSON.stringify(s)}\n`).join('');

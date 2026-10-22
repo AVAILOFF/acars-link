@@ -366,30 +366,30 @@ function NetworkForm() {
         ))}
       </Group>
 
-      <Group id="rops" title={t('set.group.rops')}>
+      <Group id="xatc" title={t('set.group.xatc')}>
         <Switch
-          checked={settings.rops}
+          checked={settings.xatc}
           disabled={off}
-          onChange={(v) => void update({ rops: v })}
-          hint={t('set.ropsHint')}
+          onChange={(v) => void update({ xatc: v })}
+          hint={t('set.xatcHint')}
         >
-          {t('set.rops')}
+          {t('set.xatc')}
         </Switch>
         <Switch
-          checked={settings.ropsStandAside}
-          disabled={off || !settings.rops}
-          onChange={(v) => void update({ ropsStandAside: v })}
-          hint={t('set.ropsStandAsideHint')}
+          checked={settings.xatcStandAside}
+          disabled={off || !settings.xatc}
+          onChange={(v) => void update({ xatcStandAside: v })}
+          hint={t('set.xatcStandAsideHint')}
         >
-          {t('set.ropsStandAside')}
+          {t('set.xatcStandAside')}
         </Switch>
         <Switch
-          checked={settings.ropsRandomDirects}
-          disabled={off || !settings.rops}
-          onChange={(v) => void update({ ropsRandomDirects: v })}
-          hint={t('set.ropsRandomDirectsHint')}
+          checked={settings.xatcRandomDirects}
+          disabled={off || !settings.xatc}
+          onChange={(v) => void update({ xatcRandomDirects: v })}
+          hint={t('set.xatcRandomDirectsHint')}
         >
-          {t('set.ropsRandomDirects')}
+          {t('set.xatcRandomDirects')}
         </Switch>
       </Group>
 

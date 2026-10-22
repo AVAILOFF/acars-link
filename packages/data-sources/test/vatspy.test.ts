@@ -118,7 +118,7 @@ describe('VATSIM centres', () => {
   });
 });
 
-describe('ExternalDataService with the ROPS station', () => {
+describe('ExternalDataService with the XATC station', () => {
   const T0 = Date.UTC(2026, 9, 9, 8, 0);
   const feed = JSON.stringify({
     controllers: [
@@ -199,7 +199,7 @@ describe('T24: airport facts and frequencies', () => {
     expect(() => parseAirportFrequencies('a,b\n1,2', 'KMSP')).toThrow(DataSourceError);
   });
 
-  it('the service passes origin/destination facts and the origin frequencies with ROPS', async () => {
+  it('the service passes origin/destination facts and the origin frequencies with XATC', async () => {
     const http: HttpClient = {
       async request(req) {
         if (req.url === VATSPY_BOUNDARIES_URL) {
@@ -255,7 +255,7 @@ describe('T27: NAT tracks from natTrak', () => {
     expect(() => parseNatTracks({ message: 'Server Error' })).toThrow(DataSourceError);
   });
 
-  it('the service fetches them with the ROPS station only, hourly', async () => {
+  it('the service fetches them with the XATC station only, hourly', async () => {
     const calls: string[] = [];
     const http: HttpClient = {
       async request(req) {
@@ -274,12 +274,12 @@ describe('T27: NAT tracks from natTrak', () => {
     expect(svc.take(T0).update).toBeNull();
     expect(calls).toEqual([]);
 
-    const rops = new ExternalDataService({ http, userAgent: 't', sources: ['nattracks'] });
-    rops.startFlight(eddfEddm, T0, { firs: true });
+    const xatc = new ExternalDataService({ http, userAgent: 't', sources: ['nattracks'] });
+    xatc.startFlight(eddfEddm, T0, { firs: true });
     const step = async (t: number) => {
-      rops.tick(t, 'CRUISE');
-      await rops.settle();
-      return rops.take(t).update;
+      xatc.tick(t, 'CRUISE');
+      await xatc.settle();
+      return xatc.take(t).update;
     };
     expect((await step(T0))?.natTracks?.length).toBe(5);
     expect(await step(T0 + 30 * 60_000)).toBeNull();

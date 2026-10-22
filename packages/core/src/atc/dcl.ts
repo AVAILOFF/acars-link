@@ -11,7 +11,7 @@ import type { FlightPhase } from '../phase/fsm.js';
 import { createRng } from '../random/rng.js';
 import { normalizePilotText, type PilotMessage } from '../scenario/pilot.js';
 import { type CpdlcResponse, parseCpdlc } from './cpdlc.js';
-import { ropsStation } from './fir.js';
+import { xatcStation } from './fir.js';
 import { assignSquawk, type Squawk } from './squawk/squawk.js';
 
 /**
@@ -59,7 +59,7 @@ export type DclEvent =
     }
   /**
    * A message reached a station that does not take it (T49): the aircraft's FMS sent it to the
-   * wrong ROPS station. Nothing goes to the network; the app tells the pilot where to send it.
+   * wrong XATC station. Nothing goes to the network; the app tells the pilot where to send it.
    */
   | {
       readonly type: 'ATC_MISROUTED';
@@ -187,7 +187,7 @@ export class DclService {
     private readonly profile: DisplayProfile,
     state: DclState = EMPTY_DCL,
   ) {
-    this.station = ropsStation(ofp.origin.icao);
+    this.station = xatcStation(ofp.origin.icao);
     const copy = JSON.parse(JSON.stringify(state)) as DclState;
     this.st = {
       requests: copy.requests,

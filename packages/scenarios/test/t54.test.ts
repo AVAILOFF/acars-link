@@ -64,7 +64,7 @@ function rescues(say: ReadonlyMap<number, readonly PilotMessage[]>, ids: readonl
     ofp,
     scenarios: only(...ids),
     seed: 't54',
-    rops: { enabled: true, randomDirects: false },
+    xatc: { enabled: true, randomDirects: false },
   });
   core.startFlight();
   const out: RescueCommand[] = [];

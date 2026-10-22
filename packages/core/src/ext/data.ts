@@ -135,7 +135,7 @@ export interface ParkingStand {
 }
 
 /**
- * A FIR as the ROPS station sees it (T23; VATSpy `Boundaries.geojson` + the name from
+ * A FIR as the XATC station sees it (T23; VATSpy `Boundaries.geojson` + the name from
  * `VATSpy.dat`, docs/06 "Границы FIR"). Only FIRs near the route are passed in.
  */
 export interface FirArea {

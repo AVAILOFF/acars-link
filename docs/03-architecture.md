@@ -53,8 +53,8 @@ interface CoreOutput {
   outbound: OutboundMessage[];    // { to, from, text, kind: telex | cpdlc (+ заголовок /data2/) }
   commands: SimCommand[];         // команды симулятору (T21)
   phase: FlightPhase;
-  events: CoreEvent[];            // для UI и лога (фазы, сценарии, УВД ROPS)
-  listen: string[];               // позывные станций УВД ROPS для опроса (T23)
+  events: CoreEvent[];            // для UI и лога (фазы, сценарии, УВД XATC)
+  listen: string[];               // позывные станций УВД XATC для опроса (T23)
 }
 // core.tick(input) → output. Состояние — внутри экземпляра, сериализуемо (resume после рестарта).
 ```

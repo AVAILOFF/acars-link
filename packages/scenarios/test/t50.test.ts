@@ -23,7 +23,7 @@ import { withHoldMin } from './hold.js';
 
 /**
  * T50 part A: how long an airline-announced holding lasts is drawn at the start; updates every
- * 20 min with a new time (and a new UM93 from the ROPS station); closed until further notice sends
+ * 20 min with a new time (and a new UM93 from the XATC station); closed until further notice sends
  * the aircraft away at the first update; the fuel minimum sends it away early.
  */
 
@@ -93,7 +93,7 @@ function hold(
     minutes: number;
     /** Answers, once per question of the scenario (first question only); default HOLD for `id`. */
     answers?: Readonly<Record<string, string>>;
-    rops?: boolean;
+    xatc?: boolean;
     fuelPerMin?: number;
     pilot?: (min: number) => string | null;
   },
@@ -102,7 +102,7 @@ function hold(
     ofp,
     scenarios,
     seed: 't50',
-    ...(o.rops === true ? { rops: { enabled: true, randomDirects: false } } : {}),
+    ...(o.xatc === true ? { xatc: { enabled: true, randomDirects: false } } : {}),
   });
   core.startFlight();
   const out: OutboundMessage[] = [];
@@ -133,7 +133,7 @@ function hold(
   };
   let i = 0;
   for (const s of flight.snapshots) {
-    tickOnce(s, i === 5 && o.rops === true ? [logon] : []);
+    tickOnce(s, i === 5 && o.xatc === true ? [logon] : []);
     i++;
     if (first !== null) {
       frozen = s;
@@ -396,11 +396,11 @@ describe('minimum diversion fuel (T50)', () => {
   });
 });
 
-describe('ROPS follows the updates (T50)', () => {
+describe('XATC follows the updates (T50)', () => {
   it('a new EXPECT FURTHER CLEARANCE AT at every update, HOLD AT only once', () => {
     const h = hold([withHoldMin(scenario('drone_activity'), 50)], 'drone_activity', {
       minutes: 70,
-      rops: true,
+      xatc: true,
     });
     const cp = h.out.filter((m) => m.kind === 'cpdlc').map((m) => m.message.text);
     expect(cp.filter((x) => x.includes('HOLD AT @'))).toHaveLength(1);
@@ -473,12 +473,12 @@ describe('where the aircraft is sent (T50 part B)', () => {
     expect(['RCTP', 'RJGG']).toContain((set as { value: string }).value);
   });
 
-  it('the ROPS station sends the direct and the descent to a reserve airport', () => {
+  it('the XATC station sends the direct and the descent to a reserve airport', () => {
     const core = AcarsCore.create({
       ofp,
       scenarios: [],
       seed: 't50b',
-      rops: { enabled: true, randomDirects: false },
+      xatc: { enabled: true, randomDirects: false },
     });
     core.startFlight();
     const out: OutboundMessage[] = [];

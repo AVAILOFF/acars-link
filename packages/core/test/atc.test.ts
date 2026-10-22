@@ -18,11 +18,11 @@ import {
   type PilotMessage,
   parseCpdlc,
   parseSimbriefOfp,
-  ROPS_ID,
-  ropsStation,
+  XATC_ID,
+  xatcStation,
 } from '../src/index.js';
 
-/** T23: CPDLC packets, FIR lookup and the ROPS station. */
+/** T23: CPDLC packets, FIR lookup and the XATC station. */
 
 const ofp = parseSimbriefOfp(
   JSON.parse(
@@ -164,9 +164,9 @@ describe('FIR lookup', () => {
   });
 
   it('station callsigns: X + FIR (ICAO has no X… indicators)', () => {
-    expect(ropsStation('EDGG')).toBe('XDGG');
-    expect(ropsStation('KZNY')).toBe('XZNY');
-    expect(() => ropsStation('ADR')).toThrow(RangeError);
+    expect(xatcStation('EDGG')).toBe('XDGG');
+    expect(xatcStation('KZNY')).toBe('XZNY');
+    expect(() => xatcStation('ADR')).toThrow(RangeError);
   });
 
   it('unit names from VATSpy names, in the forms of real Hoppie stations', () => {
@@ -226,7 +226,7 @@ function fly(
     ofp,
     scenarios: [],
     seed: 'atc',
-    rops: { enabled: true, ...(o.standAside === undefined ? {} : { standAside: o.standAside }) },
+    xatc: { enabled: true, ...(o.standAside === undefined ? {} : { standAside: o.standAside }) },
   });
   core.startFlight();
   const out: OutboundMessage[] = [];
@@ -262,7 +262,7 @@ const packets = (r: Run) =>
   );
 const atcEvents = (r: Run) => r.events.filter((e) => e.type.startsWith('ATC_'));
 
-describe('ROPS station', () => {
+describe('XATC station', () => {
   it('is off unless enabled: no listening, no events', () => {
     const core = AcarsCore.create({ ofp, scenarios: [], seed: 'atc' });
     core.startFlight();
@@ -294,7 +294,7 @@ describe('ROPS station', () => {
       'XJJJ /data2/3//WU/DESCEND TO @FL250@',
       'XJJJ /data2/4//NE/LOGOFF',
     ]);
-    expect(r.out.every((m) => m.kind === 'cpdlc' && m.scenarioId === ROPS_ID && m.toPilot)).toBe(
+    expect(r.out.every((m) => m.kind === 'cpdlc' && m.scenarioId === XATC_ID && m.toPilot)).toBe(
       true,
     );
     expect(r.out[2]?.t).toBe(flight.snapshots[crossing]?.t);
@@ -394,7 +394,7 @@ describe('ROPS station', () => {
   });
 
   it('steps aside when the centre of the current FIR comes online while connected', () => {
-    const core = AcarsCore.create({ ofp, scenarios: [], seed: 'atc', rops: { enabled: true } });
+    const core = AcarsCore.create({ ofp, scenarios: [], seed: 'atc', xatc: { enabled: true } });
     core.startFlight();
     const s0 = flight.snapshots[0] as (typeof flight.snapshots)[number];
     core.tick({ now: s0.t, telemetry: s0, data: { t: s0.t, firs: [TAIPEI, FUKUOKA] } });
@@ -428,7 +428,7 @@ describe('ROPS station', () => {
   });
 
   it('messages to the airline station still go to the scenarios', () => {
-    const core = AcarsCore.create({ ofp, scenarios: [], seed: 'atc', rops: { enabled: true } });
+    const core = AcarsCore.create({ ofp, scenarios: [], seed: 'atc', xatc: { enabled: true } });
     core.startFlight();
     const s0 = flight.snapshots[0] as (typeof flight.snapshots)[number];
     const station = `OPS${ofp.flightNumber ?? ofp.callsign}`;
@@ -440,41 +440,46 @@ describe('ROPS station', () => {
     expect(r.events.find((e) => e.type === 'PILOT_MESSAGE')).toMatchObject({ result: 'command' });
   });
 
-  it('continues from a saved state with the same output (replay determinism)', () => {
-    const say = new Map([
-      [10, [logon('XCAA')]],
-      [crossing + 5, [logon('XJJJ', 2)]],
-    ]);
-    const whole = fly(say);
-    const cut = crossing - 3;
-    const core = AcarsCore.create({ ofp, scenarios: [], seed: 'atc', rops: { enabled: true } });
-    core.startFlight();
-    const out: OutboundMessage[] = [];
-    let restored: AcarsCore | null = null;
-    flight.snapshots.forEach((s, i) => {
-      const c = restored ?? core;
-      const inbound = say.get(i);
-      const r = c.tick({
-        now: s.t,
-        telemetry: s,
-        ...(inbound === undefined ? {} : { inbound }),
-        ...(i === 0 ? { data: { t: T0, firs: [TAIPEI, FUKUOKA] } } : {}),
-      });
-      out.push(...r.outbound);
-      if (i === cut) {
-        restored = AcarsCore.fromState(JSON.parse(JSON.stringify(core.getState())), {
-          ofp,
-          scenarios: [],
-          seed: 'atc',
-          rops: { enabled: true },
+  // `rops`: states saved before T58, when the station was called ROPS.
+  it.each(['xatc', 'rops'])(
+    'continues from a saved state with the same output (replay determinism, state key %s)',
+    (key) => {
+      const say = new Map([
+        [10, [logon('XCAA')]],
+        [crossing + 5, [logon('XJJJ', 2)]],
+      ]);
+      const whole = fly(say);
+      const cut = crossing - 3;
+      const core = AcarsCore.create({ ofp, scenarios: [], seed: 'atc', xatc: { enabled: true } });
+      core.startFlight();
+      const out: OutboundMessage[] = [];
+      let restored: AcarsCore | null = null;
+      flight.snapshots.forEach((s, i) => {
+        const c = restored ?? core;
+        const inbound = say.get(i);
+        const r = c.tick({
+          now: s.t,
+          telemetry: s,
+          ...(inbound === undefined ? {} : { inbound }),
+          ...(i === 0 ? { data: { t: T0, firs: [TAIPEI, FUKUOKA] } } : {}),
         });
-      }
-    });
-    expect(out.map((m) => m.message.text)).toEqual(whole.out.map((m) => m.message.text));
-  });
+        out.push(...r.outbound);
+        if (i === cut) {
+          const { xatc, ...state } = core.getState();
+          restored = AcarsCore.fromState(JSON.parse(JSON.stringify({ ...state, [key]: xatc })), {
+            ofp,
+            scenarios: [],
+            seed: 'atc',
+            xatc: { enabled: true },
+          });
+        }
+      });
+      expect(out.map((m) => m.message.text)).toEqual(whole.out.map((m) => m.message.text));
+    },
+  );
 });
 
-describe('messages to the wrong ROPS station (T49)', () => {
+describe('messages to the wrong XATC station (T49)', () => {
   const pdc = (to: string): PilotMessage => ({
     from: ofp.callsign,
     type: 'telex',

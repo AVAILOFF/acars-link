@@ -79,7 +79,7 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
     nextLegVersion: h.nextLegVersion ?? 1,
     lateStartVersion: h.lateStartVersion ?? 1,
     ...(h.hub === undefined ? {} : { hub: h.hub }),
-    ...(h.rops === undefined ? {} : { rops: h.rops }),
+    ...(h.xatc === undefined ? {} : { xatc: h.xatc }),
     ...(h.datalink === undefined ? {} : { datalink: h.datalink }),
     ...(o.phaseConfig === undefined ? {} : { phaseConfig: o.phaseConfig }),
   });

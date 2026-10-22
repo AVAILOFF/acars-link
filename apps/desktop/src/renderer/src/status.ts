@@ -50,7 +50,7 @@ export function netStatus(app: AppState, t: Translate): StatusItem {
   return { tone, short, text };
 }
 
-/** ROPS ATC station (CPDLC); null when the station is off. */
+/** XATC station (CPDLC); null when the station is off. */
 export function atcStatus(app: AppState, t: Translate): StatusItem | null {
   const atc = app.atc;
   if (atc === null) return null;

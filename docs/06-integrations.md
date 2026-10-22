@@ -30,7 +30,7 @@
 - Источники: FlyByWire A32NX `fbw-common/src/systems/datalink` (`AcarsConnector.ts`, `CpdlcMessage.ts`, `CpdlcMessageElements.ts`, `ATC.ts`; GPL-3.0); пакеты сети из YV E-Jet `Nasal/cpdlc/hoppie-driver.nas` и `hoppie-standalone` (MIT); руководство TopSky «Data Link Functions» v2.2 (2017); страница Hoppie ACARS ATC Client (`hoppie.nl/acars/prg/atc`).
 - Пакет: `/data2/<min>/<mrn>/<ra>/<текст>`. `min` — счётчик отправителя, `mrn` — `min` сообщения, на которое ответ (пусто у первого), `ra` — `WU`, `AN`, `R`, `NE`, `Y`, `N`. FBW берёт текст как шестое поле `split('/')`, поэтому в тексте uplink нет `/`. `@` выделяет значение, `@_@` разделяет части строки.
 - Логон: самолёт шлёт `/data2/n//Y/REQUEST LOGON` (так шлют A350/A380, T09). Станция отвечает `/data2/m/n/NE/LOGON ACCEPTED` и `CURRENT ATC UNIT@_@EDGG@_@LANGEN CTL` (океан — `… OCA`). Отказ — `UNABLE …` (FBW: UM9996/UM0). Передача: `HANDOVER @EDUU` (NE) — FBW шлёт LOGOFF старой станции и REQUEST LOGON новой. Конец связи — `LOGOFF` (NE).
-- Позывные живых станций — 4 символа (TopSky: «four characters»): EDGG, EDYJ, LONC, EUWN. ROPS использует `X` + FIR (решение 2026-10-09, `07` T23).
+- Позывные живых станций — 4 символа (TopSky: «four characters»): EDGG, EDYJ, LONC, EUWN. XATC использует `X` + FIR (решение 2026-10-09, `07` T23).
 - Опрос: по tech.html ждать первого сообщения должны клиенты самолётов; станция УВД ждёт логона, поэтому опрашивается с начала (те же 45–75 с, после HANDOVER — 20 с не дольше 3 мин).
 - `[ПРОВЕРИТЬ]` человеком: показ в PMDG 777/737 (737 MSFS 2024 — чек-лист в `07`, T52), Fenix, iniBuilds; автологон после HANDOVER у не-FBW самолётов.
 
@@ -76,7 +76,7 @@ REQ:M.<мах> FL<эшелон>[
 ## OurAirports (T24)
 
 - `https://davidmegginson.github.io/ourairports-data/airport-frequencies.csv` (~1,3 МБ, обновляется ночью). Лицензия (ourairports.com/data, сверено 2026-10-09): «All data is released to the Public Domain, and comes with no guarantee of accuracy or fitness for use». Столбцы `id, airport_ref, airport_ident, type, description, frequency_mhz`; типы `DEL`, `CLD`, `GND`, `TWR`, `APP`, `DEP`, `ATIS` и др.
-- Только частоты аэропорта вылета, при включённой станции ROPS; кэш 30 дней, после сбоя — через 10 мин, не более 3 попыток. Используются, когда у VATSIM нет живого диспетчера (NEXT FREQ / DPFRQ). Реализация — `packages/data-sources/src/ourairports.ts`.
+- Только частоты аэропорта вылета, при включённой станции XATC; кэш 30 дней, после сбоя — через 10 мин, не более 3 попыток. Используются, когда у VATSIM нет живого диспетчера (NEXT FREQ / DPFRQ). Реализация — `packages/data-sources/src/ourairports.ts`.
 
 ## OpenFlights (T43)
 
@@ -141,7 +141,7 @@ REQ:M.<мах> FL<эшелон>[
 | api-web.nhle.com | счета NHL (T29) | нет | без документации и условий (одобрено 2026-10-09) |
 | NASA 5MCSE (бесселевы элементы) | затмения (T29), таблица в репозитории | — | «Permission is freely granted…» с указанием источника |
 | Overpass API (OSM) | стоянки и гейты аэропорта (`aeroway=parking_position/gate`) | нет | T13, ниже; живой ответ `[ПРОВЕРИТЬ]` |
-| VATSpy Data Project | границы FIR, префиксы позывных центров (ROPS, T23); FIR и страна аэропортов (T24) | нет | CC BY-SA 4.0, сверено 2026-10-09, ниже |
+| VATSpy Data Project | границы FIR, префиксы позывных центров (XATC, T23); FIR и страна аэропортов (T24) | нет | CC BY-SA 4.0, сверено 2026-10-09, ниже |
 | OurAirports | частоты аэропорта вылета (DCL/PDC, T24); страна аэропорта назначения (T29); координаты ВПП (T34, `runways.csv`); условные станции VHF (T31, `airports.csv`: large/medium со scheduled service, в коридоре 300 NM от маршрута, кэш 30 дней); запасные аэропорты для диверсии (T50, те же файлы + `runways.csv`: самая длинная открытая ВПП с твёрдым покрытием — `length_ft`, `width_ft`, `surface`, `closed`; грузится только для типа с записью в `RUNWAY_NEEDS`) | нет | public domain, сверено 2026-10-09 и 2026-10-15, выше |
 | FAA NOTAM API | NOTAM | да | только через бэкенд |
 | AeroDataBox (RapidAPI) | вылеты аэропорта назначения (FIDS) — стыковочные рейсы (T30) | да, ключ пользователя (бесплатный Basic: 400 единиц/мес) | условия ред. 2026-10-11, сверено 2026-10-15: атрибуция при бесплатном тарифе, хранение ≤ 7 дней, только некоммерческое использование; ниже |

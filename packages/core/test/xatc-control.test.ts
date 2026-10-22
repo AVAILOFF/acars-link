@@ -13,8 +13,8 @@ import {
   type PilotMessage,
   parseRequest,
   parseSimbriefOfp,
-  RopsStation,
   type TelemetrySnapshot,
+  XatcStation,
 } from '../src/index.js';
 
 /** T47: level watch, weather deviation, MAYDAY / PAN. */
@@ -92,12 +92,12 @@ function run(
   resumeAt = -1,
   phaseAt: (i: number) => FlightPhase = () => 'CRUISE',
 ) {
-  let st = new RopsStation(ofp, OPTIONS, { seed });
+  let st = new XatcStation(ofp, OPTIONS, { seed });
   const out: OutboundMessage[] = [];
   const events: AtcEvent[] = [];
   for (let i = 0; i < ticks; i++) {
     // A state round trip in the middle (the app saves the flight state).
-    if (i === resumeAt) st = new RopsStation(ofp, OPTIONS, { seed }, st.getState());
+    if (i === resumeAt) st = new XatcStation(ofp, OPTIONS, { seed }, st.getState());
     const now = T0 + i * STEP;
     const r = st.tick({
       now,
@@ -221,7 +221,7 @@ describe('level watch after a WILCO (T47)', () => {
   it('the T26 descent clearance reached: lower levels come by voice, no question', () => {
     const tod = ofp.navlog.find((f) => f.ident === 'TOD');
     if (tod === undefined) throw new Error('fixture: no TOD');
-    const st = new RopsStation(ofp, OPTIONS, { seed: SEED });
+    const st = new XatcStation(ofp, OPTIONS, { seed: SEED });
     const out: OutboundMessage[] = [];
     const events: AtcEvent[] = [];
     let levelFt = 0;
