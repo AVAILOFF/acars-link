@@ -20,6 +20,8 @@ namespace AcarsBridge;
 ///   with every value, later ones with the changed values only (<see cref="XPlaneState"/>).</item>
 /// </list>
 /// "Running" = the datarefs are there and subscribed (approved 2026-10-22: X-Plane has no "in a menu" signal).
+/// A new aircraft (<c>acf_ui_name</c> or <c>acf_ICAO</c> changes) ends the session, so the next one looks up the
+/// datarefs again: an add-on's own ones (the CL650's) exist only while it is loaded.
 /// A 403 means "Disable Incoming Traffic" in Settings > Network. Commands: <c>ping</c> only.
 /// </summary>
 public sealed class XPlaneSource(TimeProvider clock, int port = XPlaneSource.DefaultPort, ReconnectPolicy? policy = null, string host = "localhost")
@@ -120,6 +122,7 @@ public sealed class XPlaneSource(TimeProvider clock, int port = XPlaneSource.Def
         var pump = new SnapshotPump(clock, sink.OnTelemetry);
         var gate = new object();
         var subscribed = false;
+        string? aircraft = null;
 
         void Publish() => sink.OnStatus(new BridgeStatus(SimLink.Connected, pump.Running, pump.Paused, pump.SimRate));
 
@@ -164,6 +167,9 @@ public sealed class XPlaneSource(TimeProvider clock, int port = XPlaneSource.Def
                         lock (gate)
                         {
                             state.Apply(data, names);
+                            // Another aircraft brings other datarefs (e.g. the CL650's own): look them up anew.
+                            aircraft ??= state.Aircraft;
+                            if (state.Aircraft != aircraft) return "aircraft changed";
                             changed = pump.OnPauseFlags(state.Paused ? 1u : 0u);
                             pump.OnFrame(state.Frame());
                         }

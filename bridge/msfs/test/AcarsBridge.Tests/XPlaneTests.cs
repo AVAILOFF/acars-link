@@ -186,6 +186,29 @@ public class XPlaneStateTests
     }
 
     [Fact]
+    public void Cl650_brake_and_flap_lever_win_over_the_sim_datarefs()
+    {
+        // As seen live (X-Plane 12.4.3, 2026-10-22): brake set, flaps 20, the sim datarefs say otherwise.
+        var s = new XPlaneState();
+        var cl650 = Parked();
+        cl650[Id(XPlaneDatarefs.ParkingBrake).ToString()] = 0.0;
+        cl650[Id(XPlaneDatarefs.FlapHandle).ToString()] = 1.0;
+        cl650[Id(XPlaneDatarefs.FlapDetents).ToString()] = 1;
+        cl650[Id(XPlaneDatarefs.Cl650ParkBrake).ToString()] = 1.0;
+        cl650[Id(XPlaneDatarefs.Cl650Flaps).ToString()] = 1.0;
+        Apply(s, cl650);
+        var t = Map(s);
+        Assert.True(t.ParkingBrake);
+        Assert.Equal(1, t.FlapsIdx);
+
+        // The lever on its way from 30 (2) to 45 (3), and the brake half released.
+        Apply(s, new JsonObject { [Id(XPlaneDatarefs.Cl650Flaps).ToString()] = 2.811, [Id(XPlaneDatarefs.Cl650ParkBrake).ToString()] = 0.445 });
+        t = Map(s);
+        Assert.Equal(3, t.FlapsIdx);
+        Assert.False(t.ParkingBrake);
+    }
+
+    [Fact]
     public void Starting_on_the_ground_is_not_a_touchdown()
     {
         var s = new XPlaneState();
@@ -353,6 +376,27 @@ public class XPlaneSourceTests
         await run;
         Assert.Equal("stopped", sink.Statuses[^1].Detail);
         Assert.False((await source.ExecuteAsync(new SimCommand("p", "ping", new Dictionary<string, JsonValue>()), default)).Ok);
+    }
+
+    [Fact]
+    public async Task A_new_aircraft_looks_the_datarefs_up_again()
+    {
+        await using var xp = new FakeXPlane();
+        xp.Updates.Add(XPlaneStateTests.Parked());
+        xp.Updates.Add(new JsonObject { [XPlaneStateTests.Id(XPlaneDatarefs.UiName).ToString()] = XPlaneStateTests.B64("Challenger 650") });
+        await xp.StartAsync();
+
+        var policy = new ReconnectPolicy(TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(10));
+        var source = new XPlaneSource(TimeProvider.System, xp.Port, policy, "127.0.0.1");
+        var sink = new SyncSink();
+        using var cts = new CancellationTokenSource();
+        var run = source.RunAsync(sink, cts.Token);
+
+        await Until(() => xp.Received.Count >= 2); // subscribed twice
+        Assert.Contains(sink.Statuses, s => s.Detail == "aircraft changed");
+        Assert.True(xp.Lookups >= 2 * XPlaneDatarefs.All.Count);
+        cts.Cancel();
+        await run;
     }
 
     [Fact]

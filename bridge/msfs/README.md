@@ -109,7 +109,13 @@ built-in web server (developer.x-plane.com/article/x-plane-web-api, checked 2026
 traffic. Commands: `ping` only (no smoke, no rescue vehicles). `simUtcMs` is not sent (no year dataref). The
 touchdown rate is measured by the bridge: |`vh_ind_fpm`| of the last update in the air before `onground_any`
 goes 0 → 1. The datarefs and the approved assumptions (parking brake ≥ 0.5, flaps index, doors, transponder
-mapping, title) are listed in docs/07, T18. Not yet checked in X-Plane by a human.
+mapping, title) are listed in docs/07, T18.
+
+Checked live in X-Plane 12.4.3 (2026-10-22): connect, waiting for a flight, telemetry, title. Hot Start CL650: the bridge
+reads its own `CL650/pedestal/park_brake` and `CL650/pedestal/flaps` (lever detent 0–3) when they exist, because the
+sim's parking brake and flap handle datarefs do not follow its cockpit. Beacon, main door and transponder use the
+standard datarefs. Changing the aircraft ends the session, so the next one looks the datarefs up again.
+Not yet checked: engines, fuel against the cockpit, touchdown.
 
 ## SimVars
 

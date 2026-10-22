@@ -55,6 +55,14 @@ public static class XPlaneDatarefs
     public const string Descrip = "sim/aircraft/view/acf_descrip";
     public const string Icao = "sim/aircraft/view/acf_ICAO";
 
+    // Hot Start Challenger 650: its own systems do not drive these sim datarefs (seen live 2026-10-22,
+    // X-Plane 12.4.3: parking_brake_ratio stays 0 with the brake set; flap_handle_request_ratio jumps 0 → 1 at
+    // flaps 20). Found only while the CL650 is loaded; when they are there they win.
+    /// <summary>CL650 parking brake lever, 0 released … 1 set (animated in between).</summary>
+    public const string Cl650ParkBrake = "CL650/pedestal/park_brake";
+    /// <summary>CL650 flap lever detent: 0 UP, 1 = 20, 2 = 30, 3 = 45 (fractional while the lever moves).</summary>
+    public const string Cl650Flaps = "CL650/pedestal/flaps";
+
     private static readonly int[] Engs = [.. Enumerable.Range(0, SimVars.MaxEngines)];
     private static readonly int[] Exits = [.. Enumerable.Range(0, SimVars.Exits)];
 
@@ -86,6 +94,8 @@ public static class XPlaneDatarefs
         new(UiName),
         new(Descrip),
         new(Icao),
+        new(Cl650ParkBrake),
+        new(Cl650Flaps),
     ];
 
     public const double FeetPerMeter = 1 / 0.3048;
@@ -196,6 +206,11 @@ public sealed class XPlaneState
         _onGround = onGround;
     }
 
+    private bool Has(string name) => _numbers.ContainsKey(name);
+
+    /// <summary>The loaded aircraft (<c>acf_ui_name</c> + <c>acf_ICAO</c>); empty until the sim sent them.</summary>
+    public string Aircraft => $"{Text(XPlaneDatarefs.UiName)}|{Text(XPlaneDatarefs.Icao)}";
+
     private double Scalar(string name) => _numbers.TryGetValue(name, out var v) && v.Length > 0 ? v[0] : 0;
 
     private double Element(string name, int i) => _numbers.TryGetValue(name, out var v) && i < v.Length ? v[i] : 0;
@@ -215,8 +230,9 @@ public sealed class XPlaneState
         v[SimVars.Vs] = Scalar(XPlaneDatarefs.Vs);
         v[SimVars.Hdg] = Scalar(XPlaneDatarefs.Hdg);
         v[SimVars.OnGround] = Scalar(XPlaneDatarefs.OnGround);
-        // Approved 2026-10-22: the parking brake ratio counts as set from 0.5.
-        v[SimVars.ParkingBrake] = Scalar(XPlaneDatarefs.ParkingBrake) >= 0.5 ? 1 : 0;
+        // Approved 2026-10-22: the parking brake ratio counts as set from 0.5 (the CL650 lever likewise).
+        var brake = Has(XPlaneDatarefs.Cl650ParkBrake) ? XPlaneDatarefs.Cl650ParkBrake : XPlaneDatarefs.ParkingBrake;
+        v[SimVars.ParkingBrake] = Scalar(brake) >= 0.5 ? 1 : 0;
         v[SimVars.Beacon] = Scalar(XPlaneDatarefs.Beacon);
         v[SimVars.EngineCount] = Scalar(XPlaneDatarefs.Engines);
         for (var i = 0; i < SimVars.MaxEngines; i++)
@@ -227,7 +243,9 @@ public sealed class XPlaneState
         v[SimVars.Fuel] = Scalar(XPlaneDatarefs.Fuel);
         v[SimVars.Gear] = Scalar(XPlaneDatarefs.Gear);
         // Approved 2026-10-22: no handle index in X-Plane; the handle ratio times the number of detents.
-        v[SimVars.Flaps] = Math.Round(Scalar(XPlaneDatarefs.FlapHandle) * Scalar(XPlaneDatarefs.FlapDetents));
+        v[SimVars.Flaps] = Has(XPlaneDatarefs.Cl650Flaps)
+            ? Math.Round(Scalar(XPlaneDatarefs.Cl650Flaps))
+            : Math.Round(Scalar(XPlaneDatarefs.FlapHandle) * Scalar(XPlaneDatarefs.FlapDetents));
         // Approved 2026-10-22: the first four doors in the aircraft's own order, ratio → percent.
         for (var i = 0; i < SimVars.Exits; i++) v[SimVars.ExitFirst + i] = Element(XPlaneDatarefs.Doors, i) * 100;
         v[SimVars.Xpdr] = XPlaneDatarefs.Transponder((int)Math.Round(Scalar(XPlaneDatarefs.Xpdr)));
