@@ -58,6 +58,11 @@ const SENT: Readonly<Record<SystemCode, Readonly<Record<string, string>>>> = {
   atc_ocl_clearance: { station: 'XEGGX', oca: 'EGGX', detail: 'd' },
   atc_ocl_confirmed: { station: 'XEGGX', oca: 'EGGX', detail: '' },
   atc_ocl_cancelled: { station: 'XEGGX', oca: 'EGGX', detail: '' },
+  next_ofp_failed: {
+    code: 'bad_state',
+    detail: 'stop the flight first',
+    reason: 'stop_flight_first',
+  },
 };
 
 afterEach(() => vi.restoreAllMocks());

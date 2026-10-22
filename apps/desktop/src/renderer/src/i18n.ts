@@ -1,5 +1,5 @@
 import type { FlightPhase } from '@acars/core';
-import type { ErrorCode, Language, SystemCode } from '../../shared/api.js';
+import type { AppError, ErrorCode, ErrorReason, Language, SystemCode } from '../../shared/api.js';
 
 /** UI strings, EN + RU (docs/08 decision 7). ACARS messages themselves are always English. */
 
@@ -10,6 +10,11 @@ const en = {
   'tab.settings': 'Settings',
   'app.sections': 'Sections',
   'banner.error': 'Error',
+  'banner.network': 'Network',
+  'banner.halted':
+    'Hoppie stopped sending: {reason}. Check the logon code in Settings ("Check"), then stop and start the flight again.',
+  'banner.toSettings': 'Open Settings',
+  'bar.action': 'Action needed',
   'set.group.general': 'General',
   'set.group.messages': 'Messages',
   'set.group.data': 'Live data & events',
@@ -34,8 +39,7 @@ const en = {
   'search.label': 'Search messages',
   'search.placeholder': 'ICAO, type, text',
   'search.none': 'Nothing matches the filter.',
-  'toolbar.request': 'Request',
-  'toolbar.new': 'New message',
+  'toolbar.request': 'Request to the airline…',
   'req.notRunning': 'Available while a flight is running.',
   'ctx.label': 'Flight and FMS',
   'col.from': 'From',
@@ -45,6 +49,7 @@ const en = {
   'msg.unread': 'New',
   'msg.info': 'Info',
   'msg.awaiting': 'Awaiting reply',
+  'msg.action': 'Action',
   'fms.title': 'FMS · ACARS',
   'fms.width': '{n} chars per line',
   'hint.title': 'Hint',
@@ -57,7 +62,7 @@ const en = {
   'req.title.atis': 'ATIS request',
   'req.title.gate': 'Gate request',
   'req.title.loadsheet': 'Loadsheet request',
-  'req.title.text': 'New message',
+  'req.title.text': 'Free text',
   'req.close': 'Close',
   'req.kind': 'Request type',
   'req.wx': 'METAR',
@@ -68,7 +73,10 @@ const en = {
   'req.airport': 'Airport',
   'req.airportHint': 'Empty: the destination.',
   'req.badAirport': 'Four letters (ICAO).',
-  'req.preview': 'Will be sent',
+  'req.preview': 'The airline gets it as a message from the aircraft',
+  'req.note':
+    'Nothing goes to the Hoppie network: the app hands the request to the simulated airline as if your aircraft had sent it. The answer comes to the FMS as usual.',
+  'req.send': 'Send to the airline',
   'req.cancel': 'Cancel',
 
   'flight.title': 'Flight',
@@ -78,9 +86,23 @@ const en = {
   'flight.start': 'Start flight',
   'flight.stop': 'Stop flight',
   'flight.stopConfirm': 'Stop the flight? Messages not sent yet are dropped.',
-  'flight.turnaround': 'Turnaround (next leg)',
-  'flight.done': 'Done',
-  'flight.endHint': 'On block. Close the flight:',
+  'flight.turnaround': 'Fly the next leg',
+  'flight.done': 'No more flights',
+  'flight.endHint': 'On block. What next?',
+  'flight.nextOfp': 'Load the OFP of the next leg',
+  'flight.nextOfpHint':
+    'Create the next OFP in SimBrief first. The flight closes once the messages about the next leg have gone out.',
+  'flight.close': 'Close the flight',
+  'flight.doneHint': 'The flight is over. It closes once the last messages have gone out.',
+  'flight.waiting': 'Still on the way: {messages} messages, {scenarios} scenarios running.',
+  'flight.nothingWaits': 'All messages have gone out.',
+  'flight.closingNext': 'The flight closes and the next OFP loads as soon as nothing waits.',
+  'flight.closingClose': 'The flight closes as soon as nothing waits.',
+  'flight.closeNow': 'Close now',
+  'flight.closeNowConfirm':
+    'Close the flight now? Messages not sent yet ({messages}) are dropped, running scenarios stop.',
+  'flight.waitSimTime':
+    'Waiting for the simulator time: the flight starts once the sim bridge sends it ("Time from the simulator" is on).',
   'flight.route': 'Route',
   'flight.aircraft': 'Aircraft',
   'flight.sched': 'Sched. out / in',
@@ -107,7 +129,8 @@ const en = {
   'sim.menu': 'in menu / loading',
   'sim.paused': 'paused',
   'sim.rate': 'rate ×{rate}',
-  'net.none': '—',
+  'sim.noBridge': 'no bridge',
+  'net.none': 'no flight',
   'net.mock': 'offline',
   'net.idle': 'Hoppie: waiting',
   'net.ok': 'Hoppie: OK',
@@ -123,7 +146,6 @@ const en = {
   'feed.pilot': 'pilot',
   'pilot.label': 'Reply as pilot',
   'pilot.placeholder': 'e.g. REQ GATE, ETA, HELP',
-  'pilot.send': 'Send',
   'pilot.hint':
     'For aircraft without free-text telex: the app reads it as if it came from the aircraft. Nothing is sent to the network.',
   'delivery.queued': 'queued',
@@ -203,6 +225,7 @@ const en = {
   'sys.atc_ocl_clearance': 'Oceanic: clearance from {oca} ({detail}), waiting for ROGER',
   'sys.atc_ocl_confirmed': 'Oceanic: clearance confirmed (ROGER)',
   'sys.atc_ocl_cancelled': 'Oceanic: no ROGER in 10 min, clearance cancelled',
+  'sys.next_ofp_failed': 'The flight is closed; the next OFP did not load: {error}',
   'atc.dcl': 'PDC from {station}',
   'status.atc': 'XATC',
   'status.link': 'Data link',
@@ -217,14 +240,14 @@ const en = {
   'atc.wait': 'waiting for FIR data',
   'set.xatc': 'XATC station (CPDLC)',
   'set.xatcHint':
-    'A simulated CPDLC station per FIR for your aircraft on Hoppie: log on to X + the FIR code (EDGG → XDGG); at FIR boundaries it hands you over. On the ground, the departure clearance (PDC/DCL) comes from X + the airport code (EDDF → XDDF). Needs live data (FIR boundaries from VATSpy). Applies to the next flight.',
+    'A simulated CPDLC station per FIR for your aircraft on Hoppie: log on to X + the FIR code (EDGG → XDGG); at FIR boundaries it hands you over. On the ground, the departure clearance (PDC/DCL) comes from X + the airport code (EDDF → XDDF). Needs live data (FIR boundaries from VATSpy).',
   'set.xatcStandAside': 'Step aside for live VATSIM controllers',
   'set.xatcRandomDirects': 'Random Direct To',
   'set.xatcRandomDirectsHint':
-    'Up to 3 times per flight in cruise the station clears you direct to a fix ahead on your route. Applies to the next flight.',
+    'Up to 3 times per flight in cruise the station clears you direct to a fix ahead on your route.',
   'set.datalink': 'Data link simulation (VHF / SATCOM)',
   'set.datalinkHint':
-    'Messages arrive with the delay of a VHF station in line of sight (a conditional one: the nearest airport on the route, not a real SITA/ARINC station) or of an Inmarsat satellite; with no link they wait. Needs live data. Applies to the next flight.',
+    'Messages arrive with the delay of a VHF station in line of sight (a conditional one: the nearest airport on the route, not a real SITA/ARINC station) or of an Inmarsat satellite; with no link they wait. Needs live data.',
   'set.datalinkSatcom': 'The aircraft has SATCOM (Inmarsat where VHF is out of reach)',
   'set.aircraftIcaoHex': 'ICAO address of the aircraft (6 hex digits)',
   'set.aircraftIcaoHexHint':
@@ -236,7 +259,7 @@ const en = {
     'Aviation (space weather, aurora, eclipse, volcanic ash, air shows, history)',
   'set.specialOther': 'Other (public holiday, earthquake at the destination)',
   'set.specialHint':
-    'Real events from free sources, at most one message per flight in cruise (space weather and volcanic ash come separately). Needs live data. Applies to the next flight.',
+    'Real events from free sources, at most one message per flight in cruise (space weather and volcanic ash come separately). Needs live data.',
   'set.xatcStandAsideHint':
     'Where a VATSIM centre covering the FIR is online, the station logs you off and names the controller.',
 
@@ -248,6 +271,19 @@ const en = {
   'scen.off': 'off',
   'scen.chance': 'Chance of {id}, percent',
   'scen.chanceDefault': 'default {value}%',
+  'scen.chanceReset': 'Default',
+  'scen.chanceBad': 'A number 0–100.',
+  'scen.search': 'Search scenarios',
+  'scen.searchPlaceholder': 'Name, description, id',
+  'scen.none': 'No scenario matches the search.',
+  'scen.category': 'All scenarios of {category}',
+  'scen.categoryCount': '{on} of {all} on',
+  'scen.command': 'needed for requests',
+  'scen.commandsHint':
+    'Answers to your requests (REQ WX, REQ LOADSHEET, DIVERT…). The requests need them, so they stay on.',
+  'cat.commands': 'Pilot commands',
+  'drone.bad': 'Factor 0–100.',
+  'drone.badCode': 'Two letters (ISO) or *.',
   'drone.title': 'Chance multiplier by destination country',
   'drone.hint':
     'Final chance = base chance × the factor of the destination country (ISO code, * = any other), at most 100%. Game numbers; the table is a snapshot of 2026-10. Empty = the built-in table.',
@@ -274,7 +310,16 @@ const en = {
 
   'set.account': 'Accounts',
   'set.simbrief': 'SimBrief username',
-  'set.simbriefHint': 'The latest OFP of this user is loaded.',
+  'set.simbriefHint': 'The latest OFP of this user is loaded; the username is in your account on',
+  'set.check': 'Check',
+  'set.checkSimbriefOk': 'Latest OFP: {callsign} {origin} → {destination}',
+  'set.checkHoppieOk': 'Hoppie accepts the code',
+  'set.hoppieWhere': 'No code yet? Hoppie sends it by e-mail after the sign-up on',
+  'set.clearHoppieConfirm':
+    'Remove the saved Hoppie logon code? You will have to enter the code from the e-mail again.',
+  'set.clearAdbConfirm': 'Remove the saved AeroDataBox key?',
+  'set.clearMemoryConfirm':
+    'Forget the airline memory ({names})? Open MEL items and follow-ups of earlier flights are lost.',
   'set.hoppie': 'Hoppie logon code',
   'set.hoppieHint':
     'Stored encrypted by the OS (Windows DPAPI / macOS Keychain). It is never shown again.',
@@ -295,21 +340,34 @@ const en = {
   'set.transport.offline': 'Offline (feed only)',
   'set.hints': 'Message hints',
   'set.hintsHint':
-    'Under the FMS screen: what the selected message means and what you can answer; in the feed: messages awaiting your reply. Nothing is sent. Applies at once.',
+    'Under the FMS screen: what the selected message means and what you can answer; in the feed: messages awaiting your reply. Nothing is sent.',
   'set.simTime': 'Time from the simulator',
   'set.simTimeHint':
-    'The flight runs on the simulator clock (UTC): STD/STA, delays and the times in messages follow it instead of the PC clock. Needs the sim bridge; the flight starts once the sim time arrives. Anchored at the start of the flight, so at a sim rate other than 1x the message times drift from the sim clock. Live data (weather, events) is real time: with a sim date far from today turn it off. Applies to the next flight.',
-  'set.turnaround': 'I fly the turnaround',
+    'The flight runs on the simulator clock (UTC): STD/STA, delays and the times in messages follow it instead of the PC clock. Needs the sim bridge; the flight starts once the sim time arrives. Anchored at the start of the flight, so at a sim rate other than 1x the message times drift from the sim clock. Live data (weather, events) is real time: with a sim date far from today turn it off.',
+  'set.turnaround': 'Turnaround and next-leg messages',
   'set.turnaroundHint':
-    'Off: no messages about the next leg, aircraft change and turnaround after landing. Applies to the next flight.',
+    'Off: no messages about the next leg, aircraft change and turnaround after landing.',
   'set.hubIcao': 'My hub (airport ICAO)',
   'set.hubIcaoHint':
-    'After a flight into the hub the next leg goes on from it on a route of the airline (OpenFlights, 2014) flown with this aircraft type. Empty = the hub from OpenFlights. Applies to the next flight.',
+    'After a flight into the hub the next leg goes on from it on a route of the airline (OpenFlights, 2014) flown with this aircraft type. Empty = the hub from OpenFlights.',
   'set.station': 'Station callsign template',
   'set.stationHint': '{flight} = flight number, {airline} = airline ICAO. Default OPS{flight}.',
   'set.bridgePort': 'Sim bridge port (127.0.0.1)',
   'set.language': 'Language',
-  'set.runningNote': 'Network settings apply to the next flight.',
+  'set.nextFlight': 'next flight',
+  'set.nextFlightTitle': 'Applies from the next flight',
+  'set.more': 'More',
+  'set.less': 'Less',
+  'set.advanced': 'Advanced settings',
+  'set.advancedHint': 'Simulator time, hub, data link, rescue services, recordings, connection.',
+  'set.group.time': 'Time and route',
+  'set.offXatc': 'Turn on "XATC station" above.',
+  'set.offDatalink': 'Turn on "Data link simulation" above.',
+  'set.offRescue': 'Turn on "Rescue services in the simulator" above.',
+  'set.badPort': 'A whole number 1024–65535.',
+  'set.badHub': 'Four letters (ICAO) or empty.',
+  'set.badHex': 'Six hex digits (0–9, A–F) or empty.',
+  'set.badStation': 'Letters, digits, {flight}, {airline}.',
   'set.record': 'Record flights',
   'set.recordHint':
     'Telemetry and messages of each flight go to a file for replay (the last 20 flights are kept).',
@@ -323,7 +381,7 @@ const en = {
   'set.gapNone': 'None (send at once)',
   'set.gapSec': '{s} s',
   'set.gapHint':
-    'Aircraft fetch telexes about once a minute; closer messages arrive together. Answers to your requests go first. Applies to the next flight.',
+    'Aircraft fetch telexes about once a minute; closer messages arrive together. Answers to your requests go first.',
   'set.sound': 'Sound on new message',
   'set.group.rescue': 'Rescue services in the simulator',
   'set.rescue': 'Rescue services in the simulator',
@@ -363,7 +421,35 @@ const en = {
   'err.ofp_invalid': 'The OFP could not be read: {detail}',
   'err.bad_state': 'Not possible now: {detail}',
   'err.scenarios_invalid': 'Scenario files are invalid: {detail}',
+  'err.hoppie_logon':
+    'Hoppie does not accept the logon code ({detail}). Enter the code from the hoppie.nl e-mail.',
   'err.internal': 'Unexpected error: {detail}',
+  'why.flight_running': 'a flight is running',
+  'why.no_flight': 'no flight is running',
+  'why.load_ofp_first': 'load the OFP first',
+  'why.stop_flight_first': 'stop the flight first',
+  'why.not_on_block': 'the aircraft is not on block (phase: {phase})',
+  'why.not_ended': 'the flight is not over yet (phase: {phase})',
+  'why.end_choice': 'unknown choice',
+  'why.check_too_soon': 'check again in {sec} s',
+  'why.logon_format': 'the logon code is 4–64 characters without spaces',
+  'why.rapidapi_format': 'the RapidAPI key is 20–100 letters and digits',
+  'why.username_format': 'the username is 1–64 characters without spaces',
+  'why.pilot_text': 'the message is 1–{max} characters',
+  'why.unknown_scenario': 'unknown scenario {id}',
+  'why.command_scenario': '{id} is a pilot command: the requests need it, it stays on',
+  'why.chance_irregular_only': 'a chance is set for irregular events only',
+  'why.chance_range': 'the chance is 0–100%',
+  'why.not_forceable': '{id} is not an irregular event of this flight',
+  'why.station_template': 'the station template takes letters, digits, {flight}, {airline}',
+  'why.bridge_port': 'the port is a whole number 1024–65535',
+  'why.message_gap': 'the gap is 0–600 s',
+  'why.icao_hex': 'the ICAO address is six hex digits or empty',
+  'why.hub_icao': 'the hub is four letters (ICAO) or empty',
+  'why.drone_table': 'a country code (two letters or *) and a factor 0–100',
+  'why.rescue_titles': 'titles one per line, without |, not too many per group',
+  'why.rescue_flipped': 'up to 64 titles, without |',
+  'why.setting_value': 'invalid value of {field}',
   'err.dismiss': 'Dismiss',
   'err.view_crashed': 'This screen failed to display. Switch tabs or reload the window.',
 
@@ -393,6 +479,11 @@ const ru: Record<MessageKey, string> = {
   'tab.settings': 'Настройки',
   'app.sections': 'Разделы',
   'banner.error': 'Ошибка',
+  'banner.network': 'Сеть',
+  'banner.halted':
+    'Hoppie остановил отправку: {reason}. Проверьте logon code в настройках (кнопка «Проверить»), затем остановите и начните рейс заново.',
+  'banner.toSettings': 'Открыть настройки',
+  'bar.action': 'Требует действия',
   'set.group.general': 'Общие',
   'set.group.messages': 'Сообщения',
   'set.group.data': 'Живые данные и события',
@@ -417,8 +508,7 @@ const ru: Record<MessageKey, string> = {
   'search.label': 'Поиск по сообщениям',
   'search.placeholder': 'ICAO, тип, текст',
   'search.none': 'Под фильтр ничего не подходит.',
-  'toolbar.request': 'Запрос',
-  'toolbar.new': 'Новое сообщение',
+  'toolbar.request': 'Запрос в авиакомпанию…',
   'req.notRunning': 'Доступно во время полёта.',
   'ctx.label': 'Рейс и FMS',
   'col.from': 'От',
@@ -428,6 +518,7 @@ const ru: Record<MessageKey, string> = {
   'msg.unread': 'Новое',
   'msg.info': 'Инфо',
   'msg.awaiting': 'Ждёт ответа',
+  'msg.action': 'Действие',
   'hint.title': 'Подсказка',
   'hint.awaiting': 'Ждут ответа: {options}',
   'hint.how':
@@ -440,7 +531,7 @@ const ru: Record<MessageKey, string> = {
   'req.title.atis': 'Запрос ATIS',
   'req.title.gate': 'Запрос гейта',
   'req.title.loadsheet': 'Запрос лоадшита',
-  'req.title.text': 'Новое сообщение',
+  'req.title.text': 'Свободный текст',
   'req.close': 'Закрыть',
   'req.kind': 'Тип запроса',
   'req.wx': 'METAR',
@@ -451,7 +542,10 @@ const ru: Record<MessageKey, string> = {
   'req.airport': 'Аэропорт',
   'req.airportHint': 'Пусто — аэропорт назначения.',
   'req.badAirport': 'Четыре буквы (ICAO).',
-  'req.preview': 'Будет отправлено',
+  'req.preview': 'Авиакомпания получит как сообщение с борта',
+  'req.note':
+    'В сеть Hoppie ничего не уходит: приложение передаёт запрос имитируемой авиакомпании так, будто его отправил ваш самолёт. Ответ придёт в FMS как обычно.',
+  'req.send': 'Отправить в авиакомпанию',
   'req.cancel': 'Отмена',
 
   'flight.title': 'Полёт',
@@ -461,9 +555,24 @@ const ru: Record<MessageKey, string> = {
   'flight.start': 'Начать полёт',
   'flight.stop': 'Остановить',
   'flight.stopConfirm': 'Остановить полёт? Неотправленные сообщения будут отброшены.',
-  'flight.turnaround': 'Оборот (следующий рейс)',
-  'flight.done': 'Завершить',
-  'flight.endHint': 'На стоянке. Закрыть рейс:',
+  'flight.turnaround': 'Лечу следующий рейс',
+  'flight.done': 'Больше не лечу',
+  'flight.endHint': 'На стоянке. Что дальше?',
+  'flight.nextOfp': 'Загрузить OFP следующего рейса',
+  'flight.nextOfpHint':
+    'Сначала создайте следующий OFP в SimBrief. Рейс закроется, когда уйдут сообщения о следующем рейсе.',
+  'flight.close': 'Закрыть рейс',
+  'flight.doneHint': 'Рейс окончен. Он закроется, когда уйдут последние сообщения.',
+  'flight.waiting': 'Ещё в пути: сообщений — {messages}, сценариев в работе — {scenarios}.',
+  'flight.nothingWaits': 'Все сообщения ушли.',
+  'flight.closingNext':
+    'Рейс закроется и загрузится следующий OFP, как только ничего не будет ждать.',
+  'flight.closingClose': 'Рейс закроется, как только ничего не будет ждать.',
+  'flight.closeNow': 'Закрыть сейчас',
+  'flight.closeNowConfirm':
+    'Закрыть рейс сейчас? Неотправленные сообщения ({messages}) будут отброшены, идущие сценарии остановятся.',
+  'flight.waitSimTime':
+    'Жду время симулятора: рейс начнётся, когда мост пришлёт время («Время из симулятора» включено).',
   'flight.route': 'Маршрут',
   'flight.aircraft': 'Самолёт',
   'flight.sched': 'По расписанию: вылет / прилёт',
@@ -490,7 +599,8 @@ const ru: Record<MessageKey, string> = {
   'sim.menu': 'в меню / загрузка',
   'sim.paused': 'пауза',
   'sim.rate': 'скорость ×{rate}',
-  'net.none': '—',
+  'sim.noBridge': 'нет моста',
+  'net.none': 'нет рейса',
   'net.mock': 'офлайн',
   'net.idle': 'Hoppie: ожидание',
   'net.ok': 'Hoppie: OK',
@@ -506,7 +616,6 @@ const ru: Record<MessageKey, string> = {
   'feed.pilot': 'пилот',
   'pilot.label': 'Ответить за пилота',
   'pilot.placeholder': 'например REQ GATE, ETA, HELP',
-  'pilot.send': 'Отправить',
   'pilot.hint':
     'Для самолётов без свободного telex: приложение примет текст как сообщение с борта. В сеть ничего не уходит.',
   'delivery.queued': 'в очереди',
@@ -586,6 +695,7 @@ const ru: Record<MessageKey, string> = {
   'sys.atc_ocl_clearance': 'Океан: клиренс {oca} ({detail}), ждёт ROGER',
   'sys.atc_ocl_confirmed': 'Океан: клиренс подтверждён (ROGER)',
   'sys.atc_ocl_cancelled': 'Океан: нет ROGER за 10 мин, клиренс отменён',
+  'sys.next_ofp_failed': 'Рейс закрыт; следующий OFP не загрузился: {error}',
   'atc.dcl': 'PDC со станции {station}',
   'status.atc': 'XATC УВД',
   'status.link': 'Линия передачи',
@@ -600,14 +710,14 @@ const ru: Record<MessageKey, string> = {
   'atc.wait': 'ждём данные FIR',
   'set.xatc': 'Станция УВД XATC (CPDLC)',
   'set.xatcHint':
-    'Имитация станции CPDLC для вашего самолёта на Hoppie, своя в каждой FIR: логон на X + код FIR (EDGG → XDGG), на границе FIR — передача следующей. На земле разрешение на вылет (PDC/DCL) выдаёт станция X + код аэропорта (EDDF → XDDF). Нужны живые данные (границы FIR из VATSpy). Действует со следующего рейса.',
+    'Имитация станции CPDLC для вашего самолёта на Hoppie, своя в каждой FIR: логон на X + код FIR (EDGG → XDGG), на границе FIR — передача следующей. На земле разрешение на вылет (PDC/DCL) выдаёт станция X + код аэропорта (EDDF → XDDF). Нужны живые данные (границы FIR из VATSpy).',
   'set.xatcStandAside': 'Уступать живым диспетчерам VATSIM',
   'set.xatcRandomDirects': 'Случайные Direct To',
   'set.xatcRandomDirectsHint':
-    'До 3 раз за полёт в крейсере станция даёт прямо на точку впереди по маршруту. Действует со следующего рейса.',
+    'До 3 раз за полёт в крейсере станция даёт прямо на точку впереди по маршруту.',
   'set.datalink': 'Имитация линии передачи (VHF / SATCOM)',
   'set.datalinkHint':
-    'Сообщения приходят с задержкой станции VHF в прямой видимости (условной: ближайший аэропорт у маршрута, а не настоящая станция SITA/ARINC) или спутника Inmarsat; без линии сообщения ждут. Нужны живые данные. Действует со следующего рейса.',
+    'Сообщения приходят с задержкой станции VHF в прямой видимости (условной: ближайший аэропорт у маршрута, а не настоящая станция SITA/ARINC) или спутника Inmarsat; без линии сообщения ждут. Нужны живые данные.',
   'set.datalinkSatcom': 'На самолёте есть SATCOM (Inmarsat там, где нет VHF)',
   'set.aircraftIcaoHex': 'ICAO-адрес самолёта (6 hex-цифр)',
   'set.aircraftIcaoHexHint':
@@ -619,7 +729,7 @@ const ru: Record<MessageKey, string> = {
     'Авиация (космическая погода, сияние, затмение, вулканический пепел, авиашоу, история)',
   'set.specialOther': 'Другое (праздник, землетрясение у аэропорта назначения)',
   'set.specialHint':
-    'Реальные события из бесплатных источников, не больше одного сообщения за рейс, в крейсере (космическая погода и пепел — отдельно). Нужны живые данные. Действует со следующего рейса.',
+    'Реальные события из бесплатных источников, не больше одного сообщения за рейс, в крейсере (космическая погода и пепел — отдельно). Нужны живые данные.',
   'set.xatcStandAsideHint':
     'Если онлайн центр VATSIM этой FIR, станция завершает связь (logoff) и сообщает позывной диспетчера.',
 
@@ -631,6 +741,19 @@ const ru: Record<MessageKey, string> = {
   'scen.off': 'выкл',
   'scen.chance': 'Вероятность {id}, проценты',
   'scen.chanceDefault': 'по умолчанию {value}%',
+  'scen.chanceReset': 'По умолчанию',
+  'scen.chanceBad': 'Число от 0 до 100.',
+  'scen.search': 'Поиск сценариев',
+  'scen.searchPlaceholder': 'Название, описание, id',
+  'scen.none': 'Под поиск ничего не подходит.',
+  'scen.category': 'Все сценарии: {category}',
+  'scen.categoryCount': 'включено {on} из {all}',
+  'scen.command': 'нужно для запросов',
+  'scen.commandsHint':
+    'Ответы на ваши запросы (REQ WX, REQ LOADSHEET, DIVERT…). Они нужны для запросов, поэтому всегда включены.',
+  'cat.commands': 'Команды пилота',
+  'drone.bad': 'Множитель — от 0 до 100.',
+  'drone.badCode': 'Две буквы (ISO) или *.',
   'drone.title': 'Множитель вероятности по стране назначения',
   'drone.hint':
     'Итоговая вероятность = базовая × множитель страны назначения (код ISO, * = любая другая), не больше 100%. Игровые числа; таблица — снимок на 2026-10. Пусто — встроенная таблица.',
@@ -657,7 +780,16 @@ const ru: Record<MessageKey, string> = {
 
   'set.account': 'Учётные данные',
   'set.simbrief': 'Имя пользователя SimBrief',
-  'set.simbriefHint': 'Загружается последний OFP этого пользователя.',
+  'set.simbriefHint': 'Загружается последний OFP этого пользователя; имя — в вашем аккаунте на',
+  'set.check': 'Проверить',
+  'set.checkSimbriefOk': 'Последний OFP: {callsign} {origin} → {destination}',
+  'set.checkHoppieOk': 'Hoppie принимает код',
+  'set.hoppieWhere': 'Нет кода? Hoppie присылает его на почту после регистрации на',
+  'set.clearHoppieConfirm':
+    'Удалить сохранённый Hoppie logon code? Понадобится снова ввести код из письма.',
+  'set.clearAdbConfirm': 'Удалить сохранённый ключ AeroDataBox?',
+  'set.clearMemoryConfirm':
+    'Забыть память авиакомпании ({names})? Открытые пункты MEL и продолжения прошлых рейсов пропадут.',
   'set.hoppie': 'Hoppie logon code',
   'set.hoppieHint':
     'Хранится зашифрованным средствами ОС (Windows DPAPI / macOS Keychain). Больше не показывается.',
@@ -678,22 +810,36 @@ const ru: Record<MessageKey, string> = {
   'set.transport.offline': 'Офлайн (только лента)',
   'set.hints': 'Подсказки к сообщениям',
   'set.hintsHint':
-    'Под экраном FMS — что значит выбранное сообщение и что можно ответить; в ленте — сообщения, которые ждут ответа. Ничего не отправляется. Применяется сразу.',
+    'Под экраном FMS — что значит выбранное сообщение и что можно ответить; в ленте — сообщения, которые ждут ответа. Ничего не отправляется.',
   'set.simTime': 'Время из симулятора',
   'set.simTimeHint':
-    'Рейс идёт по часам симулятора (UTC): STD/STA, задержки и время в сообщениях считаются по ним, а не по часам ПК. Нужен мост к симулятору; рейс стартует, когда придёт время симулятора. Привязка делается в начале рейса, поэтому при скорости симуляции не 1x время в сообщениях расходится с часами симулятора. Живые данные (погода, события) — реальное время: при дате в симуляторе, далёкой от сегодняшней, их лучше выключить. Применяется к следующему рейсу.',
-  'set.turnaround': 'Я лечу оборот',
+    'Рейс идёт по часам симулятора (UTC): STD/STA, задержки и время в сообщениях считаются по ним, а не по часам ПК. Нужен мост к симулятору; рейс стартует, когда придёт время симулятора. Привязка делается в начале рейса, поэтому при скорости симуляции не 1x время в сообщениях расходится с часами симулятора. Живые данные (погода, события) — реальное время: при дате в симуляторе, далёкой от сегодняшней, их лучше выключить.',
+  'set.turnaround': 'Сообщения об обороте и следующем рейсе',
   'set.turnaroundHint':
-    'Выключено: после посадки не приходят сообщения о следующем рейсе, смене самолёта и обороте. Применяется к следующему рейсу.',
+    'Выключено: после посадки не приходят сообщения о следующем рейсе, смене самолёта и обороте.',
   'set.hubIcao': 'Мой хаб (ICAO аэропорта)',
   'set.hubIcaoHint':
-    'После рейса в хаб следующий рейс идёт из него по маршруту авиакомпании (OpenFlights, 2014), на котором летал этот тип самолёта. Пусто — хаб из OpenFlights. Действует со следующего рейса.',
+    'После рейса в хаб следующий рейс идёт из него по маршруту авиакомпании (OpenFlights, 2014), на котором летал этот тип самолёта. Пусто — хаб из OpenFlights.',
   'set.station': 'Шаблон позывного станции',
   'set.stationHint':
     '{flight} — номер рейса, {airline} — ICAO авиакомпании. По умолчанию OPS{flight}.',
   'set.bridgePort': 'Порт моста симулятора (127.0.0.1)',
   'set.language': 'Язык',
-  'set.runningNote': 'Сетевые настройки подействуют со следующего полёта.',
+  'set.nextFlight': 'со след. рейса',
+  'set.nextFlightTitle': 'Действует со следующего рейса',
+  'set.more': 'Подробнее',
+  'set.less': 'Скрыть',
+  'set.advanced': 'Расширенные настройки',
+  'set.advancedHint':
+    'Время из симулятора, хаб, линия передачи, аварийные службы, записи, подключение.',
+  'set.group.time': 'Время и маршрут',
+  'set.offXatc': 'Включите «Станция УВД XATC» выше.',
+  'set.offDatalink': 'Включите «Имитация линии передачи» выше.',
+  'set.offRescue': 'Включите «Аварийные службы в симуляторе» выше.',
+  'set.badPort': 'Целое число от 1024 до 65535.',
+  'set.badHub': 'Четыре буквы (ICAO) или пусто.',
+  'set.badHex': 'Шесть hex-цифр (0–9, A–F) или пусто.',
+  'set.badStation': 'Буквы, цифры, {flight}, {airline}.',
   'set.record': 'Записывать полёты',
   'set.recordHint':
     'Телеметрия и сообщения каждого полёта сохраняются в файл для replay (хранятся последние 20).',
@@ -707,7 +853,7 @@ const ru: Record<MessageKey, string> = {
   'set.gapNone': 'Нет (отправлять сразу)',
   'set.gapSec': '{s} с',
   'set.gapHint':
-    'Самолёт забирает telex примерно раз в минуту; сообщения чаще приходят пачкой. Ответы на ваши запросы идут первыми. Действует со следующего рейса.',
+    'Самолёт забирает telex примерно раз в минуту; сообщения чаще приходят пачкой. Ответы на ваши запросы идут первыми.',
   'set.sound': 'Звук при новом сообщении',
   'set.group.rescue': 'Аварийные службы в симуляторе',
   'set.rescue': 'Аварийные службы в симуляторе',
@@ -747,7 +893,34 @@ const ru: Record<MessageKey, string> = {
   'err.ofp_invalid': 'Не удалось прочитать OFP: {detail}',
   'err.bad_state': 'Сейчас нельзя: {detail}',
   'err.scenarios_invalid': 'Ошибка в файлах сценариев: {detail}',
+  'err.hoppie_logon': 'Hoppie не принимает logon code ({detail}). Введите код из письма hoppie.nl.',
   'err.internal': 'Непредвиденная ошибка: {detail}',
+  'why.flight_running': 'идёт рейс',
+  'why.no_flight': 'рейс не идёт',
+  'why.load_ofp_first': 'сначала загрузите OFP',
+  'why.stop_flight_first': 'сначала остановите рейс',
+  'why.not_on_block': 'самолёт не на стоянке (фаза: {phase})',
+  'why.not_ended': 'рейс ещё не окончен (фаза: {phase})',
+  'why.end_choice': 'неизвестный вариант',
+  'why.check_too_soon': 'проверить снова можно через {sec} с',
+  'why.logon_format': 'logon code — от 4 до 64 символов без пробелов',
+  'why.rapidapi_format': 'ключ RapidAPI — от 20 до 100 латинских букв и цифр',
+  'why.username_format': 'имя пользователя — от 1 до 64 символов без пробелов',
+  'why.pilot_text': 'сообщение — от 1 до {max} символов',
+  'why.unknown_scenario': 'неизвестный сценарий {id}',
+  'why.command_scenario': '{id} — команда пилота: она нужна для запросов и не выключается',
+  'why.chance_irregular_only': 'вероятность задаётся только нестандартным событиям',
+  'why.chance_range': 'вероятность — от 0 до 100%',
+  'why.not_forceable': '{id} — не нестандартное событие этого рейса',
+  'why.station_template': 'в шаблоне станции — буквы, цифры, {flight}, {airline}',
+  'why.bridge_port': 'порт — целое число от 1024 до 65535',
+  'why.message_gap': 'интервал — от 0 до 600 с',
+  'why.icao_hex': 'ICAO-адрес — шесть hex-цифр или пусто',
+  'why.hub_icao': 'хаб — четыре буквы (ICAO) или пусто',
+  'why.drone_table': 'код страны (две буквы или *) и множитель от 0 до 100',
+  'why.rescue_titles': 'названия по одному в строке, без |, не слишком много в группе',
+  'why.rescue_flipped': 'не больше 64 названий, без |',
+  'why.setting_value': 'неверное значение {field}',
   'err.dismiss': 'Закрыть',
   'err.view_crashed': 'Этот экран не удалось показать. Переключите вкладку или перезагрузите окно.',
 
@@ -796,6 +969,26 @@ export function translator(lang: Language): Translate {
 export const phaseKey = (p: FlightPhase): MessageKey => `phase.${p}`;
 export const systemKey = (c: SystemCode): MessageKey => `sys.${c}`;
 export const errorKey = (c: ErrorCode): MessageKey => `err.${c}`;
+export const reasonKey = (r: ErrorReason): MessageKey => `why.${r}`;
+
+/** An error in the UI language (U-14): the reason code when main sent one, else its detail. */
+export function errorText(
+  t: Translate,
+  e: Pick<AppError, 'code' | 'detail' | 'reason' | 'params'>,
+): string {
+  const detail = e.reason === undefined ? e.detail : t(reasonKey(e.reason), withPhase(t, e.params));
+  return t(errorKey(e.code), { detail });
+}
+
+/** `phase` among error params is a flight phase: shown in the UI language. */
+function withPhase(
+  t: Translate,
+  params: Readonly<Record<string, string>> | undefined,
+): Record<string, string> {
+  const out: Record<string, string> = { ...params };
+  if (out['phase'] !== undefined) out['phase'] = t(phaseKey(out['phase'] as FlightPhase));
+  return out;
+}
 
 /** Params of a system entry that hold a flight phase; all others (callsigns, ids) are shown as is. */
 const PHASE_PARAMS: Readonly<Partial<Record<SystemCode, readonly string[]>>> = {
@@ -809,6 +1002,16 @@ export function systemText(
   code: SystemCode,
   params: Readonly<Record<string, string>>,
 ): string {
+  if (code === 'next_ofp_failed') {
+    // The error of the next OFP load travels as params: code, detail, reason and its values.
+    const { code: c = 'internal', detail = '', reason = '', ...rest } = params;
+    const error = errorText(t, {
+      code: c as ErrorCode,
+      detail,
+      ...(reason === '' ? {} : { reason: reason as ErrorReason, params: rest }),
+    });
+    return t(systemKey(code), { error });
+  }
   const out: Record<string, string> = { ...params };
   for (const k of PHASE_PARAMS[code] ?? []) {
     const p = out[k];
