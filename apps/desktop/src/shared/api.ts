@@ -12,6 +12,12 @@ export type Language = 'en' | 'ru';
 /** `offline`: messages only appear in the feed, nothing goes to the network (MockTransport). */
 export type TransportChoice = 'hoppie' | 'offline';
 
+/**
+ * The simulator the bundled bridge reads (T18): MSFS through SimConnect, or X-Plane 12 through its
+ * Web API (12.1.1+). X-Plane gives no sim clock and takes no smoke or rescue commands.
+ */
+export type Simulator = 'msfs' | 'xplane';
+
 export interface Settings {
   readonly language: Language;
   readonly transport: TransportChoice;
@@ -19,6 +25,8 @@ export interface Settings {
   readonly stationTemplate: string;
   /** Port of the sim bridge on 127.0.0.1. */
   readonly bridgePort: number;
+  /** Simulator for the bundled bridge (T18). Default MSFS. */
+  readonly simulator: Simulator;
   /** Write every flight to a JSONL recording (T11) in the user-data folder. */
   readonly recordFlights: boolean;
   /**
@@ -63,6 +71,7 @@ export interface Settings {
   /**
    * Time from the simulator: the flight's clock (STD/STA, delays, times in messages) is the sim's
    * UTC, not the PC's. Needs a bridge that sends `simUtcMs`; the flight waits for it. Default off.
+   * Ignored with X-Plane, which sends no sim clock (T18).
    */
   readonly simTime: boolean;
   /**

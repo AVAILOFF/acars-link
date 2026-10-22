@@ -2,11 +2,12 @@ using System.Reflection;
 using AcarsBridge;
 
 const string Usage = """
-    acars-msfs-bridge — MSFS SimConnect → WebSocket ws://127.0.0.1:<port>/
+    acars-msfs-bridge — MSFS SimConnect or X-Plane 12 Web API → WebSocket ws://127.0.0.1:<port>/
 
     Options:
       --port <n>          listen port (default 47830)
-      --source <name>     simconnect (default) | fake
+      --source <name>     simconnect (default) | xplane | fake
+      --xplane-port <n>   with --source xplane: X-Plane's web server port (default 8086)
       --replay <file>     with --source fake: loop a JSONL file of TelemetrySnapshot v1
       --verbose           log HTTP/Kestrel details
       --help
@@ -15,6 +16,7 @@ const string Usage = """
 var port = BridgeServer.DefaultPort;
 var sourceName = "simconnect";
 string? replay = null;
+var xplanePort = XPlaneSource.DefaultPort;
 var verbose = false;
 
 for (var i = 0; i < args.Length; i++)
@@ -23,6 +25,10 @@ for (var i = 0; i < args.Length; i++)
     {
         case "--port" when i + 1 < args.Length && int.TryParse(args[i + 1], out var p) && p is > 0 and < 65536:
             port = p;
+            i++;
+            break;
+        case "--xplane-port" when i + 1 < args.Length && int.TryParse(args[i + 1], out var xp) && xp is > 0 and < 65536:
+            xplanePort = xp;
             i++;
             break;
         case "--source" when i + 1 < args.Length:
@@ -49,6 +55,9 @@ switch (sourceName)
 {
     case "fake":
         source = replay is null ? new FakeSimSource(clock) : FakeSimSource.FromJsonl(clock, replay);
+        break;
+    case "xplane":
+        source = new XPlaneSource(clock, xplanePort);
         break;
     case "simconnect":
 #if SIMCONNECT

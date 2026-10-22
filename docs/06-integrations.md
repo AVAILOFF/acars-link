@@ -115,6 +115,16 @@ REQ:M.<мах> FL<эшелон>[
 - Протокол v2 (T21): клиент просит `?protocol=2`. После этого он может слать `{type:"command",id,command,args}` из белого списка. Мост отвечает этому клиенту `{type:"ack",id,ok,error?,detail?}`. Клиент без запроса версии получает v1 без изменений. Подробно — `bridge/msfs/README.md`. Команды выдаёт ядро (`CoreOutput.commands`, `packages/core/src/sim/commands.ts`). Пока в белом списке только `ping`.
 - Список SimVar — `03-architecture.md`.
 
+## X-Plane 12 Web API (T18)
+
+Сверено 2026-10-22: `https://developer.x-plane.com/article/x-plane-web-api/` (API) и официальный `DataRefs.txt` из репозитория X-Plane (`github.com/X-Plane/XPlane2Blender`, `io_xplane2blender/resources/DataRefs.txt`, сборка 1208, файл 2023-09) — имена, типы и единицы dataref. Реализация — `bridge/msfs/src/AcarsBridge/XPlaneSource.cs`, `XPlane.cs`.
+
+- Встроенный веб-сервер X-Plane: REST и WebSocket на `localhost:8086` (порт — `--web_server_port=` при запуске X-Plane; у моста `--xplane-port`). Сервер принимает только локальные подключения. С X-Plane 12.1.1 (v1), v2 — 12.1.4, v3 — 12.4.0. Выключается в X-Plane: Settings > Network → «Disable Incoming Traffic» (все запросы → 403) или ключом `--no_web_server`.
+- `GET /api/capabilities` (без версии) → `api.versions`; мост берёт старшую из v3/v2/v1, без этого запроса (404) — v1. Используется только то, что есть в v1.
+- `GET /api/vN/datarefs?filter[name]=…` → `{data:[{id,name,value_type}]}`; неизвестное имя → 404 `invalid_dataref_name`. До загрузки первого полёта dataref **нет**. Id стабильны в пределах сессии X-Plane, поэтому ищутся при каждом подключении.
+- `ws://localhost:8086/api/vN`: `{req_id,type:"dataref_subscribe_values",params:{datarefs:[{id,index?}]}}` → `{req_id,type:"result",success}`; затем `dataref_update_values` ~10 Гц, `data` по id: первое — все значения, дальше только изменившиеся. Массив с `index` приходит плотным списком в порядке индексов. Значения `data` (строки `byte[]`) — base64.
+- Соответствие dataref полям `TelemetrySnapshot` и одобренные допущения — `07`, T18.
+
 ## GSX VDGS (T22)
 
 - Источник: FSDreamTeam, «VGDS Custom Messages System — Developer Manual», 2025-07-29. Поставляется с GSX Pro: `<Addon Manager>\couatl\GSX\SDK\Samples\VGDS\vgds_developer_manual.pdf`, рядом примеры `*.json` и редактор `GSX\VGDSEditor`. Сверено 2026-10-09 по установке пользователя (стандартный файл GSX `parkingServices\vgds_standard_messages.json` от 2026-05-29). Используется только формат файла для совместимости, файлы FSDreamTeam в репозиторий не копируются. Установленную версию GSX по файлам определить не удалось. По списку изменений на форуме функция есть с 3.4.6 (апрель 2025) — это вторичный источник.

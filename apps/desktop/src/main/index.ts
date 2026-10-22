@@ -15,7 +15,7 @@ import {
   session,
   shell,
 } from 'electron';
-import { type AppState, IPC } from '../shared/api.js';
+import { type AppState, IPC, type Simulator } from '../shared/api.js';
 import type { SocketLike } from './bridge.js';
 import { startBridge } from './bridge-process.js';
 import { CLOSE_BUTTON, closeDialog } from './close-dialog.js';
@@ -142,6 +142,17 @@ async function main(): Promise<void> {
     join(userData, 'settings.json'),
     defaultSettings(app.getLocale()),
   );
+  // Installed build only (dev: the bridge is started by hand). One start at a time: the old process
+  // leaves the port before the new one takes it.
+  let stopBridge: (() => Promise<void>) | null = null;
+  let bridgeQueue = Promise.resolve();
+  const restartBridge = (port: number, simulator: Simulator) => {
+    if (!app.isPackaged) return;
+    bridgeQueue = bridgeQueue.then(async () => {
+      await stopBridge?.();
+      stopBridge = startBridge(process.resourcesPath, port, simulator);
+    });
+  };
   let controller: AppController | null = null;
   const onChange = () => {
     if (controller !== null) pushState(controller.state());
@@ -175,14 +186,14 @@ async function main(): Promise<void> {
     dataCache,
     flags: new FlagsStore(join(userData, 'airline-memory.json')),
     vdgsDir: gsxVdgsDir(app.getPath('appData')),
+    onBridgeConfig: (port, simulator) => restartBridge(port, simulator),
   });
   const ctl = controller;
   registerIpc(ipcMain, ctl, isTrustedSender);
   await ctl.init();
   // Installed build: the bridge exe lies in resources/bridge; start it before the client connects.
-  const stopBridge = app.isPackaged
-    ? startBridge(process.resourcesPath, (await settingsStore.get()).bridgePort)
-    : null;
+  const boot = await settingsStore.get();
+  restartBridge(boot.bridgePort, boot.simulator);
 
   win = createWindow();
   // U-03: the flight lives in memory only; ask before the window takes it away.
@@ -203,7 +214,7 @@ async function main(): Promise<void> {
   app.on('before-quit', () => {
     clearInterval(loop);
     ctl.dispose();
-    stopBridge?.();
+    void stopBridge?.();
   });
 }
 

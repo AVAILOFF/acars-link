@@ -1,6 +1,12 @@
 import { DEFAULT_RESCUE_FLIPPED, DEFAULT_RESCUE_TITLES, RESCUE_TITLE_GROUPS } from '@acars/core';
 import { type FormEvent, type ReactNode, useState } from 'react';
-import type { Language, Settings, SettingsPatch, TransportChoice } from '../../shared/api.js';
+import type {
+  Language,
+  Settings,
+  SettingsPatch,
+  Simulator,
+  TransportChoice,
+} from '../../shared/api.js';
 import { firstSentence } from './hints.js';
 import { Switch, SwitchInput } from './Switch.js';
 import { playMessageSound } from './sound.js';
@@ -680,6 +686,8 @@ function AdvancedSettings({ s }: { s: Settings }) {
           title={t('set.simTime')}
           hint={t('set.simTimeHint')}
           next
+          disabled={s.simulator === 'xplane'}
+          offHint={t('set.offXplane')}
         />
         <TextRow
           id="hub-icao"
@@ -742,7 +750,14 @@ function AdvancedSettings({ s }: { s: Settings }) {
       </Group>
 
       <Group id="rescue" title={t('set.group.rescue')}>
-        <SettingSwitch s={s} k="rescue" title={t('set.rescue')} hint={t('set.rescueHint')} />
+        <SettingSwitch
+          s={s}
+          k="rescue"
+          title={t('set.rescue')}
+          hint={t('set.rescueHint')}
+          disabled={s.simulator === 'xplane'}
+          offHint={t('set.offXplane')}
+        />
         <p className={s.rescue ? 'sheet-note' : 'sheet-note off'}>
           {s.rescue ? t('set.rescueTitlesHint') : t('set.offRescue')}
         </p>
@@ -853,6 +868,22 @@ function AdvancedSettings({ s }: { s: Settings }) {
       </Group>
 
       <Group id="conn" title={t('set.group.connection')}>
+        <Row
+          htmlFor="simulator"
+          title={t('set.simulator')}
+          hint={<Hint text={t('set.simulatorHint')} />}
+        >
+          <select
+            id="simulator"
+            value={s.simulator}
+            disabled={off}
+            onChange={(e) => void update({ simulator: e.currentTarget.value as Simulator })}
+          >
+            <option value="msfs">{t('set.simulator.msfs')}</option>
+            <option value="xplane">{t('set.simulator.xplane')}</option>
+          </select>
+          <SavedMark field="simulator" />
+        </Row>
         <TextRow
           id="station"
           field="stationTemplate"

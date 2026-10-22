@@ -55,7 +55,7 @@ pnpm desktop:dist     # установщик Windows: apps/desktop/release/ACARS
 pnpm licenses         # тексты лицензий npm-пакетов бандла и .NET → apps/desktop/build/third-party-licenses.txt (часть desktop:dist)
 pnpm icon             # иконка приложения: design/logo/*.svg → apps/desktop/build/icon.{ico,png} (рендер через Electron)
 pnpm bridge:publish   # мост как самодостаточный exe (.NET не нужен) → bridge/msfs/publish
-pnpm bridge:build     # dotnet build bridge/msfs (C# мост, .NET 8; с SimConnect: -p:MsfsSdk="C:\MSFS 2024 SDK")
+pnpm bridge:build     # dotnet build bridge/msfs (C# мост, .NET 8; с SimConnect: -p:MsfsSdk="C:\MSFS 2024 SDK"); X-Plane 12 — тот же мост с --source xplane (T18)
 pnpm bridge:test      # dotnet test bridge/msfs — при изменениях в bridge/ тоже перед «готово»
 ```
 
