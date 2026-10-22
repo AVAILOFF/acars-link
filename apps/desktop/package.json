@@ -4,6 +4,7 @@
   "productName": "ACARS Link",
   "description": "ACARS simulator for flight simulators",
   "author": "AVAILOFF",
+  "license": "UNLICENSED",
   "private": true,
   "type": "module",
   "main": "./out/main/index.js",

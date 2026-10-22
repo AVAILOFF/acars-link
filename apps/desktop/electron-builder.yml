@@ -1,4 +1,4 @@
-# Windows installer (T19, build only: no code signing, no auto-update).
+# Windows installer (T19, build only: no code signing, no auto-update; decision 2026-10-22: unsigned).
 # `pnpm desktop:dist` builds out/ and the bridge first; see CLAUDE.md, «Команды».
 appId: local.acars.link
 productName: ACARS Link
@@ -16,6 +16,10 @@ extraResources:
   # Self-contained bridge from `pnpm bridge:publish`; the app starts it (src/main/bridge-process.ts).
   - from: ../../bridge/msfs/publish
     to: bridge
+  - from: ../../THIRD-PARTY-NOTICES.md
+    to: THIRD-PARTY-NOTICES.md
+  - from: ../../LICENSE
+    to: LICENSE.txt
 win:
   target:
     - target: nsis
@@ -26,4 +30,6 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+  # EULA shown by the installer (T19); bilingual, UTF-8 with BOM.
+  license: build/license.txt
   artifactName: ACARS-Link-Setup-${version}.exe
