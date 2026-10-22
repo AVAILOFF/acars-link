@@ -57,4 +57,4 @@ steps:
               HOTEL AND BUSES ARRANGED
               PAX TRANSFER BY ROAD
             hint: "OPS plans your diversion to the alternate: a hotel and buses are arranged and the passengers go on to the destination by road. No reply needed."
-            hint_ru: "OPS планирует вашу диверсию на запасной: гостиница и автобусы заказаны, пассажиров довезут до назначения по дороге. Ответ не нужен."
+            hint_ru: "OPS планирует вашу диверсию на запасной: гостиница и автобусы заказаны, пассажиров доставят до назначения наземным транспортом. Ответ не нужен."

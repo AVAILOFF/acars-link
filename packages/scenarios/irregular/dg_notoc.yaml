@@ -7,7 +7,7 @@ title_ru: "Опасный груз (NOTOC)"
 description: "Before departure: dangerous goods on board, UN number, class, position. Reply ACK for the captain signature."
 description_ru: "Перед вылетом: опасный груз на борту — номер ООН, класс, позиция. Ответ ACK — подпись КВС."
 hint: "NOTOC (notification to captain): dangerous goods are loaded, with the UN number, class, hold position and number of packages; CAO NO means they are allowed on passenger aircraft. Acknowledge with ACK, which counts as the captain's signature."
-hint_ru: "NOTOC (уведомление командиру): на борту опасные грузы — номер ООН (UN), класс, место в багажнике и число мест; CAO NO значит, что их можно возить на пассажирском самолёте. Подтвердите ответом ACK — он заменяет подпись командира."
+hint_ru: "NOTOC (уведомление командиру): на борту опасные грузы — номер ООН (UN), класс, место в багажном отсеке и число мест; CAO NO значит, что их можно возить на пассажирском самолёте. Подтвердите ответом ACK — он заменяет подпись командира."
 enabled_by_default: true
 trigger:
   on: time

@@ -8,8 +8,8 @@ title: Formula 1 result
 title_ru: Результат Формулы-1
 description: "A Grand Prix that finished during the flight: the podium (Jolpica)."
 description_ru: "Гран-при, завершившийся во время полёта: тройка призёров (Jolpica)."
-hint: "OPS information: the result of the latest Formula 1 race. For interest only, no reply needed."
-hint_ru: "Информация OPS: результат последней гонки «Формулы-1». Просто для интереса, ответ не нужен."
+hint: "OPS information: the result of a Formula 1 Grand Prix that finished during your flight. No reply needed."
+hint_ru: "Информация OPS: результат Гран-при «Формулы-1», завершившегося во время рейса. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase

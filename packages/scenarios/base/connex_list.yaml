@@ -8,8 +8,8 @@ title: Onward connections at destination
 title_ru: "Стыковочные рейсы в пункте назначения"
 description: "Before TOD: up to 4 departures of the airline from the destination with destination, STD and gate (AeroDataBox, your RapidAPI key)."
 description_ru: "Перед TOD: до 4 вылетов авиакомпании из пункта назначения — направление, STD, гейт (AeroDataBox, ваш ключ RapidAPI)."
-hint: "Connections (CONNEX): departures of your airline from the destination with flight, destination, STD and gate, from AeroDataBox, so you can tell passengers about their onward flights. No reply needed."
-hint_ru: "Стыковки (CONNEX): вылеты вашей авиакомпании из аэропорта назначения — рейс, куда, STD и гейт (данные AeroDataBox), чтобы сообщить пассажирам о дальнейших рейсах. Ответ не нужен."
+hint: "Connections (CONNEX): departures of your airline from the destination with flight, destination, STD and gate, from AeroDataBox, for passenger announcements about onward flights. No reply needed."
+hint_ru: "Стыковки (CONNEX): вылеты вашей авиакомпании из аэропорта назначения — рейс, куда, STD и гейт (данные AeroDataBox), для объявлений пассажирам о стыковочных рейсах. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: distance

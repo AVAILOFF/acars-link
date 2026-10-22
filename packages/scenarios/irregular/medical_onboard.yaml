@@ -75,7 +75,7 @@ steps:
               CREW INFO: {reply.arg|or:NO ADDL INFO}
               AMBULANCE AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
-            hint: "OPS confirms the diversion airport and its distance and has ordered an ambulance and handling there. Send your new ETA as a free-text telex when you can."
+            hint: "OPS confirms the diversion airport and its distance and has ordered an ambulance and handling there. Send your new ETA by free-text telex when you can."
             hint_ru: "OPS подтверждает аэропорт диверсии и расстояние до него, заказал туда скорую и хендлинг. Сообщите новое ETA telex свободным текстом, когда сможете."
         - rescue: { level: medical }
         - wait: { phase: ON_BLOCK }

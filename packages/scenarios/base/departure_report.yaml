@@ -7,8 +7,8 @@ title: Departure report (OUT/OFF)
 title_ru: "Отчёт о вылете (OUT/OFF)"
 description: "Off-block and take-off times with delay codes."
 description_ru: "Время отхода от стоянки и взлёта с кодами задержки."
-hint: "Departure report: actual off-block (OUT) and take-off (OFF) times and the estimated arrival (ETA) against the schedule (STA); after a delay also its IATA delay codes. No reply needed."
-hint_ru: "Отчёт о вылете: фактическое время ухода со стоянки (OUT) и взлёта (OFF), расчётное время прилёта (ETA) против расписания (STA); при задержке — её коды IATA. Ответ не нужен."
+hint: "Departure report: actual off-block (OUT) and takeoff (OFF) times and the estimated arrival (ETA) against the schedule (STA); after a delay also its IATA delay codes. No reply needed."
+hint_ru: "Отчёт о вылете: фактическое время отхода от стоянки (OUT) и взлёта (OFF), расчётное время прилёта (ETA) против расписания (STA); при задержке — её коды IATA. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: event

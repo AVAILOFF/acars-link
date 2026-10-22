@@ -8,7 +8,7 @@ title: Minimum diversion fuel in holding
 title_ru: "Минимум топлива для ухода в зоне ожидания"
 description: "While holding for an airline-announced closure the fuel comes down to the diversion minimum: DIVERT is recommended (reply STAY to stay in the holding), and without an answer in 5 min the flight is sent to the alternate."
 description_ru: "Топливо в ожидании (дрон, закрытая ВПП, пожар) дошло до минимума для ухода: рекомендуется DIVERT (ответ STAY — остаться в ожидании), без ответа за 5 мин рейс уходит на запасной."
-hint: "OPS of the destination: while you hold, your fuel has come down to the minimum for the diversion to the alternate. OPS recommends diverting now and asks whether you divert or stay in the holding."
+hint: "OPS of the destination: while you hold, your fuel has come down to the minimum for the diversion to the alternate. OPS recommends diverting now and asks whether you divert or stay in holding."
 hint_ru: "OPS аэропорта назначения: пока вы в зоне ожидания, топливо снизилось до минимума для ухода на запасной. OPS рекомендует уходить сейчас и спрашивает, уходите ли вы или остаётесь в ожидании."
 enabled_by_default: true
 # Any distance: the scenario starts the moment its conditions turn true.
@@ -39,7 +39,7 @@ steps:
               default: DIVERT
               reply_hints:
                 DIVERT: "Divert to the alternate now."
-                STAY: "Stay in the holding; the captain decides."
+                STAY: "Stay in holding; captain's decision."
               reply_hints_ru:
                 DIVERT: "Уходить на запасной сейчас."
                 STAY: "Оставаться в зоне ожидания — решение командира."
@@ -52,7 +52,7 @@ steps:
                     DIVERT {ofp.altn} NOTED
                     HANDLING AND FUEL ORDERED
                     SEND ETA WHEN ABLE
-                  hint: "OPS notes your diversion to the alternate and has ordered handling and fuel there. Send your ETA as a free-text telex when you can."
+                  hint: "OPS notes your diversion to the alternate and has ordered handling and fuel there. Send your ETA by free-text telex when you can."
                   hint_ru: "OPS принял вашу диверсию на запасной и заказал туда хендлинг и топливо. Сообщите ETA telex свободным текстом, когда сможете."
               - break: true
             STAY:
@@ -61,6 +61,6 @@ steps:
                   body: |
                     HOLD NOTED, CAPTAIN DECISION
                     ADVISE FUEL STATE
-                  hint: "OPS notes that you stay in the holding as the captain's decision and asks for your fuel state as a free-text telex."
+                  hint: "OPS notes that you stay in holding by the captain's decision and asks for your fuel state by free-text telex."
                   hint_ru: "OPS принял, что вы остаётесь в ожидании по решению командира, и просит сообщить остаток топлива telex свободным текстом."
               - break: true

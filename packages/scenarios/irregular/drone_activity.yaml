@@ -50,7 +50,7 @@ steps:
             body: |
               NOTED, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
               ADVISE IF FUEL BECOMES CRITICAL
-            hint: "OPS notes that you hold; the next update comes at the time given. Tell OPS in a free-text telex if your fuel becomes critical."
+            hint: "OPS notes that you hold; the next update comes at the time given. Tell OPS by free-text telex if your fuel becomes critical."
             hint_ru: "OPS принял, что вы ждёте; следующее обновление — к указанному времени. Если топливо станет критическим, сообщите OPS telex свободным текстом."
         - loop:
             until: "loop.min >= run.hold_min"

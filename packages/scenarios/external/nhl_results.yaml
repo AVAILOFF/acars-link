@@ -8,8 +8,8 @@ title: NHL results
 title_ru: Результаты NHL
 description: "NHL games that finished during the flight (regular season and playoffs)."
 description_ru: "Матчи NHL, завершившиеся во время полёта (регулярный сезон и плей-офф)."
-hint: "OPS information: last night's final scores of the NHL ice hockey games. For interest only, no reply needed."
-hint_ru: "Информация OPS: итоговые счета вчерашних матчей НХЛ. Просто для интереса, ответ не нужен."
+hint: "OPS information: final scores of NHL games that finished during your flight. No reply needed."
+hint_ru: "Информация OPS: итоговые счета матчей NHL, завершившихся во время рейса. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase
