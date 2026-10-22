@@ -6,6 +6,8 @@ title: "Pilot command: REQ LOADSHEET, none yet"
 title_ru: "Команда пилота: REQ LOADSHEET, ещё нет"
 description: "REQ LOADSHEET command before any loadsheet exists."
 description_ru: "Команда REQ LOADSHEET, когда лоадшита ещё нет."
+hint: "Answer to REQ LOADSHEET: no loadsheet has been issued for this flight yet; the message says when the preliminary one comes. No reply needed."
+hint_ru: "Ответ на REQ LOADSHEET: ведомость для рейса ещё не выпущена; в сообщении сказано, когда придёт предварительная. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

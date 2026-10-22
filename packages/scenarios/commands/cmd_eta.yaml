@@ -7,6 +7,8 @@ title: "Pilot command: ETA"
 title_ru: "Команда пилота: ETA"
 description: "ETA command in flight by the planned time."
 description_ru: "Команда ETA в полёте по плановому времени."
+hint: "Answer to ETA: the estimated arrival against the schedule (STA), your gate or stand and the transfer passengers OPS has told the connecting flights about. No reply needed."
+hint_ru: "Ответ на ETA: расчётное время прилёта против расписания (STA), ваш гейт или стоянка и пассажиры на пересадку, о которых OPS предупредил стыковочные рейсы. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

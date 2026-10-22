@@ -7,6 +7,8 @@ title: Gate assignment
 title_ru: "Назначение гейта"
 description: "Departure gate assignment."
 description_ru: "Назначение гейта вылета."
+hint: "OPS tells you the gate or stand expected for you at the destination. Information only, no reply needed."
+hint_ru: "OPS сообщает гейт или стоянку, которые ожидаются для вас в аэропорту назначения. Только для сведения, ответ не нужен."
 enabled_by_default: true
 trigger:
   on: distance

@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { firstSentence } from './hints.js';
 import { useStore } from './store.js';
-import { useT } from './ui.js';
+import { useT, useUiText } from './ui.js';
 
 /**
  * The request sheet of the mockup (RequestModal). It only builds a pilot command the core already
@@ -9,6 +10,15 @@ import { useT } from './ui.js';
 export type RequestKind = 'wx' | 'atis' | 'gate' | 'loadsheet' | 'text';
 
 const KINDS: readonly RequestKind[] = ['wx', 'atis', 'gate', 'loadsheet', 'text'];
+
+/** The command scenario whose `hint` says what the request does (T57); `text`: the HELP list. */
+const HINT_SCENARIO: Readonly<Record<RequestKind, string>> = {
+  wx: 'cmd_req_wx',
+  atis: 'cmd_req_atis',
+  gate: 'cmd_req_gate',
+  loadsheet: 'cmd_req_loadsheet',
+  text: 'cmd_help',
+};
 const ICAO = /^[A-Z]{4}$/;
 
 function command(kind: RequestKind, airport: string, text: string): string {
@@ -36,9 +46,13 @@ export function RequestDialog({
   onClose: () => void;
 }) {
   const t = useT();
+  const uiText = useUiText();
   const busy = useStore((s) => s.busy);
+  const hintsOn = useStore((s) => s.settings?.messageHints !== false);
+  const scenarios = useStore((s) => s.scenarios);
   const ref = useRef<HTMLDialogElement>(null);
   const [kind, setKind] = useState<RequestKind>(initial);
+  const what = hintsOn ? scenarios?.find((s) => s.id === HINT_SCENARIO[kind])?.hint : undefined;
   const [airport, setAirport] = useState(destination);
   const [text, setText] = useState('');
 
@@ -98,6 +112,7 @@ export function RequestDialog({
           ))}
         </fieldset>
         <div className="sheet modal-body">
+          {what != null && <p className="field-hint req-what">{firstSentence(uiText(what))}</p>}
           {needsAirport && (
             <div className={badAirport ? 'field-row invalid' : 'field-row'}>
               <label htmlFor="req-airport">{t('req.airport')}</label>

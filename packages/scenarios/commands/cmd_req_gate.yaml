@@ -6,6 +6,8 @@ title: "Pilot command: REQ GATE"
 title_ru: "Команда пилота: REQ GATE"
 description: "REQ GATE command: the arrival gate."
 description_ru: "Команда REQ GATE: гейт прилёта."
+hint: "REQ GATE asks OPS for your arrival gate. The answer has the gate or stand expected at the destination, the baggage belt and the STA. No reply needed."
+hint_ru: "REQ GATE запрашивает у OPS гейт прилёта. В ответе — ожидаемый гейт или стоянка в аэропорту назначения, лента багажа и STA. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

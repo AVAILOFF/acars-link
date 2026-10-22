@@ -7,6 +7,8 @@ title: "Pilot command: REQ WX (live)"
 title_ru: "Команда пилота: REQ WX (живая)"
 description: "REQ WX command with live weather."
 description_ru: "Команда REQ WX с живой погодой."
+hint: "REQ WX <ICAO> asks OPS for the weather of an airport (empty: the destination). This answer has the current METAR and TAF. No reply needed."
+hint_ru: "REQ WX <ICAO> запрашивает у OPS погоду аэропорта (пусто — назначения). В этом ответе — текущие METAR и TAF. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

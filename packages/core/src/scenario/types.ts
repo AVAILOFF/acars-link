@@ -93,6 +93,9 @@ export interface SendStep {
     readonly header?: string;
     readonly body: string;
     readonly footer?: string;
+    /** App hint to this message instead of the scenario's (T57); UI only, never sent. */
+    readonly hint?: string;
+    readonly hint_ru?: string;
   };
 }
 
@@ -107,6 +110,9 @@ export interface ReplyWait {
   readonly timeout_min?: number;
   readonly timeout_round?: true;
   readonly default: string;
+  /** App hints (T57): what each option means, one line per option; UI only, never sent. */
+  readonly reply_hints?: Readonly<Record<string, string>>;
+  readonly reply_hints_ru?: Readonly<Record<string, string>>;
 }
 
 /**
@@ -285,6 +291,12 @@ export interface ScenarioDef {
   readonly title_ru?: string;
   readonly description?: string;
   readonly description_ru?: string;
+  /**
+   * App hint to the scenario's messages (T57): who sends it, what it is about, what the pilot is
+   * expected to do. Unlike `description` it does not tell the outcomes. UI only, never sent.
+   */
+  readonly hint?: string;
+  readonly hint_ru?: string;
   readonly enabled_by_default: boolean;
   readonly trigger: Trigger;
   /** All must be true (expression language: `scenario/expr.ts`). */

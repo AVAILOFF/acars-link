@@ -7,6 +7,8 @@ title: "Pilot command: REQ WX, no data"
 title_ru: "Команда пилота: REQ WX, нет данных"
 description: "REQ WX command when there is no weather for the airport."
 description_ru: "Команда REQ WX, когда для аэропорта нет погоды."
+hint: "Answer to REQ WX: OPS has no weather for that airport. Check the ICAO code or ask again later. No reply needed."
+hint_ru: "Ответ на REQ WX: у OPS нет погоды для этого аэропорта. Проверьте код ICAO или запросите позже. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

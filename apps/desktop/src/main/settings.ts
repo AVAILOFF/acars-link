@@ -33,6 +33,7 @@ export function defaultSettings(locale: string): Settings {
     recordFlights: true,
     liveData: true,
     soundOnMessage: false,
+    messageHints: true,
     messageGapSec: 60,
     xatc: false,
     datalink: false,
@@ -136,6 +137,7 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'recordFlights':
       case 'liveData':
       case 'soundOnMessage':
+      case 'messageHints':
       case 'xatc':
       case 'datalink':
       case 'datalinkSatcom':
@@ -220,6 +222,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'recordFlights',
     'liveData',
     'soundOnMessage',
+    'messageHints',
     'messageGapSec',
     'xatc',
     'datalink',

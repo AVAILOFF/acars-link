@@ -6,6 +6,8 @@ title: "Pilot command: REQ GATE, diverting"
 title_ru: "Команда пилота: REQ GATE при диверсии"
 description: "REQ GATE command while diverting."
 description_ru: "Команда REQ GATE во время ухода на запасной."
+hint: "Answer to REQ GATE while you divert: the stand at the diversion airport is not known yet, the local handling will give it. No reply needed."
+hint_ru: "Ответ на REQ GATE при уходе на запасной: стоянка в аэропорту диверсии пока не известна, её даст местный хендлинг. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

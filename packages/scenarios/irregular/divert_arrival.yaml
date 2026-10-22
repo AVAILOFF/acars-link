@@ -7,6 +7,8 @@ title: Arrival at the diversion airport
 title_ru: "Прилёт на запасной (диверсия)"
 description: "On block after a diversion: handling, fuel and passengers are arranged, a request for the new plan. Leaves a note for the next flight from that airport."
 description_ru: "На стоянке после диверсии: наземное обслуживание, заправка и пассажиры, запрос нового плана. Оставляет запись для следующего рейса из этого аэропорта."
+hint: "OPS after your diversion: handling and fuel are ordered, passengers are looked after and the destination passengers rebooked. OPS asks for your fuel request and the new departure time (ETD) as a free-text telex."
+hint_ru: "OPS после вашей диверсии: хендлинг и заправка заказаны, о пассажирах позаботятся, пассажиров до назначения переоформляют. OPS просит прислать заявку на топливо и новое время вылета (ETD) telex свободным текстом."
 enabled_by_default: true
 trigger:
   on: phase_enter

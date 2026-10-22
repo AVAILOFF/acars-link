@@ -612,6 +612,66 @@ input.short {
   color: #b3261e;
 }
 
+/* T57: "awaiting reply" before the subject of a message the core waits for an answer to. */
+.pill.awaiting {
+  height: 18px;
+  margin-right: var(--s-2);
+  padding: 0 7px;
+  font-size: 11px;
+}
+
+/* ---------- Hint to the selected message (T57): app type, not the FMS ---------- */
+
+.hint-panel {
+  flex: none;
+  white-space: normal;
+}
+
+.hint-text,
+.hint-await {
+  margin: 0;
+  color: var(--on-shell-1);
+  font-size: var(--fs-sub);
+  line-height: 18px;
+}
+
+.hint-reply {
+  margin-top: var(--s-3);
+}
+
+.hint-await {
+  font-weight: 600;
+}
+
+.hint-options {
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-2) 0 0;
+  font-size: var(--fs-sub);
+  line-height: 18px;
+}
+
+.hint-options > div {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--s-3);
+}
+
+.hint-options dt {
+  color: var(--on-shell-1);
+  font-weight: 600;
+}
+
+.hint-options dd {
+  margin: 0;
+  color: var(--on-shell-2);
+  overflow-wrap: anywhere;
+}
+
+.req-what {
+  margin: 0 0 var(--s-3);
+}
+
 /* ---------- Messages screen: workspace + context ---------- */
 
 .msg-layout {

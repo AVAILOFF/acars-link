@@ -8,6 +8,8 @@ title: Docking display (GSX)
 title_ru: Табло стоянки (GSX)
 description: Flight, origin and arrival gate on the GSX VDGS at the destination stand.
 description_ru: Номер рейса, аэропорт вылета и гейт на табло VDGS от GSX на стоянке прилёта.
+hint: "Not a message: your flight, origin and arrival gate on the GSX docking display at the stand."
+hint_ru: "Не сообщение: ваш рейс, аэропорт вылета и гейт на табло стыковки GSX (VDGS) на стоянке."
 enabled_by_default: true
 trigger:
   on: phase_enter

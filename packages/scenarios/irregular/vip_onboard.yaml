@@ -6,6 +6,8 @@ title: VIP on board
 title_ru: "VIP на борту"
 description: "Before departure: a VIP and the seat; on block: disembarks first, protocol car at the gate."
 description_ru: "Перед вылетом: VIP и его место; на стоянке после прилёта — выходит первым, протокольная машина у гейта."
+hint: "OPS: a VIP is on board, with the seat. The VIP boards last and leaves first; make no announcement about it on board. No reply needed."
+hint_ru: "OPS: на борту VIP-пассажир, указано место. Он садится последним и выходит первым; объявлений о нём на борту не делать. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time
@@ -29,4 +31,6 @@ steps:
         VIP SEAT {flags.vip_seat} DISEMBARKS FIRST
         PROTOCOL CAR AT {ops.gate_place}
         HOLD OTHER PAX 3 MIN
+      hint: "OPS on arrival: the VIP leaves first, a protocol car waits at your gate; hold the other passengers on board for the time given. No reply needed."
+      hint_ru: "OPS по прилёте: VIP выходит первым, у гейта ждёт протокольная машина; задержите остальных пассажиров на борту на указанное время. Ответ не нужен."
   - set: { flags.vip_seat: null }

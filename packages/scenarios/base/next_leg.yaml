@@ -8,6 +8,8 @@ title: Next leg
 title_ru: "Следующий рейс"
 description: "Next leg with the same aircraft."
 description_ru: "Следующий рейс на том же самолёте."
+hint: "OPS gives your next sector with the same aircraft: flight, route, STD and the turnaround time. No reply needed."
+hint_ru: "OPS сообщает ваш следующий рейс на этом же самолёте: номер, маршрут, STD и время на оборот. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time

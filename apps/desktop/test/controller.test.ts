@@ -476,6 +476,66 @@ describe('pilot telexes (T12)', () => {
   });
 });
 
+describe('message hints (T57)', () => {
+  it('the awaited answer is in the app state; messages carry the step hint, else the scenario one', async () => {
+    const s = await setup();
+    const { app } = s;
+    await app.setSimbriefUsername('pilot42');
+    await app.updateSettings({ transport: 'offline' });
+    await app.loadOfp();
+    s.sockets.last().hello();
+    await app.startFlight();
+    const mock = s.transports[0]?.t as MockTransport;
+    const half = Math.floor(flight.snapshots.length / 2); // cruise
+    fly(s, 0, half);
+    expect(app.state().pendingReplies).toEqual([]);
+    mock.deliver({ from: ofp.callsign, to: 'OPS822', type: 'telex', packet: 'DIVERT-RJOO' });
+    fly(s, half, half + 3);
+
+    const ask = outbound(app.state().feed).find((m) => m.scenarioId === 'cmd_divert');
+    expect(ask?.hint?.en).toMatch(/^OPS acknowledges your DIVERT/);
+    expect(ask?.hint?.ru).toMatch(/^OPS подтверждает ваш DIVERT/);
+    const [pending, ...more] = app.state().pendingReplies;
+    expect(more).toEqual([]);
+    expect(pending).toMatchObject({
+      scenarioId: 'cmd_divert',
+      messageId: ask?.id,
+      station: 'OPS822',
+      options: ['WX', 'TECH', 'MEDICAL', 'FUEL', 'OTHER'],
+      default: 'OTHER',
+      minutesLeft: 10,
+    });
+    expect(pending?.hints?.['TECH']).toEqual({
+      en: 'A technical problem with the aircraft.',
+      ru: 'Техническая неисправность самолёта.',
+    });
+
+    mock.deliver({ from: ofp.callsign, to: 'OPS822', type: 'telex', packet: 'TECH' });
+    fly(s, half + 3, half + 300);
+    expect(app.state().pendingReplies).toEqual([]);
+    const after = outbound(app.state().feed).filter((m) => m.scenarioId === 'cmd_divert');
+    expect(after.map((m) => m.hint?.en.split(' ').slice(0, 3).join(' '))).toEqual([
+      'OPS acknowledges your',
+      'Maintenance control knows',
+      'The stand at',
+    ]);
+    // A command answer without a step hint: the scenario's.
+    await app.sendPilotMessage('REQ GATE');
+    fly(s, half + 300, half + 400);
+    const gate = outbound(app.state().feed).find((m) => m.scenarioId === 'cmd_req_gate_divert');
+    expect(gate?.hint?.en).toMatch(/^Answer to REQ GATE while you divert/);
+    await app.stopFlight();
+    expect(app.state().pendingReplies).toEqual([]);
+  });
+
+  it('the setting is on by default and is a plain switch', async () => {
+    const { app } = await setup();
+    expect((await app.getSettings()).messageHints).toBe(true);
+    expect((await app.updateSettings({ messageHints: false })).messageHints).toBe(false);
+    expect((await guard(() => app.updateSettings({ messageHints: 'no' as never }))).ok).toBe(false);
+  });
+});
+
 describe('i18n', () => {
   it('EN and RU have the same keys and placeholders', () => {
     const { en, ru } = MESSAGES;

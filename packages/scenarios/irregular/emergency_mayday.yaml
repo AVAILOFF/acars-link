@@ -9,6 +9,8 @@ title: MAYDAY declared
 title_ru: "Объявлен MAYDAY"
 description: "The crew declared MAYDAY to ATC through the XATC station. The airline emergency desk offers DIVERT to the nearest suitable airport (default DIVERT after 5 min) and alerts rescue and medical services there. Starts only after a MAYDAY to XATC."
 description_ru: "Экипаж объявил MAYDAY станции XATC. Аварийный центр авиакомпании предлагает диверсию на ближайший подходящий аэропорт (через 5 мин — DIVERT) и поднимает пожарных и медиков. Запускается только после MAYDAY на станцию XATC."
+hint: "The airline's emergency desk got your MAYDAY through ATC and gives the nearest suitable airport with its distance. Tell OPS whether you divert or continue."
+hint_ru: "Аварийная группа авиакомпании получила ваш MAYDAY через УВД и называет ближайший подходящий аэропорт и расстояние до него. Сообщите OPS, уходите ли вы на него или продолжаете полёт."
 enabled_by_default: true
 trigger:
   on: phase
@@ -24,7 +26,16 @@ steps:
         {flight.nearest_any_nm} NM FROM PRESENT POS
         REPLY DIVERT OR CONTINUE
   - wait:
-      reply: { options: [DIVERT, CONTINUE], timeout_min: 5, default: DIVERT }
+      reply:
+        options: [DIVERT, CONTINUE]
+        timeout_min: 5
+        default: DIVERT
+        reply_hints:
+          DIVERT: "Divert to the nearest suitable airport, or to another airport named after the word (DIVERT EDDM)."
+          CONTINUE: "Continue to the destination."
+        reply_hints_ru:
+          DIVERT: "Уйти на ближайший подходящий аэропорт или на другой, названный после слова (DIVERT EDDM)."
+          CONTINUE: "Продолжать полёт до аэропорта назначения."
   - branch:
       DIVERT:
         - set: { flight.divert: "{reply.icao|else:flight.nearest_any}" }
@@ -37,6 +48,8 @@ steps:
               RESCUE AND FIRE SERVICES ALERTED
               MEDICAL AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
+            hint: "OPS confirms your diversion airport and its distance: rescue and fire services are alerted, medical help and handling ordered. Send your new ETA as a free-text telex when you can."
+            hint_ru: "OPS подтверждает аэропорт диверсии и расстояние до него: аварийно-спасательная служба поднята, медпомощь и хендлинг заказаны. Сообщите новое ETA telex свободным текстом, когда сможете."
         - rescue: { level: full }
       CONTINUE:
         - send:
@@ -45,4 +58,6 @@ steps:
               ROGER CONTINUE TO {ofp.dest}
               RESCUE AND FIRE SERVICES ALERTED
               ADVISE IF PLAN CHANGES
+            hint: "OPS notes that you continue to the destination; rescue and fire services there are alerted. Tell OPS if your plan changes. No reply needed."
+            hint_ru: "OPS принял, что вы продолжаете полёт до назначения; аварийно-спасательная служба там поднята. Сообщите OPS, если план изменится. Ответ не нужен."
         - rescue: { level: full }

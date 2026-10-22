@@ -7,6 +7,8 @@ title: Landing data
 title_ru: "Данные для посадки"
 description: "Landing data from the OFP: runway, weather, flaps and VREF when the OFP has them."
 description_ru: "Данные посадки из OFP: ВПП, погода, закрылки и VREF, если они есть в OFP."
+hint: "Landing data from the flight plan: runway and STAR, airport elevation, transition level, landing weight against the limit, landing fuel and fuel to the alternate; flaps and VREF when the flight plan has them. For the approach briefing, no reply needed."
+hint_ru: "Данные на посадку из плана полёта: ВПП и STAR, превышение аэродрома, эшелон перехода, посадочная масса против ограничения, топливо на посадке и до запасного; закрылки и VREF, если они есть в плане. Для брифинга на заход, ответ не нужен."
 enabled_by_default: true
 trigger:
   on: distance

@@ -7,6 +7,8 @@ title: Recovery after a diversion
 title_ru: "Продолжение после диверсии"
 description: "Before the flight from an earlier diversion airport: the aircraft was diverted from the earlier flight, crew duty and the new flight plan are checked."
 description_ru: "Перед рейсом из аэропорта прежней диверсии: борт сюда уходил на запасной, проверяются рабочее время экипажа и новый план полёта."
+hint: "OPS before the recovery flight from the airport of an earlier diversion: crew duty time is checked, a new flight plan and fuel are ordered; expect late passengers and bags. No reply needed."
+hint_ru: "OPS перед рейсом из аэропорта прошлой диверсии: рабочее время экипажа проверено, новый план полёта и топливо заказаны; ожидайте опоздания пассажиров и багажа. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time

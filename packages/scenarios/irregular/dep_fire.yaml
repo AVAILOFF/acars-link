@@ -10,6 +10,8 @@ title: Fire at departure airport
 title_ru: "Пожар в аэропорту вылета"
 description: "From 30 min before the scheduled departure until the takeoff roll: fire on or near the departure airport (random point beside the planned runway), departures suspended for 20-90 min with an update every 20 min."
 description_ru: "От 30 мин до планового вылета и до разбега: пожар на территории аэропорта вылета или рядом (случайная точка у плановой ВПП), вылеты приостановлены на 20–90 мин, обновления каждые 20 мин."
+hint: "OPS of the departure airport: a fire on or near the airport, rescue services are on scene and departures are suspended. Expect a delay and follow ATC; the message gives the time of the next update. No reply needed."
+hint_ru: "OPS аэропорта вылета: пожар на территории аэропорта или рядом, аварийные службы на месте, вылеты приостановлены. Ожидайте задержки и следуйте указаниям УВД; в сообщении — время следующего обновления. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time
@@ -61,4 +63,6 @@ steps:
                     UNDER CONTROL
                     DEPARTURES RESUMED
                     EXPECT START UP ACCORDING TO ATC
+                  hint: "OPS of the departure airport: the fire is under control and departures have resumed. Start up when ATC clears you. No reply needed."
+                  hint_ru: "OPS аэропорта вылета: пожар под контролем, вылеты возобновлены. Запуск — по разрешению УВД. Ответ не нужен."
               - smoke: stop

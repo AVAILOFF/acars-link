@@ -6,6 +6,8 @@ title: Connection made
 title_ru: "Стыковка: успели"
 description: "On block after a short connection with 40 min or more left: the onward flight waits."
 description_ru: "На стоянке после короткой стыковки, если осталось 40 мин и больше: стыковочный рейс подождёт."
+hint: "Connections: the onward flight of your transfer passengers will wait for them; a transfer bus is at your gate. No reply needed."
+hint_ru: "Стыковки: дальнейший рейс ваших пассажиров на пересадку их дождётся; у гейта трансферный автобус. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase_enter

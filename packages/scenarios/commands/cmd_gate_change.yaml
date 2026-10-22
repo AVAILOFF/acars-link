@@ -9,6 +9,8 @@ title: "Pilot command: REQ GATE CHANGE"
 title_ru: "Команда пилота: REQ GATE CHANGE"
 description: "REQ GATE CHANGE [gate] [reason] before block: OPS agrees (70 %, the gate asked for if it is a known free stand) or says all gates are occupied. Arrival info then names the new gate."
 description_ru: "REQ GATE CHANGE [гейт] [причина] до прилёта на стоянку: OPS соглашается (70 %, запрошенный гейт, если он есть среди известных) или отвечает, что все заняты. Дальше arrival info называет новый гейт."
+hint: "OPS answers your REQ GATE CHANGE: the new gate when the change is approved, or why it is not possible and which gate you keep. No reply needed."
+hint_ru: "OPS отвечает на ваш REQ GATE CHANGE: новый гейт, если смену одобрили, или почему это невозможно и какой гейт остаётся. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

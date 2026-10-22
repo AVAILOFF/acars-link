@@ -6,6 +6,8 @@ title: "Pilot command: REQ ATIS, no ATIS"
 title_ru: "Команда пилота: REQ ATIS, ATIS нет"
 description: "REQ ATIS when no ATIS is online: NO ATIS AVBL and the latest METAR."
 description_ru: "REQ ATIS, когда ATIS не в эфире: NO ATIS AVBL и последний METAR."
+hint: "Answer to REQ ATIS: no ATIS of that airport is online on VATSIM, so OPS sends the latest METAR instead. No reply needed."
+hint_ru: "Ответ на REQ ATIS: ATIS этого аэропорта на VATSIM сейчас нет, поэтому OPS присылает последний METAR. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

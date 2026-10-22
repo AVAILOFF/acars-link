@@ -393,6 +393,7 @@ export class AppController {
       atc: s?.atc ?? null,
       link: s?.link ?? null,
       feed: this.feed.entries,
+      pendingReplies: s?.pendingReplies ?? [],
       memory: this.memory,
       irregular: s?.irregular ?? [],
       siren: this.sirenSetting && this.siren === 'on',
@@ -429,6 +430,7 @@ export class AppController {
           c.def.description === undefined
             ? null
             : { en: c.def.description, ru: c.def.description_ru ?? null },
+        hint: c.def.hint === undefined ? null : { en: c.def.hint, ru: c.def.hint_ru ?? null },
         category: c.def.category,
         enabledByDefault: c.def.enabled_by_default,
         enabled: chosen[c.id] ?? c.def.enabled_by_default,

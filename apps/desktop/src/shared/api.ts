@@ -29,6 +29,11 @@ export interface Settings {
   /** Play a sound when a new airline message appears in the feed. Off by default. */
   readonly soundOnMessage: boolean;
   /**
+   * Hints to messages (T57): what the selected message means and what can be answered, and the
+   * "awaiting reply" mark in the feed. UI only, applies at once. Default on.
+   */
+  readonly messageHints: boolean;
+  /**
    * Minimum seconds between two airline telexes (0 = none). Aircraft poll Hoppie about once a
    * minute; closer messages arrive together. Default 60.
    */
@@ -124,6 +129,8 @@ export interface ScenarioInfo {
   /** Title and description in the UI languages (from the scenario file). */
   readonly titleText: UiText;
   readonly description: UiText | null;
+  /** What the scenario's messages mean (T57, `hint`); for a command, what it does. */
+  readonly hint: UiText | null;
   readonly category: ScenarioCategory;
   readonly enabledByDefault: boolean;
   readonly enabled: boolean;
@@ -289,6 +296,8 @@ export type FeedEntry =
       readonly text: string;
       readonly delivery: Delivery;
       readonly detail: string | null;
+      /** What the message means (T57): the step's hint, else the scenario's; null = none. */
+      readonly hint: UiText | null;
     }
   | {
       readonly kind: 'inbound';
@@ -307,6 +316,22 @@ export type FeedEntry =
       readonly code: SystemCode;
       readonly params: Readonly<Record<string, string>>;
     };
+
+/** A scenario waiting for the pilot's answer (T57), from the core's state. */
+export interface PendingReply {
+  readonly scenarioId: string;
+  /** Feed entry of the message the answer is for; null while it has not left yet. */
+  readonly messageId: string | null;
+  /** Where the answer goes: a telex to this station, the option as the first word. */
+  readonly station: string;
+  readonly options: readonly string[];
+  /** What each option means (`reply_hints`); null = no hints in the scenario. */
+  readonly hints: Readonly<Record<string, UiText>> | null;
+  /** Taken as the answer when the time is up. */
+  readonly default: string;
+  /** Flight minutes until the default applies, rounded up. */
+  readonly minutesLeft: number;
+}
 
 /**
  * - `idle`: no OFP;
@@ -328,6 +353,8 @@ export interface AppState {
   readonly link: LinkWindow | null;
   /** Newest last, capped. */
   readonly feed: readonly FeedEntry[];
+  /** Scenarios waiting for the pilot's answer, oldest first (T57); empty when no flight runs. */
+  readonly pendingReplies: readonly PendingReply[];
   /** Names of the airline-memory flags kept for the next flight (T14). */
   readonly memory: readonly string[];
   /** Irregular scenarios of the running flight ("run now"); empty when no flight runs. */
