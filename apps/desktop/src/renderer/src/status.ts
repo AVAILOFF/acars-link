@@ -22,7 +22,11 @@ export function bridgeStatus(app: AppState, t: Translate): StatusItem {
 
 export function simStatus(app: AppState, t: Translate): StatusItem {
   const b = app.bridge;
-  if (b.link !== 'open' || b.sim === null) return { tone: 'off', short: '—', text: '—' };
+  // U-19: a word, not a dash: without the bridge nothing is known about the sim.
+  if (b.link !== 'open' || b.sim === null) {
+    const none = t('sim.noBridge');
+    return { tone: 'off', short: none, text: none };
+  }
   const tone: Tone = b.sim === 'connected' ? (b.running ? 'ok' : 'warn') : 'bad';
   const short = b.sim === 'connected' && !b.running ? t('sim.menu') : t(`sim.${b.sim}`);
   let text = short;
@@ -56,7 +60,8 @@ export function atcStatus(app: AppState, t: Translate): StatusItem | null {
   if (atc === null) return null;
   const tone: Tone = atc.connected !== null ? 'ok' : atc.station !== null ? 'warn' : 'off';
   const short =
-    atc.connected ?? (atc.station !== null ? t('atc.logon', { station: atc.station }) : '—');
+    atc.connected ??
+    (atc.station !== null ? t('atc.logon', { station: atc.station }) : t('atc.wait'));
   const text =
     (atc.connected !== null
       ? t('atc.connected', { station: atc.connected })

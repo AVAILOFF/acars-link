@@ -132,6 +132,11 @@ export interface ScenarioInfo {
   /** What the scenario's messages mean (T57, `hint`); for a command, what it does. */
   readonly hint: UiText | null;
   readonly category: ScenarioCategory;
+  /**
+   * A pilot command handler (`trigger.on: command`, T56 U-10): the requests need it, so it is always
+   * on and the UI lists it apart without a switch.
+   */
+  readonly command: boolean;
   readonly enabledByDefault: boolean;
   readonly enabled: boolean;
   /** Chance from the scenario file, percent. */
@@ -283,7 +288,9 @@ export type SystemCode =
   | 'atc_ocl_rejected'
   | 'atc_ocl_clearance'
   | 'atc_ocl_confirmed'
-  | 'atc_ocl_cancelled';
+  | 'atc_ocl_cancelled'
+  /** The flight closed after its messages left, the next OFP failed to load (U-04): `code`, `detail`, `reason`. */
+  | 'next_ofp_failed';
 
 export type FeedEntry =
   | {
@@ -340,10 +347,27 @@ export interface PendingReply {
  */
 export type SessionState = 'idle' | 'ready' | 'running';
 
+/**
+ * The flight after the user's decision at the gate (T56 U-04): what is still on its way. The flight
+ * closes once nothing waits, so the next-leg messages are not dropped.
+ */
+export interface EndingView {
+  readonly to: 'TURNAROUND' | 'DONE';
+  /** Telexes not sent yet: the gap between messages, the data link, the network queue. */
+  readonly messages: number;
+  /** Scenarios still running (they may send more). */
+  readonly scenarios: number;
+  /** What the user asked for: close when nothing waits, then load the next OFP or not; null = nothing yet. */
+  readonly closing: 'next' | 'close' | null;
+}
 export interface AppState {
   readonly session: SessionState;
   readonly flight: FlightSummary | null;
   readonly phase: FlightPhase | null;
+  /** After TURNAROUND / DONE (U-04); null otherwise. */
+  readonly ending: EndingView | null;
+  /** "Time from the simulator" is on and the flight waits for the first sim time (U-16). */
+  readonly waitingSimTime: boolean;
   readonly bridge: BridgeView;
   readonly telemetry: TelemetryView | null;
   readonly transport: TransportView | null;
@@ -374,12 +398,58 @@ export type ErrorCode =
   | 'ofp_invalid'
   | 'bad_state'
   | 'scenarios_invalid'
+  | 'hoppie_logon'
   | 'internal';
+
+/**
+ * What exactly went wrong, as a code the renderer translates (T56 U-14); `AppError.detail` stays the
+ * English text for logs. Absent for details from outside (HTTP status, a parser's message).
+ */
+export const ERROR_REASONS = [
+  'flight_running',
+  'no_flight',
+  'load_ofp_first',
+  'stop_flight_first',
+  'not_on_block',
+  'not_ended',
+  'end_choice',
+  'check_too_soon',
+  'logon_format',
+  'rapidapi_format',
+  'username_format',
+  'pilot_text',
+  'unknown_scenario',
+  'command_scenario',
+  'chance_irregular_only',
+  'chance_range',
+  'not_forceable',
+  'station_template',
+  'bridge_port',
+  'message_gap',
+  'icao_hex',
+  'hub_icao',
+  'drone_table',
+  'rescue_titles',
+  'rescue_flipped',
+  'setting_value',
+] as const;
+
+export type ErrorReason = (typeof ERROR_REASONS)[number];
 
 export interface AppError {
   readonly code: ErrorCode;
   /** Technical detail (English); never contains secrets. */
   readonly detail: string;
+  /** The detail as a code with its values, for the UI language; absent = show `detail`. */
+  readonly reason?: ErrorReason;
+  readonly params?: Readonly<Record<string, string>>;
+}
+
+/** Result of "Check" next to the SimBrief username (U-06): the latest OFP of the user. */
+export interface SimbriefCheck {
+  readonly callsign: string;
+  readonly origin: string;
+  readonly destination: string;
 }
 
 export type Result<T> =
@@ -395,6 +465,8 @@ export interface AcarsApi {
   updateSettings(patch: SettingsPatch): Promise<Result<Settings>>;
   listScenarios(): Promise<Result<ScenarioInfo[]>>;
   setScenarioEnabled(id: string, enabled: boolean): Promise<Result<ScenarioInfo[]>>;
+  /** Several at once (a whole category, U-10); pilot commands are not switchable. */
+  setScenariosEnabled(ids: readonly string[], enabled: boolean): Promise<Result<ScenarioInfo[]>>;
   /** Chance of an irregular scenario in percent (0–100), null = back to the file's. */
   setScenarioChance(id: string, percent: number | null): Promise<Result<ScenarioInfo[]>>;
 
@@ -406,11 +478,21 @@ export interface AcarsApi {
   /** The user's RapidAPI key for AeroDataBox (T30); one way only, like the Hoppie code. */
   setAerodataboxKey(key: string): Promise<Result<CredentialsView>>;
   clearAerodataboxKey(): Promise<Result<CredentialsView>>;
+  /** Fetches the latest OFP of the saved username without loading it (U-06). */
+  checkSimbrief(): Promise<Result<SimbriefCheck>>;
+  /** One Hoppie `ping` with the saved code (U-06): `hoppie_logon` when Hoppie refuses it. */
+  checkHoppie(): Promise<Result<null>>;
 
   loadOfp(): Promise<Result<FlightSummary>>;
   startFlight(): Promise<Result<null>>;
+  /** Stops at once; telexes not sent yet are dropped. */
   stopFlight(): Promise<Result<null>>;
   endFlight(to: 'TURNAROUND' | 'DONE'): Promise<Result<null>>;
+  /**
+   * After TURNAROUND / DONE (U-04): closes the flight as soon as nothing waits (`AppState.ending`),
+   * then with `next` loads the next OFP; `now` closes at once and drops what waits.
+   */
+  closeFlight(then: 'next' | 'close', now: boolean): Promise<Result<null>>;
   /**
    * A telex "from the pilot" typed in the app (T12), for aircraft without free-text telex:
    * goes to the core as if the aircraft had sent it; nothing goes to the network.
@@ -432,6 +514,7 @@ export const IPC = {
   updateSettings: 'acars:update-settings',
   listScenarios: 'acars:list-scenarios',
   setScenarioEnabled: 'acars:set-scenario-enabled',
+  setScenariosEnabled: 'acars:set-scenarios-enabled',
   setScenarioChance: 'acars:set-scenario-chance',
   forceScenario: 'acars:force-scenario',
   getCredentials: 'acars:get-credentials',
@@ -440,10 +523,13 @@ export const IPC = {
   clearHoppieCode: 'acars:clear-hoppie-code',
   setAerodataboxKey: 'acars:set-aerodatabox-key',
   clearAerodataboxKey: 'acars:clear-aerodatabox-key',
+  checkSimbrief: 'acars:check-simbrief',
+  checkHoppie: 'acars:check-hoppie',
   loadOfp: 'acars:load-ofp',
   startFlight: 'acars:start-flight',
   stopFlight: 'acars:stop-flight',
   endFlight: 'acars:end-flight',
+  closeFlight: 'acars:close-flight',
   sendPilotMessage: 'acars:send-pilot-message',
   openRecordings: 'acars:open-recordings',
   clearMemory: 'acars:clear-memory',

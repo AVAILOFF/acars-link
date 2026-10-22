@@ -1,18 +1,23 @@
 import type { ReactNode } from 'react';
 
-/** A native checkbox drawn as a switch (design/spec.md §4); the whole row is its label. */
+/**
+ * A native checkbox drawn as a switch (design/spec.md §4); the whole row is its label. A disabled
+ * one dims the whole row (U-13); `after` goes before the switch (the "saved" mark, U-08).
+ */
 export function Switch({
   checked,
   disabled,
   onChange,
   children,
   hint,
+  after,
 }: {
   checked: boolean;
   disabled?: boolean;
   onChange: (checked: boolean) => void;
   children: ReactNode;
   hint?: ReactNode;
+  after?: ReactNode;
 }) {
   return (
     <label className={disabled === true ? 'sheet-row switch-row off' : 'sheet-row switch-row'}>
@@ -20,6 +25,7 @@ export function Switch({
         <span className="row-title">{children}</span>
         {hint !== undefined && <span className="row-hint">{hint}</span>}
       </span>
+      {after}
       <input
         type="checkbox"
         role="switch"

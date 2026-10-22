@@ -7,7 +7,13 @@ import {
   type RescueTitles,
 } from '@acars/core';
 import { DRONE_RISK_MAX, isDroneRiskKey, isDroneRiskValue } from '@acars/scenarios';
-import type { Language, Settings, SettingsPatch, TransportChoice } from '../shared/api.js';
+import type {
+  ErrorReason,
+  Language,
+  Settings,
+  SettingsPatch,
+  TransportChoice,
+} from '../shared/api.js';
 import { AppFailure } from './errors.js';
 import { readTextFile, writeTextFileAtomic } from './files.js';
 
@@ -58,7 +64,9 @@ export function defaultSettings(locale: string): Settings {
   };
 }
 
-const bad = (field: string, why: string) => new AppFailure('invalid_input', `${field}: ${why}`);
+/** `reason` translates the rule (U-14); without one the UI names the field (`setting_value`). */
+const bad = (field: string, why: string, reason: ErrorReason = 'setting_value') =>
+  new AppFailure('invalid_input', `${field}: ${why}`, reason, { field });
 
 /** Checks a patch from the renderer; throws `invalid_input`. */
 export function validatePatch(patch: unknown): SettingsPatch {
@@ -79,44 +87,48 @@ export function validatePatch(patch: unknown): SettingsPatch {
         break;
       case 'stationTemplate':
         if (typeof value !== 'string' || value.length > 32 || !STATION_RE.test(value)) {
-          throw bad(key, 'letters, digits, {flight}, {airline}');
+          throw bad(key, 'letters, digits, {flight}, {airline}', 'station_template');
         }
         out.stationTemplate = value;
         break;
       case 'messageGapSec':
         if (!Number.isInteger(value) || (value as number) < 0 || (value as number) > 600) {
-          throw bad(key, 'integer 0..600');
+          throw bad(key, 'integer 0..600', 'message_gap');
         }
         out.messageGapSec = value as number;
         break;
       case 'bridgePort':
         if (!Number.isInteger(value) || (value as number) < 1024 || (value as number) > 65535) {
-          throw bad(key, 'integer 1024..65535');
+          throw bad(key, 'integer 1024..65535', 'bridge_port');
         }
         out.bridgePort = value as number;
         break;
       case 'aircraftIcaoHex':
         if (typeof value !== 'string' || !/^(?:[0-9A-Fa-f]{6})?$/.test(value)) {
-          throw bad(key, 'six hex digits or empty');
+          throw bad(key, 'six hex digits or empty', 'icao_hex');
         }
         out.aircraftIcaoHex = value.toUpperCase();
         break;
       case 'hubIcao':
         if (typeof value !== 'string' || !/^(?:[A-Za-z]{4})?$/.test(value)) {
-          throw bad(key, 'four letters or empty');
+          throw bad(key, 'four letters or empty', 'hub_icao');
         }
         out.hubIcao = value.toUpperCase();
         break;
       case 'droneRisk': {
         const t = parseDroneRisk(value);
-        if (t === null) throw bad(key, `{country or *: 0..${DRONE_RISK_MAX}}`);
+        if (t === null) throw bad(key, `{country or *: 0..${DRONE_RISK_MAX}}`, 'drone_table');
         out.droneRisk = t;
         break;
       }
       case 'rescueTitles': {
         const t = parseRescueTitles(value);
         if (t === null) {
-          throw bad(key, `{group: [titles]}, up to ${RESCUE_MAX_VEHICLES} per group, no |`);
+          throw bad(
+            key,
+            `{group: [titles]}, up to ${RESCUE_MAX_VEHICLES} per group, no |`,
+            'rescue_titles',
+          );
         }
         out.rescueTitles = t;
         break;
@@ -127,7 +139,7 @@ export function validatePatch(patch: unknown): SettingsPatch {
           value.length > 64 ||
           !value.every((t) => typeof t === 'string' && TITLE_RE.test(t))
         ) {
-          throw bad(key, 'a list of up to 64 titles, no |');
+          throw bad(key, 'a list of up to 64 titles, no |', 'rescue_flipped');
         }
         out.rescueFlipped = value as string[];
         break;
@@ -298,15 +310,27 @@ export class SettingsStore {
   }
 
   async setScenario(id: string, enabled: boolean): Promise<Settings> {
-    if (!SCENARIO_ID_RE.test(id)) throw bad('scenario', 'bad id');
+    if (!SCENARIO_ID_RE.test(id)) throw bad('scenario', 'bad id', 'unknown_scenario');
     const s = await this.get();
     return this.save({ ...s, scenarios: { ...s.scenarios, [id]: enabled } });
   }
 
+  /** The same for several scenarios in one write (a whole category, U-10). */
+  async setScenarios(ids: readonly string[], enabled: boolean): Promise<Settings> {
+    for (const id of ids) {
+      if (!SCENARIO_ID_RE.test(id)) throw bad('scenario', 'bad id', 'unknown_scenario');
+    }
+    const s = await this.get();
+    const scenarios = { ...s.scenarios };
+    for (const id of ids) scenarios[id] = enabled;
+    return this.save({ ...s, scenarios });
+  }
+
   /** Chance in percent, null = the scenario file's. */
   async setChance(id: string, percent: number | null): Promise<Settings> {
-    if (!SCENARIO_ID_RE.test(id)) throw bad('scenario', 'bad id');
-    if (percent !== null && !isChance(percent)) throw bad('chance', '0..100, one decimal');
+    if (!SCENARIO_ID_RE.test(id)) throw bad('scenario', 'bad id', 'unknown_scenario');
+    if (percent !== null && !isChance(percent))
+      throw bad('chance', '0..100, one decimal', 'chance_range');
     const s = await this.get();
     const chances = { ...s.chances };
     if (percent === null) delete chances[id];

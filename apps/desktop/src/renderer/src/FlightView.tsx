@@ -1,7 +1,8 @@
 import type { CSSProperties } from 'react';
 import { type FormEvent, useState } from 'react';
-import type { AppState, FeedEntry, FlightSummary } from '../../shared/api.js';
+import type { AppState, EndingView, FeedEntry, FlightSummary } from '../../shared/api.js';
 import { atcHints } from '../../shared/atc-hints.js';
+import { openActions } from './actions.js';
 import { type Filter, MessageTable } from './FeedList.js';
 import { awaitingIds, type MessageHintView, messageHint } from './hints.js';
 import { phaseKey } from './i18n.js';
@@ -97,21 +98,14 @@ export function FlightView() {
             selectedId={selected?.id ?? null}
             seen={seen}
             awaiting={awaitingIds(hintsOn, app.pendingReplies)}
+            actions={new Set(openActions(app.feed).map((e) => e.id))}
             onSelect={select}
           />
           <div className="toolbar msg-foot">
+            {/* U-05: one way in; the dialog says the request does not go to the network. */}
             <button
               type="button"
               className="btn primary"
-              disabled={!running || busy !== null}
-              title={disabledWhy}
-              onClick={() => setRequest('text')}
-            >
-              {t('toolbar.new')}
-            </button>
-            <button
-              type="button"
-              className="btn"
               disabled={!running || busy !== null}
               title={disabledWhy}
               onClick={() => setRequest('wx')}
@@ -195,7 +189,8 @@ function FlightCard({ app }: { app: AppState }) {
           {tm.onGround ? ` · ${t('tm.ground')}` : ''}
         </p>
       )}
-      {running && tm === null && <p className="hint">{t('tm.none')}</p>}
+      {running && tm === null && !app.waitingSimTime && <p className="hint">{t('tm.none')}</p>}
+      {running && app.waitingSimTime && <p className="hint warn">{t('flight.waitSimTime')}</p>}
 
       {creds?.simbriefUsername === '' && <p className="hint warn">{t('flight.needUsername')}</p>}
       {f !== null && !running && needCode && <p className="hint warn">{t('flight.needCode')}</p>}
@@ -245,8 +240,10 @@ function FlightCard({ app }: { app: AppState }) {
         </div>
       )}
 
+      {running && app.ending !== null && <Ending ending={app.ending} />}
+
       <div className="row actions">
-        {running ? (
+        {running && app.ending !== null ? null : running ? (
           <button
             type="button"
             className="btn danger"
@@ -281,6 +278,69 @@ function FlightCard({ app }: { app: AppState }) {
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * After the decision at the gate (U-04): close the flight once its last messages have gone out; after
+ * a turnaround, then load the next OFP. "Close now" drops what still waits, after a question.
+ */
+function Ending({ ending }: { ending: EndingView }) {
+  const t = useT();
+  const busy = useStore((s) => s.busy);
+  const { closeFlight } = useStore.getState();
+  const waits = ending.messages > 0 || ending.scenarios > 0;
+  const next = ending.to === 'TURNAROUND';
+  return (
+    <div className="end-flight" aria-live="polite">
+      <p className="hint">{t(next ? 'flight.nextOfpHint' : 'flight.doneHint')}</p>
+      <p className={waits ? 'hint warn' : 'hint'}>
+        {waits
+          ? t('flight.waiting', { messages: ending.messages, scenarios: ending.scenarios })
+          : t('flight.nothingWaits')}
+      </p>
+      {ending.closing !== null && (
+        <p className="hint">
+          {t(ending.closing === 'next' ? 'flight.closingNext' : 'flight.closingClose')}
+        </p>
+      )}
+      <div className="row">
+        {ending.closing === null && next && (
+          <button
+            type="button"
+            className="btn primary"
+            disabled={busy !== null}
+            onClick={() => void closeFlight('next', false)}
+          >
+            {t('flight.nextOfp')}
+          </button>
+        )}
+        {ending.closing === null && (
+          <button
+            type="button"
+            className={next ? 'btn' : 'btn primary'}
+            disabled={busy !== null}
+            onClick={() => void closeFlight('close', false)}
+          >
+            {t('flight.close')}
+          </button>
+        )}
+        {ending.closing !== null && waits && (
+          <button
+            type="button"
+            className="btn danger"
+            disabled={busy !== null}
+            onClick={() => {
+              if (window.confirm(t('flight.closeNowConfirm', { messages: ending.messages }))) {
+                void closeFlight(ending.closing ?? 'close', true);
+              }
+            }}
+          >
+            {t('flight.closeNow')}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 

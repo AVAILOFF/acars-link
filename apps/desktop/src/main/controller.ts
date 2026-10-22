@@ -22,17 +22,28 @@ import {
   loadScenarios,
   ScenarioLoadError,
 } from '@acars/scenarios';
-import type { HttpClient, Transport } from '@acars/transport';
+import {
+  buildRequest,
+  HOPPIE_ENDPOINT,
+  type HttpClient,
+  isFatalReason,
+  parseResponse,
+  SERVER_CALLSIGN,
+  type Transport,
+} from '@acars/transport';
 import type {
   AppState,
   CredentialsView,
+  EndingView,
   FlightSummary,
+  Language,
   ScenarioInfo,
   Settings,
   SettingsPatch,
+  SimbriefCheck,
 } from '../shared/api.js';
 import { BridgeClient, type CommandResult, type SocketLike, type Timers } from './bridge.js';
-import { AppFailure } from './errors.js';
+import { AppFailure, toAppError } from './errors.js';
 import { Feed } from './feed.js';
 import type { Flags, FlagsStore } from './flags.js';
 import type { OpenRecording, RecordingSink } from './recording.js';
@@ -87,6 +98,9 @@ export const titleText = (c: CompiledScenario) => ({ en: c.def.title, ru: c.def.
 export const isIrregularEvent = (c: CompiledScenario): boolean =>
   c.def.category === 'irregular' && c.def.trigger.on !== 'command';
 
+/** Pilot command handlers (`REQ LOADSHEET`, `DIVERT`, …): the requests need them, always on (U-10). */
+export const isCommand = (c: CompiledScenario): boolean => c.def.trigger.on === 'command';
+
 /** The scenario whose chance depends on the destination country (T38). */
 export const DRONE_SCENARIO_ID = 'drone_activity';
 
@@ -106,6 +120,11 @@ const LOGON_RE = /^[\x21-\x7e]{4,64}$/;
 const RAPIDAPI_KEY_RE = /^[A-Za-z0-9]{20,100}$/;
 /** Longer than any MCDU free text; the core reads words of A–Z0–9 only. */
 const MAX_PILOT_TEXT = 200;
+/** "Check" of the Hoppie code (U-06): at most one ping per this time (invariant 6). */
+export const HOPPIE_CHECK_GAP_MS = 15_000;
+/** Sender of the check ping: Hoppie needs one; a ping locks no callsign (docs/06). */
+const HOPPIE_CHECK_FROM = 'ACARSSIM';
+const HOPPIE_CHECK_TIMEOUT_MS = 15_000;
 
 export class AppController {
   private readonly feed = new Feed();
@@ -143,6 +162,14 @@ export class AppController {
   /** Siren (T54): waits for the roll-out of a `full` landing, sounds until the aircraft stops. */
   private siren: 'idle' | 'on' | 'done' = 'idle';
   private sirenSetting = false;
+  /** U-04: close the flight when nothing waits, then load the next OFP (`next`) or not. */
+  private closing: 'next' | 'close' | null = null;
+  /** A close is in progress (stop, then maybe the OFP), so the main loop starts it only once. */
+  private closingNow = false;
+  /** Time of the last Hoppie check ping (U-06). */
+  private lastHoppieCheck = Number.NEGATIVE_INFINITY;
+  /** UI language for texts of the main process (the close dialog, U-03). */
+  private lang: Language = 'en';
 
   constructor(private readonly o: AppControllerOptions) {
     this.data = new ExternalDataService({
@@ -179,6 +206,7 @@ export class AppController {
   /** Starts the bridge connection with the saved port. */
   async init(): Promise<void> {
     const s = await this.o.settings.get();
+    this.lang = s.language;
     this.bridge.setPort(s.bridgePort);
     this.bridge.start();
     this.vdgs.clear(); // left over from a crash
@@ -378,7 +406,33 @@ export class AppController {
   tick(now: number): void {
     this.data.tick(now, this.session?.phase ?? null);
     this.session?.tick(now);
+    const ending = this.ending();
+    if (ending?.closing != null && ending.messages === 0 && ending.scenarios === 0) {
+      void this.finishClose();
+    }
     this.o.onChange();
+  }
+
+  /** The UI language (main-process texts, U-03). */
+  get language(): Language {
+    return this.lang;
+  }
+
+  /**
+   * Closing the window would lose something (U-03): a flight runs, and it is not a finished one
+   * with nothing left to send.
+   */
+  get closeWouldLose(): boolean {
+    if (this.session === null) return false;
+    const e = this.ending();
+    return e === null || e.messages > 0 || e.scenarios > 0;
+  }
+
+  /** The flight after TURNAROUND / DONE: what still waits (U-04); null before or without a flight. */
+  private ending(): EndingView | null {
+    const s = this.session;
+    if (s === null || (s.phase !== 'TURNAROUND' && s.phase !== 'DONE')) return null;
+    return { to: s.phase, ...s.waiting, closing: this.closing };
   }
 
   state(): AppState {
@@ -387,6 +441,8 @@ export class AppController {
       session: s !== null ? 'running' : this.flight !== null ? 'ready' : 'idle',
       flight: this.flight,
       phase: s?.phase ?? null,
+      ending: this.ending(),
+      waitingSimTime: s?.waitingSimTime ?? false,
       bridge: this.bridge.view,
       telemetry: s?.telemetry ?? null,
       transport: s?.transportView ?? null,
@@ -408,6 +464,7 @@ export class AppController {
 
   async updateSettings(patch: SettingsPatch): Promise<Settings> {
     const s = await this.o.settings.update(patch);
+    this.lang = s.language;
     this.bridge.setPort(s.bridgePort);
     this.sirenSetting = s.rescueSiren;
     if (this.ofp !== null && this.session === null) {
@@ -432,8 +489,9 @@ export class AppController {
             : { en: c.def.description, ru: c.def.description_ru ?? null },
         hint: c.def.hint === undefined ? null : { en: c.def.hint, ru: c.def.hint_ru ?? null },
         category: c.def.category,
+        command: isCommand(c),
         enabledByDefault: c.def.enabled_by_default,
-        enabled: chosen[c.id] ?? c.def.enabled_by_default,
+        enabled: isCommand(c) || (chosen[c.id] ?? c.def.enabled_by_default),
         defaultChance: Math.round(c.probability * 1000) / 10,
         chance: isIrregularEvent(c) ? (chances[c.id] ?? null) : null,
         droneRiskDefault: c.id === DRONE_SCENARIO_ID ? DRONE_RISK_DEFAULT : null,
@@ -443,22 +501,52 @@ export class AppController {
 
   /** Takes effect with the next flight. */
   async setScenarioEnabled(id: string, enabled: boolean): Promise<ScenarioInfo[]> {
-    if (!this.scenarios.some((c) => c.id === id)) {
-      throw new AppFailure('invalid_input', `unknown scenario ${id}`);
-    }
+    this.switchable(id);
     await this.o.settings.setScenario(id, enabled);
     return this.listScenarios();
+  }
+
+  /** A whole category at once (U-10); takes effect with the next flight. */
+  async setScenariosEnabled(ids: unknown, enabled: boolean): Promise<ScenarioInfo[]> {
+    if (!Array.isArray(ids) || !ids.every((x): x is string => typeof x === 'string')) {
+      throw new AppFailure('invalid_input', 'ids: a list of scenario ids', 'unknown_scenario', {
+        id: '',
+      });
+    }
+    for (const id of ids) this.switchable(id);
+    await this.o.settings.setScenarios(ids, enabled);
+    return this.listScenarios();
+  }
+
+  /** A known scenario that is not a pilot command (those stay on, U-10). */
+  private switchable(id: string): void {
+    const c = this.scenarios.find((x) => x.id === id);
+    if (c === undefined) {
+      throw new AppFailure('invalid_input', `unknown scenario ${id}`, 'unknown_scenario', { id });
+    }
+    if (isCommand(c)) {
+      throw new AppFailure('invalid_input', `${id}: pilot commands stay on`, 'command_scenario', {
+        id,
+      });
+    }
   }
 
   /** Chance of an irregular scenario, percent (null = the file's); takes effect next flight. */
   async setScenarioChance(id: string, percent: unknown): Promise<ScenarioInfo[]> {
     const c = this.scenarios.find((x) => x.id === id);
-    if (c === undefined) throw new AppFailure('invalid_input', `unknown scenario ${id}`);
+    if (c === undefined) {
+      throw new AppFailure('invalid_input', `unknown scenario ${id}`, 'unknown_scenario', { id });
+    }
     if (!isIrregularEvent(c)) {
-      throw new AppFailure('invalid_input', `${id}: chances are set for irregular scenarios only`);
+      throw new AppFailure(
+        'invalid_input',
+        `${id}: chances are set for irregular scenarios only`,
+        'chance_irregular_only',
+        { id },
+      );
     }
     if (percent !== null && typeof percent !== 'number') {
-      throw new AppFailure('invalid_input', 'chance: a number 0..100 or null');
+      throw new AppFailure('invalid_input', 'chance: a number 0..100 or null', 'chance_range');
     }
     await this.o.settings.setChance(id, percent);
     return this.listScenarios();
@@ -484,7 +572,11 @@ export class AppController {
   async setHoppieCode(input: unknown): Promise<CredentialsView> {
     const code = typeof input === 'string' ? input.trim() : '';
     if (!LOGON_RE.test(code)) {
-      throw new AppFailure('invalid_input', 'logon code: 4..64 characters without spaces');
+      throw new AppFailure(
+        'invalid_input',
+        'logon code: 4..64 characters without spaces',
+        'logon_format',
+      );
     }
     await this.o.secrets.set('hoppieLogon', code);
     return this.credentials();
@@ -499,7 +591,11 @@ export class AppController {
   async setAerodataboxKey(input: unknown): Promise<CredentialsView> {
     const key = typeof input === 'string' ? input.trim() : '';
     if (!RAPIDAPI_KEY_RE.test(key)) {
-      throw new AppFailure('invalid_input', 'RapidAPI key: 20..100 letters and digits');
+      throw new AppFailure(
+        'invalid_input',
+        'RapidAPI key: 20..100 letters and digits',
+        'rapidapi_format',
+      );
     }
     await this.o.secrets.set('aerodataboxKey', key);
     return this.credentials();
@@ -510,10 +606,65 @@ export class AppController {
     return this.credentials();
   }
 
+  /** The latest OFP of the saved username, not loaded (U-06 "Check"). */
+  async checkSimbrief(): Promise<SimbriefCheck> {
+    const username = await this.o.secrets.get('simbriefUsername');
+    if (username === null || username === '') throw new AppFailure('no_username', 'not set');
+    const ofp = await fetchOfp(this.o.http, username);
+    return { callsign: ofp.callsign, origin: ofp.origin.icao, destination: ofp.destination.icao };
+  }
+
+  /**
+   * One Hoppie `ping` with the saved code (U-06 "Check"). tech.html: "a single ping" tests the link;
+   * a wrong code answers `error {invalid logon code}` (checked 2026-10-22, docs/06). Not during a
+   * flight (the transport keeps the gap between requests), at most one per
+   * {@link HOPPIE_CHECK_GAP_MS} (invariant 6).
+   */
+  async checkHoppie(): Promise<null> {
+    if (this.session !== null) {
+      throw new AppFailure('bad_state', 'flight running', 'flight_running');
+    }
+    const logon = await this.o.secrets.get('hoppieLogon');
+    if (logon === null) throw new AppFailure('no_hoppie_code', 'not set');
+    const now = this.o.now();
+    const left = this.lastHoppieCheck + HOPPIE_CHECK_GAP_MS - now;
+    if (left > 0) {
+      throw new AppFailure('bad_state', 'check again later', 'check_too_soon', {
+        sec: String(Math.ceil(left / 1000)),
+      });
+    }
+    this.lastHoppieCheck = now;
+    const req = buildRequest(
+      HOPPIE_ENDPOINT,
+      { logon, from: HOPPIE_CHECK_FROM, to: SERVER_CALLSIGN, type: 'ping', packet: '' },
+      HOPPIE_CHECK_TIMEOUT_MS,
+    );
+    let body: string;
+    try {
+      const res = await this.o.http.request(req);
+      if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+      body = res.body;
+    } catch (e) {
+      // Only the message: the request URL holds the code.
+      throw new AppFailure('network', e instanceof Error ? e.message : String(e));
+    }
+    let res: ReturnType<typeof parseResponse>;
+    try {
+      res = parseResponse(body);
+    } catch (e) {
+      throw new AppFailure('network', e instanceof Error ? e.message : String(e));
+    }
+    if (res.ok) return null;
+    if (isFatalReason(res.reason)) throw new AppFailure('hoppie_logon', res.reason);
+    throw new AppFailure('network', `Hoppie: ${res.reason}`);
+  }
+
   // --- flight ---
 
   async loadOfp(): Promise<FlightSummary> {
-    if (this.session !== null) throw new AppFailure('bad_state', 'stop the flight first');
+    if (this.session !== null) {
+      throw new AppFailure('bad_state', 'stop the flight first', 'stop_flight_first');
+    }
     const username = await this.o.secrets.get('simbriefUsername');
     if (username === null || username === '') throw new AppFailure('no_username', 'not set');
     const ofp = await fetchOfp(this.o.http, username);
@@ -540,9 +691,11 @@ export class AppController {
   }
 
   async startFlight(): Promise<null> {
-    if (this.session !== null) throw new AppFailure('bad_state', 'flight already running');
+    if (this.session !== null) {
+      throw new AppFailure('bad_state', 'flight already running', 'flight_running');
+    }
     const ofp = this.ofp;
-    if (ofp === null) throw new AppFailure('bad_state', 'load the OFP first');
+    if (ofp === null) throw new AppFailure('bad_state', 'load the OFP first', 'load_ofp_first');
     if (this.scenarioError !== null) throw new AppFailure('scenarios_invalid', this.scenarioError);
     const settings = await this.o.settings.get();
     const flight = this.summary(ofp, settings);
@@ -567,7 +720,7 @@ export class AppController {
     const enabled = this.scenarios
       .filter((c) => specialGroupOn(c.id, settings))
       .filter((c) => settings.turnaround || !TURNAROUND_SCENARIOS.includes(c.id))
-      .filter((c) => settings.scenarios[c.id] ?? c.def.enabled_by_default)
+      .filter((c) => isCommand(c) || (settings.scenarios[c.id] ?? c.def.enabled_by_default))
       .map((c) => {
         const pct = isIrregularEvent(c) ? settings.chances[c.id] : undefined;
         const base = pct === undefined ? c.probability : pct / 100;
@@ -587,6 +740,7 @@ export class AppController {
         });
       }
     }
+    this.closing = null;
     this.session = new FlightSession({
       ofp,
       scenarios: enabled,
@@ -636,7 +790,8 @@ export class AppController {
 
   async stopFlight(): Promise<null> {
     const s = this.session;
-    if (s === null) throw new AppFailure('bad_state', 'no flight running');
+    if (s === null) throw new AppFailure('bad_state', 'no flight running', 'no_flight');
+    this.closing = null;
     s.stop(this.o.now());
     this.data.stopFlight();
     this.vdgs.clear();
@@ -651,22 +806,77 @@ export class AppController {
 
   async endFlight(to: unknown): Promise<null> {
     const s = this.session;
-    if (s === null) throw new AppFailure('bad_state', 'no flight running');
-    if (to !== 'TURNAROUND' && to !== 'DONE') throw new AppFailure('invalid_input', 'end flight');
-    if (s.phase !== 'ON_BLOCK') throw new AppFailure('bad_state', `phase ${s.phase}`);
+    if (s === null) throw new AppFailure('bad_state', 'no flight running', 'no_flight');
+    if (to !== 'TURNAROUND' && to !== 'DONE') {
+      throw new AppFailure('invalid_input', 'end flight', 'end_choice');
+    }
+    if (s.phase !== 'ON_BLOCK') {
+      throw new AppFailure('bad_state', `phase ${s.phase}`, 'not_on_block', { phase: s.phase });
+    }
     s.endFlight(to, this.o.now());
     await this.saveMemory(s);
     this.o.onChange();
     return null;
   }
 
+  /**
+   * U-04: closes the flight after TURNAROUND / DONE once nothing waits (the main loop checks), then
+   * with `next` loads the next OFP. `now`: at once, dropping what still waits.
+   */
+  async closeFlight(then: unknown, now: unknown): Promise<null> {
+    const s = this.session;
+    if (s === null) throw new AppFailure('bad_state', 'no flight running', 'no_flight');
+    if ((then !== 'next' && then !== 'close') || typeof now !== 'boolean') {
+      throw new AppFailure('invalid_input', 'close flight', 'end_choice');
+    }
+    const e = this.ending();
+    if (e === null) {
+      throw new AppFailure('bad_state', `phase ${s.phase}`, 'not_ended', { phase: s.phase });
+    }
+    this.closing = then;
+    if (now || (e.messages === 0 && e.scenarios === 0)) await this.finishClose();
+    this.o.onChange();
+    return null;
+  }
+
+  /** Stops the flight the user closed; a failed next OFP is a line in the feed (no one awaits it). */
+  private async finishClose(): Promise<void> {
+    const then = this.closing;
+    if (then === null || this.closingNow) return;
+    this.closingNow = true;
+    try {
+      await this.stopFlight();
+      if (then === 'next') {
+        try {
+          await this.loadOfp();
+        } catch (e) {
+          const err = toAppError(e);
+          this.feed.system(this.o.now(), 'next_ofp_failed', {
+            ...err.params,
+            code: err.code,
+            detail: err.detail,
+            reason: err.reason ?? '',
+          });
+        }
+      }
+    } finally {
+      this.closingNow = false;
+      this.o.onChange();
+    }
+  }
+
   /** A pilot telex typed in the app (T12); the core reads it on the next tick. */
   async sendPilotMessage(input: unknown): Promise<null> {
     const s = this.session;
-    if (s === null) throw new AppFailure('bad_state', 'no flight running');
+    if (s === null) throw new AppFailure('bad_state', 'no flight running', 'no_flight');
     const text = typeof input === 'string' ? input.trim() : '';
     if (text === '' || text.length > MAX_PILOT_TEXT) {
-      throw new AppFailure('invalid_input', `pilot message: 1..${MAX_PILOT_TEXT} characters`);
+      throw new AppFailure(
+        'invalid_input',
+        `pilot message: 1..${MAX_PILOT_TEXT} characters`,
+        'pilot_text',
+        { max: String(MAX_PILOT_TEXT) },
+      );
     }
     s.pilotMessage(text, this.o.now());
     this.o.onChange();
@@ -675,7 +885,9 @@ export class AppController {
 
   /** Forgets the airline memory (T14 flags). */
   async clearMemory(): Promise<null> {
-    if (this.session !== null) throw new AppFailure('bad_state', 'stop the flight first');
+    if (this.session !== null) {
+      throw new AppFailure('bad_state', 'stop the flight first', 'stop_flight_first');
+    }
     await this.flagStore.set({});
     this.memory = [];
     this.o.onChange();
@@ -697,11 +909,13 @@ export class AppController {
   /** "Run now" for an irregular scenario of the running flight; the result shows in the feed. */
   async forceScenario(id: unknown): Promise<null> {
     const s = this.session;
-    if (s === null) throw new AppFailure('bad_state', 'no flight running');
+    if (s === null) throw new AppFailure('bad_state', 'no flight running', 'no_flight');
     if (typeof id !== 'string' || !s.irregular.some((x) => x.id === id)) {
       throw new AppFailure(
         'invalid_input',
         `not an irregular scenario of this flight: ${String(id)}`,
+        'not_forceable',
+        { id: String(id) },
       );
     }
     s.force(id);

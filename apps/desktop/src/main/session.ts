@@ -113,6 +113,12 @@ const LATE_START_VERSION = 2;
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */
 export const DATA_WAIT_MS = 60_000;
 
+/**
+ * Closing a finished flight waits for scenarios that go on within this much flight time (U-04):
+ * the longest reply wait of the scenarios is 20 min (2026-10-22).
+ */
+export const CLOSE_WAIT_MS = 30 * 60_000;
+
 /** Snapshots kept while the main loop is late; older ones are dropped. */
 const MAX_QUEUE = 120;
 
@@ -253,6 +259,36 @@ export class FlightSession {
       default: r.default,
       minutesLeft: Math.ceil(r.leftMs / 60_000),
     }));
+  }
+
+  /** "Time from the sim" is on and no snapshot with `simUtcMs` came yet: the core waits (U-16). */
+  get waitingSimTime(): boolean {
+    return !this.stopped && this.simTime && this.simOffset === null;
+  }
+
+  /**
+   * What is still on its way (U-04): telexes held for the gap, on the data link or in the network
+   * queue, and scenarios that go on within {@link CLOSE_WAIT_MS} of flight time (the turnaround
+   * plan 2 min after IN, an answer being waited for). A watcher that waits for hours (fuel against
+   * the plan, `timeout_min: 720`) or for a phase that will not come does not hold the flight.
+   * The core keeps its runs in its state only: read it when the flight is over, not every tick.
+   */
+  get waiting(): { readonly messages: number; readonly scenarios: number } {
+    if (this.stopped) return { messages: 0, scenarios: 0 };
+    const link = this.core.linkView;
+    const st = this.core.getState();
+    const now = st.phase.flightTimeMs;
+    const soon = (ms: number | null | undefined) => ms != null && ms - now <= CLOSE_WAIT_MS;
+    const scenarios = st.engine.runs.filter((r) =>
+      r.untilFlightMs === null && r.reply === null && r.until === null
+        ? r.untilPhase === null // between steps: goes on with the next tick
+        : soon(r.untilFlightMs) || soon(r.reply?.untilFlightMs) || soon(r.until?.deadlineMs),
+    ).length;
+    return {
+      messages:
+        this.core.queued + (link?.held ?? 0) + (link?.inFlight ?? 0) + this.transport.pending,
+      scenarios,
+    };
   }
 
   /** XATC station (T23): where to log on and where the aircraft is logged on; null = off. */

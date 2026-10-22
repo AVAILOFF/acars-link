@@ -7,6 +7,7 @@ import type {
   Result,
   ScenarioInfo,
   Settings,
+  SimbriefCheck,
 } from '../../shared/api.js';
 
 /**
@@ -20,15 +21,22 @@ export type Busy =
   | 'start'
   | 'stop'
   | 'end'
+  | 'close'
   | 'username'
   | 'code'
   | 'adbKey'
+  | 'check'
   | 'settings'
   | 'scenario'
   | 'recordings'
   | 'memory'
   | 'force'
   | 'pilot';
+
+/** Result of a "Check" button (U-06), shown next to its row. */
+export type Checked =
+  | { readonly what: 'simbrief'; readonly ofp: SimbriefCheck }
+  | { readonly what: 'hoppie' };
 
 interface Store {
   readonly app: AppState | null;
@@ -39,25 +47,39 @@ interface Store {
   readonly busy: Busy | null;
   /** Last successful save, to show "saved" next to the right field. */
   readonly saved: Busy | null;
+  /** The settings row of the last successful save (U-08): its key, e.g. `bridgePort`. */
+  readonly savedField: string | null;
+  readonly checked: Checked | null;
   readonly tab: Tab;
+  /** "Advanced settings" are unfolded (U-07); kept while the app runs. */
+  readonly advancedOpen: boolean;
 
   init(): Promise<() => void>;
   setTab(tab: Tab): void;
+  setAdvancedOpen(open: boolean): void;
   dismissError(): void;
   loadOfp(): Promise<void>;
   startFlight(): Promise<void>;
   stopFlight(): Promise<void>;
   endFlight(to: 'TURNAROUND' | 'DONE'): Promise<void>;
+  closeFlight(then: 'next' | 'close', now: boolean): Promise<void>;
   sendPilotMessage(text: string): Promise<boolean>;
   setScenario(id: string, enabled: boolean): Promise<void>;
+  setScenarios(ids: readonly string[], enabled: boolean): Promise<void>;
   setChance(id: string, percent: number | null): Promise<void>;
   forceScenario(id: string): Promise<void>;
-  updateSettings(patch: Parameters<AcarsApi['updateSettings']>[0]): Promise<boolean>;
+  /** `field` names the row for the "saved" mark; default: the first key of the patch. */
+  updateSettings(
+    patch: Parameters<AcarsApi['updateSettings']>[0],
+    field?: string,
+  ): Promise<boolean>;
   setUsername(u: string): Promise<boolean>;
   setHoppieCode(code: string): Promise<boolean>;
   clearHoppieCode(): Promise<void>;
   setAerodataboxKey(key: string): Promise<boolean>;
   clearAerodataboxKey(): Promise<void>;
+  checkSimbrief(): Promise<void>;
+  checkHoppie(): Promise<void>;
   openRecordings(): Promise<void>;
   clearMemory(): Promise<void>;
 }
@@ -70,14 +92,15 @@ export const useStore = create<Store>()((set, get) => {
     busy: Busy,
     call: () => Promise<Result<T>>,
     ok?: (value: T) => void,
+    field: string | null = null,
   ): Promise<boolean> {
     if (get().busy !== null) return false;
-    set({ busy, error: null, saved: null });
+    set({ busy, error: null, saved: null, savedField: null, checked: null });
     try {
       const r = await call();
       if (r.ok) {
         ok?.(r.value);
-        set({ saved: busy });
+        set({ saved: busy, savedField: field });
         return true;
       }
       set({ error: r.error });
@@ -95,7 +118,10 @@ export const useStore = create<Store>()((set, get) => {
     error: null,
     busy: null,
     saved: null,
+    savedField: null,
+    checked: null,
     tab: 'flight',
+    advancedOpen: false,
 
     async init() {
       const off = api().onState((app) => set({ app }));
@@ -114,7 +140,8 @@ export const useStore = create<Store>()((set, get) => {
       });
       return off;
     },
-    setTab: (tab) => set({ tab, saved: null }),
+    setTab: (tab) => set({ tab, saved: null, savedField: null, checked: null }),
+    setAdvancedOpen: (advancedOpen) => set({ advancedOpen }),
     dismissError: () => set({ error: null }),
 
     async loadOfp() {
@@ -129,11 +156,21 @@ export const useStore = create<Store>()((set, get) => {
     async endFlight(to) {
       await run('end', () => api().endFlight(to));
     },
+    async closeFlight(then, now) {
+      await run('close', () => api().closeFlight(then, now));
+    },
     sendPilotMessage: (text) => run('pilot', () => api().sendPilotMessage(text)),
     async setScenario(id, enabled) {
       await run(
         'scenario',
         () => api().setScenarioEnabled(id, enabled),
+        (scenarios) => set({ scenarios }),
+      );
+    },
+    async setScenarios(ids, enabled) {
+      await run(
+        'scenario',
+        () => api().setScenariosEnabled(ids, enabled),
         (scenarios) => set({ scenarios }),
       );
     },
@@ -147,11 +184,12 @@ export const useStore = create<Store>()((set, get) => {
     async forceScenario(id) {
       await run('force', () => api().forceScenario(id));
     },
-    updateSettings: (patch) =>
+    updateSettings: (patch, field) =>
       run(
         'settings',
         () => api().updateSettings(patch),
         (settings) => set({ settings }),
+        field ?? Object.keys(patch)[0] ?? null,
       ),
     setUsername: (u) =>
       run(
@@ -183,6 +221,20 @@ export const useStore = create<Store>()((set, get) => {
         'adbKey',
         () => api().clearAerodataboxKey(),
         (creds) => set({ creds }),
+      );
+    },
+    async checkSimbrief() {
+      await run(
+        'check',
+        () => api().checkSimbrief(),
+        (ofp) => set({ checked: { what: 'simbrief', ofp } }),
+      );
+    },
+    async checkHoppie() {
+      await run(
+        'check',
+        () => api().checkHoppie(),
+        () => set({ checked: { what: 'hoppie' } }),
       );
     },
     async openRecordings() {

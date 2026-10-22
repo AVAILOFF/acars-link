@@ -7,6 +7,7 @@ import { fetchHttpClient, HoppieTransport, MockTransport } from '@acars/transpor
 import {
   app,
   BrowserWindow,
+  dialog,
   type IpcMainInvokeEvent,
   ipcMain,
   safeStorage,
@@ -15,6 +16,7 @@ import {
 } from 'electron';
 import { type AppState, IPC } from '../shared/api.js';
 import type { SocketLike } from './bridge.js';
+import { CLOSE_BUTTON, closeDialog } from './close-dialog.js';
 import { AppController } from './controller.js';
 import { FileDataCache } from './data-cache.js';
 import { FlagsStore } from './flags.js';
@@ -159,6 +161,14 @@ async function main(): Promise<void> {
   await ctl.init();
 
   win = createWindow();
+  // U-03: the flight lives in memory only; ask before the window takes it away.
+  win.on('close', (e) => {
+    const w = win;
+    if (w === null || !ctl.closeWouldLose) return;
+    if (dialog.showMessageBoxSync(w, closeDialog(ctl.language)) !== CLOSE_BUTTON) {
+      e.preventDefault();
+    }
+  });
   win.on('closed', () => {
     win = null;
     lastSent = '';

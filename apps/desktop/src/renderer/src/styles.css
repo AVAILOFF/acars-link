@@ -1608,6 +1608,188 @@ span.subject {
   cursor: default;
 }
 
+/* ---------- T56: usability ---------- */
+
+/* U-15: a system line that needs the pilot; the status bar keeps the latest open one. */
+.msg-row.action td {
+  background: #fff8ec;
+}
+
+.msg-row.action .subject {
+  color: var(--on-sheet-1);
+  font-weight: 600;
+}
+
+.bar-action {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--on-shell-1);
+}
+
+.bar-action .pill {
+  flex: none;
+  height: 20px;
+}
+
+.bar-action-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* U-05: the request dialog says in plain sight that nothing goes to the network. */
+.req-note {
+  border-bottom: 0;
+  border-radius: 8px;
+  background: var(--sheet-select);
+  color: var(--on-sheet-1);
+}
+
+/* U-07: hint "More", the folded advanced settings. */
+.link-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.row-hint a {
+  color: var(--link);
+}
+
+.advanced {
+  margin-top: var(--s-6);
+}
+
+.advanced > summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--s-4) 14px;
+  border-radius: var(--r-sheet);
+  background: var(--shell-2);
+  cursor: pointer;
+  list-style: none;
+}
+
+.advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-title::before {
+  content: "▸ ";
+}
+
+.advanced[open] .advanced-title::before {
+  content: "▾ ";
+}
+
+.advanced-title {
+  font-weight: 600;
+}
+
+.advanced-hint {
+  color: var(--on-shell-2);
+  font-size: var(--fs-sub);
+}
+
+/* U-09: "next flight" tag; highlighted while a flight runs. */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 9px;
+  background: var(--sheet-btn);
+  color: var(--on-sheet-2);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.tag.next.live {
+  background: #fdf0dc;
+  color: #8f5600;
+}
+
+/* U-13: a row that does nothing now is dimmed as a whole, with what to turn on. */
+.sheet-row.off .row-title,
+.sheet-row.off .row-hint,
+.sheet-note.off {
+  color: var(--on-sheet-off);
+}
+
+.row-off {
+  display: block;
+  color: var(--on-sheet-2);
+  font-weight: 500;
+}
+
+/* U-08 / U-11: a value that cannot be saved stays with a message. */
+.row-error {
+  color: var(--warning);
+  font-size: var(--fs-sub);
+  line-height: 18px;
+}
+
+.sheet input[aria-invalid="true"] {
+  box-shadow: 0 0 0 1px var(--warning);
+}
+
+.chance {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* U-10: search, folding categories with their own switch. */
+.page-search {
+  width: 100%;
+  max-width: 360px;
+  margin-top: var(--s-4);
+}
+
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  margin: 0 14px var(--s-2) 0;
+}
+
+.group-toggle {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  flex: 1;
+  min-width: 0;
+  padding: var(--s-1) 0 var(--s-1) 14px;
+  border: 0;
+  border-radius: var(--r-ctl);
+  background: none;
+  color: var(--on-shell-2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.group-toggle .group-title {
+  margin: 0;
+}
+
+.group-chevron {
+  width: 1ch;
+  font-size: var(--fs-caps);
+}
+
+.group-count {
+  color: var(--on-shell-3);
+  font-size: var(--fs-sub);
+}
+
 /* ---------- Width adaptation (DsLayout) ---------- */
 
 @media (max-width: 1279px) {
@@ -1657,6 +1839,16 @@ span.subject {
   }
 
   .bar-last {
+    display: none;
+  }
+
+  /* U-15: what needs the pilot stays visible on a narrow window too. */
+  .bar-last.bar-action {
+    display: flex;
+  }
+
+  .bar-action strong,
+  .bar-action-text {
     display: none;
   }
 }

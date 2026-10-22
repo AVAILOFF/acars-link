@@ -46,6 +46,7 @@ export function MessageTable({
   selectedId,
   seen,
   awaiting,
+  actions,
   onSelect,
 }: {
   entries: readonly FeedEntry[];
@@ -55,6 +56,8 @@ export function MessageTable({
   seen: ReadonlySet<string>;
   /** Messages the core waits for an answer to (T57); empty when the hints are off. */
   awaiting: ReadonlySet<string>;
+  /** Open system lines that need the pilot (U-15). */
+  actions: ReadonlySet<string>;
   onSelect: (id: string) => void;
 }) {
   const t = useT();
@@ -137,6 +140,7 @@ export function MessageTable({
                   unread={r.e.kind !== 'system' && !seen.has(r.e.id)}
                   fresh={!initial.has(r.e.id)}
                   waiting={awaiting.has(r.e.id)}
+                  action={actions.has(r.e.id)}
                   onSelect={onSelect}
                 />
               </ErrorBoundary>
@@ -157,6 +161,7 @@ function MessageRow({
   unread,
   fresh,
   waiting,
+  action,
   onSelect,
 }: {
   r: Row;
@@ -164,6 +169,7 @@ function MessageRow({
   unread: boolean;
   fresh: boolean;
   waiting: boolean;
+  action: boolean;
   onSelect: (id: string) => void;
 }) {
   const t = useT();
@@ -174,6 +180,7 @@ function MessageRow({
     e.kind,
     selected ? 'selected' : '',
     failed ? 'error' : '',
+    action ? 'action' : '',
     fresh ? 'fresh' : '',
     unread ? 'unread' : '',
   ]
@@ -212,6 +219,8 @@ function MessageRow({
           </span>
         ) : e.kind === 'inbound' ? (
           <span className="status-word">{t('feed.pilot')}</span>
+        ) : action ? (
+          <span className="pill caution">{t('msg.action')}</span>
         ) : (
           <span className="status-word">{t('msg.info')}</span>
         )}

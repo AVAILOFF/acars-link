@@ -41,6 +41,12 @@ export function registerIpc(
       return app.setScenarioEnabled(str(id, 'scenario'), enabled);
     }),
   );
+  on(IPC.setScenariosEnabled, (ids, enabled) =>
+    guard(() => {
+      if (typeof enabled !== 'boolean') throw new AppFailure('invalid_input', 'enabled');
+      return app.setScenariosEnabled(ids, enabled);
+    }),
+  );
   on(IPC.setScenarioChance, (id, percent) =>
     guard(() => app.setScenarioChance(str(id, 'scenario'), percent)),
   );
@@ -51,10 +57,13 @@ export function registerIpc(
   on(IPC.clearHoppieCode, () => guard(() => app.clearHoppieCode()));
   on(IPC.setAerodataboxKey, (key) => guard(() => app.setAerodataboxKey(key)));
   on(IPC.clearAerodataboxKey, () => guard(() => app.clearAerodataboxKey()));
+  on(IPC.checkSimbrief, () => guard(() => app.checkSimbrief()));
+  on(IPC.checkHoppie, () => guard(() => app.checkHoppie()));
   on(IPC.loadOfp, () => guard(() => app.loadOfp()));
   on(IPC.startFlight, () => guard(() => app.startFlight()));
   on(IPC.stopFlight, () => guard(() => app.stopFlight()));
   on(IPC.endFlight, (to) => guard(() => app.endFlight(to)));
+  on(IPC.closeFlight, (then, now) => guard(() => app.closeFlight(then, now)));
   on(IPC.sendPilotMessage, (text) => guard(() => app.sendPilotMessage(text)));
   on(IPC.openRecordings, () => guard(() => app.openRecordings()));
   on(IPC.clearMemory, () => guard(() => app.clearMemory()));

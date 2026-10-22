@@ -112,6 +112,8 @@ export function RequestDialog({
           ))}
         </fieldset>
         <div className="sheet modal-body">
+          {/* U-05: in plain sight, not a tooltip: nothing goes to the network. */}
+          <p className="sheet-note req-note">{t('req.note')}</p>
           {what != null && <p className="field-hint req-what">{firstSentence(uiText(what))}</p>}
           {needsAirport && (
             <div className={badAirport ? 'field-row invalid' : 'field-row'}>
@@ -154,7 +156,6 @@ export function RequestDialog({
             <div className="fms">
               <pre className="fms__screen modal-screen">{out === '' ? ' ' : out}</pre>
             </div>
-            <span className="field-hint">{t('pilot.hint')}</span>
           </div>
         </div>
         <footer className="modal-foot">
@@ -162,7 +163,7 @@ export function RequestDialog({
             {t('req.cancel')}
           </button>
           <button type="submit" className="btn primary" disabled={!canSend}>
-            {t('pilot.send')}
+            {t('req.send')}
           </button>
         </footer>
       </form>

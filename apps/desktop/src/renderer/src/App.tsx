@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { AppState } from '../../shared/api.js';
+import { openActions } from './actions.js';
 import { ErrorBoundary } from './ErrorBoundary.js';
 import { FlightView } from './FlightView.js';
-import { errorKey, phaseKey, systemText } from './i18n.js';
+import { errorText, phaseKey, systemText } from './i18n.js';
 import { ScenariosView } from './ScenariosView.js';
 import { SettingsView } from './SettingsView.js';
 import { useSiren } from './siren.js';
@@ -29,8 +30,20 @@ export function App() {
   const tab = useStore((s) => s.tab);
   const ready = useStore((s) => s.app !== null && s.settings !== null);
   const language = useStore((s) => s.settings?.language);
+  const content = useRef<HTMLElement>(null);
+  // U-12: each tab keeps its own scroll position in the shared scroll box.
+  const scroll = useRef<Partial<Record<Tab, number>>>({});
+  const shown = useRef<Tab>(tab);
   useMessageSound();
   useSiren();
+
+  useLayoutEffect(() => {
+    const box = content.current;
+    if (box === null || shown.current === tab) return;
+    scroll.current[shown.current] = box.scrollTop;
+    shown.current = tab;
+    box.scrollTop = scroll.current[tab] ?? 0;
+  }, [tab]);
 
   useEffect(() => {
     let off: (() => void) | undefined;
@@ -57,8 +70,9 @@ export function App() {
       <TopBar />
       <div className="body">
         <Rail />
-        <main className="content">
+        <main className="content" ref={content}>
           <ErrorBanner />
+          <TransportBanner />
           <ErrorBoundary
             resetKey={tab}
             fallback={
@@ -176,6 +190,7 @@ function StatusBar() {
   ];
   const link = linkStatus(app, t);
   if (link !== null) chips.push([t('status.link'), link]);
+  const action = openActions(app.feed).at(-1);
   const last = app.feed.at(-1);
   const lastText =
     last === undefined
@@ -196,10 +211,24 @@ function StatusBar() {
           </li>
         ))}
       </ul>
-      {last !== undefined && lastText !== null && (
-        <p className="bar-last" aria-live="polite">
-          <strong>{zulu(last.t)}</strong> · {lastText}
+      {action !== undefined ? (
+        // U-15: what needs the pilot stays here until it is settled.
+        <p
+          className="bar-last bar-action"
+          aria-live="polite"
+          title={systemText(t, action.code, action.params)}
+        >
+          <span className="pill caution">{t('bar.action')}</span>
+          <strong>{zulu(action.t)}</strong>
+          <span className="bar-action-text">{systemText(t, action.code, action.params)}</span>
         </p>
+      ) : (
+        last !== undefined &&
+        lastText !== null && (
+          <p className="bar-last" aria-live="polite">
+            <strong>{zulu(last.t)}</strong> · {lastText}
+          </p>
+        )
       )}
     </footer>
   );
@@ -217,7 +246,7 @@ function ErrorBanner() {
         <path d="M11 9h2v6h-2zM11 17h2v2h-2z" className="banner-icon-mark" />
       </svg>
       <span className="banner-kind">{t('banner.error')}</span>
-      <span className="banner-text">{t(errorKey(error.code), { detail: error.detail })}</span>
+      <span className="banner-text">{errorText(t, error)}</span>
       <button
         type="button"
         className="btn-round"
@@ -226,6 +255,32 @@ function ErrorBanner() {
         onClick={dismiss}
       >
         ✕
+      </button>
+    </div>
+  );
+}
+
+/**
+ * U-06: Hoppie refused the transport (a wrong logon code): the reason and what to do, above every
+ * tab until the flight stops. The running transport keeps its code, so a new one needs a new flight.
+ */
+function TransportBanner() {
+  const t = useT();
+  const transport = useStore((s) => s.app?.transport ?? null);
+  const setTab = useStore((s) => s.setTab);
+  if (transport === null || transport.kind !== 'hoppie' || transport.status !== 'halted') {
+    return null;
+  }
+  return (
+    <div className="banner error" role="alert">
+      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" className="banner-icon">
+        <path d="M12 2.5l10.5 18.5h-21z" />
+        <path d="M11 9h2v6h-2zM11 17h2v2h-2z" className="banner-icon-mark" />
+      </svg>
+      <span className="banner-kind">{t('banner.network')}</span>
+      <span className="banner-text">{t('banner.halted', { reason: transport.reason ?? '' })}</span>
+      <button type="button" className="btn" onClick={() => setTab('settings')}>
+        {t('banner.toSettings')}
       </button>
     </div>
   );

@@ -13,10 +13,15 @@ const TIMEOUT_MS = 20_000;
 
 /** SimBrief usernames: no spaces or control characters, ≤ 64. */
 export function normalizeSimbriefUsername(input: unknown): string {
-  if (typeof input !== 'string') throw new AppFailure('invalid_input', 'username: expected text');
+  if (typeof input !== 'string')
+    throw new AppFailure('invalid_input', 'username: expected text', 'username_format');
   const u = input.trim();
   if (u === '' || u.length > 64 || /[\s\p{Cc}]/u.test(u)) {
-    throw new AppFailure('invalid_input', 'username: 1..64 characters without spaces');
+    throw new AppFailure(
+      'invalid_input',
+      'username: 1..64 characters without spaces',
+      'username_format',
+    );
   }
   return u;
 }
