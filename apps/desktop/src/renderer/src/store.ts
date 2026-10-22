@@ -15,7 +15,7 @@ import type {
  * only keeps what the UI shows and forwards user actions. No timers here (invariant 5).
  */
 
-export type Tab = 'flight' | 'scenarios' | 'settings';
+export type Tab = 'flight' | 'scenarios' | 'settings' | 'help';
 export type Busy =
   | 'load'
   | 'start'
