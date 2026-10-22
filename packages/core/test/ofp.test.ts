@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { OfpParseError, parseSimbriefOfp, parseSimbriefOfpText } from '../src/index.js';
+import {
+  alignOfpDay,
+  OfpParseError,
+  parseSimbriefOfp,
+  parseSimbriefOfpText,
+} from '../src/index.js';
 
 // Fixtures are produced by tools/anonymize-ofp.mjs from a real json=v2 OFP.
 const FIXTURES = join(import.meta.dirname, 'fixtures', 'ofp');
@@ -309,5 +314,39 @@ describe('parseSimbriefOfp — ETOPS (T50)', () => {
     const raw = load('rjtt-klax-a35k-etops.json');
     raw.etops.suitable_airport = raw.etops.suitable_airport[0];
     expect(parseSimbriefOfp(raw).etops?.suitable.map((a) => a.icao)).toEqual(['RJCM']);
+  });
+});
+
+describe('alignOfpDay (docs/05 "Дата OFP")', () => {
+  const ofp = parseSimbriefOfp(load(KGS));
+  const DAY = 86_400_000;
+  const STD = ofp.times.schedOutMs;
+
+  it('within 12 h of STD: the OFP as it is', () => {
+    expect(alignOfpDay(ofp, STD - 11 * 3_600_000)).toEqual({ ofp, days: 0 });
+    expect(alignOfpDay(ofp, STD + 11 * 3_600_000).days).toBe(0);
+  });
+
+  it('planned for tomorrow: every absolute time moves back a day, durations stay', () => {
+    const { ofp: a, days } = alignOfpDay(ofp, STD - DAY - 30 * 60_000);
+    expect(days).toBe(-1);
+    const t = ofp.times;
+    expect(a.times).toEqual({
+      ...t,
+      schedOutMs: t.schedOutMs - DAY,
+      schedOffMs: t.schedOffMs === null ? null : t.schedOffMs - DAY,
+      schedOnMs: t.schedOnMs === null ? null : t.schedOnMs - DAY,
+      schedInMs: t.schedInMs - DAY,
+      estOutMs: t.estOutMs - DAY,
+      estOffMs: t.estOffMs === null ? null : t.estOffMs - DAY,
+      estOnMs: t.estOnMs === null ? null : t.estOnMs - DAY,
+      estInMs: t.estInMs - DAY,
+    });
+    expect({ ...a, times: t }).toEqual(ofp);
+  });
+
+  it('a week old plan, STD just after midnight: the nearest day', () => {
+    expect(alignOfpDay(ofp, STD + 7 * DAY - 40 * 60_000).days).toBe(7);
+    expect(alignOfpDay(ofp, STD + 7 * DAY + 40 * 60_000).days).toBe(7);
   });
 });

@@ -1,4 +1,5 @@
 import {
+  alignOfpDay,
   type CompiledScenario,
   destinationPoint,
   fireFlips,
@@ -136,6 +137,8 @@ export class AppController {
   private session: FlightSession | null = null;
   /** `per_session` cooldowns live as long as the app (docs/05). */
   private sessionFired: readonly string[] = [];
+  /** Sim UTC minus the bridge clock from the latest snapshot that had it; null = none yet. */
+  private simOffsetMs: number | null = null;
   /** External data (T13): prefetches for the loaded OFP, feeds the running flight. */
   private readonly data: ExternalDataService;
   /** A `smoke_start` was sent and not yet taken down (T34). */
@@ -675,10 +678,14 @@ export class AppController {
     if (this.session !== null) {
       throw new AppFailure('bad_state', 'flight already running', 'flight_running');
     }
-    const ofp = this.ofp;
-    if (ofp === null) throw new AppFailure('bad_state', 'load the OFP first', 'load_ofp_first');
+    const planned = this.ofp;
+    if (planned === null) throw new AppFailure('bad_state', 'load the OFP first', 'load_ofp_first');
     if (this.scenarioError !== null) throw new AppFailure('scenarios_invalid', this.scenarioError);
     const settings = await this.o.settings.get();
+    // The plan's date follows the flight's clock (the sim's with "time from the sim"): only the
+    // time of day of STD counts (docs/05 "Дата OFP").
+    const clockNow = this.o.now() + (settings.simTime ? (this.simOffsetMs ?? 0) : 0);
+    const { ofp, days } = alignOfpDay(planned, clockNow);
     const flight = this.summary(ofp, settings);
     let transport: Transport;
     if (settings.transport === 'hoppie') {
@@ -760,6 +767,12 @@ export class AppController {
     if (settings.xatc && !settings.liveData) this.feed.system(now, 'atc_needs_data');
     // The conditional VHF stations come from live data; without them only SATCOM is a link.
     if (settings.datalink && !settings.liveData) this.feed.system(now, 'link_needs_data');
+    if (days !== 0) {
+      this.feed.system(now, 'ofp_date', {
+        date: utcDate(ofp.times.schedOutMs),
+        planned: utcDate(planned.times.schedOutMs),
+      });
+    }
     if (Object.keys(flags).length > 0) {
       this.feed.system(now, 'memory', { names: Object.keys(flags).sort().join(', ') });
     }
@@ -913,6 +926,7 @@ export class AppController {
   }
 
   private onTelemetry(s: TelemetrySnapshot): void {
+    if (s.simUtcMs !== undefined) this.simOffsetMs = s.simUtcMs - s.t;
     this.session?.pushTelemetry(s);
   }
 
@@ -953,4 +967,9 @@ function besideRunway(
   const move = (p: { lat: number; lon: number }, deg: number, nm: number) =>
     nm === 0 ? p : destinationPoint(p, nm > 0 ? deg : deg + 180, Math.abs(nm));
   return move(move(mid, mid.headingDeg, alongNm), mid.headingDeg + 90, sideNm);
+}
+
+/** `2026-10-22` (UTC) for the feed. */
+function utcDate(ms: number): string {
+  return new Date(ms).toISOString().slice(0, 10);
 }

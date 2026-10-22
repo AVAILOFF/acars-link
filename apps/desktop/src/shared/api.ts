@@ -237,6 +237,7 @@ export type SystemCode =
   | 'flight_started'
   | 'flight_stopped'
   | 'late_start'
+  | 'ofp_date'
   | 'recording'
   | 'recording_failed'
   | 'phase'

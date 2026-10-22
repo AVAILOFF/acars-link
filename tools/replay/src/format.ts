@@ -71,7 +71,7 @@ export interface RecordingHeader {
   /** Core `nextLegVersion` (T53, T55); absent = 1, the next leg of recordings made before it. */
   readonly nextLegVersion?: 1 | 2 | 3;
   /** Core `lateStartVersion`; absent = 1, the late start of recordings made before it. */
-  readonly lateStartVersion?: 1 | 2;
+  readonly lateStartVersion?: 1 | 2 | 3;
   /** Core `hub` (T53): the user's hub; absent = OpenFlights. */
   readonly hub?: string;
   /** Probabilities set by the user instead of the files' (scenario id → 0..1); absent = none. */
@@ -218,11 +218,7 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     throw bad('namesVersion');
   if (x['nextLegVersion'] !== undefined && ![1, 2, 3].includes(x['nextLegVersion'] as number))
     throw bad('nextLegVersion');
-  if (
-    x['lateStartVersion'] !== undefined &&
-    x['lateStartVersion'] !== 1 &&
-    x['lateStartVersion'] !== 2
-  )
+  if (x['lateStartVersion'] !== undefined && ![1, 2, 3].includes(x['lateStartVersion'] as number))
     throw bad('lateStartVersion');
   if (x['hub'] !== undefined && !(isStr(x['hub']) && /^[A-Z]{4}$/.test(x['hub']))) throw bad('hub');
   const p = x['probabilities'];

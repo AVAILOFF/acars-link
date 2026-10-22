@@ -7,6 +7,7 @@ const SENT: Readonly<Record<SystemCode, Readonly<Record<string, string>>>> = {
   flight_started: { callsign: 'FIN4E', transport: 'mock' },
   flight_stopped: { phase: 'CRUISE' },
   late_start: { min: '5' },
+  ofp_date: { date: '2026-10-22', planned: '2026-10-23' },
   recording: { file: 'x.jsonl' },
   recording_failed: { error: 'disk full' },
   phase: { from: 'CLIMB', to: 'CRUISE' },

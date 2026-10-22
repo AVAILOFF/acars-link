@@ -108,7 +108,7 @@ const NAMES_VERSION = 2;
 /** Next leg of new flights (core `nextLegVersion`, T53); recorded in the header. */
 const NEXT_LEG_VERSION = 3;
 /** Start close to the departure (core `lateStartVersion`): messages fitted to the time left. */
-const LATE_START_VERSION = 2;
+const LATE_START_VERSION = 3;
 
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */
 export const DATA_WAIT_MS = 60_000;
