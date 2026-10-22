@@ -6,8 +6,8 @@ version: 1
 category: irregular
 title: Medical case on board
 title_ru: "Медицинский случай на борту"
-description: "In cruise the cabin reports a sick passenger. Reply CONTINUE or DIVERT (default CONTINUE after 10 min). DIVERT diverts to the nearest of the origin and the alternates."
-description_ru: "В крейсере кабина сообщает о плохом самочувствии пассажира. Ответ CONTINUE или DIVERT (через 10 мин — CONTINUE). DIVERT — диверсия на ближайший из аэропорта вылета и запасных."
+description: "In cruise the cabin crew report a sick passenger. Reply CONTINUE or DIVERT (default CONTINUE after 10 min). DIVERT diverts to the nearest of the origin and the alternates."
+description_ru: "В крейсере бортпроводники сообщают о плохом самочувствии пассажира. Ответ CONTINUE или DIVERT (через 10 мин — CONTINUE). DIVERT — диверсия на ближайший из аэропорта вылета и запасных."
 hint: "OPS: the cabin crew report a medical case on board, with the seat, the passenger's age, the symptoms and whether a doctor is on board. MedLink, the ground doctors who advise crews, give their advice next."
 hint_ru: "OPS: бортпроводники сообщают о медицинском случае на борту — место, возраст пассажира, симптомы и есть ли на борту врач. Следом придёт совет MedLink — наземных врачей, которые консультируют экипажи."
 enabled_by_default: true

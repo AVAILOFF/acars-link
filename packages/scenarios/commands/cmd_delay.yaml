@@ -6,7 +6,7 @@ category: ops
 title: "Pilot command: DELAY"
 title_ru: "Команда пилота: DELAY"
 description: "DELAY command: confirms the new off-block time."
-description_ru: "Команда DELAY: подтверждает новое время выруливания."
+description_ru: "Команда DELAY: подтверждает новое время отхода от стоянки."
 hint: "OPS confirms your DELAY report: the minutes and the reason you gave, the new estimated off-block time (EOBT) and the total delay of the flight. No reply needed."
 hint_ru: "OPS подтверждает ваш DELAY: минуты и причина, которые вы указали, новое расчётное время ухода со стоянки (EOBT) и общая задержка рейса. Ответ не нужен."
 enabled_by_default: true

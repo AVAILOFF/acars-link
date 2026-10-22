@@ -5,7 +5,7 @@ category: ops
 title: Aircraft change
 title_ru: "Смена самолёта"
 description: "Aircraft change for the next leg."
-description_ru: "Смена воздушного судна на следующий рейс."
+description_ru: "Смена самолёта на следующий рейс."
 hint: "Operations control (OPS) tells you that the next sector will be flown with another aircraft: this one goes to maintenance after arrival and the crew changes aircraft. Information only, no reply needed."
 hint_ru: "Центр управления полётами (OPS) сообщает, что следующий рейс выполняется на другом самолёте: этот после прилёта уходит в техобслуживание, экипаж пересаживается. Только для сведения, ответ не нужен."
 enabled_by_default: true

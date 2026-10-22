@@ -4,7 +4,7 @@ id: vatsim_atc
 version: 1
 category: external
 title: VATSIM ATC online at destination
-title_ru: "Диспетчеры VATSIM в точке назначения"
+title_ru: "Диспетчеры VATSIM в аэропорту назначения"
 description: "Online VATSIM ATC at the destination before TOD."
 description_ru: "Онлайн-диспетчеры VATSIM в аэропорту назначения перед TOD."
 hint: "Which VATSIM controllers are online at the destination now and the ATIS letter, to plan your frequencies for the arrival. No reply needed."

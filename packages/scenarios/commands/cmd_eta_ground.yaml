@@ -2,9 +2,9 @@
 id: cmd_eta_ground
 version: 1
 category: ops
-title: "Pilot command: ETA, before take-off"
+title: "Pilot command: ETA, before takeoff"
 title_ru: "Команда пилота: ETA до взлёта"
-description: "ETA command before take-off."
+description: "ETA command before takeoff."
 description_ru: "Команда ETA до взлёта."
 hint: "Answer to ETA before departure: the estimated off-block (EOBT) and on-block (EST IN) times against the schedule (STA) and the transfer passengers. No reply needed."
 hint_ru: "Ответ на ETA до вылета: расчётное время ухода со стоянки (EOBT) и постановки (EST IN) против расписания (STA) и пассажиры на пересадку. Ответ не нужен."

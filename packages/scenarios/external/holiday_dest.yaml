@@ -6,7 +6,7 @@ version: 1
 category: external
 title: Public holiday at the destination
 title_ru: Праздник в стране назначения
-description: "A public holiday at the destination."
+description: "A national public holiday in the destination country on the arrival day, local time (Nager.Date)."
 description_ru: "Общенациональный праздник в стране назначения в день прилёта по местному времени (Nager.Date)."
 hint: "OPS information: a public holiday in the destination country today. Expect holiday opening hours and schedules at the airport. No reply needed."
 hint_ru: "Информация OPS: сегодня в стране назначения государственный праздник. Ожидайте праздничного режима работы служб в аэропорту. Ответ не нужен."

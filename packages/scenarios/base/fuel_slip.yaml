@@ -6,8 +6,8 @@ version: 1
 category: docs
 title: Fuel slip
 title_ru: "Топливная квитанция"
-description: "Fuel slip after refuelling: uplift and difference to plan."
-description_ru: "Топливо после заправки: залито и разница с планом."
+description: "After refuelling: uplift and deviation from plan."
+description_ru: "После заправки: заправлено и отклонение от плана."
 hint: "Fuel slip from the refuelling: ramp fuel planned, fuel on board, the uplift and the difference to plan, with the fuel breakdown of the flight plan (taxi, trip, contingency, alternate, final reserve, extra). No reply needed."
 hint_ru: "Квитанция о заправке: топливо по плану перед рулением, на борту, сколько заправлено и разница с планом, а также разбивка из плана полёта (руление, рейс, навигационный запас, запасной, финальный резерв, дополнительное). Ответ не нужен."
 enabled_by_default: true

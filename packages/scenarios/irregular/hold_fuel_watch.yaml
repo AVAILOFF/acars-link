@@ -4,8 +4,8 @@
 id: hold_fuel_watch
 version: 1
 category: irregular
-title: Minimum diversion fuel in the holding
-title_ru: "Минимальный остаток для ухода в ожидании"
+title: Minimum diversion fuel in holding
+title_ru: "Минимум топлива для ухода в зоне ожидания"
 description: "While holding for an airline-announced closure the fuel comes down to the diversion minimum: DIVERT is recommended (reply STAY to stay in the holding), and without an answer in 5 min the flight is sent to the alternate."
 description_ru: "Топливо в ожидании (дрон, закрытая ВПП, пожар) дошло до минимума для ухода: рекомендуется DIVERT (ответ STAY — остаться в ожидании), без ответа за 5 мин рейс уходит на запасной."
 hint: "OPS of the destination: while you hold, your fuel has come down to the minimum for the diversion to the alternate. OPS recommends diverting now and asks whether you divert or stay in the holding."
