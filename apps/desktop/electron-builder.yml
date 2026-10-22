@@ -1,7 +1,7 @@
 # Windows installer (T19, build only: no code signing, no auto-update).
 # `pnpm desktop:dist` builds out/ and the bridge first; see CLAUDE.md, «Команды».
-appId: local.acars.sim
-productName: ACARS Sim
+appId: local.acars.link
+productName: ACARS Link
 directories:
   output: release
   # icon.ico / icon.png from design/logo (`pnpm icon`).
@@ -13,7 +13,7 @@ files:
   - package.json
 npmRebuild: false
 extraResources:
-  # Self-contained bridge from `pnpm bridge:publish`; the user starts it next to the sim.
+  # Self-contained bridge from `pnpm bridge:publish`; the app starts it (src/main/bridge-process.ts).
   - from: ../../bridge/msfs/publish
     to: bridge
 win:
@@ -26,4 +26,4 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
-  artifactName: ACARS-Sim-Setup-${version}.exe
+  artifactName: ACARS-Link-Setup-${version}.exe

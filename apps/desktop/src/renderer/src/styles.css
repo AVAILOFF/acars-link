@@ -89,8 +89,23 @@ h3 {
   gap: var(--s-3) 20px;
   min-height: var(--topbar);
   padding: 0 var(--s-5);
+  /* Right: room for the native window buttons (titleBarOverlay). */
+  padding-right: calc(
+    100vw -
+    env(titlebar-area-x, 0px) -
+    env(titlebar-area-width, 100vw) +
+    var(--s-5)
+  );
   background: var(--shell-1);
   flex: none;
+  -webkit-app-region: drag;
+}
+
+.topbar button,
+.topbar input,
+.topbar select,
+.topbar a {
+  -webkit-app-region: no-drag;
 }
 
 .brand {

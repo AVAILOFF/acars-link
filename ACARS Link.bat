@@ -1,9 +1,9 @@
 @echo off
-rem ACARS Sim: builds and starts the MSFS bridge and the desktop app; stops the bridge when the
+rem ACARS Link: builds and starts the MSFS bridge and the desktop app; stops the bridge when the
 rem app window is closed. Shortcut: right click -> Create shortcut, Run: Minimized.
 setlocal
 cd /d "%~dp0"
-title ACARS Sim
+title ACARS Link
 
 set "BRIDGE_EXE=%~dp0bridge\msfs\src\AcarsBridge\bin\Debug\net8.0\acars-msfs-bridge.exe"
 set "BRIDGE_STARTED="

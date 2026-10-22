@@ -10,17 +10,20 @@ import {
   dialog,
   type IpcMainInvokeEvent,
   ipcMain,
+  Menu,
   safeStorage,
   session,
   shell,
 } from 'electron';
 import { type AppState, IPC } from '../shared/api.js';
 import type { SocketLike } from './bridge.js';
+import { startBridge } from './bridge-process.js';
 import { CLOSE_BUTTON, closeDialog } from './close-dialog.js';
 import { AppController } from './controller.js';
 import { FileDataCache } from './data-cache.js';
 import { FlagsStore } from './flags.js';
 import { registerIpc } from './ipc.js';
+import { migrateOldUserData, OLD_APP_DIR } from './migrate.js';
 import { fileRecordings, purgeOldConnex } from './recording.js';
 import { BASE_SCENARIOS } from './scenario-sources.js';
 import { type Cipher, SecretStore } from './secrets.js';
@@ -77,9 +80,13 @@ function createWindow(): BrowserWindow {
     minWidth: 860,
     minHeight: 600,
     backgroundColor: '#0d1117',
-    title: 'ACARS Sim',
+    title: 'ACARS Link',
     // Packaged: the window takes the exe icon (electron-builder.yml); dev runs electron.exe.
     ...(app.isPackaged ? {} : { icon: join(here, '../../build/icon.ico') }),
+    // One piece with the app: no menu bar; the window buttons sit in the top bar (--shell-1).
+    autoHideMenuBar: true,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: { color: '#1e2128', symbolColor: '#ffffff', height: 52 },
     webPreferences: {
       preload: join(here, '../preload/index.cjs'),
       contextIsolation: true,
@@ -113,9 +120,16 @@ function createWindow(): BrowserWindow {
 
 async function main(): Promise<void> {
   await app.whenReady();
+  Menu.setApplicationMenu(null);
   session.defaultSession.setPermissionRequestHandler((_wc, _perm, callback) => callback(false));
 
   const userData = app.getPath('userData');
+  // The rename «ACARS Sim» → «ACARS Link» moved the user data; bring it over once.
+  try {
+    await migrateOldUserData(join(app.getPath('appData'), OLD_APP_DIR), userData);
+  } catch (e) {
+    console.error('user data migration failed:', e instanceof Error ? e.message : e);
+  }
   const recordings = join(userData, 'recordings');
   // T30 C9: AeroDataBox data older than 7 days leave the recordings.
   purgeOldConnex(recordings, Date.now());
@@ -124,13 +138,17 @@ async function main(): Promise<void> {
   await dataCache.purgeOlder(ROUTES_CACHE_PREFIX, ROUTES_RETENTION_MS, Date.now());
   const http = fetchHttpClient();
   const clock = { now: () => Date.now() };
+  const settingsStore = new SettingsStore(
+    join(userData, 'settings.json'),
+    defaultSettings(app.getLocale()),
+  );
   let controller: AppController | null = null;
   const onChange = () => {
     if (controller !== null) pushState(controller.state());
   };
   controller = new AppController({
     secrets: new SecretStore(join(userData, 'secrets.json'), cipher),
-    settings: new SettingsStore(join(userData, 'settings.json'), defaultSettings(app.getLocale())),
+    settings: settingsStore,
     scenarioSources: BASE_SCENARIOS,
     http,
     createTransport: (choice) =>
@@ -161,6 +179,10 @@ async function main(): Promise<void> {
   const ctl = controller;
   registerIpc(ipcMain, ctl, isTrustedSender);
   await ctl.init();
+  // Installed build: the bridge exe lies in resources/bridge; start it before the client connects.
+  const stopBridge = app.isPackaged
+    ? startBridge(process.resourcesPath, (await settingsStore.get()).bridgePort)
+    : null;
 
   win = createWindow();
   // U-03: the flight lives in memory only; ask before the window takes it away.
@@ -181,6 +203,7 @@ async function main(): Promise<void> {
   app.on('before-quit', () => {
     clearInterval(loop);
     ctl.dispose();
+    stopBridge?.();
   });
 }
 

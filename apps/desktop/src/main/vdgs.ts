@@ -12,7 +12,7 @@ import type { VdgsCommand, VdgsLine } from '@acars/core';
  */
 
 export const VDGS_FILE = 'acars-sim.json';
-const SOURCE = 'ACARS Sim';
+const SOURCE = 'ACARS Link';
 
 /** GSX's custom message folder, or null when GSX is not installed for this user. */
 export function gsxVdgsDir(appData: string): string | null {

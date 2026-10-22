@@ -6,7 +6,6 @@ import { FlightView } from './FlightView.js';
 import { errorText, phaseKey, systemText } from './i18n.js';
 import { ScenariosView } from './ScenariosView.js';
 import { SettingsView } from './SettingsView.js';
-import { useSiren } from './siren.js';
 import { useMessageSound } from './sound.js';
 import {
   atcStatus,
@@ -35,7 +34,6 @@ export function App() {
   const scroll = useRef<Partial<Record<Tab, number>>>({});
   const shown = useRef<Tab>(tab);
   useMessageSound();
-  useSiren();
 
   useLayoutEffect(() => {
     const box = content.current;

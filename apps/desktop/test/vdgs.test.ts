@@ -29,7 +29,7 @@ describe('GSX VDGS file (T22)', () => {
       version: '1.0',
       enabled: true,
       auto_cleanup: false,
-      source: 'ACARS Sim',
+      source: 'ACARS Link',
       messages: [
         {
           id: 'acars_vdgs_arrival',

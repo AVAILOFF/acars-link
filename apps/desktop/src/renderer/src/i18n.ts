@@ -4,7 +4,7 @@ import type { AppError, ErrorCode, ErrorReason, Language, SystemCode } from '../
 /** UI strings, EN + RU (docs/08 decision 7). ACARS messages themselves are always English. */
 
 const en = {
-  'app.title': 'ACARS Sim',
+  'app.title': 'ACARS Link',
   'tab.flight': 'Flight',
   'tab.scenarios': 'Scenarios',
   'tab.settings': 'Settings',
@@ -384,9 +384,6 @@ const en = {
   'set.rescue': 'Rescue services in the simulator',
   'set.rescueHint':
     'After a MAYDAY, PAN, cabin fire or medical case, fire trucks and an ambulance meet the aircraft at the landing airport. Requires the sim bridge (MSFS). Game logic, not real airport procedures.',
-  'set.rescueSiren': 'Siren',
-  'set.rescueSirenHint':
-    'Plays on the PC, not in the sim: after a MAYDAY landing, from touchdown until the aircraft stops.',
   'set.rescueTitlesHint':
     'SimObject titles, one per line, without the livery in brackets (DevMode → SimObject Spawner). With fewer titles than vehicles, titles are reused in turn.',
   'set.rescue.fireLargeNa': 'Fire trucks: large airport, North America (K, C)',
@@ -470,7 +467,7 @@ const en = {
 export type MessageKey = keyof typeof en;
 
 const ru: Record<MessageKey, string> = {
-  'app.title': 'ACARS Sim',
+  'app.title': 'ACARS Link',
   'tab.flight': 'Рейс',
   'tab.scenarios': 'Сценарии',
   'tab.settings': 'Настройки',
@@ -855,9 +852,6 @@ const ru: Record<MessageKey, string> = {
   'set.rescue': 'Аварийные службы в симуляторе',
   'set.rescueHint':
     'После MAYDAY, PAN, пожара в салоне или медицинского случая самолёт встречают пожарные машины и скорая в аэропорту посадки. Нужен мост симулятора (MSFS). Игровая логика, а не реальные процедуры аэропорта.',
-  'set.rescueSiren': 'Сирена',
-  'set.rescueSirenHint':
-    'Звучит на ПК, не в симуляторе: после посадки с MAYDAY, от касания до остановки.',
   'set.rescueTitlesHint':
     'Названия SimObject, по одному в строке, без ливреи в скобках (DevMode → SimObject Spawner). Если названий меньше, чем машин, они повторяются по очереди.',
   'set.rescue.fireLargeNa': 'Пожарные: крупный аэропорт, Северная Америка (K, C)',

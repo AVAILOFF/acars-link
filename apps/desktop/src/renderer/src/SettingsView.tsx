@@ -3,7 +3,6 @@ import { type FormEvent, type ReactNode, useState } from 'react';
 import type { Language, Settings, SettingsPatch, TransportChoice } from '../../shared/api.js';
 import { firstSentence } from './hints.js';
 import { Switch, SwitchInput } from './Switch.js';
-import { testSiren } from './siren.js';
 import { playMessageSound } from './sound.js';
 import { useStore } from './store.js';
 import { useT } from './ui.js';
@@ -744,25 +743,6 @@ function AdvancedSettings({ s }: { s: Settings }) {
 
       <Group id="rescue" title={t('set.group.rescue')}>
         <SettingSwitch s={s} k="rescue" title={t('set.rescue')} hint={t('set.rescueHint')} />
-        <Row
-          htmlFor="siren"
-          title={t('set.rescueSiren')}
-          hint={
-            <Hint text={t('set.rescueSirenHint')} off={s.rescue ? undefined : t('set.offRescue')} />
-          }
-          off={!s.rescue}
-        >
-          <button type="button" className="btn" onClick={() => testSiren()}>
-            {t('set.soundTest')}
-          </button>
-          <SwitchInput
-            id="siren"
-            checked={s.rescueSiren}
-            disabled={off || !s.rescue}
-            onChange={(v) => void update({ rescueSiren: v })}
-          />
-          <SavedMark field="rescueSiren" />
-        </Row>
         <p className={s.rescue ? 'sheet-note' : 'sheet-note off'}>
           {s.rescue ? t('set.rescueTitlesHint') : t('set.offRescue')}
         </p>

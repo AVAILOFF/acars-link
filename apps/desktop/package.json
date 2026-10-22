@@ -1,7 +1,7 @@
 {
   "name": "@acars/desktop",
   "version": "0.1.0",
-  "productName": "ACARS Sim",
+  "productName": "ACARS Link",
   "description": "ACARS simulator for flight simulators",
   "author": "AVAILOFF",
   "private": true,
