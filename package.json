@@ -17,6 +17,7 @@
     "desktop:dev": "pnpm -F @acars/desktop dev",
     "desktop": "pnpm -F @acars/desktop build && pnpm -F @acars/desktop start",
     "desktop:dist": "pnpm bridge:publish && pnpm -F @acars/desktop dist",
+    "icon": "pnpm -F @acars/desktop exec electron ../../tools/icon/render.mjs",
     "bridge:build": "dotnet build bridge/msfs",
     "bridge:publish": "dotnet publish bridge/msfs/src/AcarsBridge -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o bridge/msfs/publish",
     "bridge:test": "dotnet test bridge/msfs",

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <title>ACARS Link</title>
+  <rect width="16" height="16" rx="3" fill="#1e2128"/>
+  <path fill="#ffffff" transform="translate(6.5 9.5) rotate(45) scale(.21) translate(-32 -32)" d="M32 8C34 8 35 10 35 13V26L54 36V40L35 35V48L41 53V56L32 54L23 56V53L29 48V35L10 40V36L29 26V13C29 10 30 8 32 8Z"/>
+  <path fill="none" stroke="#1f7ae0" stroke-width="1.75" stroke-linecap="round" d="M9 3A4.5 4.5 0 0 1 13.5 7.5"/>
+</svg>

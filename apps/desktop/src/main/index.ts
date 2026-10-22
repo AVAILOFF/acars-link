@@ -78,6 +78,8 @@ function createWindow(): BrowserWindow {
     minHeight: 600,
     backgroundColor: '#0d1117',
     title: 'ACARS Sim',
+    // Packaged: the window takes the exe icon (electron-builder.yml); dev runs electron.exe.
+    ...(app.isPackaged ? {} : { icon: join(here, '../../build/icon.ico') }),
     webPreferences: {
       preload: join(here, '../preload/index.cjs'),
       contextIsolation: true,

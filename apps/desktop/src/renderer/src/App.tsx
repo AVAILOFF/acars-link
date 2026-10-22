@@ -117,19 +117,17 @@ function TopBar() {
   return (
     <header className="topbar">
       <div className="brand">
-        <svg
-          aria-hidden="true"
-          width="30"
-          height="22"
-          viewBox="0 0 30 22"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <ellipse cx="13" cy="13" rx="11" ry="7" />
-          <path d="M6 12l14-8 6 1-12 9-5 1z" />
+        {/* Brand mark: design/logo/mark.svg */}
+        <svg aria-hidden="true" width="24" height="24" viewBox="8 8 50 50" fill="none">
+          <path
+            fill="currentColor"
+            transform="translate(25 39) rotate(45) scale(.62) translate(-32 -32)"
+            d="M32 8C34 8 35 10 35 13V26L54 36V40L35 35V48L41 53V56L32 54L23 56V53L29 48V35L10 40V36L29 26V13C29 10 30 8 32 8Z"
+          />
+          <g stroke="currentColor" strokeWidth="4" strokeLinecap="round">
+            <path d="M37 19A10 10 0 0 1 47 29" />
+            <path d="M37 10A19 19 0 0 1 56 29" />
+          </g>
         </svg>
         <time className="clock" title={t('top.utc')}>
           {clock}
