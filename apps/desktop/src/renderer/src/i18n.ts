@@ -44,8 +44,15 @@ const en = {
   'col.status': 'Status',
   'msg.unread': 'New',
   'msg.info': 'Info',
+  'msg.awaiting': 'Awaiting reply',
   'fms.title': 'FMS · ACARS',
   'fms.width': '{n} chars per line',
+  'hint.title': 'Hint',
+  'hint.awaiting': 'Awaiting your reply: {options}',
+  'hint.how':
+    'Reply with a telex to {station}, the option as the first word: from the aircraft FMS or in ENTER MESSAGE.',
+  'hint.default': 'No reply within {min} min: {option}.',
+  'hint.defaultNow': 'No reply: {option} is taken now.',
   'req.title.wx': 'Weather request',
   'req.title.atis': 'ATIS request',
   'req.title.gate': 'Gate request',
@@ -286,6 +293,9 @@ const en = {
   'set.transport': 'Send messages via',
   'set.transport.hoppie': 'Hoppie ACARS',
   'set.transport.offline': 'Offline (feed only)',
+  'set.hints': 'Message hints',
+  'set.hintsHint':
+    'Under the FMS screen: what the selected message means and what you can answer; in the feed: messages awaiting your reply. Nothing is sent. Applies at once.',
   'set.simTime': 'Time from the simulator',
   'set.simTimeHint':
     'The flight runs on the simulator clock (UTC): STD/STA, delays and the times in messages follow it instead of the PC clock. Needs the sim bridge; the flight starts once the sim time arrives. Anchored at the start of the flight, so at a sim rate other than 1x the message times drift from the sim clock. Live data (weather, events) is real time: with a sim date far from today turn it off. Applies to the next flight.',
@@ -417,6 +427,13 @@ const ru: Record<MessageKey, string> = {
   'col.status': 'Статус',
   'msg.unread': 'Новое',
   'msg.info': 'Инфо',
+  'msg.awaiting': 'Ждёт ответа',
+  'hint.title': 'Подсказка',
+  'hint.awaiting': 'Ждут ответа: {options}',
+  'hint.how':
+    'Ответ — telex на {station}, вариант первым словом: из FMS самолёта или в ENTER MESSAGE.',
+  'hint.default': 'Без ответа через {min} мин будет {option}.',
+  'hint.defaultNow': 'Без ответа сейчас будет {option}.',
   'fms.title': 'FMS · ACARS',
   'fms.width': '{n} символов в строке',
   'req.title.wx': 'Запрос погоды',
@@ -659,6 +676,9 @@ const ru: Record<MessageKey, string> = {
   'set.transport': 'Отправлять сообщения через',
   'set.transport.hoppie': 'Hoppie ACARS',
   'set.transport.offline': 'Офлайн (только лента)',
+  'set.hints': 'Подсказки к сообщениям',
+  'set.hintsHint':
+    'Под экраном FMS — что значит выбранное сообщение и что можно ответить; в ленте — сообщения, которые ждут ответа. Ничего не отправляется. Применяется сразу.',
   'set.simTime': 'Время из симулятора',
   'set.simTimeHint':
     'Рейс идёт по часам симулятора (UTC): STD/STA, задержки и время в сообщениях считаются по ним, а не по часам ПК. Нужен мост к симулятору; рейс стартует, когда придёт время симулятора. Привязка делается в начале рейса, поэтому при скорости симуляции не 1x время в сообщениях расходится с часами симулятора. Живые данные (погода, события) — реальное время: при дате в симуляторе, далёкой от сегодняшней, их лучше выключить. Применяется к следующему рейсу.',

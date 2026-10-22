@@ -10,7 +10,7 @@ import {
  * JSON Schema (2020-12) of a scenario file (docs/05-scenario-engine.md; T06, T12: `wait: reply`,
  * `branch`, `resend`, `on: command`). Structure only; semantics (expressions, templates,
  * variables, branch keys, `set` targets) are checked by `compileScenario` in `@acars/core`.
- * `set` — T14. `vdgs` — T22 (line widths are checked by `compileScenario`). `wait: until`, `group` — T39. `draw`, `loop`, `break`, `if` — T50.
+ * `set` — T14. `vdgs` — T22 (line widths are checked by `compileScenario`). `wait: until`, `group` — T39. `draw`, `loop`, `break`, `if` — T50. `hint`, `reply_hints` — T57.
  */
 
 const phase = { enum: [...FLIGHT_PHASES] } as const;
@@ -30,6 +30,14 @@ const vdgsLines = {
   },
 } as const;
 
+/** T57: option → what it means; the keys are checked against `options` by `compileScenario`. */
+const replyHints = {
+  type: 'object',
+  minProperties: 1,
+  propertyNames: option,
+  additionalProperties: text,
+} as const;
+
 export const SCENARIO_SCHEMA = {
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   $id: 'https://acars-sim.local/schema/scenario-v1.json',
@@ -46,6 +54,9 @@ export const SCENARIO_SCHEMA = {
     title_ru: text,
     description: text,
     description_ru: text,
+    // T57: hint in the app to the scenario's messages (UI only).
+    hint: text,
+    hint_ru: text,
     enabled_by_default: { type: 'boolean' },
     trigger: {
       type: 'object',
@@ -145,7 +156,13 @@ export const SCENARIO_SCHEMA = {
                 type: 'object',
                 additionalProperties: false,
                 required: ['body'],
-                properties: { header: text, body: text, footer: text },
+                properties: {
+                  header: text,
+                  body: text,
+                  footer: text,
+                  hint: text,
+                  hint_ru: text,
+                },
               },
             },
           },
@@ -191,6 +208,8 @@ export const SCENARIO_SCHEMA = {
                           timeout_min: { type: 'number', exclusiveMinimum: 0 },
                           timeout_round: { const: true },
                           default: option,
+                          reply_hints: replyHints,
+                          reply_hints_ru: replyHints,
                         },
                       },
                     },

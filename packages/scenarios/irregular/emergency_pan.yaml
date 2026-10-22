@@ -8,6 +8,8 @@ title: PAN PAN declared
 title_ru: "Объявлен PAN PAN"
 description: "The crew declared PAN PAN to ATC through the XATC station. The airline desk offers DIVERT or CONTINUE (default CONTINUE after 5 min) and puts rescue and medical services at the destination on standby. Starts only after a PAN PAN to XATC."
 description_ru: "Экипаж объявил PAN PAN станции XATC. Центр авиакомпании предлагает DIVERT или CONTINUE (через 5 мин — CONTINUE), аэропорт назначения предупреждён: пожарные и медики в готовности. Запускается только после PAN PAN на станцию XATC."
+hint: "The airline's emergency desk got your PAN PAN through ATC: the destination is advised and rescue and medical services there are on standby. It gives the nearest suitable airport and asks whether you divert or continue."
+hint_ru: "Аварийная группа авиакомпании получила ваш PAN PAN через УВД: аэропорт назначения предупреждён, спасатели и медики там в готовности. Она называет ближайший подходящий аэропорт и спрашивает, уходите ли вы на него или продолжаете полёт."
 enabled_by_default: true
 trigger:
   on: phase
@@ -23,7 +25,16 @@ steps:
         NEAREST SUITABLE {flight.nearest_altn|or:AIRPORT} {flight.nearest_altn_nm} NM
         REPLY DIVERT OR CONTINUE
   - wait:
-      reply: { options: [DIVERT, CONTINUE], timeout_min: 5, default: CONTINUE }
+      reply:
+        options: [DIVERT, CONTINUE]
+        timeout_min: 5
+        default: CONTINUE
+        reply_hints:
+          DIVERT: "Divert to the nearest suitable airport, or to another airport named after the word (DIVERT EDDM)."
+          CONTINUE: "Continue to the destination."
+        reply_hints_ru:
+          DIVERT: "Уйти на ближайший подходящий аэропорт или на другой, названный после слова (DIVERT EDDM)."
+          CONTINUE: "Продолжать полёт до аэропорта назначения."
   - branch:
       DIVERT:
         - set: { flight.divert: "{reply.icao|else:flight.nearest_altn}" }
@@ -35,6 +46,8 @@ steps:
               ~{flight.divert_nm} NM FROM PRESENT POS
               RESCUE AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
+            hint: "OPS confirms your diversion airport and its distance; rescue services and handling are ordered there. Send your new ETA as a free-text telex when you can."
+            hint_ru: "OPS подтверждает аэропорт диверсии и расстояние до него; спасатели и хендлинг туда заказаны. Сообщите новое ETA telex свободным текстом, когда сможете."
         - rescue: { level: standby }
       CONTINUE:
         - send:
@@ -42,4 +55,6 @@ steps:
             body: |
               ROGER CONTINUE TO {ofp.dest}
               ADVISE IF SITUATION CHANGES
+            hint: "OPS notes that you continue to the destination. Tell OPS if the situation changes. No reply needed."
+            hint_ru: "OPS принял, что вы продолжаете полёт до назначения. Сообщите OPS, если ситуация изменится. Ответ не нужен."
         - rescue: { level: standby }

@@ -7,6 +7,8 @@ title: Natural event near the route
 title_ru: "Природное явление у маршрута"
 description: "A natural event (NASA EONET) near the route ahead."
 description_ru: "Природное явление (NASA EONET) рядом с маршрутом впереди."
+hint: "OPS advisory: a natural event reported by NASA EONET ahead near your route (wildfire, storm, volcano and the like), with the distance ahead and off the route. Check the weather radar and the SIGMETs and deviate if needed. No reply needed."
+hint_ru: "Предупреждение OPS: впереди рядом с маршрутом природное событие по данным NASA EONET (пожар, шторм, вулкан и т. п.), с расстоянием впереди и в стороне от маршрута. Проверьте метеорадар и SIGMET, при необходимости обходите. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase

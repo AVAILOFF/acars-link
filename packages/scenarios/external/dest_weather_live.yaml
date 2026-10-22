@@ -7,6 +7,8 @@ title: Destination weather before TOD (live)
 title_ru: "Погода назначения до TOD (живая)"
 description: "Destination and alternate weather from live METAR/TAF before TOD."
 description_ru: "Погода назначения и запасного по живым METAR/TAF перед TOD."
+hint: "Current weather at the destination (METAR and TAF) and the alternate (METAR) before the top of descent, for the approach briefing. No reply needed."
+hint_ru: "Текущая погода в аэропорту назначения (METAR и TAF) и на запасном (METAR) перед началом снижения — для брифинга на заход. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: distance

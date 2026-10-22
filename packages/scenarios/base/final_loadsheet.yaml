@@ -8,6 +8,8 @@ title: Final loadsheet
 title_ru: "Окончательный лоадшит"
 description: "Final loadsheet with the last-minute change against the preliminary one."
 description_ru: "Окончательный лоадшит с изменениями относительно предварительного."
+hint: "Final loadsheet from load control: actual weights against the limits (ZFW zero fuel, TOW take-off, LAW landing), take-off and trip fuel (TOF, TIF), passengers and cargo; LMC is the last-minute change against the preliminary loadsheet. Check the figures and use them in the FMS; no reply needed."
+hint_ru: "Окончательная загрузочная ведомость (loadsheet) от службы загрузки: фактические массы против ограничений (ZFW без топлива, TOW взлётная, LAW посадочная), топливо на взлёт и на рейс (TOF, TIF), пассажиры и груз; LMC — изменения в последний момент против предварительной ведомости. Проверьте цифры и используйте их в FMS; ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time

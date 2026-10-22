@@ -286,6 +286,14 @@ function NetworkForm() {
         >
           {t('set.simTime')}
         </Switch>
+        <Switch
+          checked={settings.messageHints}
+          disabled={off}
+          onChange={(v) => void update({ messageHints: v })}
+          hint={t('set.hintsHint')}
+        >
+          {t('set.hints')}
+        </Switch>
       </Group>
 
       <Group id="messages" title={t('set.group.messages')}>

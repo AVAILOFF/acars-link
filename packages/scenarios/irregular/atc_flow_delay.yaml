@@ -6,6 +6,8 @@ title: ATC flow control delay
 title_ru: "Перенос слота ATC"
 description: "Shortly before departure the CTOT given earlier (slot_ctot) moves later because of flow control."
 description_ru: "Незадолго до вылета ранее выданный CTOT (slot_ctot) переносится на более позднее время из-за ограничения потока."
+hint: "ATC flow management (ATFM) moved your slot later: the reason, the old and the new CTOT and the extra delay. Plan start-up and pushback for the new CTOT. No reply needed."
+hint_ru: "Служба организации потоков (ATFM) перенесла ваш слот на более позднее время: причина, старый и новый CTOT и дополнительная задержка. Планируйте запуск и выталкивание к новому CTOT. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time

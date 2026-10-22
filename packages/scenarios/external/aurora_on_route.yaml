@@ -8,6 +8,8 @@ title: Aurora on the route
 title_ru: Северное сияние на маршруте
 description: "Aurora forecast on the route."
 description_ru: "Вероятность сияния ≥ 30 % в точке маршрута в ближайший час, ночью (NOAA OVATION)."
+hint: "OPS information: the NOAA forecast gives a chance of aurora (northern or southern lights) along your route; the message says where and when. The cabin crew may tell the passengers. No reply needed."
+hint_ru: "Информация OPS: по прогнозу NOAA на вашем маршруте возможно полярное сияние; в сообщении — где и когда. Бортпроводники могут сообщить пассажирам. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase

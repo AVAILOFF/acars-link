@@ -29,4 +29,45 @@ describe('scenario UI texts', () => {
       expect(s.def.description_ru, `${s.id} description_ru`).toMatch(/[А-Яа-яЁё]/);
     }
   });
+
+  // T57: hints in the app, English and Russian, for every scenario and every awaited answer.
+  const en = /^[ -~]+$/;
+  const ru = /[А-Яа-яЁё]/;
+
+  it('has hint and hint_ru everywhere (T57)', () => {
+    for (const s of all) {
+      expect(s.def.hint, `${s.id} hint`).toMatch(en);
+      expect(s.def.hint_ru, `${s.id} hint_ru`).toMatch(ru);
+    }
+  });
+
+  it('every wait: reply has a hint for each option in both languages; step hints too (T57)', () => {
+    let replies = 0;
+    for (const s of all) {
+      for (const step of s.steps) {
+        if (step.kind === 'send' && step.hint !== null) {
+          expect(step.hint.en, `${s.id} send hint`).toMatch(en);
+          expect(step.hint.ru, `${s.id} send hint_ru`).toMatch(ru);
+        }
+        if (step.kind !== 'wait_reply') continue;
+        replies++;
+        expect(Object.keys(step.hints ?? {}), `${s.id} reply_hints`).toEqual(step.options);
+        for (const o of step.options) {
+          expect(step.hints?.[o]?.en, `${s.id} ${o}`).toMatch(en);
+          expect(step.hints?.[o]?.ru, `${s.id} ${o} ru`).toMatch(ru);
+        }
+      }
+    }
+    // 20 scenarios ask, some of them twice (the question again in a holding loop).
+    expect(replies).toBe(23);
+  });
+
+  it('the commands of the request window say what they do in the first sentence (T57)', () => {
+    for (const id of ['cmd_req_wx', 'cmd_req_atis', 'cmd_req_gate', 'cmd_req_loadsheet']) {
+      const hint = all.find((s) => s.id === id)?.def.hint ?? '';
+      const command = id.slice(4).replaceAll('_', ' ').toUpperCase();
+      expect(hint.startsWith(command), id).toBe(true);
+    }
+    expect(all.find((s) => s.id === 'cmd_help')?.def.hint).toMatch(/^Free text .*HELP/);
+  });
 });

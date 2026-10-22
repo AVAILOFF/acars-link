@@ -109,6 +109,24 @@ export interface OutboundMessage {
   readonly toPilot: boolean;
   /** The data link it went through (T31); absent without the link simulation. */
   readonly link?: DeliveryInfo;
+  /**
+   * The `send` step of the scenario that made it, an index into its compiled steps (T57: the
+   * app finds the step's hint); absent for a `resend` and for messages that are not a step's.
+   */
+  readonly step?: number;
+}
+
+/**
+ * A `wait: reply` waiting for the pilot (T57, for the app): the scenario, its `wait_reply` step
+ * (an index into the compiled steps), the options and the default taken at `untilFlightMs`.
+ */
+export interface AwaitedReply {
+  readonly scenarioId: string;
+  readonly step: number | null;
+  readonly options: readonly string[];
+  readonly default: string;
+  /** Flight time at which the default answer applies. */
+  readonly untilFlightMs: number;
 }
 
 /**
@@ -292,8 +310,8 @@ interface Run {
   /** Flight time to resume at (`wait.minutes`). */
   untilFlightMs: number | null;
   untilPhase: FlightPhase | null;
-  /** Waiting for a pilot answer (`wait: reply`). */
-  reply: { options: string[]; default: string; untilFlightMs: number } | null;
+  /** Waiting for a pilot answer (`wait: reply`); `step` (T57) is absent in older states. */
+  reply: { options: string[]; default: string; untilFlightMs: number; step?: number } | null;
   /** Waiting for a condition (`wait: until`, T39): the step and the flight time to give up at. */
   until: { step: number; deadlineMs: number } | null;
   /** `reply.*`, `cmd.*`, `loop.min` and the `run.*` a `draw` gave this run. */
@@ -593,6 +611,23 @@ export class ScenarioEngine {
 
   get running(): readonly string[] {
     return this.st.runs.map((r) => r.id);
+  }
+
+  /** Runs waiting for the pilot's answer, oldest first (T57). */
+  get pendingReplies(): readonly AwaitedReply[] {
+    return this.st.runs.flatMap((r) =>
+      r.reply === null
+        ? []
+        : [
+            {
+              scenarioId: r.id,
+              step: r.reply.step ?? null,
+              options: [...r.reply.options],
+              default: r.reply.default,
+              untilFlightMs: r.reply.untilFlightMs,
+            },
+          ],
+    );
   }
 
   /** Late-start delay in ms (0 = on time), null before the first tick. */
@@ -1211,6 +1246,7 @@ export class ScenarioEngine {
     now: number,
     out: OutboundMessage[],
     urgent = false,
+    step?: number,
   ): void {
     out.push({
       scenarioId: id,
@@ -1220,6 +1256,7 @@ export class ScenarioEngine {
       message,
       t: now,
       toPilot: this.answering || urgent || id === OPS_REPLY_ID,
+      ...(step === undefined ? {} : { step }),
     });
     if (id === OPS_REPLY_ID) return;
     const first = !(id in this.st.sent);
@@ -1508,6 +1545,7 @@ export class ScenarioEngine {
           options: [...step.options],
           default: step.default,
           untilFlightMs: input.flightTimeMs + timeoutMs,
+          step: run.step - 1,
         };
         events.push({
           type: 'REPLY_EXPECTED',
@@ -1688,7 +1726,7 @@ export class ScenarioEngine {
         // the user pressed the button and waits for it.
         const urgent = run.vars['run.forced'] === true && run.vars['run.forced_sent'] !== true;
         if (urgent) run.vars = { ...run.vars, 'run.forced_sent': true };
-        this.emit(sc.id, message, input.now, outbound, urgent);
+        this.emit(sc.id, message, input.now, outbound, urgent, run.step - 1);
         if (
           !this.st.ext.gateLocked &&
           this.data.ops.arrGate !== null &&

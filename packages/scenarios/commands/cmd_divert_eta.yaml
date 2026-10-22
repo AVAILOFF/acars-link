@@ -8,6 +8,8 @@ title: "Pilot command: DIVERT, distance and ETA"
 title_ru: "Команда пилота: DIVERT, расстояние и ETA"
 description: "After DIVERT to an airport of the flight plan: distance from the present position and ETA at the present ground speed."
 description_ru: "После DIVERT на аэропорт из плана полёта: расстояние от текущей позиции и ETA по текущей путевой скорости."
+hint: "Distance from your present position to the diversion airport you named and the ETA there at your present ground speed. No reply needed."
+hint_ru: "Расстояние от текущего места до названного вами аэропорта диверсии и ETA туда при текущей путевой скорости. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

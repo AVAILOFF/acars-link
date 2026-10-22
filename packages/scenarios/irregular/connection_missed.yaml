@@ -6,6 +6,8 @@ title: Connection missed
 title_ru: "Стыковка: не успели"
 description: "On block after a short connection with less than 15 min left: passengers rebooked."
 description_ru: "На стоянке после короткой стыковки, если осталось меньше 15 мин: пассажиры переоформлены."
+hint: "Connections: the onward flight is closed, your transfer passengers have been rebooked and the transfer desk will meet them. No reply needed."
+hint_ru: "Стыковки: дальнейший рейс закрыт, пассажиров на пересадку переоформили на другие рейсы, их встретит трансферная стойка. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase_enter

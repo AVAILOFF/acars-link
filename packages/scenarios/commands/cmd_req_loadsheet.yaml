@@ -6,6 +6,8 @@ title: "Pilot command: REQ LOADSHEET"
 title_ru: "Команда пилота: REQ LOADSHEET"
 description: "REQ LOADSHEET command: repeats the loadsheet."
 description_ru: "Команда REQ LOADSHEET: повтор лоадшита."
+hint: "REQ LOADSHEET asks OPS to send the loadsheet again. The answer repeats the latest loadsheet of this flight, preliminary or final. No reply needed."
+hint_ru: "REQ LOADSHEET просит OPS прислать загрузочную ведомость ещё раз. Ответ повторяет последнюю ведомость рейса — предварительную или окончательную. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

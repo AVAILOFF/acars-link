@@ -79,6 +79,7 @@ describe('settings', () => {
       recordFlights: true,
       liveData: true,
       soundOnMessage: false,
+      messageHints: true,
       messageGapSec: 60,
       xatc: false,
       datalink: false,

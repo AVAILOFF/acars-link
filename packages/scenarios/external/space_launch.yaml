@@ -9,6 +9,8 @@ title: Space launch near the route
 title_ru: Пуск ракеты рядом с маршрутом
 description: "A space launch planned near the route."
 description_ru: Подтверждённый пуск (TheSpaceDevs, статус Go) в пределах 300 NM от маршрута впереди, до прилёта.
+hint: "OPS advisory: a rocket launch is planned near your route, with its no-earlier-than time (NET), launch window and distance. Expect airspace restrictions around it and check the NOTAMs. No reply needed."
+hint_ru: "Предупреждение OPS: рядом с маршрутом запланирован пуск ракеты — время «не ранее» (NET), окно пуска и расстояние. Ожидайте ограничений воздушного пространства вокруг и проверьте NOTAM. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase

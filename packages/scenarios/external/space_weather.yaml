@@ -9,6 +9,8 @@ title: Space weather advisory
 title_ru: Космическая погода
 description: "Space weather at a high NOAA scale."
 description_ru: "Шкала NOAA R3+, S2+ (маршрут выше 60° широты) или G3+ (сейчас или в прогнозе на сутки)."
+hint: "OPS advisory: NOAA reports strong space weather (solar radio blackout, radiation storm or geomagnetic storm). It can disturb HF radio, SATCOM and GNSS; check them. No reply needed."
+hint_ru: "Предупреждение OPS: NOAA сообщает о сильной космической погоде (радиозатмение, радиационная или геомагнитная буря). Она может мешать КВ-связи, SATCOM и GNSS — проверьте их. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase

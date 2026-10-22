@@ -8,6 +8,8 @@ title: "Pilot command: MEDICAL"
 title_ru: "Команда пилота: MEDICAL"
 description: "MEDICAL <text> in the air: the crew reports a medical case. OPS asks CONTINUE or DIVERT (default CONTINUE after 10 min); DIVERT goes to the nearest of the origin and the alternates; paramedics meet the aircraft."
 description_ru: "MEDICAL <текст> в воздухе: экипаж сам сообщает о медицинском случае. OPS спрашивает CONTINUE или DIVERT (через 10 мин — CONTINUE); DIVERT — на ближайший из аэропорта вылета и запасных; на стоянке встречают медики."
+hint: "OPS received your medical report and has told MedLink, the ground doctors who advise crews in flight. It asks whether you continue to the destination or divert."
+hint_ru: "OPS получил ваше сообщение о медицинском случае и передал его в MedLink — наземным врачам, которые консультируют экипажи в полёте. Он спрашивает, летите ли вы дальше до назначения или уходите на запасной."
 enabled_by_default: true
 trigger:
   on: command
@@ -21,7 +23,16 @@ steps:
         MEDLINK ADVISED
         REPLY CONTINUE OR DIVERT
   - wait:
-      reply: { options: [CONTINUE, DIVERT], timeout_min: 10, default: CONTINUE }
+      reply:
+        options: [CONTINUE, DIVERT]
+        timeout_min: 10
+        default: CONTINUE
+        reply_hints:
+          CONTINUE: "Continue to the destination."
+          DIVERT: "Divert; you may add the airport ICAO after the word (DIVERT EDDM)."
+        reply_hints_ru:
+          CONTINUE: "Продолжать полёт до аэропорта назначения."
+          DIVERT: "Уйти на запасной; после слова можно указать ICAO аэропорта (DIVERT EDDM)."
   - branch:
       DIVERT:
         - set: { flight.divert: "{reply.icao|else:flight.nearest_altn}" }
@@ -33,6 +44,8 @@ steps:
               ~{flight.divert_nm} NM FROM PRESENT POS
               AMBULANCE AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
+            hint: "OPS confirms the diversion airport and has ordered an ambulance and handling there. Send your new ETA as a free-text telex when you can."
+            hint_ru: "OPS подтверждает аэропорт диверсии и заказал туда скорую и хендлинг. Сообщите новое ETA telex свободным текстом, когда сможете."
         - rescue: { level: medical }
         - wait: { phase: ON_BLOCK }
         - send:
@@ -40,6 +53,8 @@ steps:
             body: |
               PARAMEDICS AT AIRCRAFT DOOR
               PATIENT DEPLANES FIRST
+            hint: "Paramedics are waiting at the aircraft door; the patient leaves the aircraft before the other passengers. No reply needed."
+            hint_ru: "Медики ждут у двери самолёта; пациент выходит раньше остальных пассажиров. Ответ не нужен."
       CONTINUE:
         - send:
             header: OPS MSG MEDICAL
@@ -47,6 +62,8 @@ steps:
               MEDICAL UPDATE NOTED
               CONTINUE TO {ofp.dest}
               PLEASE REQUEST PRIORITY WITH ATC
+            hint: "OPS notes that you continue to the destination and asks you to request priority from ATC. No reply needed."
+            hint_ru: "OPS принял, что вы продолжаете полёт до назначения, и просит запросить у УВД приоритет. Ответ не нужен."
         - rescue: { level: medical }
         - wait: { phase: ON_BLOCK }
         - send:
@@ -55,3 +72,5 @@ steps:
               PARAMEDICS AT AIRCRAFT DOOR
               {ops.gate_place}
               PATIENT DEPLANES FIRST
+            hint: "Paramedics are waiting at the aircraft door; the patient leaves the aircraft before the other passengers. No reply needed."
+            hint_ru: "Медики ждут у двери самолёта; пациент выходит раньше остальных пассажиров. Ответ не нужен."

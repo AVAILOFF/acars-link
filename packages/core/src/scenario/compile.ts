@@ -50,6 +50,8 @@ export type CompiledStep =
       readonly header: CompiledTemplate | null;
       readonly body: CompiledTemplate;
       readonly footer: CompiledTemplate | null;
+      /** The step's own app hint (T57); null = the scenario's. */
+      readonly hint: HintText | null;
     }
   | { readonly kind: 'wait_minutes'; readonly minutes: number }
   | { readonly kind: 'wait_phase'; readonly phase: FlightPhase }
@@ -59,6 +61,8 @@ export type CompiledStep =
       /** Minutes, or `round`: to the next round of the loop (T50). */
       readonly timeoutMin: number | 'round';
       readonly default: string;
+      /** What each option means (T57, `reply_hints`); null = none. */
+      readonly hints: Readonly<Record<string, HintText>> | null;
     }
   | {
       readonly kind: 'wait_until';
@@ -129,6 +133,12 @@ export interface CompiledAssign {
     | { readonly k: 'lit'; readonly v: string | number | boolean | null }
     | { readonly k: 'var'; readonly path: string }
     | { readonly k: 'tpl'; readonly t: CompiledTemplate };
+}
+
+/** An app hint (T57) in English and, when given, Russian. Shown in the app only, never sent. */
+export interface HintText {
+  readonly en: string;
+  readonly ru: string | null;
 }
 
 export interface CompiledScenario {
@@ -225,6 +235,16 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
 
   if (def.group !== undefined && !ID.test(def.group)) fail('group', 'must be snake_case');
 
+  /** T57: a Russian hint goes with an English one. */
+  const hint = (path: string, en: string | undefined, ru: string | undefined): HintText | null => {
+    if (en === undefined) {
+      if (ru !== undefined) fail(`${path}_ru`, 'needs the English hint');
+      return null;
+    }
+    return { en, ru: ru ?? null };
+  };
+  hint('hint', def.hint, def.hint_ru);
+
   const vars = (path: string, used: readonly string[]) => {
     for (const v of used) if (!isContextVariable(v)) fail(path, `unknown variable ${v}`);
   };
@@ -252,6 +272,28 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
     }
   };
 
+  /** T57: `reply_hints` (and `_ru`) name exactly the options of the wait. */
+  const replyHints = (
+    path: string,
+    options: readonly string[],
+    en: Readonly<Record<string, string>> | undefined,
+    ru: Readonly<Record<string, string>> | undefined,
+  ): Readonly<Record<string, HintText>> | null => {
+    if (en === undefined) {
+      if (ru !== undefined) fail(`${path}.reply_hints_ru`, 'needs reply_hints');
+      return null;
+    }
+    const same = (keys: readonly string[]) =>
+      keys.length === options.length && options.every((o) => keys.includes(o));
+    if (!same(Object.keys(en))) fail(`${path}.reply_hints`, 'one line for each option');
+    if (ru !== undefined && !same(Object.keys(ru))) {
+      fail(`${path}.reply_hints_ru`, 'one line for each option');
+    }
+    const out: Record<string, HintText> = {};
+    for (const o of options) out[o] = { en: en[o] as string, ru: ru?.[o] ?? null };
+    return out;
+  };
+
   const steps: CompiledStep[] = [];
   /** Indexes of the `break` steps of the loop being compiled; null outside a loop. */
   let breaks: number[] | null = null;
@@ -276,6 +318,7 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
           header: template(`${path}.send.header`, s.send.header),
           body,
           footer: template(`${path}.send.footer`, s.send.footer),
+          hint: hint(`${path}.send.hint`, s.send.hint, s.send.hint_ru),
         });
         continue;
       }
@@ -314,6 +357,7 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
             options: [...r.options],
             timeoutMin: round ? 'round' : (r.timeout_min as number),
             default: r.default,
+            hints: replyHints(`${path}.wait.reply`, r.options, r.reply_hints, r.reply_hints_ru),
           });
           reply = r.options;
         } else if ('until' in w) {

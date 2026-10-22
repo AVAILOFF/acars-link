@@ -21,11 +21,13 @@ import type {
   AtcView,
   ForceableScenario,
   LinkWindow,
+  PendingReply,
   SystemCode,
   TelemetryView,
   TransportView,
 } from '../shared/api.js';
 import type { Feed } from './feed.js';
+import { MessageHints } from './hints.js';
 import type { RecordingSink } from './recording.js';
 
 /**
@@ -129,6 +131,10 @@ export class FlightSession {
   private readonly station: string;
   /** Transport telex id → feed entry id. */
   private readonly outbound = new Map<string, string>();
+  /** Hints to messages and answers (T57). */
+  private readonly hints: MessageHints;
+  /** Scenario id → feed entry of its latest message (T57: the message an answer is for). */
+  private readonly lastMessage = new Map<string, string>();
   private last: TelemetrySnapshot | null = null;
   private transportReason: string | null = null;
   /** The last transport status put into the feed was a problem. */
@@ -164,6 +170,7 @@ export class FlightSession {
       ...(o.hub === undefined ? {} : { hub: o.hub }),
     });
     this.data = o.data ?? null;
+    this.hints = new MessageHints(o.scenarios);
     this.simCommands = o.simCommands ?? (() => {});
     this.irregular = o.scenarios
       .filter((c) => c.def.category === 'irregular' && c.def.trigger.on !== 'command')
@@ -232,6 +239,20 @@ export class FlightSession {
       vsFpm: s.vsFpm,
       fuelKg: s.fuelKg,
     };
+  }
+
+  /** Scenarios waiting for the pilot's answer (T57), from the core's state. */
+  get pendingReplies(): readonly PendingReply[] {
+    if (this.stopped) return [];
+    return this.core.pendingReplies.map((r) => ({
+      scenarioId: r.scenarioId,
+      messageId: this.lastMessage.get(r.scenarioId) ?? null,
+      station: this.station,
+      options: r.options,
+      hints: this.hints.forReply(r),
+      default: r.default,
+      minutesLeft: Math.ceil(r.leftMs / 60_000),
+    }));
   }
 
   /** XATC station (T23): where to log on and where the aircraft is logged on; null = off. */
@@ -558,7 +579,9 @@ export class FlightSession {
         to: m.to,
         scenarioId: m.scenarioId,
         text: m.message.text,
+        hint: this.hints.forMessage(m),
       };
+      let feedId: string;
       try {
         const id = this.transport.send({
           from: m.from,
@@ -566,11 +589,13 @@ export class FlightSession {
           message: m.message,
           ...(m.cpdlc === undefined ? {} : { cpdlc: m.cpdlc }),
         });
-        this.outbound.set(id, this.feed.add({ ...entry, delivery: 'queued', detail: null }));
+        feedId = this.feed.add({ ...entry, delivery: 'queued', detail: null });
+        this.outbound.set(id, feedId);
       } catch (e) {
         const detail = e instanceof Error ? e.message : String(e);
-        this.feed.add({ ...entry, delivery: 'failed', detail });
+        feedId = this.feed.add({ ...entry, delivery: 'failed', detail });
       }
+      this.lastMessage.set(m.scenarioId, feedId);
     }
   }
 

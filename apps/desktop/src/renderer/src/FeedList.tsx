@@ -45,6 +45,7 @@ export function MessageTable({
   query,
   selectedId,
   seen,
+  awaiting,
   onSelect,
 }: {
   entries: readonly FeedEntry[];
@@ -52,6 +53,8 @@ export function MessageTable({
   query: string;
   selectedId: string | null;
   seen: ReadonlySet<string>;
+  /** Messages the core waits for an answer to (T57); empty when the hints are off. */
+  awaiting: ReadonlySet<string>;
   onSelect: (id: string) => void;
 }) {
   const t = useT();
@@ -133,6 +136,7 @@ export function MessageTable({
                   selected={r.e.id === selectedId}
                   unread={r.e.kind !== 'system' && !seen.has(r.e.id)}
                   fresh={!initial.has(r.e.id)}
+                  waiting={awaiting.has(r.e.id)}
                   onSelect={onSelect}
                 />
               </ErrorBoundary>
@@ -152,12 +156,14 @@ function MessageRow({
   selected,
   unread,
   fresh,
+  waiting,
   onSelect,
 }: {
   r: Row;
   selected: boolean;
   unread: boolean;
   fresh: boolean;
+  waiting: boolean;
   onSelect: (id: string) => void;
 }) {
   const t = useT();
@@ -185,6 +191,8 @@ function MessageRow({
       </td>
       <td className={`col-type ${e.kind}`}>{r.type}</td>
       <td className="col-content">
+        {/* T57: before the subject, so the cell's ellipsis never hides it. */}
+        {waiting && <span className="pill caution awaiting">{t('msg.awaiting')}</span>}
         {pick === undefined ? (
           <span className="subject">{r.subject}</span>
         ) : (

@@ -7,6 +7,8 @@ title: Disruptive passenger
 title_ru: "Пассажир-дебошир"
 description: "In cruise the crew reports a disruptive passenger. RESTRAIN: police at arrival; DIVERT: nearest airport; CONTINUE (default): monitor. RESTRAIN and DIVERT leave a note for the next flight."
 description_ru: "В крейсере экипаж сообщает о дебоширящем пассажире. RESTRAIN — полиция по прилёте, DIVERT — ближайший аэропорт, CONTINUE (по умолчанию) — наблюдать. RESTRAIN и DIVERT оставляют запись для следующего рейса."
+hint: "OPS security: the cabin crew report a disruptive passenger, with the seat and what happened; the crew has given a formal warning. Tell OPS what you do: restrain the passenger, divert or continue."
+hint_ru: "Служба безопасности OPS: бортпроводники сообщают о дебошире — место и что случилось; экипаж сделал официальное предупреждение. Сообщите OPS, что вы делаете: ограничиваете пассажира в действиях, уходите на запасной или продолжаете полёт."
 enabled_by_default: true
 trigger:
   on: phase
@@ -31,7 +33,18 @@ steps:
         CREW ISSUED FORMAL WARNING
         REPLY RESTRAIN, DIVERT OR CONTINUE
   - wait:
-      reply: { options: [RESTRAIN, DIVERT, CONTINUE], timeout_min: 10, default: CONTINUE }
+      reply:
+        options: [RESTRAIN, DIVERT, CONTINUE]
+        timeout_min: 10
+        default: CONTINUE
+        reply_hints:
+          RESTRAIN: "The crew restrains the passenger and you continue."
+          DIVERT: "Divert to the nearest suitable airport, or to another airport named after the word (DIVERT EDDM)."
+          CONTINUE: "Continue; the crew keeps watching the passenger."
+        reply_hints_ru:
+          RESTRAIN: "Экипаж ограничивает пассажира в действиях, вы продолжаете полёт."
+          DIVERT: "Уйти на ближайший подходящий аэропорт или на другой, названный после слова (DIVERT EDDM)."
+          CONTINUE: "Продолжать полёт; экипаж наблюдает за пассажиром."
   - branch:
       RESTRAIN:
         - send:
@@ -41,6 +54,8 @@ steps:
               POLICE WILL MEET ACFT AT {ofp.dest}
               DO NOT OPEN DOORS BEFORE POLICE
               FILE CABIN INCIDENT REPORT
+            hint: "OPS notes the restraint: police will meet the aircraft at the destination. Do not open the doors before the police arrive and file a cabin incident report. No reply needed."
+            hint_ru: "OPS принял, что пассажир ограничен: полиция встретит самолёт в аэропорту назначения. Не открывайте двери до прихода полиции и оформите отчёт об инциденте в салоне. Ответ не нужен."
         - wait: { phase: ON_BLOCK }
         - send:
             header: OPS MSG SECURITY
@@ -48,6 +63,8 @@ steps:
               POLICE AT AIRCRAFT DOOR
               PAX SEAT {flags.unruly_seat}
               HOLD OTHER PAX UNTIL POLICE BOARD
+            hint: "Police are at the aircraft door for the passenger of the seat given. Keep the other passengers seated until the police have boarded. No reply needed."
+            hint_ru: "Полиция у двери самолёта за пассажиром с указанного места. Не выпускайте остальных пассажиров, пока полиция не поднимется на борт. Ответ не нужен."
       DIVERT:
         - set: { flight.divert: "{reply.icao|else:flight.nearest_altn}" }
         - send:
@@ -57,6 +74,8 @@ steps:
               DIVERT {flight.divert|or:NEAREST SUITABLE} NOTED
               POLICE AND HANDLING ORDERED
               FILE CABIN INCIDENT REPORT
+            hint: "OPS notes your diversion; police and handling are ordered there. File a cabin incident report. No reply needed."
+            hint_ru: "OPS принял вашу диверсию; полиция и хендлинг туда заказаны. Оформите отчёт об инциденте в салоне. Ответ не нужен."
       CONTINUE:
         - set: { flags.unruly_seat: null, flags.unruly_flight: null, flags.unruly_date: null }
         - send:
@@ -64,3 +83,5 @@ steps:
             body: |
               NOTED, CREW TO MONITOR
               ADVISE IF SITUATION CHANGES
+            hint: "OPS notes that you continue and the crew keeps watching the passenger. Tell OPS if the situation changes. No reply needed."
+            hint_ru: "OPS принял, что вы продолжаете полёт, а экипаж наблюдает за пассажиром. Сообщите OPS, если ситуация изменится. Ответ не нужен."

@@ -3,6 +3,7 @@ import { type FormEvent, useState } from 'react';
 import type { AppState, FeedEntry, FlightSummary } from '../../shared/api.js';
 import { atcHints } from '../../shared/atc-hints.js';
 import { type Filter, MessageTable } from './FeedList.js';
+import { awaitingIds, type MessageHintView, messageHint } from './hints.js';
 import { phaseKey } from './i18n.js';
 import { RequestDialog, type RequestKind } from './RequestDialog.js';
 import { useStore } from './store.js';
@@ -29,9 +30,11 @@ export function FlightView() {
   const [seen, setSeen] = useState(() => new Set(app.feed.map((e) => e.id)));
   const [request, setRequest] = useState<RequestKind | null>(null);
 
+  const hintsOn = useStore((s) => s.settings?.messageHints !== false);
   const messages = app.feed.filter(isMessage);
   const selected =
     messages.find((m) => m.id === picked) ?? (messages.length > 0 ? messages.at(-1) : undefined);
+  const hint = messageHint(hintsOn, selected, app.pendingReplies);
   const select = (id: string) => {
     setPicked(id);
     setSeen((s) => (s.has(id) ? s : new Set(s).add(id)));
@@ -93,6 +96,7 @@ export function FlightView() {
             query={query}
             selectedId={selected?.id ?? null}
             seen={seen}
+            awaiting={awaitingIds(hintsOn, app.pendingReplies)}
             onSelect={select}
           />
           <div className="toolbar msg-foot">
@@ -126,6 +130,7 @@ export function FlightView() {
           running={running}
           onSelect={select}
         />
+        {hint !== null && <HintPanel hint={hint} />}
       </aside>
       {request !== null && (
         <RequestDialog
@@ -381,6 +386,50 @@ function FmsPanel({
           </button>
         </div>
       </div>
+    </section>
+  );
+}
+
+/**
+ * The hint to the selected message (T57), under the FMS screen and in the app's own type: what it
+ * means, and the answer the core waits for. The options are only shown: the pilot types the answer.
+ */
+function HintPanel({ hint }: { hint: MessageHintView }) {
+  const t = useT();
+  const uiText = useUiText();
+  const r = hint.reply;
+  return (
+    <section className="panel hint-panel" aria-labelledby="hint-title">
+      <div className="panel-head">
+        <h2 id="hint-title" className="panel-title">
+          {t('hint.title')}
+        </h2>
+      </div>
+      {hint.text !== null && <p className="hint-text">{uiText(hint.text)}</p>}
+      {r !== null && (
+        <div className="hint-reply">
+          <p className="hint-await">{t('hint.awaiting', { options: r.options.join(' / ') })}</p>
+          {r.hints !== null && (
+            <dl className="hint-options">
+              {r.options.map((o) => {
+                const h = r.hints?.[o];
+                return (
+                  <div key={o}>
+                    <dt>{o}</dt>
+                    <dd>{h === undefined ? '' : uiText(h)}</dd>
+                  </div>
+                );
+              })}
+            </dl>
+          )}
+          <p className="hint">{t('hint.how', { station: r.station })}</p>
+          <p className="hint">
+            {r.minutesLeft > 0
+              ? t('hint.default', { min: r.minutesLeft, option: r.default })
+              : t('hint.defaultNow', { option: r.default })}
+          </p>
+        </div>
+      )}
     </section>
   );
 }

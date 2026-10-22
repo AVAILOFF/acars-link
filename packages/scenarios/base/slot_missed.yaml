@@ -8,6 +8,8 @@ title: Slot missed
 title_ru: "Слот пропущен"
 description: "After take-off later than CTOT + 10 min (tolerance window -5/+10 min): the slot is reported as missed."
 description_ru: "Взлёт позже CTOT + 10 мин (допуск -5/+10 мин): сообщение о пропущенном слоте."
+hint: "You took off outside the slot window around the CTOT (-5/+10 min), so the airline reports a missed slot to flow management (ATFM). Information only, no reply needed."
+hint_ru: "Вы взлетели вне окна слота вокруг CTOT (−5/+10 мин), и авиакомпания сообщает о нарушении слота в службу организации потоков (ATFM). Только для сведения, ответ не нужен."
 enabled_by_default: true
 trigger:
   on: event

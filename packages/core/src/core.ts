@@ -19,6 +19,7 @@ import {
 } from './phase/fsm.js';
 import type { CompiledScenario } from './scenario/compile.js';
 import {
+  type AwaitedReply,
   DEFAULT_STATION,
   type OutboundMessage,
   ScenarioEngine,
@@ -226,6 +227,18 @@ export class AcarsCore {
     return this.xatc === null
       ? null
       : { station: this.xatc.station, connected: this.xatc.connected, dcl: this.xatc.dclStation };
+  }
+
+  /**
+   * Scenarios waiting for the pilot's answer (T57), with the flight time left until the default
+   * answer applies (ms, not below 0). For the app only; the state already holds them.
+   */
+  get pendingReplies(): readonly (AwaitedReply & { readonly leftMs: number })[] {
+    const now = this.fsm.flightTimeMs;
+    return this.engine.pendingReplies.map((r) => ({
+      ...r,
+      leftMs: Math.max(0, r.untilFlightMs - now),
+    }));
   }
 
   /** External data the core holds (T13). */

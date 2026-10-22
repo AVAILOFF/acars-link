@@ -7,6 +7,8 @@ title: Open MEL item from an earlier flight
 title_ru: "Открытый пункт MEL с прошлого рейса"
 description: "Before a flight on the same aircraft: the deferred MEL item is still open. After arrival maintenance closes it."
 description_ru: "Перед рейсом на том же борту: отложенный пункт MEL всё ещё открыт. После прилёта техники его закрывают."
+hint: "MEL status of this aircraft: a defect deferred under the MEL (Minimum Equipment List) on an earlier flight is still open. Fly by the MEL operational procedure for it and check the performance and fuel penalty; maintenance has a slot for it at the destination. No reply needed."
+hint_ru: "Статус MEL этого самолёта: неисправность, отложенная по MEL (перечню минимального оборудования) на прошлом рейсе, всё ещё открыта. Выполняйте рейс по эксплуатационной процедуре MEL для неё и проверьте поправки к характеристикам и топливу; техслужба запланировала её устранение в аэропорту назначения. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time
@@ -32,4 +34,6 @@ steps:
         {flags.mel_item}
         RECTIFIED AT {ofp.dest}
         MEL ITEM CLOSED, TECH LOG SIGNED
+      hint: "MEL status: maintenance has fixed the deferred defect at this airport, the MEL item is closed and signed off in the technical log. No reply needed."
+      hint_ru: "Статус MEL: техслужба устранила отложенную неисправность в этом аэропорту, пункт MEL закрыт и подписан в бортовом журнале. Ответ не нужен."
   - set: { flags.mel_item: null, flags.mel_reg: null, flags.mel_date: null }
