@@ -409,3 +409,50 @@ describe('AcarsCore.endFlight (user decision at ON_BLOCK)', () => {
     expect(() => core.endFlight('DONE', 0)).toThrow(/ON_BLOCK/);
   });
 });
+
+describe('late start version 3: the span counts scenarios that can start (docs/05)', () => {
+  const STD = ofp.times.schedOutMs;
+  const start = STD - 27 * MIN;
+  const late = generateSyntheticFlight({ ofp, startMs: start });
+  const pre = (id: string, offset_min: number, d: Partial<ScenarioDef> = {}) =>
+    def({ id, trigger: { on: 'time', at: { rel: 'sched_out', offset_min } }, ...d });
+  const crew = pre('crew', -45, { conditions: ["phase in ['PREFLIGHT','BOARDING']"] });
+  const memory = pre('memory', -60, { conditions: ['flags.followup != null'] });
+  const dice = pre('dice', -55, { probability: 0 });
+  const live = pre('live', -60, { conditions: ['tm.fuel_kg == 0'] });
+  const crewAt = (defs: readonly ScenarioDef[], opts: Partial<CoreOptions>) =>
+    sent(fly(defs, late, opts), 'crew')[0]?.t ?? Number.NaN;
+  /** `sched_out − 45` squeezed into 26 of the 27 min left, by the longest offset counted. */
+  const fitted = (spanMin: number) => STD - 45 * (26 / spanMin) * MIN;
+
+  it('version 2: a −60 that cannot start still stretches the span', () => {
+    const t = crewAt([crew, memory, dice], { lateStartVersion: 2 });
+    expect(Math.abs(t - fitted(60))).toBeLessThan(2_000);
+  });
+
+  it('version 3: no airline memory, lost dice: crew comes a minute after the start', () => {
+    const t = crewAt([crew, memory, dice], { lateStartVersion: 3 });
+    expect(Math.abs(t - fitted(45))).toBeLessThan(2_000);
+    expect(t - start).toBeLessThan(2 * MIN);
+  });
+
+  it('version 3: the flag of an earlier flight keeps the −60 in', () => {
+    const t = crewAt([crew, memory, dice], { lateStartVersion: 3, flags: { followup: 'X' } });
+    expect(Math.abs(t - fitted(60))).toBeLessThan(2_000);
+  });
+
+  it('version 3: a condition on live data may still turn true, so it counts', () => {
+    const t = crewAt([crew, live], { lateStartVersion: 3 });
+    expect(Math.abs(t - fitted(60))).toBeLessThan(2_000);
+  });
+
+  it('version 3: the peek does not change the real roll', () => {
+    const coin = pre('coin', -10, { probability: 0.5 });
+    const ids = (v: 2 | 3) =>
+      ['a', 'b', 'c', 'd', 'e', 'f'].map(
+        (seed) => sent(fly([coin], late, { lateStartVersion: v, seed }), 'coin').length,
+      );
+    expect(ids(3)).toEqual(ids(2));
+    expect(new Set(ids(3)).size).toBe(2);
+  });
+});
