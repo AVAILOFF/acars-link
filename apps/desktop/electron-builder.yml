@@ -1,0 +1,26 @@
+# Windows installer (T19, build only: no code signing, no auto-update).
+# `pnpm desktop:dist` builds out/ and the bridge first; see CLAUDE.md, «Команды».
+appId: local.acars.sim
+productName: ACARS Sim
+directories:
+  output: release
+# The main process bundles the workspace packages and scenarios (electron.vite.config.ts),
+# so the app needs no node_modules.
+files:
+  - out/**
+  - package.json
+npmRebuild: false
+extraResources:
+  # Self-contained bridge from `pnpm bridge:publish`; the user starts it next to the sim.
+  - from: ../../bridge/msfs/publish
+    to: bridge
+win:
+  target:
+    - target: nsis
+      arch: x64
+  signExecutable: false
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ACARS-Sim-Setup-${version}.exe

@@ -51,6 +51,8 @@ pnpm desktop          # сборка apps/desktop/out и запуск
 pnpm hoppie:telex --to <АВИА> [--from OPS…] [--text …] [--listen 180]   # ручной telex в Hoppie; код — только из env HOPPIE_LOGON
 pnpm replay run <запись.jsonl> [--scenarios <yaml|папка>] [--only id,…] [--check] [--pilot "<мин>=<текст>"]   # прогон записи через ядро (tools/replay); --pilot — сообщения пилота
 pnpm replay synth --ofp <simbrief.json> --out <файл.jsonl>   # синтетический полёт как запись; pnpm replay --help
+pnpm desktop:dist     # установщик Windows: apps/desktop/release/ACARS-Sim-Setup-<версия>.exe (NSIS, без подписи; мост — в resources/bridge)
+pnpm bridge:publish   # мост как самодостаточный exe (.NET не нужен) → bridge/msfs/publish
 pnpm bridge:build     # dotnet build bridge/msfs (C# мост, .NET 8; с SimConnect: -p:MsfsSdk="C:\MSFS 2024 SDK")
 pnpm bridge:test      # dotnet test bridge/msfs — при изменениях в bridge/ тоже перед «готово»
 ```

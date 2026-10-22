@@ -31,3 +31,7 @@ obj/
 *.user
 TestResults/
 bridge/msfs/Local.props
+
+# installers (pnpm desktop:dist) and the published bridge
+apps/desktop/release/
+bridge/msfs/publish/

@@ -16,7 +16,9 @@
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "desktop:dev": "pnpm -F @acars/desktop dev",
     "desktop": "pnpm -F @acars/desktop build && pnpm -F @acars/desktop start",
+    "desktop:dist": "pnpm bridge:publish && pnpm -F @acars/desktop dist",
     "bridge:build": "dotnet build bridge/msfs",
+    "bridge:publish": "dotnet publish bridge/msfs/src/AcarsBridge -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o bridge/msfs/publish",
     "bridge:test": "dotnet test bridge/msfs",
     "replay": "pnpm -F @acars/core -F @acars/scenarios -F @acars/replay build && node tools/replay/dist/cli.js",
     "hoppie:telex": "pnpm -F @acars/core -F @acars/transport build && pnpm -F @acars/transport telex"
