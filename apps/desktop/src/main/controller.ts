@@ -42,8 +42,10 @@ import type {
   Settings,
   SettingsPatch,
   SimbriefCheck,
+  SimChoice,
   Simulator,
 } from '../shared/api.js';
+import { activeSim } from '../shared/api.js';
 import { BridgeClient, type CommandResult, type SocketLike, type Timers } from './bridge.js';
 import { AppFailure, toAppError } from './errors.js';
 import { Feed } from './feed.js';
@@ -92,7 +94,7 @@ export interface AppControllerOptions {
   /** Airline memory between flights (T14); default in memory only. */
   readonly flags?: FlagsStore;
   /** The bridge port or simulator was changed (T18): the bundled bridge is started anew. */
-  readonly onBridgeConfig?: (port: number, simulator: Simulator) => void;
+  readonly onBridgeConfig?: (port: number, simulator: SimChoice) => void;
 }
 
 /** Title of a scenario in the UI languages. */
@@ -116,6 +118,9 @@ export const TURNAROUND_SCENARIOS: readonly string[] = [
 ];
 
 /** Identifies the app to aviationweather.gov, VATSIM, NASA and Overpass (they ask for it). */
+/** Simulator names in the feed (the same in both UI languages). */
+const SIM_NAMES: Readonly<Record<Simulator, string>> = { msfs: 'MSFS', xplane: 'X-Plane 12' };
+
 export const DATA_USER_AGENT = 'ACARS-Link/0.1 (flight simulator ACARS; personal use)';
 
 /** Hoppie logon codes: printable ASCII without spaces (they go into a URL/form field). */
@@ -142,6 +147,8 @@ export class AppController {
   private sessionFired: readonly string[] = [];
   /** Sim UTC minus the bridge clock from the latest snapshot that had it; null = none yet. */
   private simOffsetMs: number | null = null;
+  /** The last simulator the bridge was connected to (T59): a different one during a flight goes to the feed. */
+  private lastSim: Simulator | null = null;
   /** External data (T13): prefetches for the loaded OFP, feeds the running flight. */
   private readonly data: ExternalDataService;
   /** A `smoke_start` was sent and not yet taken down (T34). */
@@ -195,7 +202,10 @@ export class AppController {
       timers: o.timers,
       now: o.now,
       onTelemetry: (s) => this.onTelemetry(s),
-      onChange: o.onChange,
+      onChange: () => {
+        this.onBridgeChange();
+        o.onChange();
+      },
       onCommandResult: (r) => this.onCommandResult(r),
     });
     try {
@@ -275,7 +285,7 @@ export class AppController {
       return;
     }
     // X-Plane takes no smoke command (T18): nothing to say in the feed.
-    if ((await this.o.settings.get()).simulator === 'xplane') return;
+    if ((await this.sim()) === 'xplane') return;
     if (c.runway === null) return fail('no planned runway in the OFP');
     const mid = await this.data.runwayPoint(c.airport, c.runway, this.o.now());
     if (mid === null) return fail(`no coordinates for ${c.airport} RWY ${c.runway}`);
@@ -304,7 +314,7 @@ export class AppController {
   private async sendRescue(c: RescueCommand): Promise<void> {
     const settings = await this.o.settings.get();
     // X-Plane takes no rescue commands (T18): nothing to say in the feed.
-    if (!settings.rescue || settings.simulator === 'xplane') return;
+    if (!settings.rescue || activeSim(settings.simChoice, this.bridge.view) === 'xplane') return;
     if (c.action === 'stop') {
       this.stopRescue();
       return;
@@ -458,8 +468,8 @@ export class AppController {
     const s = await this.o.settings.update(patch);
     this.lang = s.language;
     this.bridge.setPort(s.bridgePort);
-    if (s.bridgePort !== before.bridgePort || s.simulator !== before.simulator) {
-      this.o.onBridgeConfig?.(s.bridgePort, s.simulator);
+    if (s.bridgePort !== before.bridgePort || s.simChoice !== before.simChoice) {
+      this.o.onBridgeConfig?.(s.bridgePort, s.simChoice);
     }
     if (this.ofp !== null && this.session === null) {
       this.flight = this.summary(this.ofp, s);
@@ -692,8 +702,9 @@ export class AppController {
     if (planned === null) throw new AppFailure('bad_state', 'load the OFP first', 'load_ofp_first');
     if (this.scenarioError !== null) throw new AppFailure('scenarios_invalid', this.scenarioError);
     const settings = await this.o.settings.get();
-    // X-Plane sends no sim clock (T18): the flight would wait for it forever.
-    const simTime = settings.simTime && settings.simulator !== 'xplane';
+    // X-Plane sends no sim clock (T18): the flight would wait for it forever. T59: by the connected sim.
+    const simTime =
+      settings.simTime && activeSim(settings.simChoice, this.bridge.view) !== 'xplane';
     // The plan's date follows the flight's clock (the sim's with "time from the sim"): only the
     // time of day of STD counts (docs/05 "Дата OFP").
     const clockNow = this.o.now() + (simTime ? (this.simOffsetMs ?? 0) : 0);
@@ -935,6 +946,28 @@ export class AppController {
       throw new AppFailure('internal', e instanceof Error ? e.message : String(e));
     }
     return null;
+  }
+
+  /** The simulator the app works with now (T59): the connected one, else the fixed choice. */
+  private async sim(): Promise<Simulator | null> {
+    return activeSim((await this.o.settings.get()).simChoice, this.bridge.view);
+  }
+
+  /**
+   * T59 (decision of 2026-10-23): another simulator during a flight is a feed line; the flight goes on
+   * (lost telemetry and the position jump are handled as usual).
+   */
+  private onBridgeChange(): void {
+    const now = this.bridge.view.source;
+    if (now === null || now === this.lastSim) return;
+    const before = this.lastSim;
+    this.lastSim = now;
+    if (before !== null && this.session !== null) {
+      this.feed.system(this.o.now(), 'sim_changed', {
+        from: SIM_NAMES[before],
+        to: SIM_NAMES[now],
+      });
+    }
   }
 
   private onTelemetry(s: TelemetrySnapshot): void {

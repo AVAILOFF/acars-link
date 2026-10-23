@@ -28,7 +28,9 @@ export function simStatus(app: AppState, t: Translate): StatusItem {
     return { tone: 'off', short: none, text: none };
   }
   const tone: Tone = b.sim === 'connected' ? (b.running ? 'ok' : 'warn') : 'bad';
-  const short = b.sim === 'connected' && !b.running ? t('sim.menu') : t(`sim.${b.sim}`);
+  let short = b.sim === 'connected' && !b.running ? t('sim.menu') : t(`sim.${b.sim}`);
+  // T59: which simulator the bridge found.
+  if (b.source !== null) short += ` · ${t(`sim.name.${b.source}`)}`;
   let text = short;
   if (b.paused) text += ` · ${t('sim.paused')}`;
   if (b.simRate !== 1) text += ` · ${t('sim.rate', { rate: b.simRate })}`;

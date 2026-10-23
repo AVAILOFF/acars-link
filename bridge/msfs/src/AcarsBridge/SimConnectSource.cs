@@ -19,7 +19,7 @@ namespace AcarsBridge;
 /// "Frame" system event; the 100 ms timer only when no frame comes, e.g. paused). While they are wanted the
 /// aircraft position is read every <see cref="RescueController.MoveEvery"/>; diagnostics go to the console.
 /// </summary>
-public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy = null) : ISimSource, ICommandTarget
+public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy = null) : ISimSource, ISimSession, ICommandTarget
 {
     private enum Def { Telemetry, Rescue, SimDisabled, VehiclePos, Heading, Place }
     /// <summary>Rescue vehicles are created with <c>RescueSpawn + slot</c>; diagnostic reads use <c>VehicleHdgInit / VehicleSeen + slot</c>.</summary>
@@ -255,35 +255,26 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         }
     }
 
-    public Task RunAsync(ISimSink sink, CancellationToken ct) =>
-        Task.Factory.StartNew(() => Loop(sink, ct), ct, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+    public Task RunAsync(ISimSink sink, CancellationToken ct) => SimLoop.RunAsync([this], sink, _policy, clock, ct);
 
-    private void Loop(ISimSink sink, CancellationToken ct)
-    {
-        while (!ct.IsCancellationRequested)
+    /// <summary>One SimConnect session on its own thread (ReceiveMessage blocks).</summary>
+    public Task<SessionEnd> RunSessionAsync(ISimSink sink, CancellationToken ct) =>
+        Task.Factory.StartNew(() =>
         {
-            sink.OnStatus(BridgeStatus.Initial with { Sim = SimLink.Connecting });
-            string? reason;
+            var answered = false;
             try
             {
-                reason = RunSession(sink, ct);
+                return new SessionEnd(RunSession(sink, () => answered = true, ct), answered);
             }
             catch (COMException ex)
             {
                 // Thrown by the constructor when the sim is not running, and by ReceiveMessage on a broken pipe.
-                reason = $"simconnect: {ex.Message.Trim()}";
+                return new SessionEnd($"simconnect: {ex.Message.Trim()}", answered);
             }
-            if (ct.IsCancellationRequested) break;
-
-            var delay = _policy.NextDelay();
-            sink.OnStatus(BridgeStatus.Initial with { Detail = reason, RetryInMs = (int)delay.TotalMilliseconds });
-            if (ct.WaitHandle.WaitOne(delay)) break;
-        }
-        sink.OnStatus(BridgeStatus.Initial with { Detail = "stopped" });
-    }
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
     /// <returns>Why the session ended.</returns>
-    private string RunSession(ISimSink sink, CancellationToken ct)
+    private string RunSession(ISimSink sink, Action onOpen, CancellationToken ct)
     {
         using var signal = new EventWaitHandle(false, EventResetMode.AutoReset);
         using var sc = new SimConnect(ClientName, IntPtr.Zero, 0, signal, 0);
@@ -299,7 +290,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         {
             open = true;
             _open = true;
-            _policy.Reset();
+            onOpen();
             Publish();
         };
         sc.OnRecvQuit += (_, _) => ended = "sim quit";

@@ -1,7 +1,8 @@
 # acars-msfs-bridge
 
 MSFS 2020/2024 → SimConnect → WebSocket `ws://127.0.0.1:47830/`. C# / .NET 8 (docs/08, decision 2).
-X-Plane 12 (12.1.1 or later) → its built-in Web API → the same WebSocket, with `--source xplane` (T18).
+X-Plane 12 (12.1.1 or later) → its built-in Web API → the same WebSocket (T18). By default (`--source auto`, T59)
+the bridge connects to whichever of the two runs.
 Streams `TelemetrySnapshot` v1 (docs/03, `packages/core/src/telemetry/types.ts`) at ~1 Hz.
 
 ## Build
@@ -21,7 +22,8 @@ The build prints which folder it used (`SimConnect support ON (…)`).
 ## Run
 
 ```
-acars-msfs-bridge                          # SimConnect, port 47830
+acars-msfs-bridge                          # auto: MSFS or X-Plane 12, port 47830
+acars-msfs-bridge --source simconnect      # MSFS only
 acars-msfs-bridge --source fake            # no sim: parked A320 at EDDF, 1 Hz
 acars-msfs-bridge --source fake --replay flight.jsonl   # loop a JSONL of TelemetrySnapshot v1
 acars-msfs-bridge --port 47831 --verbose
@@ -29,8 +31,15 @@ acars-msfs-bridge --source xplane          # X-Plane 12 Web API on localhost:808
 acars-msfs-bridge --source xplane --xplane-port 8088   # X-Plane started with --web_server_port=8088
 ```
 
-Start order does not matter. Until MSFS is up, the bridge retries with backoff
-1, 2, 4, 8, 16, 30, 30 … s. The same happens after MSFS quits.
+Start order does not matter. Until the sim is up, the bridge retries with backoff
+1, 2, 4, 8, 16, 30, 30 … s. The same happens after the sim quits.
+
+`auto` (T59, decisions of 2026-10-23): each round tries SimConnect, then X-Plane (`localhost:8086`, or
+`--xplane-port`); the first that answers keeps the bridge until it closes, and the other is not tried meanwhile.
+One backoff for both, reset when one answered; `detail` of the wait lists the reasons of the round
+(`simconnect: …; x-plane: …`). Commands go to the connected sim if it offers them, else to the first that does
+(with X-Plane connected, `smoke_start` answers `sim not connected`). Without SimConnect compiled in, `auto` looks
+for X-Plane only.
 
 ## Protocol v1 and v2
 
@@ -43,8 +52,8 @@ accepts a v1 bridge: telemetry then works and commands end with `unavailable`.
 
 | `type` | When | Fields |
 |---|---|---|
-| `hello` | first frame | `protocol: 1 \| 2`, `telemetryVersion: 1`, `bridge`, `version`, `source: "simconnect" \| "fake"`; v2 adds `commands: string[]` |
-| `status` | right after `hello`, then on every change | `sim: "disconnected" \| "connecting" \| "connected"`, `running`, `paused`, `simRate`, `detail?`, `retryInMs?` |
+| `hello` | first frame | `protocol: 1 \| 2`, `telemetryVersion: 1`, `bridge`, `version`, `source: "auto" \| "simconnect" \| "xplane" \| "fake"`; v2 adds `commands: string[]` |
+| `status` | right after `hello`, then on every change | `sim: "disconnected" \| "connecting" \| "connected"`, `running`, `paused`, `simRate`, `detail?`, `retryInMs?`, `source?` (T59: `simconnect` \| `xplane`, only while connected) |
 | `telemetry` | ~1 Hz while `connected` and `running` | `data: TelemetrySnapshot` |
 
 - `running` is the SimConnect `Sim` event. It is false in menus and while a flight loads, and no telemetry is sent then.

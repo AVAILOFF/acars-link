@@ -18,6 +18,20 @@ export type TransportChoice = 'hoppie' | 'offline';
  */
 export type Simulator = 'msfs' | 'xplane';
 
+/**
+ * The "Simulator" setting (T59): `auto` (default) — the bridge connects to whichever runs; or a fixed one.
+ * Saved as `simChoice`; settings from before T59 had `simulator`, and its `msfs` (then the default) becomes `auto`.
+ */
+export type SimChoice = 'auto' | Simulator;
+
+/**
+ * The simulator the app works with (T59): what the bridge says is connected, else the fixed choice; null =
+ * not known (`auto` and no sim yet, or a test bridge). Sim time, smoke and rescue follow this, not the setting.
+ */
+export function activeSim(choice: SimChoice, bridge: Pick<BridgeView, 'source'>): Simulator | null {
+  return bridge.source ?? (choice === 'auto' ? null : choice);
+}
+
 export interface Settings {
   readonly language: Language;
   readonly transport: TransportChoice;
@@ -25,8 +39,8 @@ export interface Settings {
   readonly stationTemplate: string;
   /** Port of the sim bridge on 127.0.0.1. */
   readonly bridgePort: number;
-  /** Simulator for the bundled bridge (T18). Default MSFS. */
-  readonly simulator: Simulator;
+  /** Simulator for the bundled bridge (T18, T59). Default `auto`. */
+  readonly simChoice: SimChoice;
   /** Write every flight to a JSONL recording (T11) in the user-data folder. */
   readonly recordFlights: boolean;
   /**
@@ -191,6 +205,11 @@ export interface BridgeView {
   readonly protocol: 1 | 2 | null;
   /** Sim commands the bridge offers (v2 `hello`). */
   readonly commands: readonly string[];
+  /**
+   * The connected simulator (T59): `status.source` of the bridge (`simconnect` → msfs), or a fixed `hello.source`
+   * while the sim is connected; null otherwise.
+   */
+  readonly source: Simulator | null;
 }
 
 export interface TelemetryView {
@@ -265,6 +284,7 @@ export type SystemCode =
   | 'data_restored'
   | 'transport_status'
   | 'sim_command_failed'
+  | 'sim_changed'
   | 'atc_station'
   | 'atc_logon'
   | 'atc_logon_refused'

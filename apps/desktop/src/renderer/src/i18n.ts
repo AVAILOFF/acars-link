@@ -134,6 +134,8 @@ const en = {
   'sim.connecting': 'connecting…',
   'sim.connected': 'connected',
   'sim.menu': 'in menu / loading',
+  'sim.name.msfs': 'MSFS',
+  'sim.name.xplane': 'X-Plane 12',
   'sim.paused': 'paused',
   'sim.rate': 'rate ×{rate}',
   'sim.noBridge': 'no bridge',
@@ -176,6 +178,7 @@ const en = {
   'sys.reply_timeout': 'No reply to {id}: {option} assumed',
   'sys.transport_status': 'Network: {status} {reason}',
   'sys.sim_command_failed': 'Sim command {command} failed: {error} {detail}',
+  'sys.sim_changed': 'Simulator changed: {from} → {to}; the flight goes on',
   'net.outbox': '{n} held by message gap',
   'flight.fplnHint':
     'iniBuilds A350/A380: run F-PLN REQUEST (INIT REQUEST) in the FMS, or the aircraft will not fetch messages.',
@@ -373,7 +376,8 @@ const en = {
   'set.offXplane': 'Not available with X-Plane.',
   'set.simulator': 'Simulator',
   'set.simulatorHint':
-    'X-Plane 12.1.1 or later, through its built-in web API on port 8086 (Settings > Network must allow incoming traffic). With X-Plane there is no sim time, smoke or rescue vehicles. The installed app restarts the sim bridge when this changes.',
+    'Automatic: the sim bridge connects to whichever of MSFS and X-Plane 12 is running (if both are, the first to answer) and looks again when it closes. X-Plane 12.1.1 or later, through its built-in web API on port 8086 (Settings > Network must allow incoming traffic). With X-Plane there is no sim time, smoke or rescue vehicles. The installed app restarts the sim bridge when this changes.',
+  'set.simulator.auto': 'Automatic',
   'set.simulator.msfs': 'MSFS 2020 / 2024',
   'set.simulator.xplane': 'X-Plane 12',
   'set.badPort': 'Integer 1024–65535.',
@@ -613,6 +617,8 @@ const ru: Record<MessageKey, string> = {
   'sim.connecting': 'подключение…',
   'sim.connected': 'подключён',
   'sim.menu': 'в меню / загрузка',
+  'sim.name.msfs': 'MSFS',
+  'sim.name.xplane': 'X-Plane 12',
   'sim.paused': 'пауза',
   'sim.rate': 'скорость ×{rate}',
   'sim.noBridge': 'нет моста',
@@ -654,6 +660,7 @@ const ru: Record<MessageKey, string> = {
   'sys.reply_timeout': 'Нет ответа на {id}: принят вариант {option}',
   'sys.transport_status': 'Сеть: {status} {reason}',
   'sys.sim_command_failed': 'Команда симулятору {command} не выполнена: {error} {detail}',
+  'sys.sim_changed': 'Сменился симулятор: {from} → {to}; рейс продолжается',
   'net.outbox': 'ждут интервала: {n}',
   'flight.fplnHint':
     'iniBuilds A350/A380: выполните F-PLN REQUEST (INIT REQUEST) в FMS, иначе самолёт не забирает сообщения.',
@@ -855,7 +862,8 @@ const ru: Record<MessageKey, string> = {
   'set.offXplane': 'Недоступно с X-Plane.',
   'set.simulator': 'Симулятор',
   'set.simulatorHint':
-    'X-Plane 12.1.1 или новее, через встроенный веб-API на порту 8086 (в Settings > Network должен быть разрешён входящий трафик). С X-Plane нет времени из симулятора, дыма и аварийных машин. Установленное приложение перезапускает мост симулятора при смене.',
+    'Автоматически: мост подключается к тому из MSFS и X-Plane 12, который запущен (если оба — к первому ответившему), и ищет снова, когда тот закрыт. X-Plane 12.1.1 или новее, через встроенный веб-API на порту 8086 (в Settings > Network должен быть разрешён входящий трафик). С X-Plane нет времени из симулятора, дыма и аварийных машин. Установленное приложение перезапускает мост симулятора при смене.',
+  'set.simulator.auto': 'Автоматически',
   'set.simulator.msfs': 'MSFS 2020 / 2024',
   'set.simulator.xplane': 'X-Plane 12',
   'set.badPort': 'Целое число от 1024 до 65535.',

@@ -12,7 +12,7 @@ import type {
   Language,
   Settings,
   SettingsPatch,
-  Simulator,
+  SimChoice,
   TransportChoice,
 } from '../shared/api.js';
 import { AppFailure } from './errors.js';
@@ -27,7 +27,7 @@ export const DEFAULT_BRIDGE_PORT = 47830;
 
 const LANGUAGES: readonly Language[] = ['en', 'ru'];
 const TRANSPORTS: readonly TransportChoice[] = ['hoppie', 'offline'];
-const SIMULATORS: readonly Simulator[] = ['msfs', 'xplane'];
+const SIM_CHOICES: readonly SimChoice[] = ['auto', 'msfs', 'xplane'];
 /** Letters/digits and `{flight}` / `{airline}` placeholders. */
 const STATION_RE = /^(?:[A-Z0-9]|\{flight\}|\{airline\})+$/i;
 export const SCENARIO_ID_RE = /^[a-z0-9_]{1,64}$/;
@@ -38,7 +38,7 @@ export function defaultSettings(locale: string): Settings {
     transport: 'hoppie',
     stationTemplate: DEFAULT_STATION,
     bridgePort: DEFAULT_BRIDGE_PORT,
-    simulator: 'msfs',
+    simChoice: 'auto',
     recordFlights: true,
     liveData: true,
     soundOnMessage: false,
@@ -87,9 +87,9 @@ export function validatePatch(patch: unknown): SettingsPatch {
         if (!TRANSPORTS.includes(value as TransportChoice)) throw bad(key, 'hoppie or offline');
         out.transport = value as TransportChoice;
         break;
-      case 'simulator':
-        if (!SIMULATORS.includes(value as Simulator)) throw bad(key, 'msfs or xplane');
-        out.simulator = value as Simulator;
+      case 'simChoice':
+        if (!SIM_CHOICES.includes(value as SimChoice)) throw bad(key, 'auto, msfs or xplane');
+        out.simChoice = value as SimChoice;
         break;
       case 'stationTemplate':
         if (typeof value !== 'string' || value.length > 32 || !STATION_RE.test(value)) {
@@ -223,6 +223,11 @@ function legacyKeys(r: Record<string, unknown>): Record<string, unknown> {
     if (old in out && !(key in out)) out[key] = out[old];
     delete out[old];
   }
+  // T59 (decision of 2026-10-23): `simulator` before T59; its `msfs` was the default, so it becomes `auto`.
+  if ('simulator' in out && !('simChoice' in out)) {
+    out['simChoice'] = out['simulator'] === 'xplane' ? 'xplane' : 'auto';
+  }
+  delete out['simulator'];
   return out;
 }
 
@@ -236,7 +241,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'transport',
     'stationTemplate',
     'bridgePort',
-    'simulator',
+    'simChoice',
     'recordFlights',
     'liveData',
     'soundOnMessage',

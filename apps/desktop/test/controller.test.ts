@@ -23,7 +23,7 @@ import { defaultSettings, SettingsStore } from '../src/main/settings.js';
 import { SPECIAL_SCENARIOS } from '../src/main/special.js';
 import { VDGS_FILE } from '../src/main/vdgs.js';
 import { MESSAGES } from '../src/renderer/src/i18n.js';
-import type { FeedEntry, Simulator } from '../src/shared/api.js';
+import type { FeedEntry, SimChoice } from '../src/shared/api.js';
 import {
   FakeCipher,
   FakeHttp,
@@ -46,7 +46,7 @@ async function setup(
     http?: FakeHttp;
     flags?: FlagsStore;
     vdgsDir?: string;
-    onBridgeConfig?: (port: number, simulator: Simulator) => void;
+    onBridgeConfig?: (port: number, simulator: SimChoice) => void;
   } = {},
 ) {
   const dir = await tempDir();
@@ -128,12 +128,12 @@ describe('AppController', () => {
   });
 
   it('a new simulator or bridge port restarts the bridge (T18); other settings do not', async () => {
-    const calls: [number, Simulator][] = [];
+    const calls: [number, SimChoice][] = [];
     const { app } = await setup({ onBridgeConfig: (port, sim) => calls.push([port, sim]) });
     await app.updateSettings({ messageHints: false });
-    await app.updateSettings({ simulator: 'msfs' });
+    await app.updateSettings({ simChoice: 'auto' });
     expect(calls).toEqual([]);
-    await app.updateSettings({ simulator: 'xplane' });
+    await app.updateSettings({ simChoice: 'xplane' });
     await app.updateSettings({ bridgePort: 47831 });
     expect(calls).toEqual([
       [47830, 'xplane'],
@@ -895,13 +895,55 @@ describe('live data (T13)', () => {
 
     it('X-Plane (T18): no rescue command and no line in the feed', async () => {
       const { app, sent } = await start();
-      await app.updateSettings({ simulator: 'xplane' });
+      await app.updateSettings({ simChoice: 'xplane' });
       app.sendSimCommand(rescue('full'));
       await settle();
       expect(sent()).toEqual([]);
       expect(
         app.state().feed.filter((e) => e.kind === 'system' && e.code === 'sim_command_failed'),
       ).toEqual([]);
+    });
+
+    it('"Automatic" (T59): rescue follows the sim the bridge reports, not the setting', async () => {
+      const { app, sent, socket } = await start();
+      expect((await app.getSettings()).simChoice).toBe('auto');
+      const status = (source: string) =>
+        socket.frame({
+          type: 'status',
+          sim: 'connected',
+          running: true,
+          paused: false,
+          simRate: 1,
+          source,
+        });
+      const changes = () =>
+        app.state().feed.filter((e) => e.kind === 'system' && e.code === 'sim_changed');
+      status('xplane');
+      expect(app.state().bridge.source).toBe('xplane');
+      app.sendSimCommand(rescue('full'));
+      await settle();
+      expect(sent()).toEqual([]);
+
+      status('simconnect');
+      expect(app.state().bridge.source).toBe('msfs');
+      app.sendSimCommand(rescue('full'));
+      await settle();
+      expect(sent().map((m) => m.command)).toEqual(['rescue_start']);
+      // The flight goes on; the change is one line in the feed (decision of 2026-10-23).
+      expect(changes()).toMatchObject([{ params: { from: 'X-Plane 12', to: 'MSFS' } }]);
+      expect(app.state().session).toBe('running');
+
+      // Not connected: no source; the same sim again later is no new line.
+      socket.frame({
+        type: 'status',
+        sim: 'connecting',
+        running: false,
+        paused: false,
+        simRate: 1,
+      });
+      expect(app.state().bridge.source).toBeNull();
+      status('simconnect');
+      expect(changes()).toHaveLength(1);
     });
 
     it('settings: on by default, titles checked', async () => {
