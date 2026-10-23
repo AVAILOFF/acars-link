@@ -22,16 +22,15 @@ const TEXTS: Readonly<
   Record<Language, Omit<CloseDialog, 'type' | 'defaultId' | 'cancelId' | 'noLink'>>
 > = {
   en: {
-    title: 'ACARS Sim',
-    message: 'A flight is running. Close the app?',
-    detail:
-      'The flight cannot be continued after a restart, and messages not sent yet are dropped.',
-    buttons: ['Close the app', 'Keep the flight'],
+    title: 'ACARS Link',
+    message: 'A flight is in progress. Close the app?',
+    detail: 'The flight cannot be resumed after a restart. Unsent messages will be discarded.',
+    buttons: ['Close app', 'Continue flight'],
   },
   ru: {
-    title: 'ACARS Sim',
+    title: 'ACARS Link',
     message: 'Идёт рейс. Закрыть приложение?',
-    detail: 'После перезапуска рейс не продолжить, неотправленные сообщения будут отброшены.',
+    detail: 'После перезапуска рейс не продолжить. Неотправленные сообщения будут отброшены.',
     buttons: ['Закрыть приложение', 'Продолжить рейс'],
   },
 };

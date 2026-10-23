@@ -43,7 +43,7 @@ if (profile === undefined) fail(`unknown --profile ${values.profile}`);
 
 const text =
   values.text ??
-  `ACARS SIM TEST\n---\nTELEX FROM ${from} TO ${to}\nIF YOU READ THIS, T09 WORKS.\nREPLY WITH ANY TELEX TO ${from}\n...\nEND`;
+  `ACARS LINK TEST\n---\nTELEX FROM ${from} TO ${to}\nIF YOU READ THIS, T09 WORKS.\nREPLY WITH ANY TELEX TO ${from}\n...\nEND`;
 const message = formatMessage(text, profile);
 console.log(`profile ${profile.id}, ${message.lines.length} lines:\n${message.text}\n`);
 

@@ -114,7 +114,7 @@ steps:
                           ~{flight.divert_nm} NM FROM PRESENT POS
                           HANDLING AND FUEL ORDERED
                           SEND ETA WHEN ABLE
-                        hint: "OPS notes your diversion and its distance and has ordered handling and fuel there. Send your ETA as a free-text telex when you can."
+                        hint: "OPS notes your diversion and its distance and has ordered handling and fuel there. Send your ETA by free-text telex when you can."
                         hint_ru: "OPS принял вашу диверсию и расстояние до аэропорта, заказал туда хендлинг и топливо. Сообщите ETA telex свободным текстом, когда сможете."
                     - break: true
         - set: { flight.hold: null }
@@ -138,5 +138,5 @@ steps:
               ~{flight.divert_nm} NM FROM PRESENT POS
               HANDLING AND FUEL ORDERED
               SEND ETA WHEN ABLE
-            hint: "OPS notes your diversion and its distance and has ordered handling and fuel there. Send your ETA as a free-text telex when you can."
+            hint: "OPS notes your diversion and its distance and has ordered handling and fuel there. Send your ETA by free-text telex when you can."
             hint_ru: "OPS принял вашу диверсию и расстояние до аэропорта, заказал туда хендлинг и топливо. Сообщите ETA telex свободным текстом, когда сможете."

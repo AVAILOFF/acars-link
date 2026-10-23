@@ -4,7 +4,7 @@ id: curfew_dest
 version: 1
 category: irregular
 title: Destination curfew
-title_ru: "Комендантский час в аэропорту назначения"
+title_ru: "Ночной запрет в аэропорту назначения"
 description: "In cruise when the estimated landing is close to the destination noise curfew (usually after a delay). ABLE: priority requested; UNABLE: divert to the alternate."
 description_ru: "В крейсере, если расчётная посадка близка к ночному запрету аэропорта назначения (обычно после задержки). ABLE — запрошен приоритет, UNABLE — диверсия на запасной."
 hint: "The destination has a night noise curfew: the latest landing time (UTC and local) and your margin to it. Expedite if you can and tell OPS whether you can land before the curfew."
@@ -57,4 +57,4 @@ steps:
               HOTEL AND BUSES ARRANGED
               PAX TRANSFER BY ROAD
             hint: "OPS plans your diversion to the alternate: a hotel and buses are arranged and the passengers go on to the destination by road. No reply needed."
-            hint_ru: "OPS планирует вашу диверсию на запасной: гостиница и автобусы заказаны, пассажиров довезут до назначения по дороге. Ответ не нужен."
+            hint_ru: "OPS планирует вашу диверсию на запасной: гостиница и автобусы заказаны, пассажиров доставят до назначения наземным транспортом. Ответ не нужен."

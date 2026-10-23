@@ -1,7 +1,10 @@
 {
   "name": "@acars/desktop",
-  "version": "0.0.0",
-  "productName": "ACARS Sim",
+  "version": "0.1.0",
+  "productName": "ACARS Link",
+  "description": "ACARS simulator for flight simulators",
+  "author": "AVAILOFF",
+  "license": "UNLICENSED",
   "private": true,
   "type": "module",
   "main": "./out/main/index.js",
@@ -10,7 +13,8 @@
     "build": "electron-vite build",
     "start": "electron-vite preview",
     "typecheck": "tsc -p tsconfig.node.json && tsc -p tsconfig.web.json && tsc -p tsconfig.test.json",
-    "test": "vitest run --root ../.. --project @acars/desktop"
+    "test": "vitest run --root ../.. --project @acars/desktop",
+    "dist": "electron-vite build && electron-builder --win"
   },
   "devDependencies": {
     "@acars/core": "workspace:*",
@@ -22,6 +26,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "44.4.5",
+    "electron-builder": "26.17.0",
     "electron-vite": "^5.0.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

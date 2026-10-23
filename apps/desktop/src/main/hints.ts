@@ -17,16 +17,16 @@ import type { UiText } from '../shared/api.js';
 /** How to confirm the clearances of the XATC station (T24, T27; facts of `dcl.ts`, `oceanic.ts`). */
 const ATC_HINTS = {
   dcl: {
-    en: 'Departure clearance (CLD) from {station} over CPDLC. Check it and confirm with WILCO on the ATC (CPDLC) page of the FMS, or answer UNABLE if you cannot accept it.',
-    ru: 'Разрешение на вылет (CLD) от {station} по CPDLC. Проверьте его и подтвердите WILCO на странице ATC (CPDLC) в FMS или ответьте UNABLE, если принять не можете.',
+    en: 'Departure clearance (CLD) from {station} over CPDLC. Check it and reply WILCO on the FMS ATC (CPDLC) page, or UNABLE if you cannot accept it.',
+    ru: 'Разрешение на вылет (CLD) от {station} по CPDLC. Проверьте его и ответьте WILCO на странице ATC (CPDLC) в FMS или UNABLE, если принять не можете.',
   },
   pdc: {
-    en: 'Pre-departure clearance (PDC) from {station}, as US airlines get it through the company. Read it; no answer is expected.',
-    ru: 'Разрешение на вылет (PDC) от {station} — так его получают авиакомпании США через свою систему. Прочитайте его; ответ не нужен.',
+    en: 'Pre-departure clearance (PDC) from {station}, delivered through the airline as in the US; no answer is expected.',
+    ru: 'Разрешение на вылет (PDC) от {station} через систему авиакомпании, как в США. Ответ не требуется.',
   },
   ocl: {
-    en: 'Oceanic clearance (CLX) from Shanwick through {station}. Acknowledge it with ROGER on the ATC (CPDLC) page of the FMS; without an answer within 10 minutes the clearance is cancelled.',
-    ru: 'Океанический клиренс (CLX) от Shanwick через {station}. Подтвердите его ответом ROGER на странице ATC (CPDLC) в FMS; без ответа за 10 минут клиренс отменяется.',
+    en: 'Oceanic clearance (CLX) from Shanwick via {station}. Reply ROGER on the FMS ATC (CPDLC) page; without a reply within 10 minutes the clearance is cancelled.',
+    ru: 'Океаническое разрешение (CLX) от Shanwick через {station}. Ответьте ROGER на странице ATC (CPDLC) в FMS; без ответа за 10 минут разрешение отменяется.',
   },
 } as const;
 

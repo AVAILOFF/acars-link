@@ -6,8 +6,8 @@ title: Arrival info
 title_ru: "Информация о прилёте"
 description: "Gate, baggage belt, transfer passengers and ground support on the way down."
 description_ru: "Гейт, лента багажа, трансферные пассажиры и наземное обслуживание на снижении."
-hint: "Arrival information from OPS for the destination: the gate or stand, the baggage belt, how many passengers transfer to other flights and the ground handling planned. Information only, no reply needed."
-hint_ru: "Информация о прилёте от OPS: гейт или стоянка, лента выдачи багажа, сколько пассажиров пересаживается на другие рейсы и какое наземное обслуживание запланировано. Только для сведения, ответ не нужен."
+hint: "Arrival information from OPS for the destination: the gate or stand, the baggage belt, how many passengers transfer to other flights and the ground handling planned. No reply needed."
+hint_ru: "Информация о прилёте от OPS: гейт или стоянка, лента выдачи багажа, сколько пассажиров пересаживается на другие рейсы и какое наземное обслуживание запланировано. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: distance

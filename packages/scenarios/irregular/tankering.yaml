@@ -6,8 +6,8 @@ title: Tankering offer
 title_ru: "Танкеровка топлива"
 description: "Before departure: fuel is expensive at the destination, extra fuel is offered if the landing weight allows. ACCEPT or DECLINE (default)."
 description_ru: "Перед вылетом: топливо в пункте назначения дорогое, предлагается взять дополнительно, если позволяет посадочный вес. ACCEPT или DECLINE (по умолчанию)."
-hint: "Fuel dispatch: fuel is expensive at the destination, so it recommends tankering, carrying extra fuel from here for the next sector. The message gives the extra fuel, the new block fuel and the estimated landing weight against the maximum. Tell dispatch whether you accept."
-hint_ru: "Топливная служба: топливо в аэропорту назначения дорогое, поэтому она советует танкеровать — взять отсюда лишнее топливо на следующий рейс. В сообщении — сколько добавить, новое топливо перед рулением и расчётная посадочная масса против максимальной. Сообщите, согласны ли вы."
+hint: "Fuel dispatch: fuel is expensive at the destination, so it recommends tankering: carrying extra fuel from here for the next sector. The message gives the extra fuel, the new block fuel and the estimated landing weight against the maximum. Tell dispatch whether you accept."
+hint_ru: "Топливная служба: топливо в аэропорту назначения дорогое, поэтому она советует танкеровку — взять отсюда дополнительное топливо на следующий рейс. В сообщении — сколько добавить, новое топливо перед рулением и расчётная посадочная масса против максимальной. Сообщите, согласны ли вы."
 enabled_by_default: true
 trigger:
   on: time
@@ -57,4 +57,4 @@ steps:
               NOTED, PLANNED FUEL UNCHANGED
               {ofp.fuel_ramp_kg|kg1} T
             hint: "Dispatch notes it: the planned fuel stays as in the flight plan. No reply needed."
-            hint_ru: "Диспетчер принял: топливо остаётся по плану полёта. Ответ не нужен."
+            hint_ru: "Диспетчер авиакомпании принял: топливо остаётся по плану полёта. Ответ не нужен."

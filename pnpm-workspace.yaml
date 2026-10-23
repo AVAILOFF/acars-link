@@ -4,3 +4,5 @@ packages:
   - "tools/replay"
 allowBuilds:
   esbuild: true
+  # Squirrel.Windows only (electron-builder); the app ships with NSIS (T19)
+  electron-winstaller: false

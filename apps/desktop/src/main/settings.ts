@@ -41,7 +41,7 @@ export function defaultSettings(locale: string): Settings {
     soundOnMessage: false,
     messageHints: true,
     messageGapSec: 60,
-    xatc: false,
+    xatc: true,
     datalink: false,
     datalinkSatcom: true,
     aircraftIcaoHex: '',
@@ -55,7 +55,6 @@ export function defaultSettings(locale: string): Settings {
     specialAviation: true,
     specialOther: true,
     rescue: true,
-    rescueSiren: false,
     rescueTitles: DEFAULT_RESCUE_TITLES,
     rescueFlipped: DEFAULT_RESCUE_FLIPPED,
     scenarios: {},
@@ -160,7 +159,6 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'specialAviation':
       case 'specialOther':
       case 'rescue':
-      case 'rescueSiren':
         if (typeof value !== 'boolean') throw bad(key, 'true or false');
         out[key] = value;
         break;
@@ -250,7 +248,6 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'specialAviation',
     'specialOther',
     'rescue',
-    'rescueSiren',
     'rescueTitles',
     'rescueFlipped',
     'droneRisk',

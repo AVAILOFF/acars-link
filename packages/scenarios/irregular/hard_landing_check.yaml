@@ -7,9 +7,9 @@ id: hard_landing_check
 version: 1
 category: irregular
 title: Hard landing check
-title_ru: "Проверка после жёсткой посадки"
+title_ru: "Проверка после грубой посадки"
 description: "On block, if the touchdown rate was above 350 ft/min (needs the bridge reading): maintenance asks to CONFIRM a hard landing. CONFIRM puts an inspection before the next flight of the same aircraft."
-description_ru: "На стоянке, если вертикальная скорость касания была выше 350 фут/мин (нужно значение от моста): техслужба просит подтвердить жёсткую посадку. CONFIRM — осмотр перед следующим рейсом на этом борту."
+description_ru: "На стоянке, если вертикальная скорость касания была выше 350 фут/мин (нужно значение от моста): техслужба просит подтвердить грубую посадку. CONFIRM — осмотр перед следующим рейсом на этом борту."
 hint: "Maintenance control: the flight data monitoring (FDM) recorded your touchdown at the rate given. It asks whether the crew felt a hard landing."
 hint_ru: "Техслужба: система мониторинга полётных данных (FDM) записала касание с указанной вертикальной скоростью. Она спрашивает, почувствовал ли экипаж грубую посадку."
 enabled_by_default: true

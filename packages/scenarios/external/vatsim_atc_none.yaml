@@ -2,8 +2,8 @@
 id: vatsim_atc_none
 version: 1
 category: external
-title: VATSIM no ATC at destination
-title_ru: "Нет диспетчеров VATSIM в точке назначения"
+title: No VATSIM ATC at destination
+title_ru: "Нет диспетчеров VATSIM в аэропорту назначения"
 description: "No VATSIM ATC online at the destination before TOD."
 description_ru: "В аэропорту назначения нет онлайн-диспетчеров VATSIM перед TOD."
 hint: "No VATSIM controller is online at the destination now: use UNICOM 122.800 and announce your positions yourself. Check again before the approach. No reply needed."

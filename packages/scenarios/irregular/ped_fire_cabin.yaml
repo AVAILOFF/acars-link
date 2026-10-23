@@ -9,9 +9,9 @@ version: 1
 category: irregular
 title: Lithium battery fire in the cabin
 title_ru: "Возгорание литиевой батареи в салоне"
-description: "In cruise the cabin reports a fire of a passenger device battery. Advice per FAA SAFO 09013. Reply CONTINUE or DIVERT (default DIVERT after 5 min)."
-description_ru: "В крейсере кабина сообщает о возгорании батареи пассажирского устройства. Рекомендации по FAA SAFO 09013. Ответ CONTINUE или DIVERT (через 5 мин — DIVERT)."
-hint: "OPS: the cabin reports a fire of a lithium battery in a passenger's personal electronic device (PED), with the seat, and how to fight it: water or halon, cool the cells with water, no fire-containment bag. Tell OPS whether you continue or divert."
+description: "In cruise the cabin crew report a battery fire in a passenger device. Advice per FAA SAFO 09013. Reply CONTINUE or DIVERT (default DIVERT after 5 min)."
+description_ru: "В крейсере бортпроводники сообщают о возгорании батареи пассажирского устройства. Рекомендации по FAA SAFO 09013. Ответ CONTINUE или DIVERT (через 5 мин — DIVERT)."
+hint: "OPS: the cabin crew report a lithium battery fire in a passenger's personal electronic device (PED), with the seat, and how to fight it: water or halon, cool the cells with water, no fire-containment bag. Tell OPS whether you continue or divert."
 hint_ru: "OPS: бортпроводники сообщают о возгорании литиевой батареи в личном электронном устройстве пассажира (PED), указано место, и как тушить: водой или галоном, охлаждать элементы водой, без огнестойкого мешка. Сообщите OPS, продолжаете ли вы полёт или уходите на запасной."
 enabled_by_default: true
 trigger:
@@ -60,7 +60,7 @@ steps:
               ~{flight.divert_nm} NM FROM PRESENT POS
               FIRE SERVICE ORDERED
               SEND NEW ETA WHEN ABLE
-            hint: "OPS confirms the diversion and its distance and has ordered the fire service there. Send your new ETA as a free-text telex when you can."
+            hint: "OPS confirms the diversion and its distance and has ordered the fire service there. Send your new ETA by free-text telex when you can."
             hint_ru: "OPS подтверждает диверсию и расстояние, заказал туда пожарную службу. Сообщите новое ETA telex свободным текстом, когда сможете."
         - rescue: { level: full }
         - wait: { phase: ON_BLOCK }

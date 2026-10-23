@@ -6,9 +6,9 @@ category: irregular
 title: Gate reassignment
 title_ru: "Смена гейта"
 description: "At the start of the descent the assigned gate is taken: a new gate, used by arrival info and REQ GATE from then on."
-description_ru: "В начале снижения назначенный гейт занят: новый гейт, дальше его называют arrival info и REQ GATE."
-hint: "Gate change: the gate you were given is occupied (the reason is in the message) and you get a new gate; the baggage belt stays. Arrival information and REQ GATE now name the new gate. No reply needed."
-hint_ru: "Смена гейта: выделенный гейт занят (причина — в сообщении), вам дают новый; лента багажа прежняя. Информация о прилёте и REQ GATE теперь называют новый гейт. Ответ не нужен."
+description_ru: "В начале снижения назначенный гейт занят: новый гейт, который дальше используют arrival info и REQ GATE."
+hint: "Gate change: the gate you were given is occupied (the reason is in the message) and you get a new gate; the baggage belt stays. Arrival information and REQ GATE now give the new gate. No reply needed."
+hint_ru: "Смена гейта: выделенный гейт занят (причина — в сообщении), вам дают новый; лента багажа прежняя. Информация о прилёте и REQ GATE теперь указывают новый гейт. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase_enter

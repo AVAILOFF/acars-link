@@ -7,7 +7,7 @@ title: De-icing and holdover time
 title_ru: "Противообледенительная обработка"
 description: "At the gate when the origin is 3 C or colder: fluid type and pad. After READY: the de-icing truck and the holdover time."
 description_ru: "На стоянке, если в аэропорту вылета 3 °C или холоднее: тип жидкости и площадка. После READY — машина обработки и holdover time."
-hint: "De-icing is required at the origin because of the cold: the fluid type, the de-icing pad and the time to expect on it. Answer READY when the doors are closed."
+hint: "De-icing is required at the origin because of the cold: the fluid type, the de-icing pad and the expected time on it. Reply READY when the doors are closed."
 hint_ru: "В аэропорту вылета нужна противообледенительная обработка из-за холода: тип жидкости, площадка и сколько ожидать на ней. Ответьте READY, когда двери закрыты."
 enabled_by_default: true
 trigger:
@@ -46,6 +46,6 @@ steps:
         {flags.deice_fluid} 75/25
         HOLDOVER {rand:20-45} MIN FROM START
         CHECK HOT TABLE BEFORE T/O
-      hint: "The de-icing truck is assigned at your pad, with the fluid mix and the holdover time (how long the fluid protects the aircraft from new ice). Check the holdover time table before take-off. No reply needed."
+      hint: "The de-icing truck is assigned at your pad, with the fluid mix and the holdover time (how long the fluid protects the aircraft from new ice). Check the holdover time table before takeoff. No reply needed."
       hint_ru: "На вашей площадке назначена машина обработки — смесь жидкости и время защитного действия (holdover: сколько жидкость защищает от нового льда). Перед взлётом сверьтесь с таблицей времени защитного действия. Ответ не нужен."
   - set: { flags.deice_pad: null, flags.deice_fluid: null }

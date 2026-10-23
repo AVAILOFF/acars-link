@@ -7,7 +7,7 @@ title_ru: "Команда пилота: HELP"
 description: "HELP command: the list of pilot commands."
 description_ru: "Команда HELP: список команд пилота."
 hint: "Free text goes to OPS as a telex; HELP returns the list of commands OPS understands. Send a command as a telex to the airline station; ATC LOGON and the departure clearance (DCL) go to the XATC stations (X + FIR, X + departure airport)."
-hint_ru: "Свободный текст уходит в OPS как telex; HELP возвращает список команд, которые OPS понимает. Команду шлите telex на станцию авиакомпании; ATC LOGON и запрос разрешения на вылет (DCL) — на станции XATC (X + FIR, X + аэропорт вылета)."
+hint_ru: "Свободный текст уходит в OPS как telex; HELP возвращает список команд, которые OPS понимает. Команды отправляйте telex на станцию авиакомпании; ATC LOGON и запрос разрешения на вылет (DCL) — на станции XATC (X + FIR, X + аэропорт вылета)."
 enabled_by_default: true
 trigger:
   on: command

@@ -113,7 +113,7 @@ export const TURNAROUND_SCENARIOS: readonly string[] = [
 ];
 
 /** Identifies the app to aviationweather.gov, VATSIM, NASA and Overpass (they ask for it). */
-export const DATA_USER_AGENT = 'ACARS-Sim/0.1 (flight simulator ACARS; personal use)';
+export const DATA_USER_AGENT = 'ACARS-Link/0.1 (flight simulator ACARS; personal use)';
 
 /** Hoppie logon codes: printable ASCII without spaces (they go into a URL/form field). */
 const LOGON_RE = /^[\x21-\x7e]{4,64}$/;
@@ -162,9 +162,6 @@ export class AppController {
   private rescueOn = false;
   /** Bumped on every rescue request, so a late lookup of an older one is dropped. */
   private rescueSeq = 0;
-  /** Siren (T54): waits for the roll-out of a `full` landing, sounds until the aircraft stops. */
-  private siren: 'idle' | 'on' | 'done' = 'idle';
-  private sirenSetting = false;
   /** U-04: close the flight when nothing waits, then load the next OFP (`next`) or not. */
   private closing: 'next' | 'close' | null = null;
   /** A close is in progress (stop, then maybe the OFP), so the main loop starts it only once. */
@@ -376,23 +373,9 @@ export class AppController {
   private stopRescue(): void {
     this.rescue = null;
     this.rescueSeq++;
-    this.siren = 'idle';
     if (!this.rescueOn) return;
     this.rescueOn = false;
     this.bridge.sendCommand('rescue_stop');
-  }
-
-  /** The siren follows the roll-out of a `full` landing until the aircraft first stops. */
-  private updateSiren(s: TelemetrySnapshot): void {
-    const phase = this.session?.phase ?? null;
-    const rollOut = phase === 'LANDED' || phase === 'TAXI_IN';
-    if (this.siren === 'idle') {
-      if (this.rescueOn && this.rescue?.fire === 'full' && rollOut && s.onGround && s.gsKt >= 1) {
-        this.siren = 'on';
-      }
-    } else if (this.siren === 'on' && (!rollOut || s.gsKt < 1)) {
-      this.siren = 'done';
-    }
   }
 
   private onCommandResult(r: CommandResult): void {
@@ -455,7 +438,6 @@ export class AppController {
       pendingReplies: s?.pendingReplies ?? [],
       memory: this.memory,
       irregular: s?.irregular ?? [],
-      siren: this.sirenSetting && this.siren === 'on',
     };
   }
 
@@ -469,7 +451,6 @@ export class AppController {
     const s = await this.o.settings.update(patch);
     this.lang = s.language;
     this.bridge.setPort(s.bridgePort);
-    this.sirenSetting = s.rescueSiren;
     if (this.ofp !== null && this.session === null) {
       this.flight = this.summary(this.ofp, s);
       this.prefetch(this.ofp, s);
@@ -706,7 +687,6 @@ export class AppController {
     const clockNow = this.o.now() + (settings.simTime ? (this.simOffsetMs ?? 0) : 0);
     const { ofp, days } = alignOfpDay(planned, clockNow);
     const flight = this.summary(ofp, settings);
-    this.sirenSetting = settings.rescueSiren;
     let transport: Transport;
     if (settings.transport === 'hoppie') {
       const logon = await this.o.secrets.get('hoppieLogon');
@@ -948,7 +928,6 @@ export class AppController {
   private onTelemetry(s: TelemetrySnapshot): void {
     if (s.simUtcMs !== undefined) this.simOffsetMs = s.simUtcMs - s.t;
     this.session?.pushTelemetry(s);
-    this.updateSiren(s);
   }
 
   private summary(ofp: Ofp, settings: Settings): FlightSummary {

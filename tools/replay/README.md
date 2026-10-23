@@ -20,7 +20,7 @@ normalized one (no pilot name or ids). A file of bare `TelemetrySnapshot` lines 
 `--source fake --replay` format) is read as well, with `--ofp`.
 
 The desktop app writes one file per flight to `<userData>/recordings/` (Windows:
-`%APPDATA%\ACARS Sim\recordings`, the button in Settings opens it) and keeps the last 20.
+`%APPDATA%\ACARS Link\recordings`, the button in Settings opens it) and keeps the last 20.
 
 ## CLI
 

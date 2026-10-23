@@ -877,11 +877,10 @@ describe('live data (T13)', () => {
       expect(sent()).toHaveLength(1);
     });
 
-    it('settings: on by default, siren off, titles checked', async () => {
+    it('settings: on by default, titles checked', async () => {
       const { app } = await start();
       const s = await app.getSettings();
       expect(s.rescue).toBe(true);
-      expect(s.rescueSiren).toBe(false);
       expect(s.rescueTitles).toEqual(DEFAULT_RESCUE_TITLES);
       await expect(
         app.updateSettings({ rescueTitles: { ...DEFAULT_RESCUE_TITLES, fire: ['A|B'] } }),
@@ -893,7 +892,6 @@ describe('live data (T13)', () => {
       await expect(
         app.updateSettings({ rescueTitles: missing as typeof DEFAULT_RESCUE_TITLES }),
       ).rejects.toThrow(/rescueTitles/);
-      expect(app.state().siren).toBe(false);
     });
   });
 
@@ -914,7 +912,7 @@ describe('live data (T13)', () => {
     const http = await dataHttp();
     const s = await setup({ http });
     await s.app.setSimbriefUsername('pilot42');
-    await s.app.updateSettings({ transport: 'offline', datalink: true });
+    await s.app.updateSettings({ transport: 'offline', xatc: false, datalink: true });
     await s.app.loadOfp();
     s.sockets.last().hello();
     await s.app.startFlight();
@@ -972,7 +970,7 @@ describe('live data (T13)', () => {
     const http = await dataHttp();
     const s = await setup({ http });
     await s.app.setSimbriefUsername('pilot42');
-    await s.app.updateSettings({ transport: 'offline' });
+    await s.app.updateSettings({ transport: 'offline', xatc: false });
     await s.app.loadOfp();
     s.sockets.last().hello();
     await s.app.startFlight();
@@ -1008,7 +1006,7 @@ describe('live data (T13)', () => {
     expect(
       http.requests
         .filter((r) => !r.url.includes('simbrief'))
-        .every((r) => r.headers?.['User-Agent']?.startsWith('ACARS-Sim/')),
+        .every((r) => r.headers?.['User-Agent']?.startsWith('ACARS-Link/')),
     ).toBe(true);
 
     const feed = s.app.state().feed;
@@ -1046,7 +1044,7 @@ describe('live data (T13)', () => {
     );
     const s = await setup({ http });
     await s.app.setSimbriefUsername('pilot42');
-    await s.app.updateSettings({ transport: 'offline' });
+    await s.app.updateSettings({ transport: 'offline', xatc: false });
     await s.app.loadOfp();
     s.sockets.last().hello();
     await s.app.startFlight();

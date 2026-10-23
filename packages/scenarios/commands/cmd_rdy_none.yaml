@@ -7,7 +7,7 @@ title_ru: "Команда пилота: RDY, слота нет"
 description: "RDY without a CTOT, or too early/late for a ready message (from EOBT-15 min to CTOT minus taxi time)."
 description_ru: "RDY без выданного CTOT или слишком рано/поздно (окно: от EOBT-15 мин до CTOT минус время руления)."
 hint: "OPS cannot send a ready message now: the flight has no slot (CTOT), or it is too early or too late for one. Send RDY when you are ready close to the EOBT. No reply needed."
-hint_ru: "OPS не может отправить сообщение о готовности сейчас: у рейса нет слота (CTOT) или для него слишком рано или поздно. Пошлите RDY, когда будете готовы ближе к EOBT. Ответ не нужен."
+hint_ru: "OPS не может отправить сообщение о готовности сейчас: у рейса нет слота (CTOT) или для него слишком рано или поздно. Отправьте RDY, когда будете готовы ближе к EOBT. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

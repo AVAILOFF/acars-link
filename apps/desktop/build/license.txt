@@ -1,0 +1,47 @@
+﻿ACARS Link - End User Licence Agreement / Лицензионное соглашение с конечным пользователем
+
+Copyright (c) 2026 AVAILOFF. All rights reserved. / Все права защищены.
+
+=== ENGLISH ===
+
+1. Licence. AVAILOFF ("Author") grants you a personal, non-exclusive, non-transferable, revocable licence to install and use ACARS Link ("the Software") on your own computers, free of charge, for non-commercial flight simulation.
+
+2. Restrictions. You may not: (a) copy or redistribute the Software or the installer, except for personal backup; (b) sell, rent, lease or sublicense it; (c) modify, decompile, disassemble or reverse engineer it, except where applicable law expressly allows this despite this restriction; (d) remove copyright or attribution notices; (e) use it for real-world aviation, navigation or operations; (f) use it to disrupt, overload or abuse third-party networks and services, including the Hoppie ACARS network, VATSIM and the data services the Software contacts.
+
+3. Third-party services and data. The Software connects to third-party services (for example Hoppie ACARS, SimBrief, aviation weather, VATSIM, OurAirports, OpenStreetMap, AeroDataBox). You need your own accounts and keys for them, you must follow their terms, and they are not provided or guaranteed by the Author. API keys and logon codes you enter are stored on your computer only. Third-party components and data keep their own licences; see THIRD-PARTY-NOTICES.md.
+
+4. Simulation only. Messages, clearances, data and effects produced by the Software are simulated. They are not real air traffic control, airline or aviation information and must never be used for real flight.
+
+5. No warranty. The Software is provided "as is", without warranty of any kind, express or implied, including merchantability, fitness for a particular purpose and non-infringement.
+
+6. Limitation of liability. To the maximum extent permitted by law, the Author is not liable for any indirect, incidental or consequential damages, or for loss of data, arising from the use of or inability to use the Software, including blocking of your accounts or logon codes by third-party networks.
+
+7. Data and privacy. The Software has no Author-operated server and sends no telemetry to the Author. It sends requests to the third-party services above from your computer; flight recordings and settings are stored locally.
+
+8. Termination. The licence ends automatically if you breach this Agreement. Then you must stop using the Software and delete all copies.
+
+9. Updates. The Author may release new versions under this Agreement or under a new one.
+
+By installing or using the Software you accept this Agreement.
+
+=== РУССКИЙ ===
+
+1. Лицензия. AVAILOFF («Автор») предоставляет вам личную, неисключительную, непередаваемую, отзываемую лицензию на установку и бесплатное использование ACARS Link («Программа») на ваших компьютерах в некоммерческих целях авиасимуляции.
+
+2. Ограничения. Запрещено: (а) копировать и распространять Программу или установщик, кроме личной резервной копии; (б) продавать, сдавать в аренду, передавать по сублицензии; (в) изменять, декомпилировать, дизассемблировать, вскрывать Программу, кроме случаев, когда закон прямо разрешает это вопреки данному запрету; (г) удалять уведомления об авторстве; (д) использовать Программу в реальной авиации, навигации и эксплуатации; (е) использовать её для нарушения работы, перегрузки или злоупотребления сторонними сетями и сервисами, включая сеть Hoppie ACARS, VATSIM и сервисы данных, к которым обращается Программа.
+
+3. Сторонние сервисы и данные. Программа обращается к сторонним сервисам (например, Hoppie ACARS, SimBrief, авиационная погода, VATSIM, OurAirports, OpenStreetMap, AeroDataBox). Учётные записи и ключи для них вы получаете сами, обязаны соблюдать их условия; Автор их не предоставляет и не гарантирует. Введённые вами ключи и коды доступа хранятся только на вашем компьютере. Сторонние компоненты и данные сохраняют свои лицензии, см. THIRD-PARTY-NOTICES.md.
+
+4. Только симуляция. Сообщения, разрешения, данные и эффекты Программы — имитация. Это не реальное управление воздушным движением, не данные авиакомпаний и не авиационная информация; использовать их в реальном полёте нельзя.
+
+5. Отсутствие гарантий. Программа предоставляется «как есть», без каких-либо гарантий, явных или подразумеваемых, включая пригодность для конкретной цели и ненарушение прав.
+
+6. Ограничение ответственности. В максимальной степени, допускаемой законом, Автор не отвечает за косвенный, случайный или сопутствующий ущерб и потерю данных, возникшие из-за использования или невозможности использования Программы, включая блокировку ваших учётных записей и кодов сторонними сетями.
+
+7. Данные и конфиденциальность. У Программы нет сервера Автора, и она не отправляет Автору телеметрию. Запросы к сторонним сервисам выше уходят с вашего компьютера; записи полётов и настройки хранятся локально.
+
+8. Прекращение. Лицензия прекращается автоматически при нарушении соглашения. После этого нужно прекратить использование и удалить все копии.
+
+9. Обновления. Автор может выпускать новые версии на условиях этого или нового соглашения.
+
+Устанавливая или используя Программу, вы принимаете это соглашение.

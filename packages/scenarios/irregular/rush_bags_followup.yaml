@@ -7,7 +7,7 @@ title_ru: "Багаж доставлен (следующий рейс)"
 description: "Before the next flight: the left-behind bags reached their owners, case closed."
 description_ru: "Перед следующим рейсом: оставшийся багаж доставлен владельцам, дело закрыто."
 hint: "Baggage: the bags left behind on an earlier flight have been delivered to their owners and the baggage case (PIR) is closed. No reply needed."
-hint_ru: "Багаж: сумки, оставшиеся на прошлом рейсе, доставлены владельцам, дело о розыске (PIR) закрыто. Ответ не нужен."
+hint_ru: "Багаж: багаж, оставшийся на прошлом рейсе, доставлен владельцам, дело о розыске (PIR) закрыто. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time

@@ -89,8 +89,6 @@ export interface Settings {
    * after an emergency, through the sim bridge. Default on.
    */
   readonly rescue: boolean;
-  /** Siren on the PC speakers (not in the sim) while the trucks follow the aircraft. Default off. */
-  readonly rescueSiren: boolean;
   /** SimObject titles of the vehicles by group (T54, game rules of 2026-10-17); editable. */
   readonly rescueTitles: RescueTitles;
   /** SimObject titles drawn nose to tail with their heading: the bridge turns them 180° (T54, 2026-10-17). */
@@ -384,8 +382,6 @@ export interface AppState {
   readonly memory: readonly string[];
   /** Irregular scenarios of the running flight ("run now"); empty when no flight runs. */
   readonly irregular: readonly ForceableScenario[];
-  /** The rescue siren should sound now (T54, setting `rescueSiren`). */
-  readonly siren: boolean;
 }
 
 export type ErrorCode =

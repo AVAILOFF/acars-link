@@ -44,7 +44,7 @@ steps:
               ~{flight.divert_nm} NM FROM PRESENT POS
               AMBULANCE AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
-            hint: "OPS confirms the diversion airport and has ordered an ambulance and handling there. Send your new ETA as a free-text telex when you can."
+            hint: "OPS confirms the diversion airport and has ordered an ambulance and handling there. Send your new ETA by free-text telex when you can."
             hint_ru: "OPS подтверждает аэропорт диверсии и заказал туда скорую и хендлинг. Сообщите новое ETA telex свободным текстом, когда сможете."
         - rescue: { level: medical }
         - wait: { phase: ON_BLOCK }
