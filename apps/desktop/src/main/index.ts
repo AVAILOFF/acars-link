@@ -15,7 +15,7 @@ import {
   session,
   shell,
 } from 'electron';
-import { type AppState, IPC, type Simulator } from '../shared/api.js';
+import { type AppState, IPC, type SimChoice } from '../shared/api.js';
 import type { SocketLike } from './bridge.js';
 import { startBridge } from './bridge-process.js';
 import { CLOSE_BUTTON, closeDialog } from './close-dialog.js';
@@ -146,7 +146,7 @@ async function main(): Promise<void> {
   // leaves the port before the new one takes it.
   let stopBridge: (() => Promise<void>) | null = null;
   let bridgeQueue = Promise.resolve();
-  const restartBridge = (port: number, simulator: Simulator) => {
+  const restartBridge = (port: number, simulator: SimChoice) => {
     if (!app.isPackaged) return;
     bridgeQueue = bridgeQueue.then(async () => {
       await stopBridge?.();
@@ -193,7 +193,7 @@ async function main(): Promise<void> {
   await ctl.init();
   // Installed build: the bridge exe lies in resources/bridge; start it before the client connects.
   const boot = await settingsStore.get();
-  restartBridge(boot.bridgePort, boot.simulator);
+  restartBridge(boot.bridgePort, boot.simChoice);
 
   win = createWindow();
   // U-03: the flight lives in memory only; ask before the window takes it away.

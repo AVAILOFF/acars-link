@@ -26,6 +26,7 @@ const SENT: Readonly<Record<SystemCode, Readonly<Record<string, string>>>> = {
   data_restored: { source: 'metar' },
   transport_status: { status: 'ok', reason: '' },
   sim_command_failed: { command: 'x', error: 'e', detail: 'd' },
+  sim_changed: { from: 'X-Plane 12', to: 'MSFS' },
   atc_station: { fir: 'EFIN', station: 'XFIN', unit: 'Helsinki' },
   atc_logon: { station: 'XFIN' },
   atc_logon_refused: { station: 'XFIN', reason: 'r' },

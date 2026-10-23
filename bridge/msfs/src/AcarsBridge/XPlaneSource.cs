@@ -25,7 +25,7 @@ namespace AcarsBridge;
 /// A 403 means "Disable Incoming Traffic" in Settings > Network. Commands: <c>ping</c> only.
 /// </summary>
 public sealed class XPlaneSource(TimeProvider clock, int port = XPlaneSource.DefaultPort, ReconnectPolicy? policy = null, string host = "localhost")
-    : ISimSource, ICommandTarget
+    : ISimSource, ISimSession, ICommandTarget
 {
     public const int DefaultPort = 8086;
     /// <summary>API versions this source can speak, newest first. All of them have what is used here (v1 subset).</summary>
@@ -51,44 +51,26 @@ public sealed class XPlaneSource(TimeProvider clock, int port = XPlaneSource.Def
             ? _open ? CommandResult.Success : CommandResult.Fail(CommandErrors.Unavailable, "sim not connected")
             : CommandResult.Fail(CommandErrors.UnknownCommand, command.Name));
 
-    public async Task RunAsync(ISimSink sink, CancellationToken ct)
+    public Task RunAsync(ISimSink sink, CancellationToken ct) => SimLoop.RunAsync([this], sink, _policy, clock, ct);
+
+    public async Task<SessionEnd> RunSessionAsync(ISimSink sink, CancellationToken ct)
     {
         using var http = new HttpClient { BaseAddress = _base, Timeout = HttpTimeout };
         http.DefaultRequestHeaders.Accept.ParseAdd("application/json");
-        while (!ct.IsCancellationRequested)
+        var subscribed = false;
+        try
         {
-            sink.OnStatus(BridgeStatus.Initial with { Sim = SimLink.Connecting });
-            string reason;
-            try
-            {
-                reason = await RunSessionAsync(http, sink, ct);
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception e) when (e is HttpRequestException or WebSocketException or TaskCanceledException or JsonException or XPlaneApiException)
-            {
-                reason = Describe(e);
-            }
-            finally
-            {
-                _open = false;
-            }
-            if (ct.IsCancellationRequested) break;
-
-            var delay = _policy.NextDelay();
-            sink.OnStatus(BridgeStatus.Initial with { Detail = reason, RetryInMs = (int)delay.TotalMilliseconds });
-            try
-            {
-                await Task.Delay(delay, clock, ct);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
+            return new SessionEnd(await RunSessionAsync(http, sink, () => subscribed = true, ct), subscribed);
         }
-        sink.OnStatus(BridgeStatus.Initial with { Detail = "stopped" });
+        catch (Exception e) when (!ct.IsCancellationRequested &&
+                                  e is HttpRequestException or WebSocketException or TaskCanceledException or JsonException or XPlaneApiException)
+        {
+            return new SessionEnd(Describe(e), subscribed);
+        }
+        finally
+        {
+            _open = false;
+        }
     }
 
     private string Describe(Exception e) => e switch
@@ -101,7 +83,7 @@ public sealed class XPlaneSource(TimeProvider clock, int port = XPlaneSource.Def
     };
 
     /// <returns>Why the session ended.</returns>
-    private async Task<string> RunSessionAsync(HttpClient http, ISimSink sink, CancellationToken ct)
+    private async Task<string> RunSessionAsync(HttpClient http, ISimSink sink, Action onSubscribed, CancellationToken ct)
     {
         var version = await NegotiateAsync(http, ct);
         Dictionary<long, DatarefSpec> ids;
@@ -158,7 +140,7 @@ public sealed class XPlaneSource(TimeProvider clock, int port = XPlaneSource.Def
                         if (subscribed) break;
                         subscribed = true;
                         _open = true;
-                        _policy.Reset();
+                        onSubscribed();
                         lock (gate) pump.OnSimRunning(true);
                         Publish();
                         break;

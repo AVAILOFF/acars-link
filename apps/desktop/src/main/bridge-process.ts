@@ -1,7 +1,7 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import type { Simulator } from '../shared/api.js';
+import type { SimChoice } from '../shared/api.js';
 
 /** Name of the self-contained bridge exe from `pnpm bridge:publish`. */
 export const BRIDGE_EXE = 'acars-msfs-bridge.exe';
@@ -11,10 +11,14 @@ export function bridgeExePath(resourcesPath: string): string {
   return join(resourcesPath, 'bridge', BRIDGE_EXE);
 }
 
-/** Command line of the bridge (bridge/msfs/README.md): MSFS is its default source, X-Plane is `--source xplane` (T18). */
-export function bridgeArgs(port: number, simulator: Simulator): string[] {
+/**
+ * Command line of the bridge (bridge/msfs/README.md): its default source is `auto` (T59, whichever sim runs);
+ * a fixed choice is `--source simconnect` or `--source xplane` (T18).
+ */
+export function bridgeArgs(port: number, simulator: SimChoice): string[] {
   const args = ['--port', String(port)];
-  return simulator === 'xplane' ? [...args, '--source', 'xplane'] : args;
+  if (simulator === 'auto') return args;
+  return [...args, '--source', simulator === 'xplane' ? 'xplane' : 'simconnect'];
 }
 
 /**
@@ -26,7 +30,7 @@ export function bridgeArgs(port: number, simulator: Simulator): string[] {
 export function startBridge(
   resourcesPath: string,
   port: number,
-  simulator: Simulator = 'msfs',
+  simulator: SimChoice = 'auto',
   log: (msg: string) => void = console.error,
 ): (() => Promise<void>) | null {
   const exe = bridgeExePath(resourcesPath);

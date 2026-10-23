@@ -54,7 +54,8 @@ public enum SimLink
 /// <summary>
 /// Bridge → app status. Sent on connect and on every change.
 /// <c>running</c> = SimConnect "Sim" event (false in menus / while a flight loads);
-/// telemetry is only streamed while connected and running.
+/// telemetry is only streamed while connected and running. <c>Source</c> (T59): the connected sim
+/// (<c>simconnect</c> / <c>xplane</c>), set on connected statuses by <see cref="SimLoop"/>.
 /// </summary>
 public sealed record BridgeStatus(
     SimLink Sim,
@@ -62,7 +63,8 @@ public sealed record BridgeStatus(
     bool Paused,
     double SimRate,
     string? Detail = null,
-    int? RetryInMs = null)
+    int? RetryInMs = null,
+    string? Source = null)
 {
     public static readonly BridgeStatus Initial = new(SimLink.Disconnected, false, false, 1);
 }
@@ -72,8 +74,9 @@ public sealed record BridgeStatus(
 /// with the query <c>?protocol=2</c>; without it the bridge speaks v1, so v1 clients keep working.
 /// Bridge → app (v1 and v2):
 /// <list type="bullet">
-/// <item><c>{"type":"hello","protocol":1|2,"telemetryVersion":1,"bridge":"acars-msfs-bridge","version":"…","source":"simconnect|xplane|fake"}</c> — first frame; v2 adds <c>"commands":["ping",…]</c>.</item>
-/// <item><c>{"type":"status","sim":"disconnected|connecting|connected","running":…,"paused":…,"simRate":…,"detail"?:…,"retryInMs"?:…}</c></item>
+/// <item><c>{"type":"hello","protocol":1|2,"telemetryVersion":1,"bridge":"acars-msfs-bridge","version":"…","source":"auto|simconnect|xplane|fake"}</c> — first frame; v2 adds <c>"commands":["ping",…]</c>.</item>
+/// <item><c>{"type":"status","sim":"disconnected|connecting|connected","running":…,"paused":…,"simRate":…,"detail"?:…,"retryInMs"?:…,"source"?:"simconnect|xplane"}</c>
+///   — <c>source</c> (T59, optional, no version bump) only while connected: which sim it is.</item>
 /// <item><c>{"type":"telemetry","data":TelemetrySnapshot}</c> — ~1 Hz while connected and running.</item>
 /// </list>
 /// v2 only, app → bridge: <c>{"type":"command","id":"…","command":"ping","args"?:{…}}</c> (whitelist:
@@ -150,6 +153,7 @@ public static class Protocol
                 simRate = s.SimRate,
                 detail = s.Detail,
                 retryInMs = s.RetryInMs,
+                source = s.Source,
             },
             Json);
 

@@ -1,7 +1,8 @@
 @echo off
 rem ACARS Link: builds and starts the sim bridge and the desktop app; stops the bridge when the
 rem app window is closed. Shortcut: right click -> Create shortcut, Run: Minimized.
-rem The bridge reads MSFS, or X-Plane 12 when Settings -> "Simulator" is "X-Plane 12" (T18).
+rem The bridge finds the running sim, MSFS or X-Plane 12 (Settings -> "Simulator": "Automatic", T59);
+rem "MSFS" or "X-Plane 12" there fixes it. Settings from before T59 have "simulator" (msfs there = automatic).
 setlocal
 cd /d "%~dp0"
 title ACARS Link
@@ -9,8 +10,16 @@ title ACARS Link
 set "BRIDGE_EXE=%~dp0bridge\msfs\src\AcarsBridge\bin\Debug\net8.0\acars-msfs-bridge.exe"
 set "BRIDGE_STARTED="
 set "BRIDGE_ARGS="
-findstr /r /c:"\"simulator\": *\"xplane\"" "%APPDATA%\ACARS Link\settings.json" >nul 2>&1
+set "SETTINGS=%APPDATA%\ACARS Link\settings.json"
+findstr /r /c:"\"simChoice\": *\"msfs\"" "%SETTINGS%" >nul 2>&1
+if not errorlevel 1 set "BRIDGE_ARGS=--source simconnect"
+findstr /r /c:"\"simChoice\": *\"xplane\"" "%SETTINGS%" >nul 2>&1
 if not errorlevel 1 set "BRIDGE_ARGS=--source xplane"
+findstr /r /c:"\"simChoice\"" "%SETTINGS%" >nul 2>&1
+if errorlevel 1 (
+  findstr /r /c:"\"simulator\": *\"xplane\"" "%SETTINGS%" >nul 2>&1
+  if not errorlevel 1 set "BRIDGE_ARGS=--source xplane"
+)
 
 tasklist /fi "imagename eq acars-msfs-bridge.exe" | find /i "acars-msfs-bridge.exe" >nul
 if not errorlevel 1 (

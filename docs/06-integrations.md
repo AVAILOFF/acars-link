@@ -124,6 +124,7 @@ REQ:M.<мах> FL<эшелон>[
 - `GET /api/vN/datarefs?filter[name]=…` → `{data:[{id,name,value_type}]}`; неизвестное имя → 404 `invalid_dataref_name`. До загрузки первого полёта dataref **нет**. Id стабильны в пределах сессии X-Plane, поэтому ищутся при каждом подключении.
 - `ws://localhost:8086/api/vN`: `{req_id,type:"dataref_subscribe_values",params:{datarefs:[{id,index?}]}}` → `{req_id,type:"result",success}`; затем `dataref_update_values` ~10 Гц, `data` по id: первое — все значения, дальше только изменившиеся. Массив с `index` приходит плотным списком в порядке индексов. Значения `data` (строки `byte[]`) — base64.
 - Соответствие dataref полям `TelemetrySnapshot` и одобренные допущения — `07`, T18.
+- Автовыбор (T59): источник моста `auto` (по умолчанию) пробует по кругу SimConnect и `GET /api/capabilities`; X-Plane не запущен — отказ в соединении сразу, ответа нет — тайм-аут HTTP 5 с. Какой симулятор подключён — поле `source` в `status` (`bridge/msfs/README.md`).
 
 ## GSX VDGS (T22)
 

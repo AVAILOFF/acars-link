@@ -4,9 +4,10 @@ import type {
   Language,
   Settings,
   SettingsPatch,
-  Simulator,
+  SimChoice,
   TransportChoice,
 } from '../../shared/api.js';
+import { activeSim } from '../../shared/api.js';
 import { firstSentence } from './hints.js';
 import { Switch, SwitchInput } from './Switch.js';
 import { playMessageSound } from './sound.js';
@@ -670,6 +671,9 @@ function AdvancedSettings({ s }: { s: Settings }) {
   const { off, update } = useUpdate();
   const openRecordings = useStore((st) => st.openRecordings);
   const clearMemory = useStore((st) => st.clearMemory);
+  // T59: what X-Plane lacks is greyed out by the connected sim, not by the setting.
+  const source = useStore((st) => st.app?.bridge.source ?? null);
+  const xplane = activeSim(s.simChoice, { source }) === 'xplane';
   const memory = useStore((st) => st.app?.memory ?? []);
   const running = useStore((st) => st.app?.session === 'running');
   const titles = (v: string) =>
@@ -686,7 +690,7 @@ function AdvancedSettings({ s }: { s: Settings }) {
           title={t('set.simTime')}
           hint={t('set.simTimeHint')}
           next
-          disabled={s.simulator === 'xplane'}
+          disabled={xplane}
           offHint={t('set.offXplane')}
         />
         <TextRow
@@ -755,7 +759,7 @@ function AdvancedSettings({ s }: { s: Settings }) {
           k="rescue"
           title={t('set.rescue')}
           hint={t('set.rescueHint')}
-          disabled={s.simulator === 'xplane'}
+          disabled={xplane}
           offHint={t('set.offXplane')}
         />
         <p className={s.rescue ? 'sheet-note' : 'sheet-note off'}>
@@ -869,20 +873,21 @@ function AdvancedSettings({ s }: { s: Settings }) {
 
       <Group id="conn" title={t('set.group.connection')}>
         <Row
-          htmlFor="simulator"
+          htmlFor="sim-choice"
           title={t('set.simulator')}
           hint={<Hint text={t('set.simulatorHint')} />}
         >
           <select
-            id="simulator"
-            value={s.simulator}
+            id="sim-choice"
+            value={s.simChoice}
             disabled={off}
-            onChange={(e) => void update({ simulator: e.currentTarget.value as Simulator })}
+            onChange={(e) => void update({ simChoice: e.currentTarget.value as SimChoice })}
           >
+            <option value="auto">{t('set.simulator.auto')}</option>
             <option value="msfs">{t('set.simulator.msfs')}</option>
             <option value="xplane">{t('set.simulator.xplane')}</option>
           </select>
-          <SavedMark field="simulator" />
+          <SavedMark field="simChoice" />
         </Row>
         <TextRow
           id="station"

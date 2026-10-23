@@ -76,7 +76,7 @@ describe('settings', () => {
       transport: 'hoppie',
       stationTemplate: 'OPS{flight}',
       bridgePort: 47830,
-      simulator: 'msfs',
+      simChoice: 'auto',
       recordFlights: true,
       liveData: true,
       soundOnMessage: false,
@@ -120,11 +120,21 @@ describe('settings', () => {
     expect(() => validatePatch({ turnaround: 1 })).toThrow();
   });
 
-  it('simulator (T18): msfs by default, or xplane', () => {
-    expect(defaultSettings('en-US').simulator).toBe('msfs');
-    expect(validatePatch({ simulator: 'xplane' })).toEqual({ simulator: 'xplane' });
-    expect(() => validatePatch({ simulator: 'p3d' })).toThrow(/simulator/);
-    expect(sanitize({ simulator: 'fs9' }, defaultSettings('en-US')).simulator).toBe('msfs');
+  it('simulator (T18, T59): auto by default, or msfs / xplane', () => {
+    const d = defaultSettings('en-US');
+    expect(d.simChoice).toBe('auto');
+    expect(validatePatch({ simChoice: 'xplane' })).toEqual({ simChoice: 'xplane' });
+    expect(validatePatch({ simChoice: 'msfs' })).toEqual({ simChoice: 'msfs' });
+    expect(() => validatePatch({ simChoice: 'p3d' })).toThrow(/simChoice/);
+    expect(sanitize({ simChoice: 'fs9' }, d).simChoice).toBe('auto');
+  });
+
+  it('settings before T59: "simulator" msfs (the old default) → auto, xplane stays; simChoice wins', () => {
+    const d = defaultSettings('en-US');
+    expect(sanitize({ simulator: 'msfs' }, d).simChoice).toBe('auto');
+    expect(sanitize({ simulator: 'xplane' }, d).simChoice).toBe('xplane');
+    expect(sanitize({ simulator: 'xplane', simChoice: 'msfs' }, d).simChoice).toBe('msfs');
+    expect('simulator' in sanitize({ simulator: 'msfs' }, d)).toBe(false);
   });
 
   it('my hub: four letters, stored upper case, or empty (T53)', () => {

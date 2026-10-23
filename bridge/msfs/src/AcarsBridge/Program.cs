@@ -6,15 +6,15 @@ const string Usage = """
 
     Options:
       --port <n>          listen port (default 47830)
-      --source <name>     simconnect (default) | xplane | fake
-      --xplane-port <n>   with --source xplane: X-Plane's web server port (default 8086)
+      --source <name>     auto (default: MSFS or X-Plane 12, whichever runs) | simconnect | xplane | fake
+      --xplane-port <n>   with --source auto or xplane: X-Plane's web server port (default 8086)
       --replay <file>     with --source fake: loop a JSONL file of TelemetrySnapshot v1
       --verbose           log HTTP/Kestrel details
       --help
     """;
 
 var port = BridgeServer.DefaultPort;
-var sourceName = "simconnect";
+var sourceName = AutoSimSource.SourceName;
 string? replay = null;
 var xplanePort = XPlaneSource.DefaultPort;
 var verbose = false;
@@ -58,6 +58,15 @@ switch (sourceName)
         break;
     case "xplane":
         source = new XPlaneSource(clock, xplanePort);
+        break;
+    case AutoSimSource.SourceName:
+        // MSFS first in each round (T59): when both run, the first to answer wins.
+#if SIMCONNECT
+        source = new AutoSimSource([new SimConnectSource(clock), new XPlaneSource(clock, xplanePort)], clock);
+#else
+        Console.Error.WriteLine("SimConnect support is not compiled in: --source auto looks for X-Plane 12 only.");
+        source = new AutoSimSource([new XPlaneSource(clock, xplanePort)], clock);
+#endif
         break;
     case "simconnect":
 #if SIMCONNECT

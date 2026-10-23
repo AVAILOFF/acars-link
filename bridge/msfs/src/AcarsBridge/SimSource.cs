@@ -7,11 +7,136 @@ public interface ISimSink
     void OnTelemetry(TelemetrySnapshot snapshot);
 }
 
-/// <summary>A telemetry source (SimConnect, fake). Runs until cancelled, reconnecting on its own.</summary>
+/// <summary>A telemetry source (SimConnect, X-Plane, auto, fake). Runs until cancelled, reconnecting on its own.</summary>
 public interface ISimSource
 {
     string Name { get; }
     Task RunAsync(ISimSink sink, CancellationToken ct);
+}
+
+/// <summary>How one session with a simulator ended. <c>Answered</c>: the sim was there (the backoff starts over).</summary>
+public readonly record struct SessionEnd(string Reason, bool Answered);
+
+/// <summary>
+/// A simulator the bridge connects to (SimConnect, X-Plane), one session at a time; <see cref="SimLoop"/> reconnects.
+/// The session reports <c>connected</c> statuses and telemetry; <c>connecting</c> and the wait before a retry are
+/// the loop's.
+/// </summary>
+public interface ISimSession
+{
+    /// <summary>Wire name: <c>hello.source</c> and <c>status.source</c>.</summary>
+    string Name { get; }
+
+    /// <summary>Connects once and runs until the sim goes away. Expected failures are a <see cref="SessionEnd"/>,
+    /// not an exception; cancellation ends it.</summary>
+    Task<SessionEnd> RunSessionAsync(ISimSink sink, CancellationToken ct);
+}
+
+/// <summary>
+/// The reconnect loop around one or more simulators (T59). A round tries each in order: <c>connecting</c>, then a
+/// session; the first that answers keeps the bridge until it goes away (a running session is not interrupted by the
+/// others). After a round: <see cref="ReconnectPolicy"/> (shared by all, reset when one answered) with the reasons
+/// of the round in <c>detail</c>. Connected statuses carry the session's <see cref="ISimSession.Name"/> as
+/// <c>source</c>; <paramref name="active"/> learns which session runs (null between them).
+/// </summary>
+public static class SimLoop
+{
+    public static async Task RunAsync(IReadOnlyList<ISimSession> sims, ISimSink sink, ReconnectPolicy policy, TimeProvider clock,
+        CancellationToken ct, Action<ISimSession?>? active = null)
+    {
+        var reasons = new List<string>(sims.Count);
+        while (!ct.IsCancellationRequested)
+        {
+            reasons.Clear();
+            var answered = false;
+            foreach (var sim in sims)
+            {
+                if (ct.IsCancellationRequested) break;
+                sink.OnStatus(BridgeStatus.Initial with { Sim = SimLink.Connecting });
+                active?.Invoke(sim);
+                SessionEnd end;
+                try
+                {
+                    end = await sim.RunSessionAsync(new Tagged(sink, sim.Name), ct);
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    break;
+                }
+                finally
+                {
+                    active?.Invoke(null);
+                }
+                if (end.Answered)
+                {
+                    // What the others said before this session is stale by now.
+                    reasons.Clear();
+                    answered = true;
+                }
+                reasons.Add(end.Reason);
+            }
+            if (ct.IsCancellationRequested) break;
+
+            if (answered) policy.Reset();
+            var delay = policy.NextDelay();
+            sink.OnStatus(BridgeStatus.Initial with { Detail = string.Join("; ", reasons), RetryInMs = (int)delay.TotalMilliseconds });
+            try
+            {
+                await Task.Delay(delay, clock, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+        sink.OnStatus(BridgeStatus.Initial with { Detail = "stopped" });
+    }
+
+    /// <summary>Puts the session's name on its connected statuses.</summary>
+    private sealed class Tagged(ISimSink sink, string source) : ISimSink
+    {
+        public void OnStatus(BridgeStatus status) =>
+            sink.OnStatus(status.Sim == SimLink.Connected ? status with { Source = source } : status);
+
+        public void OnTelemetry(TelemetrySnapshot snapshot) => sink.OnTelemetry(snapshot);
+    }
+}
+
+/// <summary>
+/// Source <c>auto</c> (T59, the default): MSFS and X-Plane 12 in turn, the one that answers first is used until it
+/// closes, then both are looked for again (decisions of 2026-10-23: first to answer wins; one shared backoff;
+/// <c>status.source</c> says which sim is connected, <c>hello.source</c> is <c>auto</c>). Commands: all the
+/// sims' commands; each goes to the running sim if it offers it, else to the first that does (which says
+/// <c>sim not connected</c> for a start and clears a standing request for a stop).
+/// </summary>
+public sealed class AutoSimSource(IReadOnlyList<ISimSession> sims, TimeProvider clock, ReconnectPolicy? policy = null)
+    : ISimSource, ICommandTarget
+{
+    public const string SourceName = "auto";
+
+    private readonly ReconnectPolicy _policy = policy ?? new ReconnectPolicy();
+    private volatile ISimSession? _active;
+
+    public string Name => SourceName;
+
+    /// <summary>The sim whose session runs now (or is being tried); null between rounds.</summary>
+    public ISimSession? Active => _active;
+
+    public IReadOnlyCollection<string> Commands { get; } =
+        sims.OfType<ICommandTarget>().SelectMany(t => t.Commands).Distinct().ToArray();
+
+    public Task RunAsync(ISimSink sink, CancellationToken ct) =>
+        SimLoop.RunAsync(sims, sink, _policy, clock, ct, s => _active = s);
+
+    public Task<CommandResult> ExecuteAsync(SimCommand command, CancellationToken ct)
+    {
+        var target = _active is ICommandTarget a && a.Commands.Contains(command.Name)
+            ? a
+            : sims.OfType<ICommandTarget>().FirstOrDefault(t => t.Commands.Contains(command.Name));
+        return target is null
+            ? Task.FromResult(CommandResult.Fail(CommandErrors.UnknownCommand, command.Name))
+            : target.ExecuteAsync(command, ct);
+    }
 }
 
 /// <summary>

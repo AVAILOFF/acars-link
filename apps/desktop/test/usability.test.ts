@@ -313,12 +313,39 @@ describe('time from the simulator (U-16)', () => {
 
   it('X-Plane sends no sim time (T18): the setting is ignored, the flight does not wait', async () => {
     const s = await setup();
-    await startOffline(s, { simTime: true, simulator: 'xplane' });
+    await startOffline(s, { simTime: true, simChoice: 'xplane' });
     const first = flight.snapshots[0];
     if (first === undefined) throw new Error('no snapshots');
     s.sockets.last().frame({ type: 'telemetry', data: first });
     s.app.tick(s.clock.now());
     expect(s.app.state().waitingSimTime).toBe(false);
+  });
+
+  it('"Automatic" (T59): by the connected sim — X-Plane does not wait, MSFS does', async () => {
+    for (const [source, waits] of [
+      ['xplane', false],
+      ['simconnect', true],
+    ] as const) {
+      const s = await setup();
+      await s.app.updateSettings({ transport: 'offline', simTime: true });
+      await s.app.loadOfp();
+      const socket = s.sockets.last();
+      socket.hello();
+      socket.frame({
+        type: 'status',
+        sim: 'connected',
+        running: true,
+        paused: false,
+        simRate: 1,
+        source,
+      });
+      await s.app.startFlight();
+      const first = flight.snapshots[0];
+      if (first === undefined) throw new Error('no snapshots');
+      socket.frame({ type: 'telemetry', data: first });
+      s.app.tick(s.clock.now());
+      expect(s.app.state().waitingSimTime).toBe(waits);
+    }
   });
 });
 

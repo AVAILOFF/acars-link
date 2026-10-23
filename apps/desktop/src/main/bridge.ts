@@ -6,7 +6,7 @@ import {
   TELEMETRY_VERSION,
   type TelemetrySnapshot,
 } from '@acars/core';
-import type { BridgeView } from '../shared/api.js';
+import type { BridgeView, Simulator } from '../shared/api.js';
 
 /**
  * WebSocket client of the sim bridge (bridge/msfs/README.md): `hello`, then `status` on every
@@ -86,13 +86,21 @@ const INITIAL_VIEW: BridgeView = {
   retryAt: null,
   protocol: null,
   commands: [],
+  source: null,
 };
+
+/** Bridge source names (`hello.source`, `status.source`) → simulator; `auto`, `fake` and others → null. */
+export function simOfSource(source: unknown): Simulator | null {
+  return source === 'simconnect' ? 'msfs' : source === 'xplane' ? 'xplane' : null;
+}
 
 export class BridgeClient {
   private socket: SocketLike | null = null;
   private retry: unknown = null;
   private attempt = 0;
   private helloSeen = false;
+  /** `hello.source` of a bridge with a fixed source (T59); null for `auto`. */
+  private helloSim: Simulator | null = null;
   private stopped = true;
   private port: number;
   private v: BridgeView = INITIAL_VIEW;
@@ -253,6 +261,7 @@ export class BridgeClient {
       const offered: unknown[] =
         protocol === 2 && Array.isArray(m['commands']) ? m['commands'] : [];
       this.helloSeen = true;
+      this.helloSim = simOfSource(m['source']);
       this.attempt = 0;
       this.set({
         ...this.v,
@@ -267,6 +276,8 @@ export class BridgeClient {
       this.set({
         ...this.v,
         sim: sim === 'connected' || sim === 'connecting' ? sim : 'disconnected',
+        // T59: `status.source` (bridge `auto`); a bridge before T59 has a fixed source in `hello` only.
+        source: sim === 'connected' ? (simOfSource(m['source']) ?? this.helloSim) : null,
         running: m['running'] === true,
         paused: m['paused'] === true,
         simRate: typeof m['simRate'] === 'number' && m['simRate'] > 0 ? m['simRate'] : 1,
