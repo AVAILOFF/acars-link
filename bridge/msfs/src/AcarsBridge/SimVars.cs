@@ -25,6 +25,11 @@ public sealed record SimVarDef(string Name, string Unit);
 /// ABSOLUTE TIME: environment variable, "seconds since 12:00 am 1/1/1AD", zulu, read-only (MSFS 2024 SDK
 /// docs, Environment Variables, 2026-10-18); read through SimConnect. Forum reports say time SimVars were wrong
 /// before MSFS 2024 SU1 — [ПРОВЕРИТЬ человеком] against the in-sim clock.
+/// L:S_MIP_PARKING_BRAKE: Fenix A320 parking brake lever, 0 released / 1 set. "L:NAME" with unit "number",
+/// FLOAT64 only (SDK, SimConnect_AddToDataDefinition, checked 2026-10-23). Fenix 3.0.0.7438 (2026-10-21) no
+/// longer drives BRAKE PARKING POSITION (0 in every flight since); checked by a human in MSFS 2024 on
+/// 2026-10-23: the LVar follows the lever 1 → 0 → 1, B_HYD_PARKING_BRAKE_SET stays 0 with the engines off.
+/// Approved 2026-10-23: for a TITLE starting with "Fenix" the brake is set when the LVar or the SimVar is.
 /// TITLE is requested separately as STRING256 (see SimConnectSource).
 /// </summary>
 public static class SimVars
@@ -54,7 +59,11 @@ public static class SimVars
     public const int SimRate = Xpdr + 1; // 28
     public const int Touchdown = SimRate + 1; // 29
     public const int AbsTime = Touchdown + 1; // 30
-    public const int Count = AbsTime + 1;
+    public const int FenixParkBrake = AbsTime + 1; // 31
+    public const int Count = FenixParkBrake + 1;
+
+    /// <summary>LVar of the Fenix A320 parking brake lever (see the summary).</summary>
+    public const string FenixParkBrakeLvar = "L:S_MIP_PARKING_BRAKE";
 
     /// <summary>Seconds from 0001-01-01 to the Unix epoch (ABSOLUTE TIME counts from 1/1/1 AD).</summary>
     public const double UnixEpochAbsSeconds = 62135596800;
@@ -88,6 +97,7 @@ public static class SimVars
         d.Add(new("SIMULATION RATE", "number"));
         d.Add(new("PLANE TOUCHDOWN NORMAL VELOCITY", "feet per second"));
         d.Add(new("ABSOLUTE TIME", "seconds"));
+        d.Add(new(FenixParkBrakeLvar, "number"));
         return d;
     }
 }
@@ -131,7 +141,7 @@ public static class TelemetryMapper
             VsFpm = Round(f[SimVars.Vs], 0),
             HdgTrue = Heading(f[SimVars.Hdg]),
             OnGround = Flag(f[SimVars.OnGround]),
-            ParkingBrake = Flag(f[SimVars.ParkingBrake]),
+            ParkingBrake = ParkingBrakeSet(f[SimVars.ParkingBrake], f[SimVars.FenixParkBrake], f.Title),
             Beacon = Flag(f[SimVars.Beacon]),
             EngRunning = running,
             EngN2 = n2,
@@ -149,6 +159,10 @@ public static class TelemetryMapper
     }
 
     private static bool Flag(double v) => v >= 0.5;
+
+    /// <summary>BRAKE PARKING POSITION, or for a Fenix (TITLE starts with "Fenix") also its lever LVar.</summary>
+    public static bool ParkingBrakeSet(double simVar, double fenixLever, string title) =>
+        Flag(simVar) || (CString(title).StartsWith("Fenix", StringComparison.OrdinalIgnoreCase) && Flag(fenixLever));
 
     /// <summary>Sim UTC, epoch ms, from ABSOLUTE TIME; null while the sim reports no usable date (before year 2000).</summary>
     private static long? SimUtc(double absSeconds)
