@@ -12,6 +12,7 @@ import type {
   Language,
   Settings,
   SettingsPatch,
+  Simulator,
   TransportChoice,
 } from '../shared/api.js';
 import { AppFailure } from './errors.js';
@@ -26,6 +27,7 @@ export const DEFAULT_BRIDGE_PORT = 47830;
 
 const LANGUAGES: readonly Language[] = ['en', 'ru'];
 const TRANSPORTS: readonly TransportChoice[] = ['hoppie', 'offline'];
+const SIMULATORS: readonly Simulator[] = ['msfs', 'xplane'];
 /** Letters/digits and `{flight}` / `{airline}` placeholders. */
 const STATION_RE = /^(?:[A-Z0-9]|\{flight\}|\{airline\})+$/i;
 export const SCENARIO_ID_RE = /^[a-z0-9_]{1,64}$/;
@@ -36,6 +38,7 @@ export function defaultSettings(locale: string): Settings {
     transport: 'hoppie',
     stationTemplate: DEFAULT_STATION,
     bridgePort: DEFAULT_BRIDGE_PORT,
+    simulator: 'msfs',
     recordFlights: true,
     liveData: true,
     soundOnMessage: false,
@@ -83,6 +86,10 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'transport':
         if (!TRANSPORTS.includes(value as TransportChoice)) throw bad(key, 'hoppie or offline');
         out.transport = value as TransportChoice;
+        break;
+      case 'simulator':
+        if (!SIMULATORS.includes(value as Simulator)) throw bad(key, 'msfs or xplane');
+        out.simulator = value as Simulator;
         break;
       case 'stationTemplate':
         if (typeof value !== 'string' || value.length > 32 || !STATION_RE.test(value)) {
@@ -229,6 +236,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'transport',
     'stationTemplate',
     'bridgePort',
+    'simulator',
     'recordFlights',
     'liveData',
     'soundOnMessage',

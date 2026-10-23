@@ -23,7 +23,7 @@ import { defaultSettings, SettingsStore } from '../src/main/settings.js';
 import { SPECIAL_SCENARIOS } from '../src/main/special.js';
 import { VDGS_FILE } from '../src/main/vdgs.js';
 import { MESSAGES } from '../src/renderer/src/i18n.js';
-import type { FeedEntry } from '../src/shared/api.js';
+import type { FeedEntry, Simulator } from '../src/shared/api.js';
 import {
   FakeCipher,
   FakeHttp,
@@ -46,6 +46,7 @@ async function setup(
     http?: FakeHttp;
     flags?: FlagsStore;
     vdgsDir?: string;
+    onBridgeConfig?: (port: number, simulator: Simulator) => void;
   } = {},
 ) {
   const dir = await tempDir();
@@ -76,6 +77,7 @@ async function setup(
     onChange: () => {},
     ...(o.flags === undefined ? {} : { flags: o.flags }),
     ...(o.vdgsDir === undefined ? {} : { vdgsDir: o.vdgsDir }),
+    ...(o.onBridgeConfig === undefined ? {} : { onBridgeConfig: o.onBridgeConfig }),
   });
   await app.init();
   return { app, clock, sockets, transports, secretsFile, recordings, revealed: () => revealed };
@@ -123,6 +125,20 @@ describe('AppController', () => {
       },
     ]);
     expect(s.app.state().bridge).toMatchObject({ protocol: 2, commands: ['ping'] });
+  });
+
+  it('a new simulator or bridge port restarts the bridge (T18); other settings do not', async () => {
+    const calls: [number, Simulator][] = [];
+    const { app } = await setup({ onBridgeConfig: (port, sim) => calls.push([port, sim]) });
+    await app.updateSettings({ messageHints: false });
+    await app.updateSettings({ simulator: 'msfs' });
+    expect(calls).toEqual([]);
+    await app.updateSettings({ simulator: 'xplane' });
+    await app.updateSettings({ bridgePort: 47831 });
+    expect(calls).toEqual([
+      [47830, 'xplane'],
+      [47831, 'xplane'],
+    ]);
   });
 
   it('needs a SimBrief username before loading the OFP', async () => {
@@ -875,6 +891,17 @@ describe('live data (T13)', () => {
       app.sendSimCommand(rescue('full'));
       await settle();
       expect(sent()).toHaveLength(1);
+    });
+
+    it('X-Plane (T18): no rescue command and no line in the feed', async () => {
+      const { app, sent } = await start();
+      await app.updateSettings({ simulator: 'xplane' });
+      app.sendSimCommand(rescue('full'));
+      await settle();
+      expect(sent()).toEqual([]);
+      expect(
+        app.state().feed.filter((e) => e.kind === 'system' && e.code === 'sim_command_failed'),
+      ).toEqual([]);
     });
 
     it('settings: on by default, titles checked', async () => {

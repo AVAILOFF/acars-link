@@ -1,6 +1,7 @@
 # acars-msfs-bridge
 
 MSFS 2020/2024 → SimConnect → WebSocket `ws://127.0.0.1:47830/`. C# / .NET 8 (docs/08, decision 2).
+X-Plane 12 (12.1.1 or later) → its built-in Web API → the same WebSocket, with `--source xplane` (T18).
 Streams `TelemetrySnapshot` v1 (docs/03, `packages/core/src/telemetry/types.ts`) at ~1 Hz.
 
 ## Build
@@ -24,6 +25,8 @@ acars-msfs-bridge                          # SimConnect, port 47830
 acars-msfs-bridge --source fake            # no sim: parked A320 at EDDF, 1 Hz
 acars-msfs-bridge --source fake --replay flight.jsonl   # loop a JSONL of TelemetrySnapshot v1
 acars-msfs-bridge --port 47831 --verbose
+acars-msfs-bridge --source xplane          # X-Plane 12 Web API on localhost:8086
+acars-msfs-bridge --source xplane --xplane-port 8088   # X-Plane started with --web_server_port=8088
 ```
 
 Start order does not matter. Until MSFS is up, the bridge retries with backoff
@@ -89,6 +92,30 @@ The smoke object comes from the package in `package/` (draft, unverified, see it
 Access rules (CLAUDE.md, invariant 10): the bridge listens on `127.0.0.1` only. The `Host` header must be `127.0.0.1` or `localhost`.
 `Origin` must be absent, `file://`, `null`, or an http(s) loopback origin. Anything else gets 403, so web pages
 open in a browser cannot read the telemetry.
+
+## X-Plane 12 (T18)
+
+`XPlaneSource` (`src/AcarsBridge/XPlaneSource.cs`, datarefs and mapping in `XPlane.cs`) talks to X-Plane's
+built-in web server (developer.x-plane.com/article/x-plane-web-api, checked 2026-10-22; docs/06, "X-Plane 12 Web API"):
+
+1. `GET /api/capabilities` → the newest of v3, v2, v1 that X-Plane lists (v1 when the endpoint is missing).
+2. `GET /api/vN/datarefs?filter[name]=…` for each dataref → its id. X-Plane has no datarefs before the first flight
+   is loaded: while a required one is missing, `status` is `connected`, `running: false`,
+   `detail: "waiting for a flight in X-Plane (…)"`, and the bridge looks again every 5 s.
+3. WebSocket `ws://localhost:8086/api/vN`, `dataref_subscribe_values`. Updates come at ~10 Hz; the bridge keeps the
+   current values and feeds the same `SnapshotPump` as SimConnect (≤ 1 Hz, pause keep-alive).
+
+`running` turns true once the subscription is accepted. A 403 means Settings > Network in X-Plane blocks incoming
+traffic. Commands: `ping` only (no smoke, no rescue vehicles). `simUtcMs` is not sent (no year dataref). The
+touchdown rate is measured by the bridge: |`vh_ind_fpm`| of the last update in the air before `onground_any`
+goes 0 → 1. The datarefs and the approved assumptions (parking brake ≥ 0.5, flaps index, doors, transponder
+mapping, title) are listed in docs/07, T18.
+
+Checked live in X-Plane 12.4.3 (2026-10-22): connect, waiting for a flight, telemetry, title. Hot Start CL650: the bridge
+reads its own `CL650/pedestal/park_brake` and `CL650/pedestal/flaps` (lever detent 0–3) when they exist, because the
+sim's parking brake and flap handle datarefs do not follow its cockpit. Beacon, main door and transponder use the
+standard datarefs. Changing the aircraft ends the session, so the next one looks the datarefs up again.
+Not yet checked: engines, fuel against the cockpit, touchdown.
 
 ## SimVars
 

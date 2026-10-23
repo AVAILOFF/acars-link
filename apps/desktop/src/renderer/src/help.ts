@@ -84,7 +84,7 @@ const en: readonly HelpSection[] = [
               'Settings → Accounts: enter your SimBrief username and press “Check”.',
               'Enter your Hoppie logon code and press “Save”. No code yet? Register at Hoppie (link below); the code comes by email. Without a code, set “Send messages via” to “Offline (app only)”: messages then appear only in this window.',
               'Create a flight plan in SimBrief, then on the Messages tab press “Load OFP from SimBrief”.',
-              'Start MSFS and load the aircraft at the gate. The installed app starts the simulator bridge itself; the status bar shows “Sim bridge” and “Simulator” as “connected”.',
+              'Start MSFS (or X-Plane 12: choose it in Settings → Connection → “Simulator”) and load the aircraft at the gate. The installed app starts the simulator bridge itself; the status bar shows “Sim bridge” and “Simulator” as “connected”.',
               'In the aircraft FMS/MCDU (INIT or ATC COMM page) enter the flight number shown on the flight card, and connect ACARS / Hoppie in the aircraft.',
               'Press “Start flight”. Messages come from the airline station, OPS + flight number by default.',
             ],
@@ -229,7 +229,8 @@ const en: readonly HelpSection[] = [
           {
             list: [
               'Start MSFS and wait for the main menu; the bridge connects on its own.',
-              'Make sure nothing else uses the port from “Sim bridge port” (advanced settings). After changing it, restart the app.',
+              'X-Plane 12: “Simulator” in Settings must be “X-Plane 12”, X-Plane must be 12.1.1 or later, and Settings > Network in X-Plane must allow incoming traffic. The simulator shows “connected” once a flight is loaded.',
+              'Make sure nothing else uses the port from “Sim bridge port” (advanced settings). The installed app restarts the bridge when it changes.',
               'The bridge only listens on 127.0.0.1: the app and the simulator must run on the same PC.',
             ],
           },
@@ -283,7 +284,7 @@ const ru: readonly HelpSection[] = [
               'Настройки → Учётные записи: введите имя пользователя SimBrief и нажмите «Проверить».',
               'Введите Hoppie logon code и нажмите «Сохранить». Кода нет — зарегистрируйтесь на Hoppie (ссылка ниже), код придёт на почту. Без кода выберите «Отправлять сообщения через» → «Офлайн (только в приложении)»: сообщения будут видны только в этом окне.',
               'Создайте план полёта в SimBrief, затем на вкладке «Сообщения» нажмите «Загрузить OFP из SimBrief».',
-              'Запустите MSFS и загрузите самолёт на стоянке. Установленное приложение само запускает мост симулятора; в строке состояния «Мост симулятора» и «Симулятор» — подключён.',
+              'Запустите MSFS (или X-Plane 12 — выберите его в Настройки → Подключение → «Симулятор») и загрузите самолёт на стоянке. Установленное приложение само запускает мост симулятора; в строке состояния «Мост симулятора» и «Симулятор» — подключён.',
               'В FMS/MCDU самолёта (страница INIT или ATC COMM) введите тот же номер рейса, что в карточке рейса, и подключите ACARS / Hoppie в самолёте.',
               'Нажмите «Начать рейс». Сообщения приходят от станции авиакомпании — по умолчанию OPS + номер рейса.',
             ],
@@ -428,7 +429,8 @@ const ru: readonly HelpSection[] = [
           {
             list: [
               'Запустите MSFS и дождитесь главного меню — мост подключится сам.',
-              'Проверьте, что порт из «Порт моста симулятора» (расширенные настройки) не занят другой программой. После смены порта перезапустите приложение.',
+              'X-Plane 12: в настройках «Симулятор» должен быть «X-Plane 12», версия X-Plane — 12.1.1 или новее, а в X-Plane в Settings > Network должен быть разрешён входящий трафик. «Подключён» появится, когда загружен полёт.',
+              'Проверьте, что порт из «Порт моста симулятора» (расширенные настройки) не занят другой программой. Установленное приложение перезапускает мост при смене порта.',
               'Мост слушает только 127.0.0.1: приложение и симулятор должны работать на одном ПК.',
             ],
           },

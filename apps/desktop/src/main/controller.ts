@@ -42,6 +42,7 @@ import type {
   Settings,
   SettingsPatch,
   SimbriefCheck,
+  Simulator,
 } from '../shared/api.js';
 import { BridgeClient, type CommandResult, type SocketLike, type Timers } from './bridge.js';
 import { AppFailure, toAppError } from './errors.js';
@@ -90,6 +91,8 @@ export interface AppControllerOptions {
   readonly vdgsDir?: string | null;
   /** Airline memory between flights (T14); default in memory only. */
   readonly flags?: FlagsStore;
+  /** The bridge port or simulator was changed (T18): the bundled bridge is started anew. */
+  readonly onBridgeConfig?: (port: number, simulator: Simulator) => void;
 }
 
 /** Title of a scenario in the UI languages. */
@@ -271,6 +274,8 @@ export class AppController {
       this.stopSmoke();
       return;
     }
+    // X-Plane takes no smoke command (T18): nothing to say in the feed.
+    if ((await this.o.settings.get()).simulator === 'xplane') return;
     if (c.runway === null) return fail('no planned runway in the OFP');
     const mid = await this.data.runwayPoint(c.airport, c.runway, this.o.now());
     if (mid === null) return fail(`no coordinates for ${c.airport} RWY ${c.runway}`);
@@ -298,7 +303,8 @@ export class AppController {
    */
   private async sendRescue(c: RescueCommand): Promise<void> {
     const settings = await this.o.settings.get();
-    if (!settings.rescue) return;
+    // X-Plane takes no rescue commands (T18): nothing to say in the feed.
+    if (!settings.rescue || settings.simulator === 'xplane') return;
     if (c.action === 'stop') {
       this.stopRescue();
       return;
@@ -448,9 +454,13 @@ export class AppController {
   }
 
   async updateSettings(patch: SettingsPatch): Promise<Settings> {
+    const before = await this.o.settings.get();
     const s = await this.o.settings.update(patch);
     this.lang = s.language;
     this.bridge.setPort(s.bridgePort);
+    if (s.bridgePort !== before.bridgePort || s.simulator !== before.simulator) {
+      this.o.onBridgeConfig?.(s.bridgePort, s.simulator);
+    }
     if (this.ofp !== null && this.session === null) {
       this.flight = this.summary(this.ofp, s);
       this.prefetch(this.ofp, s);
@@ -682,9 +692,11 @@ export class AppController {
     if (planned === null) throw new AppFailure('bad_state', 'load the OFP first', 'load_ofp_first');
     if (this.scenarioError !== null) throw new AppFailure('scenarios_invalid', this.scenarioError);
     const settings = await this.o.settings.get();
+    // X-Plane sends no sim clock (T18): the flight would wait for it forever.
+    const simTime = settings.simTime && settings.simulator !== 'xplane';
     // The plan's date follows the flight's clock (the sim's with "time from the sim"): only the
     // time of day of STD counts (docs/05 "Дата OFP").
-    const clockNow = this.o.now() + (settings.simTime ? (this.simOffsetMs ?? 0) : 0);
+    const clockNow = this.o.now() + (simTime ? (this.simOffsetMs ?? 0) : 0);
     const { ofp, days } = alignOfpDay(planned, clockNow);
     const flight = this.summary(ofp, settings);
     let transport: Transport;
@@ -742,7 +754,7 @@ export class AppController {
       flags,
       minGapMs: settings.messageGapSec * 1000,
       ...(settings.hubIcao === '' ? {} : { hub: settings.hubIcao }),
-      ...(settings.simTime ? { simTime: true } : {}),
+      ...(simTime ? { simTime: true } : {}),
       simCommands: (c) => this.sendSimCommand(c),
       ...(settings.datalink
         ? {

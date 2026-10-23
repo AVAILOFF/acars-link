@@ -310,6 +310,16 @@ describe('time from the simulator (U-16)', () => {
     s.app.tick(s.clock.now());
     expect(s.app.state().waitingSimTime).toBe(false);
   });
+
+  it('X-Plane sends no sim time (T18): the setting is ignored, the flight does not wait', async () => {
+    const s = await setup();
+    await startOffline(s, { simTime: true, simulator: 'xplane' });
+    const first = flight.snapshots[0];
+    if (first === undefined) throw new Error('no snapshots');
+    s.sockets.last().frame({ type: 'telemetry', data: first });
+    s.app.tick(s.clock.now());
+    expect(s.app.state().waitingSimTime).toBe(false);
+  });
 });
 
 describe('window close question (U-03)', () => {

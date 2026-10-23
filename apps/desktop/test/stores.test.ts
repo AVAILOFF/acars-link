@@ -76,6 +76,7 @@ describe('settings', () => {
       transport: 'hoppie',
       stationTemplate: 'OPS{flight}',
       bridgePort: 47830,
+      simulator: 'msfs',
       recordFlights: true,
       liveData: true,
       soundOnMessage: false,
@@ -117,6 +118,13 @@ describe('settings', () => {
     });
     expect(() => validatePatch({ simTime: 'yes' })).toThrow();
     expect(() => validatePatch({ turnaround: 1 })).toThrow();
+  });
+
+  it('simulator (T18): msfs by default, or xplane', () => {
+    expect(defaultSettings('en-US').simulator).toBe('msfs');
+    expect(validatePatch({ simulator: 'xplane' })).toEqual({ simulator: 'xplane' });
+    expect(() => validatePatch({ simulator: 'p3d' })).toThrow(/simulator/);
+    expect(sanitize({ simulator: 'fs9' }, defaultSettings('en-US')).simulator).toBe('msfs');
   });
 
   it('my hub: four letters, stored upper case, or empty (T53)', () => {

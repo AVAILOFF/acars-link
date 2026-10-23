@@ -72,7 +72,7 @@ public sealed record BridgeStatus(
 /// with the query <c>?protocol=2</c>; without it the bridge speaks v1, so v1 clients keep working.
 /// Bridge → app (v1 and v2):
 /// <list type="bullet">
-/// <item><c>{"type":"hello","protocol":1|2,"telemetryVersion":1,"bridge":"acars-msfs-bridge","version":"…","source":"simconnect|fake"}</c> — first frame; v2 adds <c>"commands":["ping",…]</c>.</item>
+/// <item><c>{"type":"hello","protocol":1|2,"telemetryVersion":1,"bridge":"acars-msfs-bridge","version":"…","source":"simconnect|xplane|fake"}</c> — first frame; v2 adds <c>"commands":["ping",…]</c>.</item>
 /// <item><c>{"type":"status","sim":"disconnected|connecting|connected","running":…,"paused":…,"simRate":…,"detail"?:…,"retryInMs"?:…}</c></item>
 /// <item><c>{"type":"telemetry","data":TelemetrySnapshot}</c> — ~1 Hz while connected and running.</item>
 /// </list>
