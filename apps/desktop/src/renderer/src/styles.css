@@ -1712,6 +1712,58 @@ span.subject {
   font-size: var(--fs-sub);
 }
 
+/* Help tab: folding questions in the look of "Advanced settings". */
+.help-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.help-item > summary {
+  padding: var(--s-4) 14px;
+  border-radius: var(--r-sheet);
+  background: var(--shell-2);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.help-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.help-item > summary::before {
+  content: "▸ ";
+}
+
+.help-item[open] > summary::before {
+  content: "▾ ";
+}
+
+.help-answer {
+  padding: var(--s-2) 14px var(--s-4);
+  line-height: 1.5;
+}
+
+.help-answer p,
+.help-answer ul,
+.help-answer ol {
+  margin: var(--s-2) 0 0;
+}
+
+.help-answer ul,
+.help-answer ol {
+  padding-left: 20px;
+}
+
+.help-answer li + li {
+  margin-top: 4px;
+}
+
+.help-answer a {
+  color: var(--link);
+}
+
 /* U-09: "next flight" tag; highlighted while a flight runs. */
 .tag {
   display: inline-flex;

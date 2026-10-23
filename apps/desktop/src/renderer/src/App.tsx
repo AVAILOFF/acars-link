@@ -3,6 +3,7 @@ import type { AppState } from '../../shared/api.js';
 import { openActions } from './actions.js';
 import { ErrorBoundary } from './ErrorBoundary.js';
 import { FlightView } from './FlightView.js';
+import { HelpView } from './HelpView.js';
 import { errorText, phaseKey, systemText } from './i18n.js';
 import { ScenariosView } from './ScenariosView.js';
 import { SettingsView } from './SettingsView.js';
@@ -83,6 +84,8 @@ export function App() {
               <FlightView />
             ) : tab === 'scenarios' ? (
               <ScenariosView />
+            ) : tab === 'help' ? (
+              <HelpView />
             ) : (
               <SettingsView />
             )}
@@ -170,6 +173,7 @@ function Rail() {
       {tile('scenarios')}
       <span className="rail-gap" />
       {tile('settings')}
+      {tile('help')}
     </nav>
   );
 }
