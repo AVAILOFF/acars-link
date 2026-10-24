@@ -487,6 +487,7 @@ input[type="text"],
 input[type="password"],
 input[type="number"],
 input[type="search"],
+/* biome-ignore lint/style/noDescendingSpecificity: .topbar select only sets the drag region, no property shared with this rule */
 select {
   height: var(--h-ctl);
   min-width: 0;

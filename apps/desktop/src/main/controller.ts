@@ -1,20 +1,11 @@
 import {
   alignOfpDay,
   type CompiledScenario,
-  destinationPoint,
-  fireFlips,
-  fireGroup,
-  fireTruckCount,
-  medicGroup,
   type Ofp,
-  type RescueCommand,
   type SimCommand,
-  type SmokeCommand,
   selectProfile,
   stationCallsign,
   type TelemetrySnapshot,
-  upwindSide,
-  vehicleTitles,
 } from '@acars/core';
 import { type DataCache, ExternalDataService } from '@acars/data-sources';
 import {
@@ -23,15 +14,7 @@ import {
   loadScenarios,
   ScenarioLoadError,
 } from '@acars/scenarios';
-import {
-  buildRequest,
-  HOPPIE_ENDPOINT,
-  type HttpClient,
-  isFatalReason,
-  parseResponse,
-  SERVER_CALLSIGN,
-  type Transport,
-} from '@acars/transport';
+import type { HttpClient, Transport } from '@acars/transport';
 import type {
   AppState,
   CredentialsView,
@@ -46,7 +29,8 @@ import type {
   Simulator,
 } from '../shared/api.js';
 import { activeSim } from '../shared/api.js';
-import { BridgeClient, type CommandResult, type SocketLike, type Timers } from './bridge.js';
+import { BridgeClient, type SocketLike, type Timers } from './bridge.js';
+import { normalizeHoppieCode, normalizeRapidApiKey, pingHoppie } from './credentials.js';
 import { AppFailure, toAppError } from './errors.js';
 import { Feed } from './feed.js';
 import type { Flags, FlagsStore } from './flags.js';
@@ -54,9 +38,9 @@ import type { OpenRecording, RecordingSink } from './recording.js';
 import type { SecretStore } from './secrets.js';
 import { FlightSession } from './session.js';
 import type { SettingsStore } from './settings.js';
+import { SimEffects } from './sim-effects.js';
 import { fetchOfp, normalizeSimbriefUsername } from './simbrief.js';
 import { specialGroupOn, specialGroups } from './special.js';
-import { VdgsWriter } from './vdgs.js';
 
 /**
  * Everything the app does, without Electron: credentials, settings, scenario selection, OFP,
@@ -117,23 +101,16 @@ export const TURNAROUND_SCENARIOS: readonly string[] = [
   'welcome_turnaround',
 ];
 
-/** Identifies the app to aviationweather.gov, VATSIM, NASA and Overpass (they ask for it). */
 /** Simulator names in the feed (the same in both UI languages). */
 const SIM_NAMES: Readonly<Record<Simulator, string>> = { msfs: 'MSFS', xplane: 'X-Plane 12' };
 
+/** Identifies the app to aviationweather.gov, VATSIM, NASA and Overpass (they ask for it). */
 export const DATA_USER_AGENT = 'ACARS-Link/0.1 (flight simulator ACARS; personal use)';
 
-/** Hoppie logon codes: printable ASCII without spaces (they go into a URL/form field). */
-const LOGON_RE = /^[\x21-\x7e]{4,64}$/;
-/** A RapidAPI key: letters and digits (T30). */
-const RAPIDAPI_KEY_RE = /^[A-Za-z0-9]{20,100}$/;
 /** Longer than any MCDU free text; the core reads words of A–Z0–9 only. */
 const MAX_PILOT_TEXT = 200;
 /** "Check" of the Hoppie code (U-06): at most one ping per this time (invariant 6). */
 export const HOPPIE_CHECK_GAP_MS = 15_000;
-/** Sender of the check ping: Hoppie needs one; a ping locks no callsign (docs/06). */
-const HOPPIE_CHECK_FROM = 'ACARSSIM';
-const HOPPIE_CHECK_TIMEOUT_MS = 15_000;
 
 export class AppController {
   private readonly feed = new Feed();
@@ -151,27 +128,11 @@ export class AppController {
   private lastSim: Simulator | null = null;
   /** External data (T13): prefetches for the loaded OFP, feeds the running flight. */
   private readonly data: ExternalDataService;
-  /** A `smoke_start` was sent and not yet taken down (T34). */
-  private smokeOn = false;
   private readonly flagStore: FlagsStore | { get(): Promise<Flags>; set(f: Flags): Promise<Flags> };
   /** Names of the stored flags, for the UI. */
   private memory: readonly string[] = [];
-  private readonly vdgs: VdgsWriter;
-  /**
-   * Rescue services asked for this flight (T54): the latest airport, the senior fire level (PAN →
-   * MAYDAY: `standby` → `full`, never back) and whether an ambulance is wanted. Null = none.
-   */
-  private rescue: {
-    airport: string;
-    runway: string | null;
-    windFromDeg: number | null;
-    fire: 'full' | 'standby' | null;
-    medic: boolean;
-  } | null = null;
-  /** A `rescue_start` was sent and not yet taken down. */
-  private rescueOn = false;
-  /** Bumped on every rescue request, so a late lookup of an older one is dropped. */
-  private rescueSeq = 0;
+  /** VDGS text, smoke and rescue vehicles in the sim (T22, T34, T54). */
+  private readonly effects: SimEffects;
   /** U-04: close the flight when nothing waits, then load the next OFP (`next`) or not. */
   private closing: 'next' | 'close' | null = null;
   /** A close is in progress (stop, then maybe the OFP), so the main loop starts it only once. */
@@ -195,7 +156,6 @@ export class AppController {
         return f;
       },
     };
-    this.vdgs = new VdgsWriter(o.vdgsDir ?? null);
     this.bridge = new BridgeClient({
       port: 0,
       createSocket: o.createSocket,
@@ -206,7 +166,19 @@ export class AppController {
         this.onBridgeChange();
         o.onChange();
       },
-      onCommandResult: (r) => this.onCommandResult(r),
+      onCommandResult: (r) => this.effects.onCommandResult(r),
+    });
+    this.effects = new SimEffects({
+      feed: this.feed,
+      bridge: this.bridge,
+      data: this.data,
+      settings: () => o.settings.get(),
+      sim: () => this.sim(),
+      flying: () => this.session !== null,
+      aircraftIcao: () => this.ofp?.aircraft.icao,
+      now: o.now,
+      onChange: o.onChange,
+      vdgsDir: o.vdgsDir ?? null,
     });
     try {
       this.scenarios = loadScenarios(o.scenarioSources);
@@ -222,7 +194,7 @@ export class AppController {
     this.lang = s.language;
     this.bridge.setPort(s.bridgePort);
     this.bridge.start();
-    this.vdgs.clear(); // left over from a crash
+    this.effects.clear(); // left over from a crash
     this.memory = Object.keys(await this.flagStore.get()).sort();
   }
 
@@ -231,177 +203,12 @@ export class AppController {
     this.data.stopFlight();
     this.session?.stop(this.o.now());
     this.session = null;
-    this.vdgs.clear();
-    this.stopSmoke();
-    this.stopRescue();
+    this.effects.clear();
   }
 
-  /**
-   * A command for the simulator (T21): VDGS text (T22) goes to GSX's message folder, the rest
-   * to the bridge. Only failures reach the feed (a v1 bridge, a write error), so a working
-   * channel stays quiet; without GSX the VDGS text is dropped silently. Returns the bridge
-   * command id, null for VDGS text.
-   */
+  /** A command for the simulator (T21): VDGS text, smoke, rescue or a plain bridge command. */
   sendSimCommand(c: SimCommand): string | null {
-    if (c.command === 'vdgs') {
-      try {
-        this.vdgs.show(c);
-      } catch (e) {
-        this.feed.system(this.o.now(), 'sim_command_failed', {
-          command: 'vdgs',
-          error: 'failed',
-          detail: e instanceof Error ? e.message : String(e),
-        });
-      }
-      return null;
-    }
-    if (c.command === 'smoke') {
-      void this.sendSmoke(c);
-      return null;
-    }
-    if (c.command === 'rescue') {
-      void this.sendRescue(c);
-      return null;
-    }
-    return this.bridge.sendCommand(c.command, c.args);
-  }
-
-  /**
-   * Smoke column (T34): the runway's middle comes from OurAirports (cached), moved by the
-   * scenario's random offset; the bridge gets plain coordinates. A runway without coordinates,
-   * or no network, is one line in the feed.
-   */
-  private async sendSmoke(c: SmokeCommand): Promise<void> {
-    const fail = (detail: string) => {
-      this.feed.system(this.o.now(), 'sim_command_failed', {
-        command: 'smoke',
-        error: 'failed',
-        detail,
-      });
-      this.o.onChange();
-    };
-    if (c.action === 'stop') {
-      this.stopSmoke();
-      return;
-    }
-    // X-Plane takes no smoke command (T18): nothing to say in the feed.
-    if ((await this.sim()) === 'xplane') return;
-    if (c.runway === null) return fail('no planned runway in the OFP');
-    const mid = await this.data.runwayPoint(c.airport, c.runway, this.o.now());
-    if (mid === null) return fail(`no coordinates for ${c.airport} RWY ${c.runway}`);
-    const p = c.offset ? besideRunway(mid, c.offset.alongNm, c.offset.sideNm) : mid;
-    if (this.session === null) return; // the flight ended while the file was fetched
-    this.smokeOn = true;
-    this.bridge.sendCommand('smoke_start', {
-      lat: Math.round(p.lat * 1e6) / 1e6,
-      lon: Math.round(p.lon * 1e6) / 1e6,
-    });
-  }
-
-  /** Takes the smoke down (end of the flight, app exit); a no-op if none was started. */
-  private stopSmoke(): void {
-    if (!this.smokeOn) return;
-    this.smokeOn = false;
-    this.bridge.sendCommand('smoke_stop');
-  }
-
-  /**
-   * Rescue services (T54, game rules of 2026-10-17): the landing runway from OurAirports (planned,
-   * else the longest, landing into the METAR wind), fire trucks by the aircraft's category group and models by the airport (large
-   * or not, North America or not), the ambulance by region. The bridge gets the whole request each
-   * time; it keeps the vehicles that already stand when only the level or the ambulance changes.
-   */
-  private async sendRescue(c: RescueCommand): Promise<void> {
-    const settings = await this.o.settings.get();
-    // X-Plane takes no rescue commands (T18): nothing to say in the feed.
-    if (!settings.rescue || activeSim(settings.simChoice, this.bridge.view) === 'xplane') return;
-    if (c.action === 'stop') {
-      this.stopRescue();
-      return;
-    }
-    const prev = this.rescue;
-    const rank = (f: 'full' | 'standby' | 'medical' | null) =>
-      f === 'full' ? 2 : f === 'standby' ? 1 : 0;
-    const asked = c.level === 'medical' ? null : c.level;
-    const next = {
-      airport: c.airport,
-      runway: c.runway,
-      windFromDeg: c.windFromDeg,
-      fire: rank(asked) >= rank(prev?.fire ?? null) ? asked : (prev?.fire ?? null),
-      medic: c.level === 'medical' || (prev?.medic ?? false),
-    };
-    if (
-      prev !== null &&
-      prev.airport === next.airport &&
-      prev.fire === next.fire &&
-      prev.medic === next.medic
-    ) {
-      return; // a lower level after a higher one, or the same again
-    }
-    this.rescue = next;
-    const seq = ++this.rescueSeq;
-    const fail = (detail: string) => {
-      this.feed.system(this.o.now(), 'sim_command_failed', {
-        command: 'rescue',
-        error: 'failed',
-        detail,
-      });
-      this.o.onChange();
-    };
-    const now = this.o.now();
-    const rwy = await this.data.landingRunway(next.airport, next.runway, now, next.windFromDeg);
-    if (seq !== this.rescueSeq || this.session === null) return; // superseded or flight over
-    if (rwy === null) {
-      return fail(
-        `no runway coordinates for ${next.airport}${next.runway ? ` RWY ${next.runway}` : ''}`,
-      );
-    }
-    const large = next.fire === null ? false : await this.data.isLargeAirport(next.airport, now);
-    if (seq !== this.rescueSeq || this.session === null) return;
-    const ofp = this.ofp;
-    const t = settings.rescueTitles;
-    const fireTitles =
-      next.fire === null
-        ? []
-        : vehicleTitles(
-            fireGroup(t, next.airport, large === true),
-            fireTruckCount(ofp?.aircraft.icao),
-          );
-    const medicTitles = next.medic ? vehicleTitles(medicGroup(t, next.airport), 1) : [];
-    if (fireTitles.length === 0 && medicTitles.length === 0) {
-      return fail('no vehicle titles in the settings');
-    }
-    this.rescueOn = true;
-    this.bridge.sendCommand('rescue_start', {
-      level: next.fire ?? 'medical',
-      thrLat: Math.round(rwy.thrLat * 1e6) / 1e6,
-      thrLon: Math.round(rwy.thrLon * 1e6) / 1e6,
-      hdg: Math.round(rwy.headingDeg * 10) / 10 === 360 ? 0 : Math.round(rwy.headingDeg * 10) / 10,
-      lengthM: rwy.lengthM,
-      side: upwindSide(rwy.headingDeg, next.windFromDeg),
-      fire: fireTitles.join('|'),
-      fireFlip: fireFlips(fireTitles, settings.rescueFlipped),
-      medic: medicTitles.join('|'),
-    });
-  }
-
-  /** Takes the rescue vehicles down (alarm over, end of the flight, app exit). */
-  private stopRescue(): void {
-    this.rescue = null;
-    this.rescueSeq++;
-    if (!this.rescueOn) return;
-    this.rescueOn = false;
-    this.bridge.sendCommand('rescue_stop');
-  }
-
-  private onCommandResult(r: CommandResult): void {
-    if (r.ok) return;
-    this.feed.system(this.o.now(), 'sim_command_failed', {
-      command: r.command,
-      error: r.error ?? '',
-      detail: r.detail ?? '',
-    });
-    this.o.onChange();
+    return this.effects.send(c);
   }
 
   /** Main loop, ~1 Hz. */
@@ -574,15 +381,7 @@ export class AppController {
   }
 
   async setHoppieCode(input: unknown): Promise<CredentialsView> {
-    const code = typeof input === 'string' ? input.trim() : '';
-    if (!LOGON_RE.test(code)) {
-      throw new AppFailure(
-        'invalid_input',
-        'logon code: 4..64 characters without spaces',
-        'logon_format',
-      );
-    }
-    await this.o.secrets.set('hoppieLogon', code);
+    await this.o.secrets.set('hoppieLogon', normalizeHoppieCode(input));
     return this.credentials();
   }
 
@@ -593,15 +392,7 @@ export class AppController {
 
   /** The user's RapidAPI key for AeroDataBox (T30, docs/07 C1); used from the next OFP load. */
   async setAerodataboxKey(input: unknown): Promise<CredentialsView> {
-    const key = typeof input === 'string' ? input.trim() : '';
-    if (!RAPIDAPI_KEY_RE.test(key)) {
-      throw new AppFailure(
-        'invalid_input',
-        'RapidAPI key: 20..100 letters and digits',
-        'rapidapi_format',
-      );
-    }
-    await this.o.secrets.set('aerodataboxKey', key);
+    await this.o.secrets.set('aerodataboxKey', normalizeRapidApiKey(input));
     return this.credentials();
   }
 
@@ -638,29 +429,8 @@ export class AppController {
       });
     }
     this.lastHoppieCheck = now;
-    const req = buildRequest(
-      HOPPIE_ENDPOINT,
-      { logon, from: HOPPIE_CHECK_FROM, to: SERVER_CALLSIGN, type: 'ping', packet: '' },
-      HOPPIE_CHECK_TIMEOUT_MS,
-    );
-    let body: string;
-    try {
-      const res = await this.o.http.request(req);
-      if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
-      body = res.body;
-    } catch (e) {
-      // Only the message: the request URL holds the code.
-      throw new AppFailure('network', e instanceof Error ? e.message : String(e));
-    }
-    let res: ReturnType<typeof parseResponse>;
-    try {
-      res = parseResponse(body);
-    } catch (e) {
-      throw new AppFailure('network', e instanceof Error ? e.message : String(e));
-    }
-    if (res.ok) return null;
-    if (isFatalReason(res.reason)) throw new AppFailure('hoppie_logon', res.reason);
-    throw new AppFailure('network', `Hoppie: ${res.reason}`);
+    await pingHoppie(this.o.http, logon);
+    return null;
   }
 
   // --- flight ---
@@ -810,9 +580,7 @@ export class AppController {
     this.closing = null;
     s.stop(this.o.now());
     this.data.stopFlight();
-    this.vdgs.clear();
-    this.stopSmoke();
-    this.stopRescue();
+    this.effects.clear();
     await this.saveMemory(s);
     this.sessionFired = s.sessionFired;
     this.session = null;
@@ -998,20 +766,6 @@ export class AppController {
       lineWidth: profile.lineWidth,
     };
   }
-}
-
-/**
- * A point beside a runway: `alongNm` from its middle in the direction of the runway (negative =
- * back), then `sideNm` off its axis (positive = right of that direction).
- */
-function besideRunway(
-  mid: { lat: number; lon: number; headingDeg: number },
-  alongNm: number,
-  sideNm: number,
-): { lat: number; lon: number } {
-  const move = (p: { lat: number; lon: number }, deg: number, nm: number) =>
-    nm === 0 ? p : destinationPoint(p, nm > 0 ? deg : deg + 180, Math.abs(nm));
-  return move(move(mid, mid.headingDeg, alongNm), mid.headingDeg + 90, sideNm);
 }
 
 /** `2026-10-22` (UTC) for the feed. */

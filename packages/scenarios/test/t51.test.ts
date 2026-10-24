@@ -70,10 +70,10 @@ interface Run {
   readonly core: AcarsCore;
 }
 
-/** Flies; the pilot answers the first question of `id` with `answer` on the next tick. */
+/** Flies; the pilot answers the first question (of scenario `_id`) with `answer` on the next tick. */
 function fly(
   scenarios: readonly CompiledScenario[],
-  id: string,
+  _id: string,
   answer: string | null,
   o: {
     places?: Readonly<Record<string, AirportPlace | null>>;

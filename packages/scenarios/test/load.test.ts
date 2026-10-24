@@ -72,7 +72,7 @@ describe('parseScenario / loadScenario', () => {
     const dup = { file: 'b.yaml', source: minimal };
     const ex = {
       file: 'c.yaml',
-      source: minimal.replace('hello', 'other') + 'excludes: [ghost]\n',
+      source: `${minimal.replace('hello', 'other')}excludes: [ghost]\n`,
     };
     const bad = { file: 'd.yaml', source: 'id: 1' };
     try {
