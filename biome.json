@@ -34,7 +34,10 @@
   },
   "linter": {
     "rules": {
-      "preset": "recommended"
+      "preset": "recommended",
+      "complexity": {
+        "useLiteralKeys": "off"
+      }
     }
   },
   "overrides": [

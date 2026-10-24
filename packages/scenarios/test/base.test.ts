@@ -182,7 +182,6 @@ describe('the whole set on one flight', () => {
   });
 
   it('slot_missed: only when airborne later than CTOT + 10 min (window −5/+10, T43)', () => {
-    const MIN = 60_000;
     const set = base
       .filter((x) => x.id === 'slot_ctot' || x.id === 'slot_missed')
       .map((x) => ({ ...x, probability: 1 }));

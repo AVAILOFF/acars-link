@@ -1016,7 +1016,7 @@ function fuelVariables(
   // The slip names the current reading as FOB: UPLIFT and DIFF use the same number.
   const fob = input.telemetry?.fuelKg ?? f?.anchor ?? null;
   return {
-    'flight.fuel_stable': f !== null && f.changed && input.now - f.since >= 60_000,
+    'flight.fuel_stable': f?.changed === true && input.now - f.since >= 60_000,
     'flight.fuel_before_kg': f?.first ?? null,
     'flight.fuel_uplift_kg': f === null || fob === null ? null : fob - f.first,
     'flight.fuel_diff_kg': fob === null ? null : fob - planned,

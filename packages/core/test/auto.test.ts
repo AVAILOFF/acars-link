@@ -5,7 +5,6 @@ import {
   AcarsCore,
   type CoreEvent,
   cpdlcPacket,
-  createRng,
   cruiseSpan,
   DIRECT_MIN_SAVING_NM,
   DIRECT_TOD_MARGIN_NM,
