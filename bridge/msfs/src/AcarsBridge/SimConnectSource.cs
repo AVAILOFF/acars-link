@@ -41,11 +41,11 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         public string Title;
     }
 
-    /// <summary>Aircraft position for the rescue vehicles (T54): FLOAT64 × 7, in this order.</summary>
+    /// <summary>Aircraft position for the rescue vehicles (T54): FLOAT64 × 8, in this order.</summary>
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     private struct RescuePos
     {
-        public double Lat, Lon, Alt, Hdg, Gs, OnGround, ParkingBrake;
+        public double Lat, Lon, Alt, Hdg, Gs, OnGround, ParkingBrake, FenixParkBrake;
     }
 
     /// <summary><c>SIM DISABLED</c> of a rescue vehicle (Bool as FLOAT64).</summary>
@@ -86,6 +86,8 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
 
     /// <summary>Object id of the smoke SimObject (0 = none); set and read on the message thread only.</summary>
     private uint _smokeId;
+    /// <summary>TITLE of the last telemetry frame: the rescue position has none (Fenix parking brake).</summary>
+    private string _title = "";
     /// <summary>Objects asked for and not yet assigned an id (ids come back in the order asked).</summary>
     private int _smokeAsked;
     /// <summary>How many of those are to be removed as soon as their id comes (a respawn may ask anew before).</summary>
@@ -318,7 +320,8 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             if ((Req)data.dwRequestID == Req.RescuePos)
             {
                 var p = (RescuePos)data.dwData[0];
-                ApplyRescue(sc, _rescue.OnPosition(new RescueAircraft(p.Lat, p.Lon, p.Hdg, p.Gs, p.OnGround != 0, p.ParkingBrake != 0)));
+                ApplyRescue(sc, _rescue.OnPosition(new RescueAircraft(p.Lat, p.Lon, p.Hdg, p.Gs, p.OnGround != 0,
+                    TelemetryMapper.ParkingBrakeSet(p.ParkingBrake, p.FenixParkBrake, _title))));
                 return;
             }
             var created = (int)data.dwRequestID - (int)Req.VehicleHdgInit;
@@ -341,6 +344,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
             }
             if ((Req)data.dwRequestID != Req.Telemetry) return;
             var raw = (RawData)data.dwData[0];
+            _title = raw.Title ?? "";
             var before = pump.SimRate;
             pump.OnFrame(new SimFrame(raw.Values, raw.Title ?? ""));
             if (Math.Abs(pump.SimRate - before) > 1e-6) Publish();
@@ -386,7 +390,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         [
             ("PLANE LATITUDE", "degrees"), ("PLANE LONGITUDE", "degrees"), ("PLANE ALTITUDE", "feet"),
             ("PLANE HEADING DEGREES TRUE", "degrees"), ("GROUND VELOCITY", "knots"), ("SIM ON GROUND", "Bool"),
-            ("BRAKE PARKING POSITION", "Bool"),
+            ("BRAKE PARKING POSITION", "Bool"), (SimVars.FenixParkBrakeLvar, "number"),
         ];
         foreach (var (name, unit) in rescueVars)
             sc.AddToDataDefinition(Def.Rescue, name, unit, SIMCONNECT_DATATYPE.FLOAT64, 0f, SimConnect.SIMCONNECT_UNUSED);

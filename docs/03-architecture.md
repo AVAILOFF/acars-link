@@ -79,7 +79,7 @@ Clock: интерфейс `now(): number` (мс UTC). В ядре только `
 | `vsFpm` | VERTICAL SPEED | feet per minute |
 | `hdgTrue` | PLANE HEADING DEGREES TRUE | degrees |
 | `onGround` | SIM ON GROUND | bool |
-| `parkingBrake` | BRAKE PARKING POSITION | bool |
+| `parkingBrake` | BRAKE PARKING POSITION; у Fenix (TITLE начинается с `Fenix`) — ещё `L:S_MIP_PARKING_BRAKE` ≥ 0.5 (одно из двух) | bool |
 | `beacon` | LIGHT BEACON | bool |
 | `engRunning[n]` | GENERAL ENG COMBUSTION:n | bool |
 | `engN2[n]` | ENG N2 RPM:n или TURB ENG N2:n | percent |
@@ -94,6 +94,8 @@ Clock: интерфейс `now(): number` (мс UTC). В ядре только `
 | `touchdownFpm` | PLANE TOUCHDOWN NORMAL VELOCITY (T46) | **feet per second** × 60 → ft/мин; сим держит значение до следующего касания; в TS поле необязательное (старые записи) |
 
 Пример — `reference/telemetry.sample.json`.
+
+Стояночный тормоз Fenix A320 (2026-10-23, баг: приложение «рулило» на стоянке): Fenix 3.0.0.7438 (обновление 2026-10-21) не ведёт BRAKE PARKING POSITION — во всех полётах с 22.10 она 0. **Проверено человеком** (MSFS 2024, Fenix A320, LIRF, стоянка, двигатели выключены, 2026-10-23, проба SimConnect): `L:S_MIP_PARKING_BRAKE` идёт за рукояткой 1 → 0 → 1, `L:B_HYD_PARKING_BRAKE_SET` всё время 0, BRAKE PARKING POSITION — 0. Чтение L-переменной: `AddToDataDefinition("L:NAME", "number")`, только FLOAT64 (SDK, SimConnect_AddToDataDefinition, сверено 2026-10-23). **Одобрено пользователем 2026-10-23:** Fenix определяется по TITLE с префикса `Fenix`, тормоз = SimVar или LVar; у остальных самолётов — только SimVar. Тормоз в машинах аварийных служб (T54) — по тому же правилу.
 
 ## Профили дисплеев
 
