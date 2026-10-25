@@ -51,6 +51,19 @@ export const B73X_PROFILE: DisplayProfile = {
   allowedChars: DEFAULT_ALLOWED_CHARS,
 };
 
+/**
+ * Boeing 757 (BlueBird 757, T60). `[ПРОВЕРИТЬ]` the CDU width: base width until
+ * "Проверка человеком" (approved by the user 2026-10-25).
+ */
+export const B75X_PROFILE: DisplayProfile = {
+  id: 'b75x',
+  matchIcao: ['B752', 'B753'],
+  matchTitleRegex: '\\b(B?757)',
+  lineWidth: BASE_LINE_WIDTH,
+  uppercase: true,
+  allowedChars: DEFAULT_ALLOWED_CHARS,
+};
+
 /** Boeing 777 family: base + 3 (as in the original). */
 export const B77X_PROFILE: DisplayProfile = {
   id: 'b77x',
@@ -73,6 +86,7 @@ export const B78X_PROFILE: DisplayProfile = {
 
 export const BUILTIN_PROFILES: readonly DisplayProfile[] = [
   B73X_PROFILE,
+  B75X_PROFILE,
   B77X_PROFILE,
   B78X_PROFILE,
 ];

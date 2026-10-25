@@ -13,6 +13,10 @@ import type { Rng } from '../random/rng.js';
  *   Boeing 737NG D6-58325-7 Rev C). Those documents carry no ULD position codes, so none are
  *   generated. Other families (777, 787, 350, 380, 747, regionals) are assumed to match.
  * - Seat letters are an approved assumption: the layout depends on the airline.
+ * - B757 (T60, approved by the user 2026-10-25): narrow 3-3 and EICAS are common knowledge, no
+ *   dated primary source for EICAS `[ПРОВЕРИТЬ]`. Holds: FAA AD 2024-13014 names only the
+ *   "forward and aft lower lobe cargo compartments" (the 757 airport-planning document was not
+ *   read), so no bulk hold.
  */
 
 export const AIRCRAFT_FAMILIES = [
@@ -22,6 +26,7 @@ export const AIRCRAFT_FAMILIES = [
   'A380',
   'B737',
   'B747',
+  'B757',
   'B777',
   'B787',
   'E-JET',
@@ -46,6 +51,7 @@ const FAMILY_INFO: Readonly<Record<AircraftFamily, Omit<AircraftInfo, 'family'>>
   A380: { maker: 'AIRBUS', body: 'WIDE', alertSys: 'ECAM' },
   B737: { maker: 'BOEING', body: 'NARROW', alertSys: null },
   B747: { maker: 'BOEING', body: 'WIDE', alertSys: 'EICAS' },
+  B757: { maker: 'BOEING', body: 'NARROW', alertSys: 'EICAS' },
   B777: { maker: 'BOEING', body: 'WIDE', alertSys: 'EICAS' },
   B787: { maker: 'BOEING', body: 'WIDE', alertSys: 'EICAS' },
   'E-JET': { maker: 'EMBRAER', body: 'NARROW', alertSys: 'EICAS' },
@@ -61,6 +67,7 @@ const CODES: Readonly<Record<AircraftFamily, string>> = {
   A380: 'A388',
   B737: 'B731 B732 B733 B734 B735 B736 B737 B738 B739 B37M B38M B39M B3XM',
   B747: 'B741 B742 B743 B744 B748 B74D B74R B74S',
+  B757: 'B752 B753',
   B777: 'B772 B773 B77L B77W B778 B779',
   B787: 'B788 B789 B78X',
   'E-JET': 'E170 E75S E75L E190 E195 E290 E295',
@@ -98,6 +105,9 @@ export function aircraftVariables(icao: string | null | undefined): {
 
 const REGIONAL: ReadonlySet<AircraftFamily> = new Set(['E-JET', 'CRJ', 'ATR', 'DH8']);
 
+/** Families with forward and aft holds only: the regionals and the 757 (T60). */
+const NO_BULK_HOLD: ReadonlySet<AircraftFamily> = new Set([...REGIONAL, 'B757']);
+
 /** Seat letters: regional 2-2 `ACDF`, narrow `A–F`, wide `A–K` without I; unknown type `A–F`. */
 export function seatLetters(family: string | null, body: string | null): string {
   if (family !== null && REGIONAL.has(family as AircraftFamily)) return 'ACDF';
@@ -108,13 +118,14 @@ const ULD_KINDS = ['LD3', 'PALLET'] as const;
 
 /**
  * Where in the hold: `FWD HOLD`, `AFT HOLD`, `BULK HOLD`; the wide-bodies add the ULD kind
- * to the forward and aft holds (`AFT HOLD LD3`), never a position number. Regional types have
- * no bulk hold in this table; an unknown type is `CARGO HOLD`.
+ * to the forward and aft holds (`AFT HOLD LD3`), never a position number. Regional types and
+ * the 757 have no bulk hold in this table; an unknown type is `CARGO HOLD`.
  */
 export function holdPosition(family: string | null, body: string | null, rng: Rng): string {
   if (family === null) return 'CARGO HOLD';
-  const regional = REGIONAL.has(family as AircraftFamily);
-  const holds = regional ? ['FWD', 'AFT'] : ['FWD', 'AFT', 'BULK'];
+  const holds = NO_BULK_HOLD.has(family as AircraftFamily)
+    ? ['FWD', 'AFT']
+    : ['FWD', 'AFT', 'BULK'];
   const hold = rng.pick(holds) as string;
   if (hold === 'BULK') return 'BULK HOLD';
   return body === 'WIDE' ? `${hold} HOLD ${rng.pick([...ULD_KINDS])}` : `${hold} HOLD`;

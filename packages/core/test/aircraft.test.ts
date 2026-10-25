@@ -25,6 +25,8 @@ describe('aircraftInfo', () => {
     ['A35K', 'A350', 'AIRBUS', 'WIDE', 'ECAM'],
     ['A388', 'A380', 'AIRBUS', 'WIDE', 'ECAM'],
     ['B748', 'B747', 'BOEING', 'WIDE', 'EICAS'],
+    ['B752', 'B757', 'BOEING', 'NARROW', 'EICAS'],
+    ['B753', 'B757', 'BOEING', 'NARROW', 'EICAS'],
     ['B789', 'B787', 'BOEING', 'WIDE', 'EICAS'],
     ['A333', 'A330', 'AIRBUS', 'WIDE', 'ECAM'],
     ['E190', 'E-JET', 'EMBRAER', 'NARROW', 'EICAS'],
@@ -62,7 +64,24 @@ describe('seat letters and hold positions', () => {
       'FWD HOLD PALLET',
     ]);
     expect([...seen('ATR', 'NARROW')].sort()).toEqual(['AFT HOLD', 'FWD HOLD']);
+    expect([...seen('B757', 'NARROW')].sort()).toEqual(['AFT HOLD', 'FWD HOLD']);
     expect([...seen(null, null)]).toEqual(['CARGO HOLD']);
+  });
+
+  it('B757 (T60): A–F seats; the other families draw the same holds on the same seed', () => {
+    expect(seatLetters('B757', 'NARROW')).toBe('ABCDEF');
+    const draw = (f: string, b: string) => {
+      const rng = createRng('t60');
+      return Array.from({ length: 6 }, () => holdPosition(f, b, rng)).join('|');
+    };
+    // Drawn with the code before T60 (seed `t60`).
+    const narrow = 'BULK HOLD|AFT HOLD|AFT HOLD|BULK HOLD|BULK HOLD|FWD HOLD';
+    expect(draw('A320', 'NARROW')).toBe(narrow);
+    expect(draw('B737', 'NARROW')).toBe(narrow);
+    expect(draw('B777', 'WIDE')).toBe(
+      'BULK HOLD|AFT HOLD PALLET|BULK HOLD|BULK HOLD|FWD HOLD LD3|AFT HOLD PALLET',
+    );
+    expect(draw('ATR', 'NARROW')).toBe('AFT HOLD|AFT HOLD|AFT HOLD|AFT HOLD|AFT HOLD|AFT HOLD');
   });
 });
 
