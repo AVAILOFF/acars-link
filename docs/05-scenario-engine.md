@@ -157,7 +157,7 @@ steps:                     # последовательность
 
 ## Тип самолёта (T40)
 
-- Переменные из `ofp.aircraft.icao` (`core/src/scenario/aircraft.ts`; неизвестный тип — `null`): `aircraft.family` (A320, A330, A350, A380, B737, B747, B777, B787, E-JET, CRJ, ATR, DH8), `aircraft.maker`, `aircraft.body` (`NARROW`/`WIDE`), `aircraft.alert_sys` (`ECAM`/`EICAS`; у ATR и DH8 `null`).
+- Переменные из `ofp.aircraft.icao` (`core/src/scenario/aircraft.ts`; неизвестный тип — `null`): `aircraft.family` (A320, A330, A350, A380, B737, B747, B757 — T60, B777, B787, E-JET, CRJ, ATR, DH8), `aircraft.maker`, `aircraft.body` (`NARROW`/`WIDE`), `aircraft.alert_sys` (`ECAM`/`EICAS`; у ATR и DH8 `null`).
 - **Таблица кодов типов не сверена с ICAO Doc 8643** (выгрузки данных не было; решение пользователя 2026-10-14) — `[ПРОВЕРИТЬ]` на реальных OFP. Названия отсеков и виды ULD — из Airbus AC (A320 Rev. 44, A330 Rev. 32) и Boeing ACAPS 737NG (Rev C); кодов позиций ULD в них нет, поэтому номера позиций не генерируются. Буквы мест — допущение (компоновка зависит от авиакомпании).
 
 ### T43/T44: гейт, слот, топливо (2026-10-14)

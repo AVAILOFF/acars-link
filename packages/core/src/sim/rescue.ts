@@ -27,6 +27,7 @@ export type RescueCategory = '1-5' | '6-7' | '8-10';
 export const RESCUE_CATEGORY: Readonly<Record<AircraftFamily, RescueCategory>> = {
   A320: '6-7',
   B737: '6-7',
+  B757: '6-7',
   A330: '8-10',
   A350: '8-10',
   A380: '8-10',

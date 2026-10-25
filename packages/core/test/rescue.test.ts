@@ -25,6 +25,7 @@ describe('rescue vehicles (T54)', () => {
     expect(fireTruckCount('A320')).toBe(4);
     expect(fireTruckCount('A21N')).toBe(4);
     expect(fireTruckCount('B38M')).toBe(4);
+    expect(fireTruckCount('B752')).toBe(4); // narrow-body jet (T60)
     for (const t of ['A332', 'A359', 'A388', 'B744', 'B77W', 'B789'])
       expect(fireTruckCount(t)).toBe(8);
     for (const t of ['E170', 'E75L', 'CRJ9', 'AT76', 'DH8C']) expect(fireTruckCount(t)).toBe(1);

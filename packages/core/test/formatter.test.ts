@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   B73X_PROFILE,
+  B75X_PROFILE,
   B77X_PROFILE,
   B78X_PROFILE,
   BASE_LINE_WIDTH,
@@ -175,6 +176,17 @@ describe('DisplayProfile', () => {
     expect(selectProfile({ title: 'iFly 737 MAX 8' }).id).toBe('b73x');
     expect(selectProfile({ icao: 'B38M', title: 'iFly 737 MAX 8' }).id).toBe('b73x');
     expect(selectProfile({ icao: 'B77W', title: 'PMDG 777-300ER' }).id).toBe('b77x');
+  });
+
+  it('B757: b75x at the base width until the human check (T60)', () => {
+    expect(B75X_PROFILE.lineWidth).toBe(BASE_LINE_WIDTH);
+    expect(B75X_PROFILE.allowedChars).toBe(DEFAULT_PROFILE.allowedChars);
+    for (const icao of ['B752', 'b753']) expect(selectProfile({ icao }).id).toBe('b75x');
+    expect(selectProfile({ title: 'BlueBird 757-200' }).id).toBe('b75x');
+    expect(selectProfile({ title: 'Bluebird B757-200 RR' }).id).toBe('b75x');
+    expect(selectProfile({ icao: 'B752', title: 'BlueBird 757-200 PW' }).id).toBe('b75x');
+    expect(selectProfile({ icao: 'B738' }).id).toBe('b73x');
+    expect(selectProfile({ title: 'Some 1757 livery' }).id).toBe('default');
   });
 
   it('earlier (user) profiles override the built-ins', () => {
