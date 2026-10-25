@@ -67,7 +67,7 @@ pnpm bridge:test      # dotnet test bridge/msfs — при изменениях 
 
 Аварийные службы (T54): шаг `rescue` → команда ядра `rescue`, правила машин — `packages/core/src/sim/rescue.ts`, ВПП и `large_airport` — `packages/data-sources/src/ourairports.ts`, мосту `rescue_start` / `rescue_stop` из `controller.ts`, логика в мосте — `bridge/msfs/src/AcarsBridge/RescueController.cs`.
 
-Особые события (T29): переменные — `packages/core/src/scenario/special-vars.ts`, затмения/авиашоу/история авиации — таблицы `packages/core/src/ext/{eclipses,airshows,aviation-history}.ts` (`eclipses.ts` генерируется `node tools/eclipse-table/generate.mjs <besselian.csv>`, не править вручную; у авиашоу и фактов — источник и дата сверки).
+Особые события (T29): переменные — `packages/core/src/scenario/special-vars.ts`, затмения/авиашоу/история авиации — таблицы `packages/core/src/ext/{eclipses,airshows,aviation-history}.ts` (`eclipses.ts` генерируется `node tools/eclipse-table/generate.mjs <besselian.csv>`, не править вручную; у авиашоу и фактов — источник и дата сверки). Ночные запреты аэропортов назначения (T42, сценарий `curfew_dest`) — таблица `packages/core/src/ext/curfews.ts` (только настоящие запреты посадок, у каждой записи источник и дата сверки; нет записи — нет сообщения).
 
 `tools/replay` (`@acars/replay`) — формат записи полёта (JSONL: заголовок с OFP и опциями ядра, затем входы ядра по порядку), прогон через ядро, CLI. Приложение пишет запись каждого полёта в `<userData>/recordings` (настройка «Записывать полёты», хранятся последние 20).
 

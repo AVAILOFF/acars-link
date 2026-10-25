@@ -12,6 +12,7 @@ import {
   type DisplayProfile,
   type ExtDataUpdate,
   generateSyntheticFlight,
+  latestLanding,
   MISSING,
   type Ofp,
   type OutboundMessage,
@@ -59,8 +60,10 @@ const kg = ofpOf('rctp-rjbb-a35k-kgs');
 const lbs = ofpOf('rctp-rjbb-a35k-lbs-synthetic');
 
 /** The same OFP a day later (the next flight of the chains). */
-function nextDay(ofp: Ofp, days = 1): Ofp {
-  const d = days * 86_400_000;
+const nextDay = (ofp: Ofp, days = 1): Ofp => shifted(ofp, days * 86_400_000);
+
+/** The OFP with every time `d` ms later. */
+function shifted(ofp: Ofp, d: number): Ofp {
   const t = ofp.times;
   const add = (x: number | null) => (x === null ? null : x + d);
   return {
@@ -117,6 +120,8 @@ interface Setup {
   readonly delayMin?: number;
   /** The flight really starts this late (the synthetic flight ignores DELAY). */
   readonly lateMin?: number;
+  /** The flight goes to an airport with a night curfew, the estimated landing 45 min before it. */
+  readonly curfew?: boolean;
   /** Cold weather at the origin. */
   readonly cold?: boolean;
   /** The pilot declares a diversion to the first alternate in cruise. */
@@ -151,7 +156,7 @@ const SETUP: Readonly<Record<string, Setup>> = {
     }),
   },
   deicing_holdover: { cold: true, answers: ['READY'] },
-  curfew_dest: { delayMin: 90, answers: ['ABLE', 'UNABLE'] },
+  curfew_dest: { curfew: true, delayMin: 90, answers: ['ABLE', 'UNABLE'] },
   tankering: { answers: ['ACCEPT', 'DECLINE'] },
   short_connection: { delayMin: 30 },
   atc_flow_delay: { with: ['slot_ctot'] },
@@ -309,6 +314,23 @@ function shaped(c: Case, setup: Setup): Case {
   return flight === c.flight ? c : { ...c, flight };
 }
 
+/**
+ * `c` to Osaka Itami (RJOO, curfew 21:00 local, T42) instead of Kansai, every time shifted so
+ * the estimated landing is 45 min before the curfew: only a delay brings it within 20.
+ */
+function toCurfew(c: Case): Case {
+  const ofp = { ...c.ofp, destination: { ...c.ofp.destination, icao: 'RJOO', utcOffsetH: 9 } };
+  const latest = latestLanding(ofp);
+  const t = ofp.times;
+  if (latest === null) throw new Error('RJOO has no curfew');
+  const d = latest - 45 * 60_000 - (t.estOnMs ?? t.estInMs);
+  return {
+    name: `${c.name} to RJOO`,
+    ofp: shifted(ofp, d),
+    flight: { ...c.flight, snapshots: c.flight.snapshots.map((s) => ({ ...s, t: s.t + d })) },
+  };
+}
+
 /** A plain synthetic flight of `ofp` that starts boarding `min` minutes late. */
 function late(ofp: Ofp, min: number): Case {
   const startMs = ofp.times.schedOutMs - 35 * 60_000 + min * 60_000;
@@ -349,7 +371,8 @@ describe.each(FLIGHTS)('each irregular scenario alone on $name', (c) => {
   it.each(cases)('%s', (_, id, answer) => {
     const setup = SETUP[id] ?? {};
     const set = [byId(id), ...(setup.with ?? []).map(byId)];
-    const cc = shaped(setup.lateMin === undefined ? c : late(c.ofp, setup.lateMin), setup);
+    const base = setup.lateMin === undefined ? c : late(c.ofp, setup.lateMin);
+    const cc = shaped(setup.curfew === true ? toCurfew(base) : base, setup);
     for (const profile of [DEFAULT_PROFILE, B77X_PROFILE, B78X_PROFILE]) {
       const r = fly(cc, set, {
         profile,
@@ -497,12 +520,24 @@ describe('chains inside a flight', () => {
   });
 
   it('the curfew needs a delay; UNABLE diverts to the alternate', () => {
-    expect(ids(fly(c, [byId('curfew_dest')]))).toEqual([]);
-    const r = fly(c, [byId('curfew_dest')], { delayMin: 90, answer: 'UNABLE' });
+    const itami = toCurfew(c);
+    expect(ids(fly(itami, [byId('curfew_dest')]))).toEqual([]);
+    const r = fly(itami, [byId('curfew_dest')], { delayMin: 90, answer: 'UNABLE' });
+    // 21:00 local at Itami (UTC+9), 45 min from the estimate, 90 min late: -45.
+    expect(textsOf(r, 'curfew_dest')[0]).toContain(
+      'NOISE CURFEW AT RJOO LATEST LANDING 1200Z LOCAL 2100 MARGIN -45 MIN EXPEDITE IF ABLE REPLY ABLE OR UNABLE',
+    );
     expect(textsOf(r, 'curfew_dest')[1]).toContain('PLAN DIVERT RJGG');
     expect(r.events).toContainEqual(
       expect.objectContaining({ type: 'SET', name: 'flight.divert', value: 'RJGG' }),
     );
+  });
+
+  it('no curfew message where the destination has none (Kansai), whatever the delay', () => {
+    for (const delayMin of [90, 600])
+      expect(ids(fly(c, [byId('curfew_dest')], { delayMin })).filter((x) => x !== '#ops')).toEqual(
+        [],
+      );
   });
 
   it('de-icing only at a cold origin', () => {

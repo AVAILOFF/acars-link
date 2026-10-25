@@ -254,8 +254,8 @@ describe('irregular data', () => {
   it('is deterministic per seed and computed from the published schedule', () => {
     expect(buildIrregularData(ofp, 's', 40)).toEqual(buildIrregularData(ofp, 's', 40));
     const d = buildIrregularData(ofp, 's', 40);
-    expect(d.curfew % (15 * 60_000)).toBe(0);
-    expect(d.curfew).toBeGreaterThan(ofp.times.schedOnMs ?? 0);
+    // RJBB has no night curfew (T42: real curfews only).
+    expect(d.curfew).toBeNull();
     expect(d.connectStd).toBeGreaterThan(ofp.times.schedInMs);
     expect(d.connectFlight).toMatch(/^SJX\d{3}$/);
     expect(d.tankerKg % 100).toBe(0);

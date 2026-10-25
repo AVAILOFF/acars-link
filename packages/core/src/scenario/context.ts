@@ -832,6 +832,7 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
   const i = input.irr;
   const t = ofp.times;
   const offset = ofp.destination.utcOffsetH;
+  const curfew = i?.curfew ?? null;
   // A real departure of the airline (T30, AeroDataBox) wins over the synthetic one.
   const real = i === undefined ? null : pickConnection(input.ext?.connex, ofp, input.seed ?? 0);
   const std = real?.std ?? i?.connectStd ?? null;
@@ -841,9 +842,9 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
     'flight.nearest_any': nearestAny?.icao ?? null,
     'flight.nearest_any_nm': nearestAny?.nm ?? null,
     'flight.divert_nm': divertNm,
-    'irr.curfew': i?.curfew ?? null,
-    'irr.curfew_local': i === undefined || offset === null ? null : i.curfew + offset * 3_600_000,
-    'irr.curfew_margin_min': i === undefined ? null : minutes(i.curfew - (t.estOnMs ?? t.estInMs)),
+    'irr.curfew': curfew,
+    'irr.curfew_local': curfew === null || offset === null ? null : curfew + offset * 3_600_000,
+    'irr.curfew_margin_min': curfew === null ? null : minutes(curfew - (t.estOnMs ?? t.estInMs)),
     // A confirmed flight (test hook) by its number; an airline route only (OpenFlights) as
     // `ONWARD FLT`; else none: no invented flights (T43).
     'irr.connect_flight':
