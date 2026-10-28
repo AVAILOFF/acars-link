@@ -1141,9 +1141,15 @@ input.short {
   background: var(--sheet-header);
 }
 
-/* Pages of sheets (scenarios, settings). */
+/* Pages of sheets (scenarios, settings, help): as wide as the content area, so they grow with the
+   window. Only running prose keeps a readable measure. */
 .page {
-  max-width: 820px;
+  width: 100%;
+}
+
+.page > .hint,
+.help-answer > * {
+  max-width: 100ch;
 }
 
 .page-title {
