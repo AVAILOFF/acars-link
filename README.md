@@ -37,12 +37,19 @@ reference/               примеры сценариев, телеметрии
 
 ```
 pnpm install
-pnpm check          # typecheck + lint + test
+pnpm check          # typecheck + lint + spdx + test
+pnpm bridge:test    # тесты моста (.NET)
 pnpm desktop:dev    # приложение с HMR; мост в dev запускается вручную — bridge/msfs/README.md
 pnpm desktop:dist   # установщик: apps/desktop/release/ACARS-Link-Setup-<версия>.exe
 ```
 
 Полный список команд и правила работы — [CLAUDE.md](CLAUDE.md).
+
+## Репозиторий и проверка
+
+Удалённая копия — приватный репозиторий GitHub `AVAILOFF/acars-link` (T63). Клонировать: `gh repo clone AVAILOFF/acars-link`.
+
+Проверка — GitHub Actions, [.github/workflows/check.yml](.github/workflows/check.yml): на каждый push в любую ветку и на pull request, `windows-latest`, `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm bridge:test`. MSFS SDK в CI нет — мост собирается без SimConnect. Результат — вкладка Actions репозитория или `gh run list`; вручную — `gh workflow run check --ref <ветка>`.
 
 ## Документы
 
