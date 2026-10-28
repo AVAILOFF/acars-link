@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { FlightPhase } from '@acars/core';
 import type { AppError, ErrorCode, ErrorReason, Language, SystemCode } from '../../shared/api.js';
 import { en, type MessageKey } from './messages-en.js';

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { DCL_ID, DEFAULT_PROFILE, formatMessage, OCL_ID, type OutboundMessage } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { MessageHints } from '../src/main/hints.js';

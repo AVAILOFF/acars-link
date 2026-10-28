@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { distanceNm, type LatLon } from '../geo/geo.js';
 import { createRng, type Rng, type RngState, rngFromState } from '../random/rng.js';
 import type { OutboundMessage } from '../scenario/engine.js';

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * How a cockpit display shows a telex (docs/03-architecture.md "Профили дисплеев").
  *

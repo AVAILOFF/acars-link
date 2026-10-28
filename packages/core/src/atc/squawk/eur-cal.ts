@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * EUROCONTROL, Secondary Surveillance Radar Code Allocation List for the ICAO EUR Region (CAL),
  * attachment to ICAO EUR Doc 023, version 4.13, published 2026-03-04,

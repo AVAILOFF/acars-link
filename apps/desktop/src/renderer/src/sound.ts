@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { useEffect, useRef } from 'react';
 import messageSound from './assets/message.mp3';
 import { useStore } from './store.js';

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: ODbL-1.0
+// Data: OpenFlights.org, Open Database License 1.0; see THIRD-PARTY-NOTICES.md
+
 /**
  * OpenFlights airline and route data (T43), https://openflights.org/data.php, files of
  * github.com/jpatokal/openflights/tree/master/data (last changed 2017-02-02), taken 2026-10-15.

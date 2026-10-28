@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { type ReactNode, useState } from 'react';
 import type { Settings, SettingsPatch } from '../../shared/api.js';
 import { firstSentence } from './hints.js';

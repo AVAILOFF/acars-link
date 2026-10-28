@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { AppError, ErrorCode, ErrorReason, Result } from '../shared/api.js';
 
 /**

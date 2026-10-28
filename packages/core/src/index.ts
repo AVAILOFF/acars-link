@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * @acars/core — pure TypeScript core: flight-phase FSM, scheduler, scenario runtime, formatter.
  *

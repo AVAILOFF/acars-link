@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { describe, expect, it } from 'vitest';
 import { atcHints, lacksCpdlc, NO_CPDLC_AIRCRAFT } from '../src/shared/atc-hints.js';
 

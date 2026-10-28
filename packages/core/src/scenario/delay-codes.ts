@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * IATA delay codes (T43): what a delay is made of and how the departure / block report codes it.
  *

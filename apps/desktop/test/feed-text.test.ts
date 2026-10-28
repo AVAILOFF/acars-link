@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MESSAGES, systemText, translator } from '../src/renderer/src/i18n.js';
 import type { Language, SystemCode } from '../src/shared/api.js';

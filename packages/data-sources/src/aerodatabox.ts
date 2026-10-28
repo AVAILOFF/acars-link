@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { ConnexData, ConnexFlight, Ofp, RouteStat, RouteStatsData } from '@acars/core';
 import { CONNEX_FROM_MIN, CONNEX_TO_MIN } from '@acars/core';
 import { DataSourceError, type FetchContext, ICAO_RE, isObj, parseJson } from './common.js';

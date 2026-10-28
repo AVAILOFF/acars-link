@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * Source of "now" for the core (CLAUDE.md, invariant 4). The core never reads ambient
  * time: the app passes a real clock, tests and replay pass a {@link ManualClock}.

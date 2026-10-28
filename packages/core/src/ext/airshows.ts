@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * Air shows (T29, docs/07): dates and places from the shows' official sites, each with its source
  * and the date it was checked. A show is reported when the destination is within 50 km of the

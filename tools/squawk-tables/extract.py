@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+# Copyright (c) 2026 AVAILOFF
+
 """Step 1 of the squawk tables (T24): text positions of the PDF tables -> JSON.
 
     python -I extract.py <dir>

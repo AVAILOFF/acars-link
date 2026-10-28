@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { AppState } from '../../shared/api.js';
 import { openActions } from './actions.js';

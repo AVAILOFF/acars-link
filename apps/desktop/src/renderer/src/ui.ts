@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { useEffect, useMemo, useState } from 'react';
 import type { UiText } from '../../shared/api.js';
 import { type Translate, translator } from './i18n.js';

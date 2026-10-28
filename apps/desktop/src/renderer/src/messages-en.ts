@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /** UI strings in English: the key set of all languages (`MessageKey`). */
 
 export const en = {

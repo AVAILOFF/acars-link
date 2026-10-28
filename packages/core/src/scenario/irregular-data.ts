@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { airlineDepartsFrom, airlineType } from '../ext/airline.js';
 import { latestLanding } from '../ext/curfews.js';
 import type { ParkingStand } from '../ext/data.js';

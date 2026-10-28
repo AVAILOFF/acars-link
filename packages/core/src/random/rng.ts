@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * Seeded randomness for the core (CLAUDE.md, invariant 4): same seed → same sequence,
  * on every platform. Generator: xoshiro128** 1.1 (Blackman & Vigna, public domain),

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { ATC_MAX_AGE_MS, type CenterStation, type ExtState, type FirArea } from '../ext/data.js';
 import type { FormattedMessage } from '../format/formatter.js';
 import { DEFAULT_PROFILE, type DisplayProfile } from '../format/profile.js';

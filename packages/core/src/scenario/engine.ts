@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { CpdlcHeader } from '../atc/cpdlc.js';
 import type { DeliveryInfo } from '../datalink/link.js';
 import {

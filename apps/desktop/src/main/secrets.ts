@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { AppFailure } from './errors.js';
 import { readTextFile, writeTextFileAtomic } from './files.js';
 

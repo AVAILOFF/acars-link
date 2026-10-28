@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 namespace AcarsBridge;
 
 /// <summary>One numeric SimVar requested as FLOAT64.</summary>

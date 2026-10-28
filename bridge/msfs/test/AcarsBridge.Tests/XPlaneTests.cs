@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.WebSockets;

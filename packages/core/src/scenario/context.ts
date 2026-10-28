@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { airlineCountry, airlineType } from '../ext/airline.js';
 import {
   CONNEX_ATTRIBUTION,

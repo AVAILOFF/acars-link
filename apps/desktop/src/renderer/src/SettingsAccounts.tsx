@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { type FormEvent, useState } from 'react';
 import { CheckedMark, ExternalLink, Hint, Row, Saved } from './SettingsControls.js';
 import { useStore } from './store.js';

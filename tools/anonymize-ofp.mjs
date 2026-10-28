@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 // Turns a real SimBrief OFP (json=v2) into a small anonymized test fixture.
 //
 //   node tools/anonymize-ofp.mjs <raw.json> <out.json> [--to-lbs] [--no-flight-number] [--extra-alternate] [--with-perf] [--with-etops]

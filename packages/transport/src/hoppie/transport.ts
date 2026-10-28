@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { type Clock, cpdlcPacket, type Rng } from '@acars/core';
 import { type HttpClient, HttpTimeoutError } from '../http.js';
 import type {

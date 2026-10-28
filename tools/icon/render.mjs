@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 // Renders the app icon from design/logo/*.svg into PNG + multi-size ICO (apps/desktop/build).
 // Run with Electron (Chromium rasterizes the SVG): pnpm icon
 import { readFile, writeFile } from 'node:fs/promises';

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { AircraftFamily } from '../scenario/aircraft.js';
 
 /**
@@ -34,6 +37,7 @@ const MODELS: Readonly<Record<string, AircraftFamily | null>> = {
   'BOEING 787-8': 'B787',
   'BOEING 787-9': 'B787',
   'EMBRAER 190': 'E-JET',
+  'EMBRAER 190 STD-AVF': null,
   'EMBRAER 195': 'E-JET',
   'REGIONAL-JET': null,
 };

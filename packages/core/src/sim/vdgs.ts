@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * GSX VDGS text (T22). Source: FSDreamTeam "VGDS Custom Messages System" developer manual,
  * 2025-07-29, shipped with GSX Pro in `couatl\GSX\SDK\Samples\VGDS\vgds_developer_manual.pdf`

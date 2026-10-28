@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { FirMap, type Ofp, parseSimbriefOfp } from '@acars/core';

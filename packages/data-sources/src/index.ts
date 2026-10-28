@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * @acars/data-sources — external data adapters (T13, docs/06 "Внешние данные"): METAR/TAF
  * (aviationweather.gov), VATSIM ATC, NASA EONET, OSM stands (Overpass), space launches

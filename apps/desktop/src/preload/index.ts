@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { contextBridge, ipcRenderer } from 'electron';
 import { type AcarsApi, type AppState, IPC } from '../shared/api.js';
 

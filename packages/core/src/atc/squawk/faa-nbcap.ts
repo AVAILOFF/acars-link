@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * FAA Order JO 7110.66H, National Beacon Code Allocation Plan (NBCAP), 2024-05-06, Appendix B,
  * TBL B-3 "ARTCC Assignments",

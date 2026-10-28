@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { metarQnh } from '../ext/data.js';
 import type { Rng } from '../random/rng.js';
 import { holdPosition, seatLetters } from './aircraft.js';

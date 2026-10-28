@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { IpcMainInvokeEvent } from 'electron';
 import { IPC } from '../shared/api.js';
 import type { AppController } from './controller.js';

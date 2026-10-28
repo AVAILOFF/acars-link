@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * Cruising levels for the XATC station (T25, docs/07; sources in docs/06 "Эшелоны").
  *

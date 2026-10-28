@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { ScenarioCategory } from '@acars/core';
 import { useEffect, useState } from 'react';
 import type { AppState, ScenarioInfo } from '../../shared/api.js';

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { modelFamily } from '../ext/aircraft-models.js';
 import { airlineHub, airlineType, hubRoutesFor } from '../ext/airline.js';
 import { type ConnexData, connexCandidates } from '../ext/connex.js';

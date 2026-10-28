@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { LatLon } from '../geo/geo.js';
 import { type BesselianElements, SOLAR_ECLIPSES } from './eclipses.js';
 

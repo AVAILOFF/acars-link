@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { AppState, LinkWindow } from '../../shared/api.js';
 import type { Translate } from './i18n.js';
 import { zulu } from './ui.js';

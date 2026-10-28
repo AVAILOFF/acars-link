@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import {
   DEFAULT_RESCUE_FLIPPED,
   DEFAULT_RESCUE_TITLES,
