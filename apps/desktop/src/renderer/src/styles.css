@@ -1926,3 +1926,147 @@ span.subject {
     display: none;
   }
 }
+
+/* ---------- Welcome, readiness, tour (T70) ---------- */
+
+.modal.welcome {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.welcome-count {
+  color: var(--on-sheet-2);
+  font-size: var(--fs-sub);
+}
+
+.welcome-text {
+  margin: 0;
+  padding: var(--s-3) 14px;
+  line-height: 20px;
+}
+
+.welcome-steps {
+  padding-left: 34px;
+}
+
+.welcome-steps li + li {
+  margin-top: var(--s-2);
+}
+
+.ready-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  margin: var(--s-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.welcome-body .ready-list {
+  padding: var(--s-2) 14px;
+}
+
+.ready-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.ready-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.ready-title {
+  font-weight: 500;
+}
+
+.ready-hint {
+  color: var(--on-shell-2);
+  font-size: var(--fs-sub);
+  line-height: 18px;
+}
+
+.modal-sheet .ready-hint {
+  color: var(--on-sheet-2);
+}
+
+.help-intro {
+  margin-top: var(--s-3);
+}
+
+.tour {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.tour::backdrop {
+  background: transparent;
+}
+
+.tour-dim {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.6);
+}
+
+/* The hole in the dimming: one huge shadow around the highlighted element. */
+.tour-spot {
+  position: fixed;
+  border-radius: var(--r-sheet);
+  box-shadow:
+    0 0 0 2px var(--focus-ring),
+    0 0 0 100vmax rgb(0 0 0 / 0.6);
+  pointer-events: none;
+}
+
+.tour-card {
+  position: fixed;
+  width: min(340px, calc(100vw - 24px));
+  border-radius: var(--r-sheet);
+  box-shadow: var(--shadow-float);
+}
+
+.tour-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4) 0;
+}
+
+.tour-head h2 {
+  margin: 0;
+  font-size: var(--fs-title);
+  font-weight: 600;
+}
+
+.tour-text {
+  margin: 0;
+  padding: var(--s-3) var(--s-4);
+  line-height: 20px;
+}
+
+.tour-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-3);
+  padding: 0 var(--s-4) var(--s-4);
+}
+
+.tour-count {
+  margin-right: auto;
+  color: var(--on-sheet-2);
+  font-size: var(--fs-sub);
+}

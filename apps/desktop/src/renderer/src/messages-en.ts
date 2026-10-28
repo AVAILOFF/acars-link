@@ -35,6 +35,76 @@ export const en = {
   'help.search': 'Search help',
   'help.searchPlaceholder': 'Question or word',
   'help.none': 'Nothing found.',
+  'help.welcome': 'Show the welcome again',
+  'help.tour': 'Take the interface tour',
+  'welcome.step': 'Step {n} of {of}',
+  'welcome.skip': 'Skip',
+  'welcome.back': 'Back',
+  'welcome.next': 'Next',
+  'welcome.done': 'To the flight',
+  'welcome.tour': 'Show the interface',
+  'welcome.hello.title': 'Welcome to ACARS Link',
+  'welcome.hello.text':
+    'ACARS Link plays your airline’s operations centre. While you fly, it reads the simulator and your SimBrief flight plan, follows the phase of flight and sends ACARS messages to the cockpit: loadsheets, slot and gate information, delays, irregular situations, the next leg. You can reply and send requests from the aircraft FMS.',
+  'welcome.hello.english':
+    'ACARS messages are always in English, as in real operations. Choose the language of the app:',
+  'welcome.accounts.title': 'Accounts',
+  'welcome.accounts.text':
+    'The flight plan comes from SimBrief: enter your username and press “Check”. Messages reach the cockpit over Hoppie ACARS with your logon code; without one, choose “Offline (app only)” and the messages appear only in this window.',
+  'welcome.accounts.later': 'You can skip this step and do it later in Settings → Accounts.',
+  'welcome.sim.title': 'Simulator',
+  'welcome.sim.text':
+    'The app starts the simulator bridge itself, and the bridge finds a running MSFS or X-Plane 12. Start the simulator and load the aircraft at the gate: both items below turn green.',
+  'welcome.sim.later':
+    'No simulator now? Go on: the app waits for it. The status bar at the bottom always shows the bridge and the simulator.',
+  'welcome.first.title': 'First flight',
+  'welcome.first.1':
+    'Create a flight plan in SimBrief, then on the Messages tab press “Load OFP from SimBrief”.',
+  'welcome.first.2':
+    'In the aircraft FMS/MCDU (INIT or ATC COMM page) enter the flight number shown on the flight card, and connect ACARS / Hoppie in the aircraft.',
+  'welcome.first.3':
+    'Press “Start flight”. Messages come from the airline station, OPS + flight number by default.',
+  'welcome.first.4':
+    'Reply and send requests from the aircraft FMS, or with “Airline request…” in the app.',
+  'welcome.first.help':
+    'The full manual and what to do when something does not work are on the Help tab.',
+  'ready.title': 'Before the flight',
+  'ready.ok': 'done',
+  'ready.fix': 'Set up',
+  'ready.simbrief': 'SimBrief username',
+  'ready.simbrief.todo': 'Enter it in Settings → Accounts.',
+  'ready.network': 'Hoppie logon code',
+  'ready.network.todo': 'Enter the code, or choose “Offline (app only)” in Settings.',
+  'ready.network.offline': 'Offline mode: messages appear only in this window.',
+  'ready.bridge': 'Simulator bridge',
+  'ready.bridge.todo':
+    'Not connected. The installed app starts it itself; see Help → Troubleshooting.',
+  'ready.bridge.wait': 'Connecting…',
+  'ready.sim': 'Simulator',
+  'ready.sim.todo': 'Start MSFS or X-Plane 12.',
+  'ready.sim.wait': 'Waiting for a flight: load the aircraft at the gate.',
+  'ready.ofp': 'Flight plan (OFP)',
+  'ready.ofp.todo': 'Create it in SimBrief, then press “Load OFP from SimBrief”.',
+  'tour.close': 'Close the tour',
+  'tour.finish': 'Done',
+  'tour.rail.title': 'Sections',
+  'tour.rail.text':
+    'Messages, Scenarios, Settings and Help. The number under Messages counts the messages of the flight.',
+  'tour.top.title': 'Top bar',
+  'tour.top.text':
+    'UTC time, the page, the flight and its phase. On the right: the simulator (SIM), the network (NET) and, when it is on, the XATC station (CPDLC).',
+  'tour.feed.title': 'Messages',
+  'tour.feed.text':
+    'Airline messages and your replies. Filter by sender, search, click a row to see it on the FMS screen. “Airline request…” sends a request as if from the aircraft.',
+  'tour.flight.title': 'Flight',
+  'tour.flight.text':
+    'Load the OFP from SimBrief, start the flight and end it at the stand. Before the flight it lists what is still missing.',
+  'tour.fms.title': 'FMS screen',
+  'tour.fms.text':
+    'The selected message as the cockpit shows it, with the line width of your aircraft. With message hints on, below it: what the message means and what you can answer.',
+  'tour.status.title': 'Status bar',
+  'tour.status.text':
+    'The bridge, the simulator and the network at a glance; on the right, the last event or what needs your action until it is settled.',
   'top.utc': 'UTC',
   'bar.sent': 'Message to {to} ({id})',
   'bar.received': 'Message from {from}',

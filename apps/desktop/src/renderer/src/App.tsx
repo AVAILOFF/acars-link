@@ -20,7 +20,9 @@ import {
   simStatus,
 } from './status.js';
 import { type Tab, useStore } from './store.js';
+import { Tour } from './Tour.js';
 import { useT, useUtcClock, zulu } from './ui.js';
+import { WelcomeDialog } from './WelcomeDialog.js';
 
 /** `VRT204 · A20N · EDDM → LEMD` under the section title; null without a flight plan. */
 function flightLine(app: AppState | null): string | null {
@@ -33,6 +35,8 @@ export function App() {
   const tab = useStore((s) => s.tab);
   const ready = useStore((s) => s.app !== null && s.settings !== null);
   const language = useStore((s) => s.settings?.language);
+  const welcome = useStore((s) => s.welcome);
+  const tour = useStore((s) => s.tour !== null);
   const content = useRef<HTMLElement>(null);
   // U-12: each tab keeps its own scroll position in the shared scroll box.
   const scroll = useRef<Partial<Record<Tab, number>>>({});
@@ -96,6 +100,8 @@ export function App() {
         </main>
       </div>
       {ready && <StatusBar />}
+      {ready && welcome && <WelcomeDialog />}
+      {ready && tour && <Tour />}
     </div>
   );
 }
@@ -119,7 +125,7 @@ function TopBar() {
   const atc = app === null ? null : atcStatus(app, t);
   if (atc !== null) links.push(['CPDLC', atc]);
   return (
-    <header className="topbar">
+    <header className="topbar" data-tour="top">
       <div className="brand">
         {/* Brand mark: design/logo/mark.svg */}
         <svg aria-hidden="true" width="24" height="24" viewBox="8 8 50 50" fill="none">
@@ -171,7 +177,7 @@ function Rail() {
     </button>
   );
   return (
-    <nav className="rail" aria-label={t('app.sections')}>
+    <nav className="rail" aria-label={t('app.sections')} data-tour="rail">
       {tile('flight', messages)}
       {tile('scenarios')}
       <span className="rail-gap" />
@@ -204,7 +210,7 @@ function StatusBar() {
           ? t('bar.sent', { to: last.to, id: last.scenarioId })
           : t('bar.received', { from: last.from });
   return (
-    <footer className="statusbar">
+    <footer className="statusbar" data-tour="status">
       <ul className="bar-chips">
         {chips.map(([label, s]) => (
           <li key={label} className="bar-chip" title={s.text}>

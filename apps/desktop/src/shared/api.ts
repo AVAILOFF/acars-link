@@ -128,6 +128,11 @@ export interface Settings {
    * code or `*` (any other) → factor. Empty = the table built into the app.
    */
   readonly droneRisk: Readonly<Record<string, number>>;
+  /**
+   * The welcome (T70) was finished or skipped. False on a new profile; settings saved before T70
+   * read as true, so users who already set the app up do not see it (decision of 2026-10-28).
+   */
+  readonly welcomeDone: boolean;
 }
 
 export type SettingsPatch = Partial<Omit<Settings, 'scenarios' | 'chances'>>;

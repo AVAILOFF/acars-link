@@ -71,6 +71,22 @@ const en: readonly HelpSection[] = [
         ],
       },
       {
+        id: 'ui',
+        q: 'What is where in the app',
+        a: [
+          {
+            list: [
+              'Messages: the airline messages and your replies, the flight card (load the OFP, start and end the flight) and the FMS screen with the selected message as the cockpit shows it. Before the first flight the flight card lists what is still missing, with “Set up” next to each item.',
+              'Scenarios: which messages and situations may happen on a flight, and their chances.',
+              'Settings: accounts (SimBrief, Hoppie), language, how messages are sent; the rest is under “Advanced settings”.',
+              'Help: this manual.',
+            ],
+          },
+          'The top bar shows UTC, the flight and the state of the simulator (SIM), the network (NET) and the XATC station (CPDLC). The status bar at the bottom shows the bridge, the simulator and the network, and what needs your action.',
+          '“Show the welcome again” and “Take the interface tour” at the top of this page repeat the introduction.',
+        ],
+      },
+      {
         id: 'install',
         q: 'Windows warns about the installer',
         a: [
@@ -268,6 +284,22 @@ const ru: readonly HelpSection[] = [
         a: [
           'Приложение играет роль центра управления полётами вашей авиакомпании. Во время полёта оно читает симулятор и план SimBrief, следит за фазой полёта и присылает в кабину сообщения ACARS через Hoppie ACARS: загрузочные ведомости, слот и гейт, задержки, нестандартные ситуации, следующий рейс. Вы можете отвечать и отправлять запросы из FMS самолёта.',
           'Сами сообщения ACARS всегда на английском, как в реальной эксплуатации. Интерфейс — на русском или английском (Настройки → Язык).',
+        ],
+      },
+      {
+        id: 'ui',
+        q: 'Что где в приложении',
+        a: [
+          {
+            list: [
+              'Сообщения — сообщения авиакомпании и ваши ответы, карточка рейса (загрузить OFP, начать и завершить рейс) и экран FMS с выбранным сообщением, как его покажет кабина. До первого рейса карточка рейса показывает, чего не хватает, у каждого пункта — «Настроить».',
+              'Сценарии — какие сообщения и ситуации могут случиться в рейсе и с какой вероятностью.',
+              'Настройки — учётные записи (SimBrief, Hoppie), язык, способ отправки сообщений; остальное — в «Расширенных настройках».',
+              'Справка — это руководство.',
+            ],
+          },
+          'Верхняя панель — время UTC, рейс и состояние симулятора (SIM), сети (NET) и станции XATC (CPDLC). Строка состояния внизу — мост, симулятор, сеть и то, что требует вашего действия.',
+          '«Показать приветствие снова» и «Пройти обзор интерфейса» вверху этой страницы повторяют знакомство с приложением.',
         ],
       },
       {

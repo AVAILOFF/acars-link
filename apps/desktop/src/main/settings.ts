@@ -66,6 +66,7 @@ export function defaultSettings(locale: string): Settings {
     scenarios: {},
     chances: {},
     droneRisk: {},
+    welcomeDone: false,
   };
 }
 
@@ -169,6 +170,7 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'specialAviation':
       case 'specialOther':
       case 'rescue':
+      case 'welcomeDone':
         if (typeof value !== 'boolean') throw bad(key, 'true or false');
         out[key] = value;
         break;
@@ -238,7 +240,8 @@ function legacyKeys(r: Record<string, unknown>): Record<string, unknown> {
 export function sanitize(raw: unknown, defaults: Settings): Settings {
   if (typeof raw !== 'object' || raw === null) return defaults;
   const r = legacyKeys(raw as Record<string, unknown>);
-  let s = defaults;
+  // T70: a settings file from before the welcome means the app was set up already.
+  let s: Settings = 'welcomeDone' in r ? defaults : { ...defaults, welcomeDone: true };
   const keys = [
     'language',
     'transport',
@@ -267,6 +270,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'rescueTitles',
     'rescueFlipped',
     'droneRisk',
+    'welcomeDone',
   ] as const;
   for (const key of keys) {
     if (!(key in r)) continue;
