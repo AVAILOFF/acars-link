@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { Ofp, OfpTimes } from './types.js';
 
 const DAY_MS = 86_400_000;

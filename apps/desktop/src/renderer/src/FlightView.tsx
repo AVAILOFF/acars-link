@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { CSSProperties } from 'react';
 import { type FormEvent, useState } from 'react';
 import type { AppState, EndingView, FeedEntry, FlightSummary } from '../../shared/api.js';

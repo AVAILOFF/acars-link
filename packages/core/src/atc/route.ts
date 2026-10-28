@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { bearingDeg, distanceNm, EARTH_RADIUS_NM, type LatLon } from '../geo/geo.js';
 import type { Ofp, OfpFix } from '../ofp/types.js';
 

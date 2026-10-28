@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { describe, expect, it } from 'vitest';
 import { AIRCRAFT_FAMILIES } from '../src/scenario/aircraft.js';
 import { checkSimCommand, SIM_COMMANDS } from '../src/sim/commands.js';

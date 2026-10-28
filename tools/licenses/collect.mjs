@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 // Collects licence texts of what the installer ships (T19) into
 // apps/desktop/build/third-party-licenses.txt (generated, gitignored; electron-builder copies it
 // to resources/). Run by `pnpm desktop:dist`. Fails loudly instead of skipping a missing text.

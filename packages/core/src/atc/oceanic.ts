@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { NatTrack } from '../ext/data.js';
 import { type FormattedMessage, formatMessage } from '../format/formatter.js';
 import type { DisplayProfile } from '../format/profile.js';

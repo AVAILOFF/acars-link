@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 // Manual Hoppie check (T09 «Проверка человеком»): sends one formatted telex from a station
 // callsign to an aircraft, then polls the station for replies for a while.
 //

@@ -30,7 +30,7 @@
 
 - Одна сессия = одна карточка `Txx`. Найденное за рамками — в раздел «Замечания» отчёта.
 - Ветка на задачу: `task/Txx-short-name`. Коммит в конце после зелёных проверок. Push/merge/релиз — только по просьбе пользователя.
-- Перед «готово»: `pnpm check` (= `pnpm typecheck && pnpm lint && pnpm test`).
+- Перед «готово»: `pnpm check` (= `pnpm typecheck && pnpm lint && pnpm spdx && pnpm test`). Те же проверки и `pnpm bridge:test` запускает GitHub Actions на каждый push (`.github/workflows/check.yml`, T63; удалённый репозиторий — приватный `AVAILOFF/acars-link`).
 - **Реализм и проверка данных** (обязательно для этапа 5 в `07`, желательно везде): данные и форматы — только из проверенных источников с датой сверки и лицензией; не угадывать. Любое допущение (упрощение, эвристика, синтетические данные) — сначала описать пользователю и получить явное одобрение, потом реализовывать; одобренное записать в карточку. Подробно — `07`, «Правило реализма».
 
 ## Команды
@@ -39,7 +39,8 @@ Node ≥ 24, pnpm 12. Стек: TypeScript 7 (strict), Biome 2, Vitest 5.
 
 ```
 pnpm install
-pnpm check            # typecheck + lint + test — перед «готово» и перед коммитом
+pnpm check            # typecheck + lint + spdx + test — перед «готово» и перед коммитом
+pnpm spdx             # у каждого исходника (ts/tsx/js/mjs/cjs/cs/py) заголовок SPDX и копирайт (T62); --write — проставить в новые файлы
 pnpm typecheck        # tsc по всем пакетам: src (без Node/DOM типов) и тесты отдельно
 pnpm lint             # biome check .
 pnpm lint:fix         # biome check --write .
@@ -67,7 +68,7 @@ pnpm bridge:test      # dotnet test bridge/msfs — при изменениях 
 
 Аварийные службы (T54): шаг `rescue` → команда ядра `rescue`, правила машин — `packages/core/src/sim/rescue.ts`, ВПП и `large_airport` — `packages/data-sources/src/ourairports.ts`, мосту `rescue_start` / `rescue_stop` из `controller.ts`, логика в мосте — `bridge/msfs/src/AcarsBridge/RescueController.cs`.
 
-Особые события (T29): переменные — `packages/core/src/scenario/special-vars.ts`, затмения/авиашоу/история авиации — таблицы `packages/core/src/ext/{eclipses,airshows,aviation-history}.ts` (`eclipses.ts` генерируется `node tools/eclipse-table/generate.mjs <besselian.csv>`, не править вручную; у авиашоу и фактов — источник и дата сверки).
+Особые события (T29): переменные — `packages/core/src/scenario/special-vars.ts`, затмения/авиашоу/история авиации — таблицы `packages/core/src/ext/{eclipses,airshows,aviation-history}.ts` (`eclipses.ts` генерируется `node tools/eclipse-table/generate.mjs <besselian.csv>`, не править вручную; у авиашоу и фактов — источник и дата сверки). Ночные запреты аэропортов назначения (T42, сценарий `curfew_dest`) — таблица `packages/core/src/ext/curfews.ts` (только настоящие запреты посадок, у каждой записи источник и дата сверки; нет записи — нет сообщения).
 
 `tools/replay` (`@acars/replay`) — формат записи полёта (JSONL: заголовок с OFP и опциями ядра, затем входы ядра по порядку), прогон через ядро, CLI. Приложение пишет запись каждого полёта в `<userData>/recordings` (настройка «Записывать полёты», хранятся последние 20).
 

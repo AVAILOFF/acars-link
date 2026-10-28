@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 // Flight recordings on the command line (T11): replay through the core, synthetic flights,
 // snapshot dumps for the bridge. See USAGE.
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';

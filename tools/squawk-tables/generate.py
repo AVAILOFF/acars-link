@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+# Copyright (c) 2026 AVAILOFF
+
 """Generates packages/core/src/atc/squawk/{eur-cal,faa-nbcap,icao-apac}.ts from the sources.
 
 Step 2: python -I generate.py <dir> packages/core/src/atc/squawk  (see README.md)
@@ -10,6 +13,13 @@ import re
 import sys
 
 import xlrd
+
+# Licence header of every source file (T62, tools/spdx/header.mjs).
+HEADER = [
+    "// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary",
+    "// Copyright (c) 2026 AVAILOFF",
+    "",
+]
 
 dl, out = sys.argv[1], sys.argv[2]
 
@@ -37,7 +47,7 @@ for r in range(1, s.nrows):
     rows.append([series + frm, series + to, c[3], ' '.join(c[4].split()), ' '.join(c[9].split()),
                  ' '.join(c[10].split()), ' '.join(c[11].split())])
 rows.sort()
-lines = [
+lines = HEADER + [
     "/**",
     " * EUROCONTROL, Secondary Surveillance Radar Code Allocation List for the ICAO EUR Region (CAL),",
     " * attachment to ICAO EUR Doc 023, version 4.13, published 2026-03-04,",
@@ -70,7 +80,7 @@ print('CAL rows', len(rows))
 
 # ---------------- FAA NBCAP ----------------
 nb = json.load(open(f'{dl}/nbcap-b3.json'))
-lines = [
+lines = HEADER + [
     "/**",
     " * FAA Order JO 7110.66H, National Beacon Code Allocation Plan (NBCAP), 2024-05-06, Appendix B,",
     " * TBL B-3 \"ARTCC Assignments\",",
@@ -158,7 +168,7 @@ missing = set(apac) - set(FIR_IDS)
 if missing:
     raise SystemExit(f'no ids for {missing}')
 
-lines = [
+lines = HEADER + [
     "/**",
     " * ICAO Asia and Pacific Regions Air Navigation Plan (eANP), Volume II, Part IV (ATM),",
     " * Table ATM II-APAC-2 \"SSR Codes Allocation Plan of the Asia and Pacific Regions\", pages IV-28",

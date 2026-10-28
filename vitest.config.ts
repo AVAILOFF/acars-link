@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { defineConfig } from 'vitest/config';
 
 // Workspace packages resolve to their TypeScript sources via the `source` export
@@ -18,6 +21,7 @@ export default defineConfig({
       })),
       { extends: true, test: { name: '@acars/desktop', root: 'apps/desktop' } },
       { extends: true, test: { name: '@acars/replay', root: 'tools/replay' } },
+      { extends: true, test: { name: '@acars/spdx', root: 'tools/spdx' } },
     ],
   },
 });

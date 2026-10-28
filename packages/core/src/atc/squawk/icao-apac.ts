@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * ICAO Asia and Pacific Regions Air Navigation Plan (eANP), Volume II, Part IV (ATM),
  * Table ATM II-APAC-2 "SSR Codes Allocation Plan of the Asia and Pacific Regions", pages IV-28

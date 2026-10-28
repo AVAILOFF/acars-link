@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { describe, expect, it } from 'vitest';
 import { BRIDGE_EXE, bridgeArgs, bridgeExePath, startBridge } from '../src/main/bridge-process.js';
 

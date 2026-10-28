@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { ReplayResult, TimelineEntry } from './run.js';
 
 /** Human-readable timeline of a replay, one event per line, telex bodies indented. */

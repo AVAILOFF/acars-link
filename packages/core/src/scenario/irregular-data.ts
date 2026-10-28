@@ -1,4 +1,8 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { airlineDepartsFrom, airlineType } from '../ext/airline.js';
+import { latestLanding } from '../ext/curfews.js';
 import type { ParkingStand } from '../ext/data.js';
 import type { Ofp } from '../ofp/types.js';
 import { createRng } from '../random/rng.js';
@@ -14,8 +18,8 @@ import { createRng } from '../random/rng.js';
  */
 
 export interface IrregularData {
-  /** Latest landing at the destination (noise curfew), epoch ms UTC. */
-  readonly curfew: number;
+  /** Latest landing at the destination (noise curfew, `ext/curfews.ts`), epoch ms UTC; null without one. */
+  readonly curfew: number | null;
   readonly connectFlight: string;
   /**
    * The airline has own departures from the destination (OpenFlights routes, T43): an onward
@@ -45,8 +49,10 @@ export function buildIrregularData(
 ): IrregularData {
   const rng = createRng(`${String(seed)}/#irr`);
   const t = ofp.times;
-  const on = t.schedOnMs ?? t.schedInMs - (t.taxiInSec ?? 300) * 1000;
-  const curfew = ceilTo(on + rng.int(20, 60) * MIN, 15 * MIN);
+  // The curfew comes from the table of real ones (T42, approved 2026-10-25); the draw that
+  // made it up before stays, so the draws after it and old recordings do not change.
+  rng.int(20, 60);
+  const curfew = latestLanding(ofp);
   // Onward flight after STA by airline type (T43, user's numbers 2026-10-15): low-cost 50–70 min,
   // hub carriers 100–140 (about two hours), others 50–95 as before. One draw, as before.
   const type = airlineType(ofp.airlineIcao);

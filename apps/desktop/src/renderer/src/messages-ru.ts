@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { MessageKey } from './messages-en.js';
 
 /** UI strings in Russian: every key of the English set. */

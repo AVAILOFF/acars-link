@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { AIR_SHOWS } from '../ext/airshows.js';
 import { AVIATION_HISTORY } from '../ext/aviation-history.js';
 import type { ExtState } from '../ext/data.js';

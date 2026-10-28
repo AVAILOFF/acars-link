@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { DivertAirport } from '../ext/data.js';
 import { distanceNm } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';

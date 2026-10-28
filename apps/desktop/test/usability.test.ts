@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { generateSyntheticFlight, ManualClock, parseSimbriefOfp } from '@acars/core';

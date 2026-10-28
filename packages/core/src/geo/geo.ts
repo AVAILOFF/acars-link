@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /** Spherical-earth helpers. Distances in nautical miles, angles in degrees. */
 
 /** Mean earth radius in NM (same constant as the original, docs/01). */

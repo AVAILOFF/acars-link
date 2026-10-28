@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 namespace AcarsBridge;
 
 /// <summary>What the app asked for with <c>rescue_start</c> (T54).</summary>

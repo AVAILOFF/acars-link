@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { access, cp, mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * One telemetry sample from the sim bridge (~1 Hz), docs/03-architecture.md "TelemetrySnapshot (v1)".
  * Example: reference/telemetry.sample.json.

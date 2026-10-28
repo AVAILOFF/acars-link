@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { useState } from 'react';
 import type { Delivery, FeedEntry } from '../../shared/api.js';
 import { ErrorBoundary } from './ErrorBoundary.js';

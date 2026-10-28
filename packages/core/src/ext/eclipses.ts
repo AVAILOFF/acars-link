@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * Besselian elements of the solar eclipses 2025–2035 (T29): NASA, Fred Espenak and Jean Meeus,
  * "Five Millennium Canon of Solar Eclipses: -1999 to +3000" (NASA/TP-2006-214141), catalogue of

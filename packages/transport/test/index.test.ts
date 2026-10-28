@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { DEFAULT_PROFILE, formatMessage, ManualClock } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { MockTransport, TRANSPORT_PACKAGE, type Transport } from '../src/index.js';

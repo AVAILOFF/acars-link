@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * Chance multiplier of `irregular/drone_activity` by the destination country (T38, docs/07).
  * Game numbers: only the ORDER of the levels comes from data (checked 2026-10-09: Russian

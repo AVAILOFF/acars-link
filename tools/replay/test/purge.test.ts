@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { describe, expect, it } from 'vitest';
 import { hasPurgedConnex, PURGED_TEXT, purgeConnex } from '../src/index.js';
 

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * Minimal HTTP seam: transports never call `fetch` themselves, so tests run against a fake
  * server and the app picks the implementation (Electron main: {@link fetchHttpClient}).

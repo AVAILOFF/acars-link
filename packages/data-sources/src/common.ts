@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * Shared bits of the adapters: one GET with timeout and User-Agent, JSON parsing that never
  * throws anything but {@link DataSourceError}, telex-safe text.

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 // Vite's `import.meta.glob` (main/scenario-sources.ts); vite/client types would pull in the DOM.
 interface ImportMeta {
   glob<T>(

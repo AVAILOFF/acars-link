@@ -1,12 +1,13 @@
 # Destination noise curfew close to the estimated landing (a delay brings it closer).
+# Real curfews only (`packages/core/src/ext/curfews.ts`, T42): no entry, no message.
 # UNABLE plans the alternate: the flight's diversion is set.
 id: curfew_dest
 version: 1
 category: irregular
 title: Destination curfew
 title_ru: "Ночной запрет в аэропорту назначения"
-description: "In cruise when the estimated landing is close to the destination noise curfew (usually after a delay). ABLE: priority requested; UNABLE: divert to the alternate."
-description_ru: "В крейсере, если расчётная посадка близка к ночному запрету аэропорта назначения (обычно после задержки). ABLE — запрошен приоритет, UNABLE — диверсия на запасной."
+description: "In cruise when the estimated landing is close to the night curfew of the destination (only airports with a real one, usually after a delay). ABLE: priority requested; UNABLE: divert to the alternate."
+description_ru: "В крейсере, если расчётная посадка близка к ночному запрету аэропорта назначения (только аэропорты с настоящим запретом, обычно после задержки). ABLE — запрошен приоритет, UNABLE — диверсия на запасной."
 hint: "The destination has a night noise curfew: the latest landing time (UTC and local) and your margin to it. Expedite if you can and tell OPS whether you can land before the curfew."
 hint_ru: "В аэропорту назначения ночной запрет на полёты по шуму (curfew): самое позднее время посадки (UTC и местное) и ваш запас до него. По возможности ускорьтесь и сообщите OPS, успеваете ли вы сесть до запрета."
 enabled_by_default: true
@@ -15,6 +16,7 @@ trigger:
   phase: CRUISE
 conditions:
   - "flight.divert == null"
+  - "irr.curfew != null"
   - "irr.curfew_margin_min < 20"
   - "ofp.altn != null"
 steps:

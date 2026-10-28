@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 using System.Text.Json.Nodes;
 using AcarsBridge;
 using Xunit;

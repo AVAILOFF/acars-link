@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * Maximum operating altitude and VMO/MMO by ICAO type (T25), from EASA type-certificate
  * data sheets (checked 2026-10-09, docs/07 T25):

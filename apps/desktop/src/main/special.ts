@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { SpecialGroup } from '@acars/data-sources';
 import type { Settings } from '../shared/api.js';
 

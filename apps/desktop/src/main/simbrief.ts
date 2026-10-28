@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { type Ofp, OfpParseError, parseSimbriefOfp } from '@acars/core';
 import type { HttpClient } from '@acars/transport';
 import { AppFailure } from './errors.js';

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 // Generates packages/core/src/ext/eclipses.ts (T29) from NASA's Besselian elements CSV:
 //   curl -o bess.csv https://eclipse.gsfc.nasa.gov/eclipse_besselian_from_mysqldump2.csv
 //   node tools/eclipse-table/generate.mjs bess.csv > packages/core/src/ext/eclipses.ts
@@ -48,6 +51,10 @@ for (const l of lines.slice(1)) {
 }
 const arr = (a) => `[${a.join(', ')}]`;
 const out = [
+  // Licence header of every source file (T62, tools/spdx/header.mjs).
+  '// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary',
+  '// Copyright (c) 2026 AVAILOFF',
+  '',
   '/**',
   ' * Besselian elements of the solar eclipses ' +
     FROM +

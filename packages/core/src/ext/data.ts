@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { VhfStation } from '../datalink/link.js';
 import { distanceNm, interpolate, type LatLon } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';

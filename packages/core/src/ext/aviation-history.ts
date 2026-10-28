@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 /**
  * "On this day in aviation history" (T29, docs/07): facts with a primary or institutional source
  * and the date it was checked. A fact goes out when its day and month are today's UTC date;

@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { createRng, DEFAULT_PROFILE, formatMessage, ManualClock } from '@acars/core';
 import {
   HoppieTransport,

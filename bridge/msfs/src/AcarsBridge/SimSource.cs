@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 namespace AcarsBridge;
 
 /// <summary>Receives what a sim source produces. Implemented by <see cref="BridgeHub"/>.</summary>

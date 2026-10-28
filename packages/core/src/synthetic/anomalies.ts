@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import type { SyntheticFlight, SyntheticStage, SyntheticStageMark } from './flight.js';
 

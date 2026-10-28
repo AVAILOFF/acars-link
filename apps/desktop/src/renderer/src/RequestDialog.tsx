@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
+// Copyright (c) 2026 AVAILOFF
+
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { firstSentence } from './hints.js';
 import { useStore } from './store.js';
