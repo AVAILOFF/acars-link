@@ -6,7 +6,9 @@ import { join } from 'node:path';
 import { isTelemetrySnapshot, type TelemetrySnapshot } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import {
+  BRIDGE_TOKEN_HEADER,
   BridgeClient,
+  bridgeHeaders,
   bridgeUrl,
   COMMAND_TIMEOUT_MS,
   type CommandResult,
@@ -68,7 +70,7 @@ describe('SimBrief', () => {
   });
 });
 
-function client(port = 47830) {
+function client(port = 47830, token: string | null = null) {
   const sockets = socketFactory();
   const timers = new FakeTimers();
   const telemetry: TelemetrySnapshot[] = [];
@@ -77,6 +79,7 @@ function client(port = 47830) {
   const c = new BridgeClient({
     port,
     createSocket: sockets.create,
+    token,
     timers,
     now: () => now,
     onTelemetry: (s) => telemetry.push(s),
@@ -93,6 +96,19 @@ describe('BridgeClient', () => {
     const { c, sockets } = client(47831);
     c.start();
     expect(sockets.last().url).toBe('ws://127.0.0.1:47831/?protocol=2');
+    expect(sockets.last().headers).toEqual({});
+  });
+
+  it('T65: sends the launch token in a header on every connection, never in the URL', () => {
+    const { c, sockets, timers } = client(47830, 'tok-abc');
+    c.start();
+    expect(sockets.last().headers).toEqual({ [BRIDGE_TOKEN_HEADER]: 'tok-abc' });
+    expect(sockets.last().url).not.toContain('tok-abc');
+    sockets.last().drop();
+    timers.runNext();
+    expect(sockets.sockets).toHaveLength(2);
+    expect(sockets.last().headers).toEqual({ [BRIDGE_TOKEN_HEADER]: 'tok-abc' });
+    expect(bridgeHeaders('')).toEqual({});
   });
 
   it('hello → status → telemetry', () => {

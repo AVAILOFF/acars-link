@@ -1094,6 +1094,8 @@ Hoppie в самолёте (сверено 2026-10-25): официальный �
 4. Тесты: `AcarsBridge.Tests` — `Origin: null`, `file://`, чужой сайт, без `Origin`; с токеном / без / неверный. Тесты клиента (`apps/desktop/test`) — токен в URL/заголовке.
 5. Документация: `bridge/msfs/README.md` (протокол подключения), docs/06.
 
+**Сделано (2026-10-29, ветка `task/T65-bridge-token`):** `[ПРОВЕРИТЬ]` закрыты: renderer к мосту не подключается (в `apps/desktop/src/renderer` нет `WebSocket`; `ws://localhost:*` в CSP — HMR Vite), исключение для `localhost` убрано; командную строку процесса Windows может сохранять журнал аудита (событие 4688, «Include command line in process creation events», learn.microsoft.com) — токен идёт в переменной окружения `ACARS_BRIDGE_TOKEN`, мост её читает и очищает. Клиент — заголовок `X-Acars-Bridge-Token` (не query: URL попадает в тексты ошибок и в журнал Kestrel при `--verbose`); Node `WebSocket` в Electron 44 (Node 24.21, undici 7.29) передаёт `headers` — проверено. Мост — `AccessPolicy.IsAllowedOrigin` (только без `Origin`), `IsValidToken` (`FixedTimeEquals`), `BridgeServer.Build(…, token)`; приложение — `bridgeToken` (`randomBytes(32)`, на запуск), `bridgeEnv`, `bridgeHeaders`. Файл ручной проверки — `bridge/msfs/test/manual/sandbox-iframe.html`.
+
 **Не входит:** шифрование канала (loopback), аутентификация пользователя.
 
 **Готово, когда:** тесты выше зелёные; установленное приложение подключается к своему мосту; страница с `<iframe sandbox="allow-scripts">`, открывающая WebSocket к мосту, получает отказ; `pnpm check` и `pnpm bridge:test` зелёные.

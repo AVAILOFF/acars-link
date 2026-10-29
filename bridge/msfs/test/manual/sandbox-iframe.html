@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- T65, check by a human: open this file in Chrome while ACARS Link runs. A sandboxed iframe (Origin: null)
+     and the page itself (Origin: file://) try to reach the bridge; both must be refused. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Bridge access check</title>
+  <style>body { font: 14px system-ui, sans-serif; margin: 24px; } pre { background: #eee; padding: 8px; }</style>
+</head>
+<body>
+  <h1>Bridge access check (T65)</h1>
+  <p>Expected: both lines say <b>refused</b>. <b>CONNECTED</b> means a web page can read the telemetry.</p>
+  <pre id="page">page (Origin: file://): …</pre>
+  <pre id="frame">sandboxed iframe (Origin: null): …</pre>
+  <iframe id="sandboxed" title="Sandboxed probe" sandbox="allow-scripts" style="display:none" srcdoc="
+    <script>
+      const ws = new WebSocket('ws://127.0.0.1:47830/?protocol=2');
+      ws.onmessage = (e) => { parent.postMessage('CONNECTED: ' + e.data.slice(0, 80), '*'); ws.close(); };
+      ws.onerror = () => parent.postMessage('refused', '*');
+    </script>"></iframe>
+  <script>
+    const frame = document.getElementById('frame');
+    addEventListener('message', (e) => {
+      frame.textContent = 'sandboxed iframe (Origin: null): ' + e.data;
+      console.log('iframe:', e.data);
+    });
+    const page = document.getElementById('page');
+    const ws = new WebSocket('ws://127.0.0.1:47830/?protocol=2');
+    ws.onmessage = (e) => { page.textContent = 'page (Origin: file://): CONNECTED: ' + e.data.slice(0, 80); ws.close(); };
+    ws.onerror = () => { page.textContent = 'page (Origin: file://): refused'; console.log('page: refused'); };
+  </script>
+</body>
+</html>

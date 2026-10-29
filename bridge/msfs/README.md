@@ -98,9 +98,22 @@ accepts a v1 bridge: telemetry then works and commands end with `unavailable`.
 The fake source accepts every whitelisted command, confirms it, and logs it to the console.
 The smoke object comes from the package in `package/` (draft, unverified, see its README). VDGS text (T22) does not use the bridge: GSX reads it from a file that the app writes (docs/06, "GSX VDGS").
 
-Access rules (CLAUDE.md, invariant 10): the bridge listens on `127.0.0.1` only. The `Host` header must be `127.0.0.1` or `localhost`.
-`Origin` must be absent, `file://`, `null`, or an http(s) loopback origin. Anything else gets 403, so web pages
-open in a browser cannot read the telemetry.
+Access rules (CLAUDE.md, invariant 10; T65): the bridge listens on `127.0.0.1` only. The `Host` header must be
+`127.0.0.1` or `localhost`. There must be no `Origin` header: the app connects from its main process (Node
+`WebSocket`), which sends none. Every web origin gets 403, `null` (a sandboxed iframe on any site), `file://` and
+loopback dev servers included, so pages open in a browser can neither read the telemetry nor send commands.
+
+Launch token (T65): the app starts the bundled bridge with a new random token (256 bits) in the environment
+variable `ACARS_BRIDGE_TOKEN` (not on the command line: Windows can keep command lines in the security audit log,
+event 4688). The bridge reads it, clears the variable and never prints it. Each client must then send the same
+token in the `X-Acars-Bridge-Token` handshake header (not the URL query); a missing or wrong token gets 403 (compared
+in constant time). A bridge started by hand without the variable lets in any local client without an `Origin`,
+as before, and says so in the console:
+
+```
+$env:ACARS_BRIDGE_TOKEN = "<token>"; acars-msfs-bridge     # PowerShell: token required
+acars-msfs-bridge                                        # started by hand: no token needed
+```
 
 ## X-Plane 12 (T18)
 
