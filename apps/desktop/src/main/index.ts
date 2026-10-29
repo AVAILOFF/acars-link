@@ -31,6 +31,7 @@ import { fileRecordings, fileResume, purgeOldConnex } from './recording.js';
 import { BASE_SCENARIOS } from './scenario-sources.js';
 import { type Cipher, SecretStore } from './secrets.js';
 import { defaultSettings, SettingsStore } from './settings.js';
+import { holdSingleInstance } from './single-instance.js';
 import { gsxVdgsDir } from './vdgs.js';
 
 /**
@@ -122,6 +123,8 @@ function createWindow(): BrowserWindow {
 }
 
 async function main(): Promise<void> {
+  // T66: a second start quits here, before any network request or bridge, and shows our window.
+  if (!holdSingleInstance(app, () => win)) return;
   await app.whenReady();
   Menu.setApplicationMenu(null);
   session.defaultSession.setPermissionRequestHandler((_wc, _perm, callback) => callback(false));
