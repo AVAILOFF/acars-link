@@ -12,6 +12,7 @@ import { phaseKey } from './i18n.js';
 import { RequestDialog, type RequestKind } from './RequestDialog.js';
 import { useStore } from './store.js';
 import { num, useT, useUiText, zulu } from './ui.js';
+import { ReadyList, useReadiness } from './WelcomeDialog.js';
 
 /** FMS screen width without a flight plan: the narrowest profile. */
 const DEFAULT_COLS = 24;
@@ -53,7 +54,7 @@ export function FlightView() {
 
   return (
     <div className="msg-layout">
-      <section className="workspace" aria-label={t('page.flight')}>
+      <section className="workspace" aria-label={t('page.flight')} data-tour="feed">
         <div className="toolbar">
           <div className="filters" role="tablist" aria-label={t('filter.label')}>
             {(['all', 'airline', 'pilot', 'system'] as const).map((f) => (
@@ -159,9 +160,10 @@ function FlightCard({ app }: { app: AppState }) {
   const offline = settings?.transport === 'offline';
   const needCode = !offline && creds?.hoppieCodeSet === false;
   const tm = app.telemetry;
+  const ready = useReadiness() ?? [];
 
   return (
-    <section className="panel" aria-labelledby="flight-title">
+    <section className="panel" aria-labelledby="flight-title" data-tour="flight">
       <div className="panel-head">
         <h2 id="flight-title" className="panel-title">
           {t('flight.title')}
@@ -174,7 +176,11 @@ function FlightCard({ app }: { app: AppState }) {
         )}
       </div>
       {f === null ? (
-        <p className="muted">{t('flight.none')}</p>
+        // U-01, U-02: what is still missing before the first flight, with the way to fix it.
+        <>
+          <p className="muted">{t('ready.title')}</p>
+          <ReadyList items={ready} links />
+        </>
       ) : (
         <Summary f={f} phase={running && app.phase !== null ? t(phaseKey(app.phase)) : null} />
       )}
@@ -195,7 +201,9 @@ function FlightCard({ app }: { app: AppState }) {
       {running && tm === null && !app.waitingSimTime && <p className="hint">{t('tm.none')}</p>}
       {running && app.waitingSimTime && <p className="hint warn">{t('flight.waitSimTime')}</p>}
 
-      {creds?.simbriefUsername === '' && <p className="hint warn">{t('flight.needUsername')}</p>}
+      {f !== null && creds?.simbriefUsername === '' && (
+        <p className="hint warn">{t('flight.needUsername')}</p>
+      )}
       {f !== null && !running && needCode && <p className="hint warn">{t('flight.needCode')}</p>}
       {f !== null && (running || !needCode) && (
         <p className="hint">
@@ -407,7 +415,7 @@ function FmsPanel({
   };
   const screen = { '--fms-cols': cols } as CSSProperties;
   return (
-    <section className="panel fms-panel" aria-labelledby="fms-title">
+    <section className="panel fms-panel" aria-labelledby="fms-title" data-tour="fms">
       <div className="panel-head">
         <h2 id="fms-title" className="panel-title">
           {t('fms.title')}

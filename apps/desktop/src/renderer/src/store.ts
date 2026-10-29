@@ -12,6 +12,7 @@ import type {
   Settings,
   SimbriefCheck,
 } from '../../shared/api.js';
+import type { ReadyFix } from './welcome.js';
 
 /**
  * UI state. Everything about the flight comes from the main process (`onState`); the store
@@ -56,10 +57,24 @@ interface Store {
   readonly tab: Tab;
   /** "Advanced settings" are unfolded (U-07); kept while the app runs. */
   readonly advancedOpen: boolean;
+  /** The welcome dialog is open (T70): on a new profile, or again from Help. */
+  readonly welcome: boolean;
+  /** Index in `TOUR_STOPS` of the interface tour (T70); null = no tour. */
+  readonly tour: number | null;
+  /** A settings input to scroll to and focus once the settings page shows (T70). */
+  readonly focusField: string | null;
 
   init(): Promise<() => void>;
   setTab(tab: Tab): void;
   setAdvancedOpen(open: boolean): void;
+  openWelcome(): void;
+  /** Closes the welcome and saves that it was seen; `tour` starts the interface tour. */
+  finishWelcome(tour?: boolean): Promise<void>;
+  /** Opens the "Messages" tab at the given tour stop; null ends the tour. */
+  setTour(stop: number | null): void;
+  /** The settings page at one field (a readiness item, T70). */
+  openField(fix: ReadyFix): void;
+  clearFocusField(): void;
   dismissError(): void;
   loadOfp(): Promise<void>;
   startFlight(): Promise<void>;
@@ -125,6 +140,9 @@ export const useStore = create<Store>()((set, get) => {
     checked: null,
     tab: 'flight',
     advancedOpen: false,
+    welcome: false,
+    tour: null,
+    focusField: null,
 
     async init() {
       const off = api().onState((app) => set({ app }));
@@ -140,12 +158,32 @@ export const useStore = create<Store>()((set, get) => {
         creds,
         scenarios: scenarios.ok ? scenarios.value : [],
         error: scenarios.ok ? null : scenarios.error,
+        welcome: !settings.welcomeDone,
       });
       return off;
     },
     setTab: (tab) => set({ tab, saved: null, savedField: null, checked: null }),
     setAdvancedOpen: (advancedOpen) => set({ advancedOpen }),
     dismissError: () => set({ error: null }),
+    openWelcome: () => set({ welcome: true, tour: null }),
+    async finishWelcome(tour = false) {
+      set({ welcome: false });
+      if (tour) get().setTour(0);
+      if (get().settings?.welcomeDone !== false) return;
+      // Not through `run`: closing must save even while another action is busy.
+      const r = await api().updateSettings({ welcomeDone: true });
+      if (r.ok) set({ settings: r.value });
+      else set({ error: r.error });
+    },
+    setTour: (stop) => {
+      if (stop !== null && get().tab !== 'flight') get().setTab('flight');
+      set({ tour: stop });
+    },
+    openField: (fix) => {
+      get().setTab('settings');
+      set({ focusField: fix.field, ...(fix.advanced ? { advancedOpen: true } : {}) });
+    },
+    clearFocusField: () => set({ focusField: null }),
 
     async loadOfp() {
       await run('load', () => api().loadOfp());

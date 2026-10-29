@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import { DEFAULT_RESCUE_FLIPPED, DEFAULT_RESCUE_TITLES, RESCUE_TITLE_GROUPS } from '@acars/core';
+import { useEffect } from 'react';
 import type { Language, Settings, SimChoice, TransportChoice } from '../../shared/api.js';
 import { activeSim } from '../../shared/api.js';
 import { AerodataboxKeyForm, HoppieCodeForm, UsernameForm } from './SettingsAccounts.js';
@@ -37,6 +38,17 @@ export function SettingsView() {
   const settings = useStore((s) => s.settings);
   const open = useStore((s) => s.advancedOpen);
   const setOpen = useStore((s) => s.setAdvancedOpen);
+  const focusField = useStore((s) => s.focusField);
+
+  // T70: a readiness item opened the page at its field.
+  useEffect(() => {
+    if (focusField === null) return;
+    const el = document.getElementById(focusField);
+    el?.scrollIntoView({ block: 'center' });
+    el?.focus();
+    useStore.getState().clearFocusField();
+  }, [focusField]);
+
   if (creds === null || settings === null) return null;
   return (
     <section className="page" aria-labelledby="set-title">

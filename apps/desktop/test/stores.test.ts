@@ -104,8 +104,19 @@ describe('settings', () => {
       scenarios: {},
       chances: {},
       droneRisk: {},
+      welcomeDone: false,
     });
     expect(defaultSettings('ru-RU').language).toBe('ru');
+  });
+
+  it('welcome (T70): shown on a new profile, not to settings saved before it; saved as a boolean', () => {
+    expect(sanitize(null, defaults).welcomeDone).toBe(false);
+    expect(sanitize({ language: 'ru' }, defaults).welcomeDone).toBe(true);
+    expect(sanitize({}, defaults).welcomeDone).toBe(true);
+    expect(sanitize({ welcomeDone: false }, defaults).welcomeDone).toBe(false);
+    expect(sanitize({ welcomeDone: 'no' }, defaults).welcomeDone).toBe(false);
+    expect(validatePatch({ welcomeDone: true })).toEqual({ welcomeDone: true });
+    expect(() => validatePatch({ welcomeDone: 1 })).toThrow(/welcomeDone/);
   });
 
   it('the ICAO hex of the aircraft: six hex digits, stored upper case, or empty (T32)', () => {
@@ -225,6 +236,8 @@ describe('settings', () => {
       bridgePort: 47831,
       scenarios: { fuel_slip: false },
       chances: { medical_onboard: 25 },
+      // A file from before T70: the welcome counts as seen.
+      welcomeDone: true,
     });
     expect(sanitize({ recordFlights: false }, defaults).recordFlights).toBe(false);
     expect(sanitize('garbage', defaults)).toEqual(defaults);

@@ -13,6 +13,7 @@ export function HelpView() {
   const [query, setQuery] = useState('');
   const sections = searchHelp(HELP[lang], query);
   const searching = query.trim() !== '';
+  const { openWelcome, setTour } = useStore.getState();
 
   return (
     <section className="page" aria-labelledby="help-title">
@@ -20,6 +21,14 @@ export function HelpView() {
         {t('page.help')}
       </h2>
       <p className="hint">{t('help.hint')}</p>
+      <div className="row help-intro">
+        <button type="button" className="btn" onClick={openWelcome}>
+          {t('help.welcome')}
+        </button>
+        <button type="button" className="btn" onClick={() => setTour(0)}>
+          {t('help.tour')}
+        </button>
+      </div>
       <label className="search page-search">
         <svg
           aria-hidden="true"
