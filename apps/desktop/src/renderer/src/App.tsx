@@ -8,6 +8,7 @@ import { ErrorBoundary } from './ErrorBoundary.js';
 import { FlightView } from './FlightView.js';
 import { HelpView } from './HelpView.js';
 import { errorText, phaseKey, systemText } from './i18n.js';
+import { ResumeDialog } from './ResumeDialog.js';
 import { ScenariosView } from './ScenariosView.js';
 import { SettingsView } from './SettingsView.js';
 import { useMessageSound } from './sound.js';
@@ -37,6 +38,8 @@ export function App() {
   const language = useStore((s) => s.settings?.language);
   const welcome = useStore((s) => s.welcome);
   const tour = useStore((s) => s.tour !== null);
+  // T64: the lost flight is asked about before the welcome.
+  const resume = useStore((s) => (s.resumeHidden ? null : (s.app?.resume ?? null)));
   const content = useRef<HTMLElement>(null);
   // U-12: each tab keeps its own scroll position in the shared scroll box.
   const scroll = useRef<Partial<Record<Tab, number>>>({});
@@ -100,7 +103,8 @@ export function App() {
         </main>
       </div>
       {ready && <StatusBar />}
-      {ready && welcome && <WelcomeDialog />}
+      {ready && resume !== null && <ResumeDialog offer={resume} />}
+      {ready && resume === null && welcome && <WelcomeDialog />}
       {ready && tour && <Tour />}
     </div>
   );

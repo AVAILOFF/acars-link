@@ -133,6 +133,8 @@ export interface CoreState {
   readonly rops?: XatcState;
   /** Data link (T31); absent in states saved before it or without the link simulation. */
   readonly link?: DatalinkState;
+  /** Emergency chains to start on the next tick (T47); absent in states saved before T64 = none. */
+  readonly emergencies?: readonly string[];
 }
 
 export interface OutboxState {
@@ -200,6 +202,7 @@ export class AcarsCore {
       core.queue = [...copy.queue];
       core.lastAt = copy.lastAt;
     }
+    core.emergencies = [...(state.emergencies ?? [])];
     return core;
   }
 
@@ -257,6 +260,7 @@ export class AcarsCore {
       outbox: JSON.parse(JSON.stringify({ queue: this.queue, lastAt: this.lastAt })) as OutboxState,
       ...(this.xatc === null ? {} : { xatc: this.xatc.getState() }),
       ...(this.link === null ? {} : { link: this.link.getState() }),
+      ...(this.emergencies.length === 0 ? {} : { emergencies: [...this.emergencies] }),
     };
   }
 

@@ -32,6 +32,17 @@ export class Feed {
     return this.add({ kind: 'system', t, code, params });
   }
 
+  /** The feed now, to go back to when what follows fails (T64: a flight that cannot be restored). */
+  save(): { readonly list: readonly FeedEntry[]; readonly seq: number } {
+    return { list: [...this.list], seq: this.seq };
+  }
+
+  restore(s: { readonly list: readonly FeedEntry[]; readonly seq: number }): void {
+    this.list = [...s.list];
+    this.seq = s.seq;
+    this.version++;
+  }
+
   updateOutbound(id: string, patch: Partial<Pick<Outbound, 'delivery' | 'detail' | 't'>>): void {
     const i = this.list.findIndex((e) => e.id === id);
     const e = this.list[i];

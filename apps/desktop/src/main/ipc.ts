@@ -67,6 +67,8 @@ export function registerIpc(
   on(IPC.stopFlight, () => guard(() => app.stopFlight()));
   on(IPC.endFlight, (to) => guard(() => app.endFlight(to)));
   on(IPC.closeFlight, (then, now) => guard(() => app.closeFlight(then, now)));
+  on(IPC.resumeFlight, () => guard(() => app.resumeFlight()));
+  on(IPC.discardResume, () => guard(() => app.discardResume()));
   on(IPC.sendPilotMessage, (text) => guard(() => app.sendPilotMessage(text)));
   on(IPC.openRecordings, () => guard(() => app.openRecordings()));
   on(IPC.clearMemory, () => guard(() => app.clearMemory()));

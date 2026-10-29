@@ -35,7 +35,8 @@ export type Busy =
   | 'recordings'
   | 'memory'
   | 'force'
-  | 'pilot';
+  | 'pilot'
+  | 'resume';
 
 /** Result of a "Check" button (U-06), shown next to its row. */
 export type Checked =
@@ -63,6 +64,8 @@ interface Store {
   readonly tour: number | null;
   /** A settings input to scroll to and focus once the settings page shows (T70). */
   readonly focusField: string | null;
+  /** The question about the lost flight (T64) was put away with Esc until the next start. */
+  readonly resumeHidden: boolean;
 
   init(): Promise<() => void>;
   setTab(tab: Tab): void;
@@ -81,6 +84,10 @@ interface Store {
   stopFlight(): Promise<void>;
   endFlight(to: 'TURNAROUND' | 'DONE'): Promise<void>;
   closeFlight(then: 'next' | 'close', now: boolean): Promise<void>;
+  /** T64: continue the flight the app lost, or give it up. */
+  resumeFlight(): Promise<void>;
+  discardResume(): Promise<void>;
+  hideResume(): void;
   sendPilotMessage(text: string): Promise<boolean>;
   setScenario(id: string, enabled: boolean): Promise<void>;
   setScenarios(ids: readonly string[], enabled: boolean): Promise<void>;
@@ -143,6 +150,7 @@ export const useStore = create<Store>()((set, get) => {
     welcome: false,
     tour: null,
     focusField: null,
+    resumeHidden: false,
 
     async init() {
       const off = api().onState((app) => set({ app }));
@@ -165,6 +173,7 @@ export const useStore = create<Store>()((set, get) => {
     setTab: (tab) => set({ tab, saved: null, savedField: null, checked: null }),
     setAdvancedOpen: (advancedOpen) => set({ advancedOpen }),
     dismissError: () => set({ error: null }),
+    hideResume: () => set({ resumeHidden: true, error: null }),
     openWelcome: () => set({ welcome: true, tour: null }),
     async finishWelcome(tour = false) {
       set({ welcome: false });
@@ -190,6 +199,12 @@ export const useStore = create<Store>()((set, get) => {
     },
     async startFlight() {
       await run('start', () => api().startFlight());
+    },
+    async resumeFlight() {
+      await run('resume', () => api().resumeFlight());
+    },
+    async discardResume() {
+      await run('resume', () => api().discardResume());
     },
     async stopFlight() {
       await run('stop', () => api().stopFlight());

@@ -27,7 +27,7 @@ import { FileDataCache } from './data-cache.js';
 import { FlagsStore } from './flags.js';
 import { registerIpc } from './ipc.js';
 import { migrateOldUserData, OLD_APP_DIR } from './migrate.js';
-import { fileRecordings, purgeOldConnex } from './recording.js';
+import { fileRecordings, fileResume, purgeOldConnex } from './recording.js';
 import { BASE_SCENARIOS } from './scenario-sources.js';
 import { type Cipher, SecretStore } from './secrets.js';
 import { defaultSettings, SettingsStore } from './settings.js';
@@ -180,6 +180,7 @@ async function main(): Promise<void> {
     timers: { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as never) },
     now: clock.now,
     openRecording: fileRecordings(recordings),
+    resume: fileResume(recordings),
     revealRecordings: async () => {
       await mkdir(recordings, { recursive: true });
       const error = await shell.openPath(recordings);
@@ -199,11 +200,11 @@ async function main(): Promise<void> {
   restartBridge(boot.bridgePort, boot.simChoice);
 
   win = createWindow();
-  // U-03: the flight lives in memory only; ask before the window takes it away.
+  // U-03: ask before the window takes the flight away; T64: it goes on at the next start.
   win.on('close', (e) => {
     const w = win;
     if (w === null || !ctl.closeWouldLose) return;
-    if (dialog.showMessageBoxSync(w, closeDialog(ctl.language)) !== CLOSE_BUTTON) {
+    if (dialog.showMessageBoxSync(w, closeDialog(ctl.language, ctl.canResume)) !== CLOSE_BUTTON) {
       e.preventDefault();
     }
   });

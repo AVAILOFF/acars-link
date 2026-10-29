@@ -63,17 +63,25 @@ const cpdlc = (text: string): PilotMessage => ({
 });
 const telex = (text: string): PilotMessage => ({ from: ofp.callsign, type: 'telex', text });
 
-function fly(say: ReadonlyMap<number, readonly PilotMessage[]>, ids: readonly string[]) {
-  const core = AcarsCore.create({
+function fly(
+  say: ReadonlyMap<number, readonly PilotMessage[]>,
+  ids: readonly string[],
+  restoreAt = -1,
+) {
+  const options = {
     ofp,
     scenarios: only(...ids),
     seed: 't47',
     xatc: { enabled: true, randomDirects: false },
-  });
+  };
+  let core = AcarsCore.create(options);
   core.startFlight();
   const out: OutboundMessage[] = [];
   const events: CoreEvent[] = [];
   flight.snapshots.forEach((s, i) => {
+    // The app restores the flight from the saved state before this tick (T64).
+    if (i === restoreAt)
+      core = AcarsCore.fromState(JSON.parse(JSON.stringify(core.getState())), options);
     const r = core.tick({
       now: s.t,
       telemetry: s,
@@ -125,6 +133,17 @@ describe('emergency chain after MAYDAY / PAN (T47)', () => {
     expect(t[0]).toContain('PAN PAN RCVD VIA ATC');
     expect(t[1]).toContain(`ROGER CONTINUE TO ${ofp.destination.icao}`);
     expect(t).toHaveLength(2);
+  });
+
+  it('the chain due on the next tick survives a state round trip (T64)', () => {
+    const say = new Map([
+      [cruise - 10, [logon]],
+      [cruise, [cpdlc('/data2/1//Y/MAYDAY MAYDAY MAYDAY')]],
+    ]);
+    const whole = fly(say, ['emergency_mayday']);
+    const split = fly(say, ['emergency_mayday'], cruise + 1);
+    expect(texts(split.out, 'emergency_mayday')).toEqual(texts(whole.out, 'emergency_mayday'));
+    expect(texts(split.out, 'emergency_mayday')[0]).toContain('MAYDAY RCVD VIA ATC');
   });
 
   it('a MAYDAY is taken without a logon too: an emergency is never refused', () => {

@@ -227,6 +227,45 @@ describe('replay through the core', () => {
     expect(stopped.ticks).toBe(49);
   });
 
+  it('T64: resume and sent lines; the replay goes on over the restart as one flight', () => {
+    const ev = normal.events;
+    const whole = replay(normal, { scenarios: all });
+    const out = whole.outbound[0];
+    if (out === undefined) throw new Error('no telex');
+    const at = 400;
+    const restarted: Recording = {
+      header: { ...normal.header, simTime: false },
+      events: [
+        ...ev.slice(0, at),
+        { type: 'sent', t: out.t, n: 0, result: 'sent' },
+        { type: 'resume', now: 1 },
+        ...ev.slice(at),
+      ],
+    };
+    const text = encodeRecording(restarted);
+    const parsed = parseJsonl(text);
+    expect(parsed.kind === 'recording' && parsed.recording).toEqual(
+      JSON.parse(JSON.stringify(restarted)),
+    );
+    const r = replay(restarted, { scenarios: all });
+    expect(r.outbound).toEqual(whole.outbound);
+    expect(r.ticks).toBe(whole.ticks);
+    expect(r.timeline.filter((e) => e.kind === 'resume')).toEqual([{ kind: 'resume', now: 1 }]);
+    expect(formatReport(r, { brief: true })).toContain('RESUME');
+
+    const [h] = text.split('\n');
+    const line = (x: object) => [h, JSON.stringify(x)].join('\n');
+    expect(() => parseJsonl(line({ type: 'sent', t: 1, n: -1, result: 'sent' }))).toThrow(
+      /line 2: n/,
+    );
+    expect(() => parseJsonl(line({ type: 'sent', t: 1, n: 0, result: 'lost' }))).toThrow(
+      /line 2: result/,
+    );
+    expect(() => parseJsonl(line({ type: 'resume' }))).toThrow(/line 2: now/);
+    const header = JSON.parse(h as string);
+    expect(() => parseJsonl(JSON.stringify({ ...header, simTime: 'yes' }))).toThrow(/simTime/);
+  });
+
   it('compareOutbound names missing, extra and changed telexes', () => {
     const live = r.outbound.map((m) => ({
       type: 'out' as const,

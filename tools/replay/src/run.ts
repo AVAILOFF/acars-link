@@ -5,13 +5,14 @@ import {
   AcarsCore,
   type CompiledScenario,
   type CoreEvent,
+  type CoreOptions,
   type DisplayProfile,
   type FlightPhase,
   type OutboundMessage,
   type PhaseConfig,
   type SimCommand,
 } from '@acars/core';
-import type { RecordedOutbound, Recording } from './format.js';
+import type { RecordedOutbound, Recording, RecordingHeader } from './format.js';
 
 /**
  * Runs a recording through the core: the same calls in the same order as the live app
@@ -39,6 +40,7 @@ export type TimelineEntry =
   | { readonly kind: 'out'; readonly now: number; readonly message: OutboundMessage }
   | { readonly kind: 'cmd'; readonly now: number; readonly command: SimCommand }
   | { readonly kind: 'late_start'; readonly now: number; readonly delayMin: number }
+  | { readonly kind: 'resume'; readonly now: number }
   | { readonly kind: 'error'; readonly now: number; readonly error: string };
 
 export interface ReplayResult {
@@ -58,20 +60,24 @@ export interface ReplayResult {
   readonly lastNow: number | null;
 }
 
-export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
-  const h = recording.header;
+/**
+ * Core options of a recorded flight: the header's, with the user's chances of that flight
+ * (desktop settings) instead of the files'. The app restores a flight with the same (T64).
+ */
+export function recordedCoreOptions(
+  h: RecordingHeader,
+  scenarios: readonly CompiledScenario[],
+  o: Pick<ReplayOptions, 'seed' | 'station' | 'profile' | 'phaseConfig'> = {},
+): CoreOptions {
   const seed = o.seed ?? h.seed;
-  const profile = o.profile ?? h.profile;
-  // The user's chances of that flight (desktop settings) replace the files'.
   const p = h.probabilities ?? {};
-  const scenarios = o.scenarios.map((s) => {
-    const v = p[s.id];
-    return v === undefined ? s : { ...s, probability: v };
-  });
-  const core = AcarsCore.create({
+  return {
     ofp: h.ofp,
-    scenarios,
-    profile,
+    scenarios: scenarios.map((s) => {
+      const v = p[s.id];
+      return v === undefined ? s : { ...s, probability: v };
+    }),
+    profile: o.profile ?? h.profile,
     station: o.station ?? h.station,
     sessionFired: h.sessionFired,
     ...(seed === null ? {} : { seed }),
@@ -85,7 +91,14 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
     ...(h.xatc === undefined ? {} : { xatc: h.xatc }),
     ...(h.datalink === undefined ? {} : { datalink: h.datalink }),
     ...(o.phaseConfig === undefined ? {} : { phaseConfig: o.phaseConfig }),
-  });
+  };
+}
+
+export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
+  const h = recording.header;
+  const options = recordedCoreOptions(h, o.scenarios, o);
+  const profile = options.profile as DisplayProfile;
+  const core = AcarsCore.create(options);
   const timeline: TimelineEntry[] = [];
   const outbound: OutboundMessage[] = [];
   const recorded = recording.events.filter((e): e is RecordedOutbound => e.type === 'out');
@@ -114,7 +127,7 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
   };
 
   loop: for (const e of recording.events) {
-    if (e.type === 'out' || e.type === 'cmd') continue;
+    if (e.type === 'out' || e.type === 'cmd' || e.type === 'sent') continue;
     firstNow ??= e.now;
     lastNow = e.now;
     switch (e.type) {
@@ -152,6 +165,10 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
           const error = `end ${e.to}: ${err instanceof Error ? err.message : String(err)}`;
           timeline.push({ kind: 'error', now: e.now, error });
         }
+        break;
+      case 'resume':
+        // The app was closed: the next tick comes after the gap, as it came live.
+        timeline.push({ kind: 'resume', now: e.now });
         break;
       case 'stop':
         break loop;

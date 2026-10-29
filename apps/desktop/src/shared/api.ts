@@ -272,6 +272,7 @@ export type Delivery = 'queued' | 'sent' | 'retry' | 'failed' | 'dropped';
 export type SystemCode =
   | 'flight_started'
   | 'flight_stopped'
+  | 'flight_resumed'
   | 'late_start'
   | 'ofp_date'
   | 'recording'
@@ -419,6 +420,17 @@ export interface AppState {
   readonly memory: readonly string[];
   /** Irregular scenarios of the running flight ("run now"); empty when no flight runs. */
   readonly irregular: readonly ForceableScenario[];
+  /** A flight the app lost (closed, crashed) that can go on (T64); null = none. */
+  readonly resume: ResumeOffer | null;
+}
+
+/** The unfinished flight offered at the start (T64): from its recording. */
+export interface ResumeOffer {
+  readonly callsign: string;
+  readonly origin: string;
+  readonly destination: string;
+  /** When its recording was last written (wall clock, epoch ms). */
+  readonly writtenAt: number;
 }
 
 export type ErrorCode =
@@ -466,6 +478,10 @@ export const ERROR_REASONS = [
   'rescue_titles',
   'rescue_flipped',
   'setting_value',
+  'no_resume',
+  'resume_scenarios',
+  'resume_mismatch',
+  'resume_invalid',
 ] as const;
 
 export type ErrorReason = (typeof ERROR_REASONS)[number];
@@ -534,6 +550,10 @@ export interface AcarsApi {
   sendPilotMessage(text: string): Promise<Result<null>>;
   /** Starts an irregular scenario of the running flight now (its conditions must hold). */
   forceScenario(id: string): Promise<Result<null>>;
+  /** Goes on with the flight the app lost (T64, `AppState.resume`). */
+  resumeFlight(): Promise<Result<null>>;
+  /** Gives that flight up: it is not offered again, its recording stays (unless temporary). */
+  discardResume(): Promise<Result<null>>;
   /** Opens the recordings folder in the OS file manager. */
   openRecordings(): Promise<Result<null>>;
   /** Forgets the airline memory (T14 flags: open MEL items, follow-ups); not during a flight. */
@@ -564,6 +584,8 @@ export const IPC = {
   stopFlight: 'acars:stop-flight',
   endFlight: 'acars:end-flight',
   closeFlight: 'acars:close-flight',
+  resumeFlight: 'acars:resume-flight',
+  discardResume: 'acars:discard-resume',
   sendPilotMessage: 'acars:send-pilot-message',
   openRecordings: 'acars:open-recordings',
   clearMemory: 'acars:clear-memory',
