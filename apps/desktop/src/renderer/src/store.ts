@@ -36,7 +36,8 @@ export type Busy =
   | 'memory'
   | 'force'
   | 'pilot'
-  | 'resume';
+  | 'resume'
+  | 'diagnostics';
 
 /** Result of a "Check" button (U-06), shown next to its row. */
 export type Checked =
@@ -107,6 +108,8 @@ interface Store {
   checkHoppie(): Promise<void>;
   openRecordings(): Promise<void>;
   clearMemory(): Promise<void>;
+  /** T67: "saved" only when a file was written, not when the dialog was cancelled. */
+  exportDiagnostics(withRecording: boolean): Promise<void>;
 }
 
 const api = (): AcarsApi => window.acars;
@@ -298,6 +301,17 @@ export const useStore = create<Store>()((set, get) => {
     },
     async clearMemory() {
       await run('memory', () => api().clearMemory());
+    },
+    async exportDiagnostics(withRecording) {
+      let file: string | null = null;
+      await run(
+        'diagnostics',
+        () => api().exportDiagnostics(withRecording),
+        (f) => {
+          file = f;
+        },
+      );
+      if (file === null && get().saved === 'diagnostics') set({ saved: null });
     },
   };
 });

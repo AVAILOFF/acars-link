@@ -164,6 +164,15 @@ export function fileResume(
   };
 }
 
+/** The newest recording by its start (the name), kept or temporary; null = none (T67). */
+export function latestRecording(dir: string, temp = tempRecordingsDir(dir)): string | null {
+  const newest = [dir, temp]
+    .flatMap((d) => names(d).map((f) => ({ f, file: join(d, f) })))
+    .sort((a, b) => a.f.localeCompare(b.f))
+    .at(-1);
+  return newest?.file ?? null;
+}
+
 /**
  * A desktop flight that started and was neither ended at ON_BLOCK nor stopped. Recordings made
  * before T64 (no `simTime` in the header) are never restored: they do not say which telexes left.

@@ -29,9 +29,11 @@ interface SecretFile {
 export class SecretStore {
   private cache: Partial<Record<SecretKey, string>> | null = null;
 
+  /** `onValue` sees every plain value read or saved: the log redactor learns the secrets (T67). */
   constructor(
     private readonly file: string,
     private readonly cipher: Cipher,
+    private readonly onValue: (value: string) => void = () => {},
   ) {}
 
   available(): Promise<boolean> {
@@ -46,17 +48,21 @@ export class SecretStore {
   async get(key: SecretKey): Promise<string | null> {
     const data = (await this.entries())[key];
     if (data === undefined || !(await this.cipher.available())) return null;
+    let value: string;
     try {
-      return await this.cipher.decrypt(Buffer.from(data, 'base64'));
+      value = await this.cipher.decrypt(Buffer.from(data, 'base64'));
     } catch {
       return null;
     }
+    this.onValue(value);
+    return value;
   }
 
   async set(key: SecretKey, value: string): Promise<void> {
     if (!(await this.cipher.available())) {
       throw new AppFailure('secure_storage_unavailable', 'OS secure storage is not available');
     }
+    this.onValue(value);
     const enc = Buffer.from(await this.cipher.encrypt(value)).toString('base64');
     await this.save({ ...(await this.entries()), [key]: enc });
   }

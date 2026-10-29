@@ -4,6 +4,8 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { createInterface } from 'node:readline';
+import type { Readable } from 'node:stream';
 import type { SimChoice } from '../shared/api.js';
 
 /** Name of the self-contained bridge exe from `pnpm bridge:publish`. */
@@ -41,7 +43,8 @@ export function bridgeEnv(base: NodeJS.ProcessEnv, token: string): NodeJS.Proces
  * the process has exited (so a new one can take the port). Returns null when there is no exe (dev
  * run: the bridge is started by hand) or it cannot start. If the port is already taken (a bridge
  * started by hand), the new process exits on its own and the app simply connects to the running one.
- * The bridge lets in only clients with `token` (T65).
+ * The bridge lets in only clients with `token` (T65). Its stdout and stderr go to `output` line by
+ * line (T67: `bridge.log`); without `output` they are not opened.
  */
 export function startBridge(
   resourcesPath: string,
@@ -49,6 +52,7 @@ export function startBridge(
   simulator: SimChoice,
   token: string,
   log: (msg: string) => void = console.error,
+  output?: (stream: 'out' | 'err', line: string) => void,
 ): (() => Promise<void>) | null {
   const exe = bridgeExePath(resourcesPath);
   if (!existsSync(exe)) return null;
@@ -58,11 +62,15 @@ export function startBridge(
       cwd: join(resourcesPath, 'bridge'),
       windowsHide: true,
       env: bridgeEnv(process.env, token),
-      stdio: 'ignore',
+      stdio: output === undefined ? 'ignore' : ['ignore', 'pipe', 'pipe'],
     });
   } catch (e) {
     log(`bridge did not start: ${String(e)}`);
     return null;
+  }
+  if (output !== undefined) {
+    lines(child.stdout, (line) => output('out', line));
+    lines(child.stderr, (line) => output('err', line));
   }
   const exited = new Promise<void>((resolve) => {
     child.on('exit', (code) => {
@@ -78,4 +86,11 @@ export function startBridge(
     if (child.exitCode === null && child.signalCode === null) child.kill();
     return exited;
   };
+}
+
+/** Reads a pipe to its end, always (a full pipe would stall the bridge), one call per line. */
+function lines(stream: Readable | null, fn: (line: string) => void): void {
+  if (stream === null) return;
+  stream.setEncoding('utf8');
+  createInterface({ input: stream, crlfDelay: Number.POSITIVE_INFINITY }).on('line', fn);
 }

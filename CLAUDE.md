@@ -72,6 +72,8 @@ pnpm bridge:test      # dotnet test bridge/msfs — при изменениях 
 
 `tools/replay` (`@acars/replay`) — формат записи полёта (JSONL: заголовок с OFP и опциями ядра, затем входы ядра по порядку), прогон через ядро, CLI. Приложение пишет запись каждого полёта в `<userData>/recordings` (настройка «Записывать полёты», хранятся последние 20; выключена — временная запись в `<userData>/flight-temp`, удаляется с рейсом). Восстановление рейса после закрытия или падения (T64) — из этой записи: `apps/desktop/src/main/recording.ts` (`fileResume`, 24 ч), `FlightSession` с `resume` (`session.ts`), опции ядра из заголовка — `recordedCoreOptions` (`tools/replay/src/run.ts`); строки `sent` и `resume` — docs/03, `tools/replay/README.md`.
 
+Логи (T67): `<userData>/logs/main.log` (main-процесс) и `bridge.log` (stdout/stderr моста), по 5 файлов × 5 МБ, время UTC — `apps/desktop/src/main/log.ts`; каждая строка проходит `Redactor` (logon-код, ключ RapidAPI, имя SimBrief, токен моста → `***`; секреты он узнаёт из `SecretStore`). «Экспорт диагностики» (Расширенные настройки → Диагностика) — один .zip: логи, версии, настройки без секретов, по галочке — последняя запись полёта (`diagnostics.ts`, свой zip — `zip.ts`).
+
 Пакеты воркспейса импортируют друг друга из исходников: условие экспорта `source` (`customConditions` в `tsconfig.base.json`, `resolve.conditions` в `vitest.config.ts`), сборка для тестов не нужна. `pnpm -F <pkg> test` запускает корневой конфиг Vitest с `--project`.
 
 Чистота `packages/core` (инварианты 3–4) проверяется трижды: tsconfig без Node/DOM типов, правила Biome в `biome.json` (overrides), тест `packages/core/test/purity.test.ts`.

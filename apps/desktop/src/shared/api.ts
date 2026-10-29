@@ -558,6 +558,11 @@ export interface AcarsApi {
   openRecordings(): Promise<Result<null>>;
   /** Forgets the airline memory (T14 flags: open MEL items, follow-ups); not during a flight. */
   clearMemory(): Promise<Result<null>>;
+  /**
+   * T67: saves one .zip with the logs, versions and settings without secrets (and, ticked, the latest
+   * flight recording) where the user picks; the saved file, or null when cancelled.
+   */
+  exportDiagnostics(withRecording: boolean): Promise<Result<string | null>>;
 }
 
 /** IPC channel names (invoke) and the push channel. */
@@ -589,4 +594,5 @@ export const IPC = {
   sendPilotMessage: 'acars:send-pilot-message',
   openRecordings: 'acars:open-recordings',
   clearMemory: 'acars:clear-memory',
+  exportDiagnostics: 'acars:export-diagnostics',
 } as const;

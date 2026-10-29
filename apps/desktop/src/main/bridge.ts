@@ -119,6 +119,8 @@ export class BridgeClient {
   private helloSeen = false;
   /** `hello.source` of a bridge with a fixed source (T59); null for `auto`. */
   private helloSim: Simulator | null = null;
+  /** `hello.version` of the connected bridge (T67, diagnostics); null before `hello`. */
+  private helloVersion: string | null = null;
   private stopped = true;
   private port: number;
   private v: BridgeView = INITIAL_VIEW;
@@ -131,6 +133,11 @@ export class BridgeClient {
 
   get view(): BridgeView {
     return this.v;
+  }
+
+  /** Version the bridge gave in `hello` (T67); null until then. */
+  get version(): string | null {
+    return this.helloVersion;
   }
 
   start(): void {
@@ -229,6 +236,7 @@ export class BridgeClient {
   private connect(): void {
     this.retry = null;
     this.helloSeen = false;
+    this.helloVersion = null;
     this.set({ ...INITIAL_VIEW, link: 'connecting' });
     let socket: SocketLike;
     try {
@@ -280,6 +288,8 @@ export class BridgeClient {
         protocol === 2 && Array.isArray(m['commands']) ? m['commands'] : [];
       this.helloSeen = true;
       this.helloSim = simOfSource(m['source']);
+      const version = m['version'];
+      this.helloVersion = typeof version === 'string' && version.length <= 32 ? version : null;
       this.attempt = 0;
       this.set({
         ...this.v,

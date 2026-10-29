@@ -33,11 +33,18 @@ export function toAppError(e: unknown): AppError {
   return { code: 'internal', detail: e instanceof Error ? e.message : String(e) };
 }
 
-/** Runs `fn` and turns any throw into `{ ok: false }`, so IPC never rejects. */
-export async function guard<T>(fn: () => T | Promise<T>): Promise<Result<T>> {
+/**
+ * Runs `fn` and turns any throw into `{ ok: false }`, so IPC never rejects. `onFail` sees the error
+ * first (T67: the file log).
+ */
+export async function guard<T>(
+  fn: () => T | Promise<T>,
+  onFail?: (e: unknown) => void,
+): Promise<Result<T>> {
   try {
     return { ok: true, value: await fn() };
   } catch (e) {
+    onFail?.(e);
     return { ok: false, error: toAppError(e) };
   }
 }

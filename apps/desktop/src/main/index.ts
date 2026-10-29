@@ -3,6 +3,7 @@
 
 import { randomBytes, randomInt } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
+import { arch, release } from 'node:os';
 import { join } from 'node:path';
 import { createRng } from '@acars/core';
 import { ROUTES_CACHE_PREFIX, ROUTES_RETENTION_MS } from '@acars/data-sources';
@@ -26,8 +27,18 @@ import { AppController } from './controller.js';
 import { FileDataCache } from './data-cache.js';
 import { FlagsStore } from './flags.js';
 import { registerIpc } from './ipc.js';
+import {
+  BRIDGE_LOG,
+  type Log,
+  Logger,
+  MAIN_LOG,
+  NO_LOG,
+  Redactor,
+  RotatingFile,
+  watchProcess,
+} from './log.js';
 import { migrateOldUserData, OLD_APP_DIR } from './migrate.js';
-import { fileRecordings, fileResume, purgeOldConnex } from './recording.js';
+import { fileRecordings, fileResume, latestRecording, purgeOldConnex } from './recording.js';
 import { BASE_SCENARIOS } from './scenario-sources.js';
 import { type Cipher, SecretStore } from './secrets.js';
 import { defaultSettings, SettingsStore } from './settings.js';
@@ -49,6 +60,14 @@ const rendererFile = join(here, '../renderer/index.html');
  * passed to the bridge in its environment and sent in the handshake header, never logged or recorded.
  */
 const bridgeToken = randomBytes(32).toString('base64url');
+
+/**
+ * T67: masks the secrets in every log line. Knows the bridge token from the start and every secret
+ * the secret store reads or saves; the logs themselves open once the user-data folder is known.
+ */
+const redactor = new Redactor();
+redactor.add(bridgeToken);
+let log: Log = NO_LOG;
 
 const cipher: Cipher = {
   available: () => safeStorage.isAsyncEncryptionAvailable(),
@@ -123,7 +142,7 @@ function createWindow(): BrowserWindow {
   w.webContents.on('will-navigate', (e) => e.preventDefault());
   // A dead or hung renderer must not leave a blank window; the flight runs in this process.
   const reload = (why: string) => {
-    console.error(`renderer ${why}, reloading the window`);
+    log.error(`renderer ${why}, reloading the window`);
     if (w.isDestroyed()) return;
     lastSent = '';
     w.webContents.reload();
@@ -145,11 +164,28 @@ async function main(): Promise<void> {
   session.defaultSession.setPermissionRequestHandler((_wc, _perm, callback) => callback(false));
 
   const userData = app.getPath('userData');
+  const logDir = join(userData, 'logs');
+  const mainLog = new RotatingFile(join(logDir, MAIN_LOG));
+  const bridgeFile = new RotatingFile(join(logDir, BRIDGE_LOG));
+  log = new Logger(mainLog, redactor);
+  const bridgeLog = new Logger(bridgeFile, redactor);
+  watchProcess(process, log);
+  const about = {
+    app: `ACARS Link ${app.getVersion()}${app.isPackaged ? '' : ' (dev)'}`,
+    electron: process.versions.electron ?? '',
+    chrome: process.versions.chrome ?? '',
+    node: process.versions.node,
+    os: `${process.platform} ${release()} ${arch()}`,
+    locale: app.getLocale(),
+  };
+  log.info(
+    `start: ${about.app}, Electron ${about.electron}, Node ${about.node}, ${about.os}, ${about.locale}`,
+  );
   // The rename «ACARS Sim» → «ACARS Link» moved the user data; bring it over once.
   try {
     await migrateOldUserData(join(app.getPath('appData'), OLD_APP_DIR), userData);
   } catch (e) {
-    console.error('user data migration failed:', e instanceof Error ? e.message : e);
+    log.error('user data migration failed', e);
   }
   const recordings = join(userData, 'recordings');
   // T30 C9: AeroDataBox data older than 7 days leave the recordings.
@@ -159,6 +195,11 @@ async function main(): Promise<void> {
   await dataCache.purgeOlder(ROUTES_CACHE_PREFIX, ROUTES_RETENTION_MS, Date.now());
   const http = fetchHttpClient();
   const clock = { now: () => Date.now() };
+  const secrets = new SecretStore(join(userData, 'secrets.json'), cipher, (v) => redactor.add(v));
+  // The redactor learns the stored secrets before anything can log them.
+  for (const key of ['hoppieLogon', 'aerodataboxKey', 'simbriefUsername'] as const) {
+    await secrets.get(key).catch(() => null);
+  }
   const settingsStore = new SettingsStore(
     join(userData, 'settings.json'),
     defaultSettings(app.getLocale()),
@@ -171,7 +212,16 @@ async function main(): Promise<void> {
     if (!app.isPackaged) return;
     bridgeQueue = bridgeQueue.then(async () => {
       await stopBridge?.();
-      stopBridge = startBridge(process.resourcesPath, port, simulator, bridgeToken);
+      log.info(`bridge: starting on port ${port}, simulator ${simulator}`);
+      stopBridge = startBridge(
+        process.resourcesPath,
+        port,
+        simulator,
+        bridgeToken,
+        (msg) => log.warn(msg),
+        (stream, line) => (stream === 'err' ? bridgeLog.warn(line) : bridgeLog.info(line)),
+      );
+      if (stopBridge === null) log.warn('bridge: not started (no exe)');
     });
   };
   let controller: AppController | null = null;
@@ -179,7 +229,7 @@ async function main(): Promise<void> {
     if (controller !== null) pushState(controller.state());
   };
   controller = new AppController({
-    secrets: new SecretStore(join(userData, 'secrets.json'), cipher),
+    secrets,
     settings: settingsStore,
     scenarioSources: BASE_SCENARIOS,
     http,
@@ -209,9 +259,28 @@ async function main(): Promise<void> {
     flags: new FlagsStore(join(userData, 'airline-memory.json')),
     vdgsDir: gsxVdgsDir(app.getPath('appData')),
     onBridgeConfig: (port, simulator) => restartBridge(port, simulator),
+    log,
+    diagnostics: {
+      logFiles: () => [...mainLog.files(), ...bridgeFile.files()],
+      latestRecording: () => latestRecording(recordings),
+      about: () => about,
+      redact: (text) => redactor.redact(text),
+      choosePath: async (defaultName) => {
+        const options = {
+          defaultPath: join(app.getPath('documents'), defaultName),
+          filters: [{ name: 'ZIP', extensions: ['zip'] }],
+        };
+        const r =
+          win === null
+            ? await dialog.showSaveDialog(options)
+            : await dialog.showSaveDialog(win, options);
+        return r.canceled || r.filePath === undefined || r.filePath === '' ? null : r.filePath;
+      },
+      reveal: (file) => shell.showItemInFolder(file),
+    },
   });
   const ctl = controller;
-  registerIpc(ipcMain, ctl, isTrustedSender);
+  registerIpc(ipcMain, ctl, isTrustedSender, log);
   await ctl.init();
   // Installed build: the bridge exe lies in resources/bridge; start it before the client connects.
   const boot = await settingsStore.get();
@@ -234,6 +303,7 @@ async function main(): Promise<void> {
 
   app.on('window-all-closed', () => app.quit());
   app.on('before-quit', () => {
+    log.info('quit');
     clearInterval(loop);
     ctl.dispose();
     void stopBridge?.();

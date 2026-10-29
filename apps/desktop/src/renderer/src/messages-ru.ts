@@ -24,6 +24,7 @@ export const ru: Record<MessageKey, string> = {
   'set.group.xatc': 'Станция УВД XATC',
   'set.group.datalink': 'Линия передачи данных',
   'set.group.records': 'Записи и память авиакомпании',
+  'set.group.diagnostics': 'Диагностика',
   'set.group.connection': 'Подключение',
   'page.flight': 'Сообщения',
   'page.scenarios': 'Сценарии',
@@ -472,6 +473,12 @@ export const ru: Record<MessageKey, string> = {
   'set.recordHint':
     'Телеметрия и сообщения каждого рейса сохраняются в файл для воспроизведения. Хранятся последние 20 рейсов.',
   'set.openRecordings': 'Открыть папку записей',
+  'set.diagRecording': 'Приложить последнюю запись полёта',
+  'set.diagExport': 'Экспорт диагностики',
+  'set.diagExportHint':
+    'Сохраняет один .zip-файл, который можно приложить к сообщению о проблеме: журналы приложения и моста, версии и настройки — без logon-кода, ключей и имени SimBrief. В записи полёта есть позывной, маршрут и данные рейса; она добавляется, только если включён переключатель выше. Файл никуда не отправляется.',
+  'set.diagExportButton': 'Экспорт…',
+  'set.diagSaved': 'Сохранено',
   'set.memory': 'Память авиакомпании: {names}',
   'set.memoryEmpty': 'Память авиакомпании пуста',
   'set.memoryHint':

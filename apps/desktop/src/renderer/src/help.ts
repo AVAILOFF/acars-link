@@ -213,6 +213,14 @@ const en: readonly HelpSection[] = [
           'With “Record flights” on, the telemetry and messages of each flight are saved to a file; the last 20 flights are kept. “Open recordings folder” shows them, which helps when reporting a problem.',
         ],
       },
+      {
+        id: 'logs',
+        q: 'Logs and diagnostics',
+        a: [
+          'The app keeps logs of its own work and of the simulator bridge in the “logs” folder next to the settings (%APPDATA%\\ACARS Link\\logs): starts, connections, Hoppie status and errors, five files of 5 MB each. Your logon code, keys and SimBrief name are replaced with ***.',
+          'Advanced settings → Diagnostics → “Export…” saves the logs, versions and settings as one .zip to attach to a problem report. The latest flight recording is added only when you switch it on.',
+        ],
+      },
     ],
   },
   {
@@ -427,6 +435,14 @@ const ru: readonly HelpSection[] = [
         q: 'Записи полётов',
         a: [
           'С настройкой «Записывать полёты» телеметрия и сообщения каждого рейса сохраняются в файл; хранятся последние 20 рейсов. «Открыть папку записей» покажет их — запись полезно приложить к сообщению о проблеме.',
+        ],
+      },
+      {
+        id: 'logs',
+        q: 'Журналы и диагностика',
+        a: [
+          'Приложение ведёт журналы своей работы и моста к симулятору в папке «logs» рядом с настройками (%APPDATA%\\ACARS Link\\logs): запуски, подключения, состояние Hoppie и ошибки, пять файлов по 5 МБ. Logon-код, ключи и имя SimBrief заменяются на ***.',
+          'Расширенные настройки → Диагностика → «Экспорт…» сохраняет журналы, версии и настройки одним .zip-файлом, чтобы приложить его к сообщению о проблеме. Последняя запись полёта добавляется, только если её включить.',
         ],
       },
     ],
