@@ -9,14 +9,16 @@ import type { InboundMessage } from '../types.js';
  * 2026-10-08). Pure: builds requests and parses response bodies, no I/O.
  *
  * - Endpoint `connect.html` answers on https as well as http.
- * - Parameters `logon`, `from`, `to`, `type`, `packet`; GET and POST may be mixed.
- *   URLs should stay under 256 characters, longer telexes go by POST.
+ * - Parameters `logon`, `from`, `to`, `type`, `packet`; GET and POST may be mixed. We send
+ *   every request by POST with all of them in the form body (T68): the logon code never goes
+ *   into a URL, where proxies, HTTPS-inspecting antivirus and runtime errors may keep it. The
+ *   server reads `logon` from the body (checked 2026-10-29: without it `error (no logon code)`,
+ *   with a wrong one `error {invalid logon code}`).
  * - Responses: `ok`, `ok {…}` or `error {reason}`. Poll: `ok {FROM type {packet}} …`;
  *   ping with callsigns: `ok {CS1 CS2}`.
  */
 
 export const HOPPIE_ENDPOINT = 'https://www.hoppie.nl/acars/system/connect.html';
-export const MAX_GET_URL_LENGTH = 256;
 /** `to` for server-directed types (poll, ping): ignored but required. */
 export const SERVER_CALLSIGN = 'SERVER';
 
@@ -38,19 +40,20 @@ export function isValidCallsign(cs: string): boolean {
   return CALLSIGN.test(cs);
 }
 
-/** GET when the URL fits in {@link MAX_GET_URL_LENGTH}, otherwise POST with the packet in
- * a form body (the other parameters stay in the query). */
+/** POST to `endpoint` with every parameter in a form body; nothing in the query. */
 export function buildRequest(endpoint: string, p: HoppieParams, timeoutMs: number): HttpRequest {
-  const query = new URLSearchParams({ logon: p.logon, from: p.from, to: p.to, type: p.type });
-  const withPacket = new URLSearchParams(query);
-  withPacket.set('packet', p.packet);
-  const getUrl = `${endpoint}?${withPacket.toString()}`;
-  if (getUrl.length <= MAX_GET_URL_LENGTH) return { method: 'GET', url: getUrl, timeoutMs };
+  const body = new URLSearchParams({
+    logon: p.logon,
+    from: p.from,
+    to: p.to,
+    type: p.type,
+    packet: p.packet,
+  });
   return {
     method: 'POST',
-    url: `${endpoint}?${query.toString()}`,
+    url: endpoint,
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ packet: p.packet }).toString(),
+    body: body.toString(),
     timeoutMs,
   };
 }

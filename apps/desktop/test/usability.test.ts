@@ -243,9 +243,13 @@ describe('checks of the credentials (U-06)', () => {
     await s.app.setHoppieCode('LOGON0123456789');
     expect(await s.app.checkHoppie()).toBeNull();
     const ping = s.http.requests.at(-1);
-    const url = new URL(ping?.url ?? '');
-    expect(`${url.origin}${url.pathname}`).toBe(HOPPIE_ENDPOINT);
-    expect(Object.fromEntries(url.searchParams)).toMatchObject({ type: 'ping', to: 'SERVER' });
+    // T68: POST, the code only in the form body.
+    expect(ping).toMatchObject({ method: 'POST', url: HOPPIE_ENDPOINT });
+    expect(Object.fromEntries(new URLSearchParams(ping?.body))).toMatchObject({
+      type: 'ping',
+      to: 'SERVER',
+      logon: 'LOGON0123456789',
+    });
     expect(await guard(() => s.app.checkHoppie())).toMatchObject({
       error: { code: 'bad_state', reason: 'check_too_soon' },
     });
