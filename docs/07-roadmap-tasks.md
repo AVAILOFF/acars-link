@@ -1147,6 +1147,8 @@ Hoppie в самолёте (сверено 2026-10-25): официальный �
 3. Тесты `packages/transport/test`: в URL нет `logon=`, тело содержит все параметры, длинный telex — тот же путь.
 4. Документация: docs/06 (Hoppie: метод запросов).
 
+**Сделано (2026-10-29, ветка `task/T68-hoppie-post`):** `buildRequest` — всегда POST на `connect.html` без query, все параметры в теле; `MAX_GET_URL_LENGTH` и ветка GET удалены (поведение сети меняется только в методе: длинные telex и раньше шли POST). `[ПРОВЕРИТЬ]` по tech.html: «You may use either the GET or the POST protocol, or both intermixed» относится ко всем переменным запроса; сервер читает `logon` из тела — POST `ping` без `logon` → `error (no logon code)`, с неверным → `error {invalid logon code}` (2026-10-29). Ответ на верный код — проверка человеком 1. Тесты — `packages/transport/test/protocol.test.ts`, `hoppie-transport.test.ts` (ни в одном URL нет кода и query), `apps/desktop/test/usability.test.ts` (проверка кода).
+
 **Не входит:** смена эндпоинта, SayIntentions (T17).
 
 **Готово, когда:** тесты зелёные; ни один запрос транспорта и проверки кода не содержит logon-код в URL; `pnpm check` зелёный.

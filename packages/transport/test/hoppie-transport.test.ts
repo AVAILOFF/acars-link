@@ -191,13 +191,21 @@ describe('HoppieTransport: sending', () => {
     expect(JSON.stringify(events)).toContain('***');
   });
 
-  it('uses POST for a telex longer than the GET limit', async () => {
+  it('keeps the logon code out of every URL: telex, poll and a long telex all POST (T68)', async () => {
     const { server, transport, run } = setup();
     const text = Array.from({ length: 12 }, (_, i) => `LINE ${i} OF THE FINAL LOADSHEET`).join(' ');
+    transport.send(telex('GATE B12'));
     transport.send(telex(text));
-    await run(1_000);
-    expect(server.seen[0]?.req.method).toBe('POST');
-    expect(server.seen[0]?.params['packet']).toBe(telex(text).message.text);
+    await run(180_000);
+    expect(server.ofType('telex')).toHaveLength(2);
+    expect(server.ofType('poll').length).toBeGreaterThan(0);
+    for (const s of server.seen) {
+      expect(s.req.method).toBe('POST');
+      expect(s.req.url).not.toContain(LOGON);
+      expect(new URL(s.req.url).search).toBe('');
+      expect(s.params['logon']).toBe(LOGON);
+    }
+    expect(server.ofType('telex')[1]?.params['packet']).toBe(telex(text).message.text);
   });
 
   it('rejects bad callsigns, empty telexes and non-https endpoints', () => {

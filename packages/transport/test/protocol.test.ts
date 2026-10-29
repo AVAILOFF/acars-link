@@ -9,7 +9,6 @@ import {
   isCallsignInUse,
   isFatalReason,
   isValidCallsign,
-  MAX_GET_URL_LENGTH,
   parsePing,
   parsePoll,
   parseResponse,
@@ -18,32 +17,43 @@ import {
 const base = { logon: 'abcDEF123', from: 'OPSDLH4', to: 'DLH4', type: 'telex' as const };
 
 describe('buildRequest', () => {
-  it('uses GET with all parameters in the query when the URL is short', () => {
+  const formOf = (body: string | undefined) => Object.fromEntries(new URLSearchParams(body));
+
+  it('POSTs every parameter in a form body, nothing in the URL (T68)', () => {
     const req = buildRequest(HOPPIE_ENDPOINT, { ...base, packet: 'GATE B12\nOK' }, 15_000);
-    expect(req.method).toBe('GET');
-    expect(req.body).toBeUndefined();
+    expect(req.method).toBe('POST');
+    expect(req.url).toBe(HOPPIE_ENDPOINT);
+    expect(req.url).not.toContain('logon');
+    expect(req.headers).toEqual({ 'content-type': 'application/x-www-form-urlencoded' });
     expect(req.timeoutMs).toBe(15_000);
-    const url = new URL(req.url);
-    expect(url.origin + url.pathname).toBe(HOPPIE_ENDPOINT);
-    expect(Object.fromEntries(url.searchParams)).toEqual({
+    expect(formOf(req.body)).toEqual({
       logon: 'abcDEF123',
       from: 'OPSDLH4',
       to: 'DLH4',
       type: 'telex',
       packet: 'GATE B12\nOK',
     });
-    expect(req.url.length).toBeLessThanOrEqual(MAX_GET_URL_LENGTH);
   });
 
-  it('switches to POST with the packet in a form body when the URL would exceed 256', () => {
+  it('takes the same path for a long telex and for poll and ping', () => {
     const packet = 'LOADSHEET FINAL\n'.repeat(20);
-    const req = buildRequest(HOPPIE_ENDPOINT, { ...base, packet }, 15_000);
-    expect(req.method).toBe('POST');
-    expect(req.headers).toEqual({ 'content-type': 'application/x-www-form-urlencoded' });
-    const url = new URL(req.url);
-    expect(url.searchParams.has('packet')).toBe(false);
-    expect(url.searchParams.get('type')).toBe('telex');
-    expect(new URLSearchParams(req.body).get('packet')).toBe(packet);
+    const long = buildRequest(HOPPIE_ENDPOINT, { ...base, packet }, 15_000);
+    expect(long.url).toBe(HOPPIE_ENDPOINT);
+    expect(formOf(long.body)['packet']).toBe(packet);
+    for (const type of ['poll', 'ping', 'cpdlc'] as const) {
+      const req = buildRequest(
+        HOPPIE_ENDPOINT,
+        { ...base, type, to: 'SERVER', packet: '' },
+        15_000,
+      );
+      expect(req).toMatchObject({ method: 'POST', url: HOPPIE_ENDPOINT });
+      expect(formOf(req.body)).toMatchObject({
+        logon: 'abcDEF123',
+        type,
+        to: 'SERVER',
+        packet: '',
+      });
+    }
   });
 });
 

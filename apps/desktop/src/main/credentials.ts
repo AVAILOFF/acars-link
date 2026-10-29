@@ -64,7 +64,7 @@ export async function pingHoppie(http: HttpClient, logon: string): Promise<void>
     if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
     body = res.body;
   } catch (e) {
-    // Only the message: the request URL holds the code.
+    // Only the message: runtime errors may echo the request, which holds the code.
     throw new AppFailure('network', e instanceof Error ? e.message : String(e));
   }
   let res: ReturnType<typeof parseResponse>;
