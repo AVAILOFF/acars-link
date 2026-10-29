@@ -24,16 +24,30 @@ export function bridgeArgs(port: number, simulator: SimChoice): string[] {
   return [...args, '--source', simulator === 'xplane' ? 'xplane' : 'simconnect'];
 }
 
+/** Environment variable with the launch token (bridge `AccessPolicy.TokenVariable`, T65). */
+export const BRIDGE_TOKEN_ENV = 'ACARS_BRIDGE_TOKEN';
+
+/**
+ * Environment of the bridge: ours plus the launch token. Not a command-line argument: Windows can keep
+ * command lines in the audit log (event 4688) and process tools show them; the environment stays inside
+ * the process (T65).
+ */
+export function bridgeEnv(base: NodeJS.ProcessEnv, token: string): NodeJS.ProcessEnv {
+  return { ...base, [BRIDGE_TOKEN_ENV]: token };
+}
+
 /**
  * Starts the bundled bridge next to the app, hidden, and returns a stop function that resolves once
  * the process has exited (so a new one can take the port). Returns null when there is no exe (dev
  * run: the bridge is started by hand) or it cannot start. If the port is already taken (a bridge
  * started by hand), the new process exits on its own and the app simply connects to the running one.
+ * The bridge lets in only clients with `token` (T65).
  */
 export function startBridge(
   resourcesPath: string,
   port: number,
-  simulator: SimChoice = 'auto',
+  simulator: SimChoice,
+  token: string,
   log: (msg: string) => void = console.error,
 ): (() => Promise<void>) | null {
   const exe = bridgeExePath(resourcesPath);
@@ -43,6 +57,7 @@ export function startBridge(
     child = spawn(exe, bridgeArgs(port, simulator), {
       cwd: join(resourcesPath, 'bridge'),
       windowsHide: true,
+      env: bridgeEnv(process.env, token),
       stdio: 'ignore',
     });
   } catch (e) {

@@ -67,7 +67,9 @@ export interface AppControllerOptions {
   readonly scenarioSources: readonly ScenarioSource[];
   readonly http: HttpClient;
   readonly createTransport: TransportFactory;
-  readonly createSocket: (url: string) => SocketLike;
+  readonly createSocket: (url: string, headers: Readonly<Record<string, string>>) => SocketLike;
+  /** Launch token of the bundled bridge (T65); sent on every connection. */
+  readonly bridgeToken?: string | null;
   readonly timers: Timers;
   readonly now: () => number;
   /** Creates the JSONL recording of a flight (T11); null = no recordings. */
@@ -168,6 +170,7 @@ export class AppController {
     this.bridge = new BridgeClient({
       port: 0,
       createSocket: o.createSocket,
+      token: o.bridgeToken ?? null,
       timers: o.timers,
       now: o.now,
       onTelemetry: (s) => this.onTelemetry(s),

@@ -3,6 +3,7 @@
 
 using System.Net;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -27,29 +28,44 @@ public static class AccessPolicy
     }
 
     /// <summary>
-    /// No Origin (native clients: Electron main process, Node), <c>file://</c> / <c>null</c>
-    /// (packaged Electron renderer) or a loopback http(s) origin (dev server). Anything else — a site
-    /// on the internet — is rejected.
+    /// No Origin only: the app connects from its main process (Node <c>WebSocket</c>), which sends none
+    /// (T65). Every web origin is refused, <c>null</c> (sandboxed iframe on any site) and
+    /// <c>file://</c> included; the app's renderer never connects to the bridge, so no loopback
+    /// exception for the dev server is needed either.
     /// </summary>
-    public static bool IsAllowedOrigin(string? origin)
+    public static bool IsAllowedOrigin(string? origin) => string.IsNullOrEmpty(origin);
+
+    /// <summary>Header that carries the launch token (T65).</summary>
+    public const string TokenHeader = "X-Acars-Bridge-Token";
+
+    /// <summary>Environment variable the app passes the launch token in (not the command line: T65).</summary>
+    public const string TokenVariable = "ACARS_BRIDGE_TOKEN";
+
+    /// <summary>
+    /// <paramref name="expected"/> null: a bridge started by hand, any token or none passes. Else the
+    /// client must present the same token; compared in constant time.
+    /// </summary>
+    public static bool IsValidToken(string? expected, string? presented)
     {
-        if (string.IsNullOrEmpty(origin)) return true;
-        if (origin is "null" or "file://") return true;
-        if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
-        return uri.Scheme is "http" or "https" && uri.Host is "127.0.0.1" or "localhost";
+        if (expected is null) return true;
+        if (presented is null) return false;
+        return CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(presented));
     }
 }
 
 /// <summary>
 /// WebSocket server on 127.0.0.1 that streams <see cref="BridgeHub"/> frames. A client asking for
 /// <c>?protocol=2</c> may send commands (<see cref="CommandDispatcher"/>); the <c>ack</c> goes to it alone.
+/// With a launch <c>token</c> (set by the app, T65) a client without the same
+/// <see cref="AccessPolicy.TokenHeader"/> gets 403.
 /// </summary>
 public static class BridgeServer
 {
     public const int DefaultPort = 47830;
     public const string Path = "/";
 
-    public static WebApplication Build(BridgeHub hub, int port, CommandDispatcher? commands = null, LogLevel logLevel = LogLevel.Warning)
+    public static WebApplication Build(BridgeHub hub, int port, CommandDispatcher? commands = null, LogLevel logLevel = LogLevel.Warning,
+        string? token = null)
     {
         var dispatcher = commands ?? new CommandDispatcher(null, TimeProvider.System);
         var builder = WebApplication.CreateSlimBuilder();
@@ -59,14 +75,15 @@ public static class BridgeServer
 
         var app = builder.Build();
         app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(15) });
-        app.Map(Path, ctx => Handle(ctx, hub, dispatcher));
+        app.Map(Path, ctx => Handle(ctx, hub, dispatcher, token));
         return app;
     }
 
-    private static async Task Handle(HttpContext ctx, BridgeHub hub, CommandDispatcher commands)
+    private static async Task Handle(HttpContext ctx, BridgeHub hub, CommandDispatcher commands, string? token)
     {
         if (!AccessPolicy.IsAllowedHost(ctx.Request.Host.Value)
-            || !AccessPolicy.IsAllowedOrigin(ctx.Request.Headers.Origin))
+            || !AccessPolicy.IsAllowedOrigin(ctx.Request.Headers.Origin)
+            || !AccessPolicy.IsValidToken(token, ctx.Request.Headers[AccessPolicy.TokenHeader].FirstOrDefault()))
         {
             ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
             return;

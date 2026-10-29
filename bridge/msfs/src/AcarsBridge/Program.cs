@@ -14,6 +14,10 @@ const string Usage = """
       --replay <file>     with --source fake: loop a JSONL file of TelemetrySnapshot v1
       --verbose           log HTTP/Kestrel details
       --help
+
+    Environment:
+      ACARS_BRIDGE_TOKEN  launch token set by the app: clients must send it in X-Acars-Bridge-Token
+                          (unset when started by hand: any local native client may connect)
     """;
 
 var port = BridgeServer.DefaultPort;
@@ -85,11 +89,21 @@ switch (sourceName)
         return 2;
 }
 
+// T65: the token comes in the environment (not on the command line, which audit logs may keep);
+// never printed. Cleared at once so nothing started from here inherits it.
+var token = Environment.GetEnvironmentVariable(AccessPolicy.TokenVariable);
+Environment.SetEnvironmentVariable(AccessPolicy.TokenVariable, null);
+if (string.IsNullOrEmpty(token))
+{
+    token = null;
+    Console.WriteLine($"No {AccessPolicy.TokenVariable}: any local client without a web Origin may connect (bridge started by hand).");
+}
+
 var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
 var commands = new CommandDispatcher(source as ICommandTarget, clock);
 var hub = new LoggingSink(new BridgeHub(version, source.Name, commands.Commands));
 var app = BridgeServer.Build(hub.Hub, port, commands,
-    verbose ? Microsoft.Extensions.Logging.LogLevel.Information : Microsoft.Extensions.Logging.LogLevel.Warning);
+    verbose ? Microsoft.Extensions.Logging.LogLevel.Information : Microsoft.Extensions.Logging.LogLevel.Warning, token);
 
 using var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>

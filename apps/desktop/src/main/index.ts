@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createRng } from '@acars/core';
@@ -43,11 +43,26 @@ const here = import.meta.dirname;
 const devUrl = process.env['ELECTRON_RENDERER_URL'];
 const rendererFile = join(here, '../renderer/index.html');
 
+/**
+ * T65: launch token of the bundled bridge, new on every app start (256 bits). Lives in memory only:
+ * passed to the bridge in its environment and sent in the handshake header, never logged or recorded.
+ */
+const bridgeToken = randomBytes(32).toString('base64url');
+
 const cipher: Cipher = {
   available: () => safeStorage.isAsyncEncryptionAvailable(),
   encrypt: (plain) => safeStorage.encryptStringAsync(plain),
   decrypt: async (data) => (await safeStorage.decryptStringAsync(Buffer.from(data))).result,
 };
+
+/**
+ * Node's WHATWG WebSocket (undici): sends no Origin and takes extra handshake headers
+ * (`WebSocketInit.headers`, T65). The DOM typings know only `protocols`.
+ */
+const NodeWebSocket = WebSocket as unknown as new (
+  url: string,
+  init: { readonly headers: Readonly<Record<string, string>> },
+) => SocketLike;
 
 let win: BrowserWindow | null = null;
 let lastSent = '';
@@ -153,7 +168,7 @@ async function main(): Promise<void> {
     if (!app.isPackaged) return;
     bridgeQueue = bridgeQueue.then(async () => {
       await stopBridge?.();
-      stopBridge = startBridge(process.resourcesPath, port, simulator);
+      stopBridge = startBridge(process.resourcesPath, port, simulator, bridgeToken);
     });
   };
   let controller: AppController | null = null;
@@ -175,8 +190,8 @@ async function main(): Promise<void> {
             rng: createRng(randomInt(2 ** 31)),
           })
         : new MockTransport(clock),
-    // Node's WHATWG WebSocket; the bridge accepts clients without an Origin header.
-    createSocket: (url) => new WebSocket(url) as unknown as SocketLike,
+    createSocket: (url, headers) => new NodeWebSocket(url, { headers }),
+    bridgeToken,
     timers: { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as never) },
     now: clock.now,
     openRecording: fileRecordings(recordings),

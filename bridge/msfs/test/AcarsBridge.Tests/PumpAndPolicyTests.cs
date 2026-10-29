@@ -158,10 +158,10 @@ public class AccessPolicyTests
     [Theory]
     [InlineData(null, true)]
     [InlineData("", true)]
-    [InlineData("null", true)]
-    [InlineData("file://", true)]
-    [InlineData("http://localhost:5173", true)]
-    [InlineData("http://127.0.0.1:5173", true)]
+    [InlineData("null", false)] // sandboxed iframe on any site (T65)
+    [InlineData("file://", false)]
+    [InlineData("http://localhost:5173", false)]
+    [InlineData("http://127.0.0.1:5173", false)]
     [InlineData("https://evil.example", false)]
     [InlineData("http://127.0.0.1.evil.example", false)]
     [InlineData("http://192.168.1.10:5173", false)]
@@ -178,4 +178,15 @@ public class AccessPolicyTests
     [InlineData("", false)]
     [InlineData(null, false)]
     public void Host(string? host, bool allowed) => Assert.Equal(allowed, AccessPolicy.IsAllowedHost(host));
+
+    [Theory]
+    [InlineData(null, null, true)] // started by hand: no token needed
+    [InlineData(null, "anything", true)]
+    [InlineData("s3cret-token", "s3cret-token", true)]
+    [InlineData("s3cret-token", null, false)]
+    [InlineData("s3cret-token", "", false)]
+    [InlineData("s3cret-token", "s3cret-tokeN", false)]
+    [InlineData("s3cret-token", "s3cret-token2", false)]
+    public void Token(string? expected, string? presented, bool allowed) =>
+        Assert.Equal(allowed, AccessPolicy.IsValidToken(expected, presented));
 }

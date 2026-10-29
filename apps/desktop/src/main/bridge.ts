@@ -19,9 +19,14 @@ import type { BridgeView, Simulator } from '../shared/api.js';
  * Asks for protocol v2 (`?protocol=2`): the bridge then lists its commands in `hello` and
  * answers each `command` with an `ack`. A v1 bridge ignores the query and says `protocol: 1`;
  * telemetry works as before and commands end with `unavailable`.
+ *
+ * T65: the bridge the app starts wants the launch token in {@link BRIDGE_TOKEN_HEADER} (a header,
+ * not the URL, so it stays out of error texts and request logs); a bridge started by hand ignores it.
  */
 
 export const BRIDGE_PROTOCOL = 2;
+/** Header with the launch token (bridge `AccessPolicy.TokenHeader`). */
+export const BRIDGE_TOKEN_HEADER = 'X-Acars-Bridge-Token';
 /** Bridge versions this client understands. */
 export const BRIDGE_PROTOCOLS: readonly number[] = [1, 2];
 export const RECONNECT_DELAYS_MS: readonly number[] = [1_000, 2_000, 4_000, 8_000, 16_000, 30_000];
@@ -59,7 +64,10 @@ export interface Timers {
 
 export interface BridgeClientOptions {
   readonly port: number;
-  readonly createSocket: (url: string) => SocketLike;
+  /** Opens a socket to `url` with these extra request headers. */
+  readonly createSocket: (url: string, headers: Readonly<Record<string, string>>) => SocketLike;
+  /** Launch token of the bundled bridge (T65); absent or null = none sent. */
+  readonly token?: string | null;
   readonly timers: Timers;
   readonly now: () => number;
   readonly onTelemetry: (s: TelemetrySnapshot) => void;
@@ -72,6 +80,13 @@ export interface BridgeClientOptions {
 export function bridgeUrl(port: number): string {
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new RangeError(`bad port ${port}`);
   return `ws://127.0.0.1:${port}/?protocol=${BRIDGE_PROTOCOL}`;
+}
+
+/** Handshake headers: the launch token, if any. */
+export function bridgeHeaders(token: string | null | undefined): Record<string, string> {
+  return token === null || token === undefined || token === ''
+    ? {}
+    : { [BRIDGE_TOKEN_HEADER]: token };
 }
 
 interface Pending {
@@ -217,7 +232,7 @@ export class BridgeClient {
     this.set({ ...INITIAL_VIEW, link: 'connecting' });
     let socket: SocketLike;
     try {
-      socket = this.o.createSocket(bridgeUrl(this.port));
+      socket = this.o.createSocket(bridgeUrl(this.port), bridgeHeaders(this.o.token));
     } catch (e) {
       this.scheduleRetry(e instanceof Error ? e.message : String(e));
       return;

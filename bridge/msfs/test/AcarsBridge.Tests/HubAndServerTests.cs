@@ -143,6 +143,28 @@ public sealed class BridgeServerTests : IAsyncLifetime
         Assert.Contains("403", ex.Message);
     }
 
+    [Theory]
+    [InlineData("null")] // <iframe sandbox="allow-scripts"> on any site (T65)
+    [InlineData("file://")]
+    [InlineData("http://localhost:5173")]
+    public async Task Web_origins_are_rejected(string origin)
+    {
+        using var ws = new ClientWebSocket();
+        ws.Options.SetRequestHeader("Origin", origin);
+        var ex = await Assert.ThrowsAsync<WebSocketException>(() => ws.ConnectAsync(new Uri($"ws://127.0.0.1:{_port}/"), CancellationToken.None));
+        Assert.Contains("403", ex.Message);
+    }
+
+    [Fact]
+    public async Task Started_by_hand_takes_any_token_or_none()
+    {
+        using var ws = new ClientWebSocket();
+        ws.Options.SetRequestHeader(AccessPolicy.TokenHeader, "whatever");
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await ws.ConnectAsync(new Uri($"ws://127.0.0.1:{_port}/"), timeout.Token);
+        Assert.Equal("hello", (string)(await Receive(ws, timeout.Token))["type"]!);
+    }
+
     [Fact]
     public async Task Plain_http_gets_426()
     {
@@ -151,7 +173,7 @@ public sealed class BridgeServerTests : IAsyncLifetime
         Assert.Equal(HttpStatusCode.UpgradeRequired, r.StatusCode);
     }
 
-    private static async Task<JsonNode> Receive(ClientWebSocket ws, CancellationToken ct)
+    internal static async Task<JsonNode> Receive(ClientWebSocket ws, CancellationToken ct)
     {
         var buffer = new byte[64 * 1024];
         using var ms = new MemoryStream();
@@ -162,5 +184,75 @@ public sealed class BridgeServerTests : IAsyncLifetime
             ms.Write(buffer, 0, r.Count);
         } while (!r.EndOfMessage);
         return JsonNode.Parse(Encoding.UTF8.GetString(ms.ToArray()))!;
+    }
+}
+
+/// <summary>A bridge the app started: launch token required (T65).</summary>
+public sealed class BridgeTokenTests : IAsyncLifetime
+{
+    private const string Token = "0123456789abcdef0123456789abcdef";
+    private readonly int _port = Repo.FreePort();
+    private BridgeHub _hub = null!;
+    private WebApplication _app = null!;
+
+    public async Task InitializeAsync()
+    {
+        _hub = new BridgeHub("0.1.0", "fake");
+        _app = BridgeServer.Build(_hub, _port, token: Token);
+        await _app.StartAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        _hub.Complete();
+        await _app.StopAsync();
+        await _app.DisposeAsync();
+    }
+
+    private async Task<WebSocketException> Refused(Action<ClientWebSocketOptions> setup)
+    {
+        using var ws = new ClientWebSocket();
+        setup(ws.Options);
+        return await Assert.ThrowsAsync<WebSocketException>(() => ws.ConnectAsync(new Uri($"ws://127.0.0.1:{_port}/?protocol=2"), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Right_token_connects()
+    {
+        using var ws = new ClientWebSocket();
+        ws.Options.SetRequestHeader(AccessPolicy.TokenHeader, Token);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        await ws.ConnectAsync(new Uri($"ws://127.0.0.1:{_port}/?protocol=2"), timeout.Token);
+        Assert.Equal("hello", (string)(await BridgeServerTests.Receive(ws, timeout.Token))["type"]!);
+    }
+
+    [Fact]
+    public async Task No_token_wrong_token_or_token_in_query_get_403()
+    {
+        Assert.Contains("403", (await Refused(_ => { })).Message);
+        Assert.Contains("403", (await Refused(o => o.SetRequestHeader(AccessPolicy.TokenHeader, Token[..^1] + "0"))).Message);
+        Assert.Contains("403", (await Refused(o => o.SetRequestHeader(AccessPolicy.TokenHeader, ""))).Message);
+        using var ws = new ClientWebSocket();
+        var ex = await Assert.ThrowsAsync<WebSocketException>(() => ws.ConnectAsync(new Uri($"ws://127.0.0.1:{_port}/?protocol=2&token={Token}"), CancellationToken.None));
+        Assert.Contains("403", ex.Message);
+    }
+
+    [Fact]
+    public async Task Right_token_from_a_web_origin_still_gets_403()
+    {
+        var ex = await Refused(o =>
+        {
+            o.SetRequestHeader(AccessPolicy.TokenHeader, Token);
+            o.SetRequestHeader("Origin", "null");
+        });
+        Assert.Contains("403", ex.Message);
+    }
+
+    [Fact]
+    public async Task Plain_http_without_token_gets_403_not_426()
+    {
+        using var http = new HttpClient();
+        var r = await http.GetAsync($"http://127.0.0.1:{_port}/");
+        Assert.Equal(HttpStatusCode.Forbidden, r.StatusCode);
     }
 }

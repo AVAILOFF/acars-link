@@ -57,7 +57,10 @@ export class FakeSocket implements SocketLike {
   readonly sent: unknown[] = [];
   /** Set to make `send` throw. */
   sendError: Error | null = null;
-  constructor(readonly url: string) {}
+  constructor(
+    readonly url: string,
+    readonly headers: Readonly<Record<string, string>> = {},
+  ) {}
   send(data: string) {
     if (this.sendError !== null) throw this.sendError;
     this.sent.push(JSON.parse(data));
@@ -117,8 +120,8 @@ export function socketFactory() {
   const sockets: FakeSocket[] = [];
   return {
     sockets,
-    create: (url: string) => {
-      const s = new FakeSocket(url);
+    create: (url: string, headers: Readonly<Record<string, string>> = {}) => {
+      const s = new FakeSocket(url, headers);
       sockets.push(s);
       return s;
     },
