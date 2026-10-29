@@ -26,6 +26,45 @@ public class ReconnectPolicyTests
     }
 }
 
+public class SimQueueTests
+{
+    [Fact]
+    public void Drains_every_waiting_message_on_one_wake_up()
+    {
+        // Frames pile up between wake-ups; one ReceiveMessage handles one of them.
+        var waiting = 300;
+        var handled = 0L;
+        var calls = 0;
+        void Receive()
+        {
+            calls++;
+            if (waiting == 0) return;
+            waiting--;
+            handled++;
+        }
+
+        Assert.Equal(300, SimQueue.Drain(Receive, () => handled));
+        Assert.Equal(0, waiting);
+        Assert.Equal(301, calls);
+    }
+
+    [Fact]
+    public void An_empty_queue_takes_one_call()
+    {
+        var calls = 0;
+        Assert.Equal(0, SimQueue.Drain(() => calls++, () => 0));
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public void A_flood_stops_at_the_bound()
+    {
+        var handled = 0L;
+        Assert.Equal(10, SimQueue.Drain(() => handled++, () => handled, max: 10));
+        Assert.Equal(10, handled);
+    }
+}
+
 public class SnapshotPumpTests
 {
     private readonly ManualClock _clock = ManualClock.At(1_000_000);

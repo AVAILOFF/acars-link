@@ -164,6 +164,31 @@ public sealed class ReconnectPolicy(TimeSpan? initial = null, TimeSpan? max = nu
 }
 
 /// <summary>
+/// Empties the SimConnect queue on a wake-up. Managed <c>ReceiveMessage</c> is one <c>SimConnect_CallDispatch</c>, which
+/// handles "the next SimConnect message received" (SimConnect_CallDispatch, SDK 2024, checked 2026-10-29), and the
+/// auto-reset signal folds the messages that came together into one wake-up. Handling one message per wake-up lets the
+/// queue grow inside the sim (a sim memory leak, fastest where it draws the most frames: the main menu).
+/// </summary>
+public static class SimQueue
+{
+    /// <summary>A bound per wake-up, so a flood cannot hold the loop (the rest goes with the next one).</summary>
+    public const int MaxPerWake = 1024;
+
+    /// <summary>Calls <paramref name="receive"/> until a call handles nothing (<paramref name="handled"/> unchanged).</summary>
+    /// <returns>How many calls handled a message.</returns>
+    public static int Drain(Action receive, Func<long> handled, int max = MaxPerWake)
+    {
+        for (var i = 0; i < max; i++)
+        {
+            var before = handled();
+            receive();
+            if (handled() == before) return i;
+        }
+        return max;
+    }
+}
+
+/// <summary>
 /// Turns SimConnect callbacks into a steady ~1 Hz telemetry stream. Platform-neutral so pause and
 /// sim-rate handling are unit-testable without the sim.
 /// <list type="bullet">
