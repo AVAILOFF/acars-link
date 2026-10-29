@@ -10,7 +10,7 @@ namespace AcarsBridge;
 /// <summary>
 /// MSFS via managed SimConnect (MSFS SDK). Compiled only when the SDK is found (see the .csproj).
 /// No window: SimConnect signals an <see cref="EventWaitHandle"/>, and a dedicated thread calls
-/// ReceiveMessage. Reconnects with <see cref="ReconnectPolicy"/> when the sim is not running or quits.
+/// ReceiveMessage until the queue is empty (<see cref="SimQueue"/>). Reconnects with <see cref="ReconnectPolicy"/> when the sim is not running or quits.
 /// Commands (protocol v2): <c>ping</c> — ok while a SimConnect session is open; <c>smoke_start</c> /
 /// <c>smoke_stop</c> (T34) — a smoke SimObject at a point, created by <c>AICreateSimulatedObject</c> when the
 /// aircraft is near (the EX1 variant is not in the managed wrapper of the SDK, so the smoke package is a
@@ -19,7 +19,7 @@ namespace AcarsBridge;
 /// with <c>SIM DISABLED</c> = 1 (set as soon as its id is known); the bridge moves the fire trucks itself, about every
 /// <see cref="RescueController.StepEvery"/>, with <c>SIMCONNECT_DATA_INITPOSITION</c> ("Initial Position", which the
 /// SDK allows "to incrementally move or reposition" objects not controlled by the user) on every visual frame (the
-/// "Frame" system event; the 100 ms timer only when no frame comes, e.g. paused). While they are wanted the
+/// "Frame" system event, on only while they move; the 100 ms timer only when no frame comes, e.g. paused). While they are wanted the
 /// aircraft position is read every <see cref="RescueController.MoveEvery"/>; diagnostics go to the console.
 /// </summary>
 public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy = null) : ISimSource, ISimSession, ICommandTarget
@@ -286,6 +286,10 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
 
         var pump = new SnapshotPump(clock, sink.OnTelemetry);
         var open = false;
+        // Messages handled so far (every handler counts), so a wake-up drains the whole queue (SimQueue).
+        var handled = 0L;
+        // The "Frame" event is on only while trucks move (below).
+        var framesOn = false;
         string? ended = null;
 
         void Publish() =>
@@ -293,18 +297,27 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
 
         sc.OnRecvOpen += (_, _) =>
         {
+            handled++;
             open = true;
             _open = true;
             onOpen();
             Publish();
         };
-        sc.OnRecvQuit += (_, _) => ended = "sim quit";
+        sc.OnRecvQuit += (_, _) =>
+        {
+            handled++;
+            ended = "sim quit";
+        };
         sc.OnRecvException += (_, data) =>
+        {
+            handled++;
             // Usually a bad SimVar/unit in the definition; keep running, report it.
             sink.OnStatus(new BridgeStatus(SimLink.Connected, pump.Running, pump.Paused, pump.SimRate,
                 Detail: $"simconnect exception {(SIMCONNECT_EXCEPTION)data.dwException} at param {data.dwIndex}"));
+        };
         sc.OnRecvEvent += (_, data) =>
         {
+            handled++;
             var changed = (Evt)data.uEventID switch
             {
                 Evt.Pause => pump.OnPauseFlags(data.dwData),
@@ -320,6 +333,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         }
         sc.OnRecvSimobjectData += (_, data) =>
         {
+            handled++;
             if ((Req)data.dwRequestID == Req.RescuePos)
             {
                 var p = (RescuePos)data.dwData[0];
@@ -355,6 +369,7 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         };
         sc.OnRecvAssignedObjectId += (_, data) =>
         {
+            handled++;
             var slot = (int)data.dwRequestID - (int)Req.RescueSpawn;
             if (slot >= 0 && slot < _rescueId.Length)
             {
@@ -420,10 +435,14 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
         sc.SubscribeToSystemEvent(Evt.Pause, "Pause_EX1");
         sc.SubscribeToSystemEvent(Evt.Sim, "Sim");
         // T54: "Frame" — "Request notifications every visual frame" (SubscribeToSystemEvent, SDK 2024, checked
-        // 2026-10-17): the moving trucks are stepped on every rendered frame, so they move smoothly.
+        // 2026-10-17): the moving trucks are stepped on every rendered frame, so they move smoothly. Off until they
+        // move: hundreds of messages a second otherwise (the main menu draws the most frames). The SDK: "For greatest
+        // efficiency use SimConnect_SetSystemEventState to turn these requests on and off temporarily" (checked 2026-10-29).
         sc.SubscribeToSystemEvent(Evt.Frame, "Frame");
+        sc.SetSystemEventState(Evt.Frame, SIMCONNECT_STATE.OFF);
         sc.OnRecvEventFrame += (_, _) =>
         {
+            handled++;
             if (!open || !_rescue.Moving) return;
             _rescueFramed = clock.GetUtcNow();
             ApplyRescue(sc, _rescue.Step());
@@ -439,11 +458,17 @@ public sealed class SimConnectSource(TimeProvider clock, ReconnectPolicy? policy
                 // Also poll on timeout: draining an empty queue is harmless and covers a missed signal.
                 // While trucks move, wake often enough to move them about every RescueController.StepEvery.
                 signal.WaitOne(_rescue.Moving ? RescueController.StepEvery : PollInterval);
-                sc.ReceiveMessage();
+                SimQueue.Drain(sc.ReceiveMessage, () => handled);
                 if (open)
                 {
                     pump.Tick();
                     PollRescue(sc);
+                }
+                var moving = open && _rescue.Moving;
+                if (moving != framesOn)
+                {
+                    framesOn = moving;
+                    sc.SetSystemEventState(Evt.Frame, moving ? SIMCONNECT_STATE.ON : SIMCONNECT_STATE.OFF);
                 }
             }
         }
