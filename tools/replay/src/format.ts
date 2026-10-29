@@ -32,11 +32,16 @@ import {
  *                                                                      "vdgs" + VdgsMessage, bridge
  *                                                                      commands + their args)
  * {"type":"stop","now":…}                                              flight stopped
+ * {"type":"sent","t":…,"n":…,"result":"sent"|"failed"}                 the transport delivered (or gave
+ *                                                                      up on) the n-th `out` line (T64)
+ * {"type":"resume","now":…}                                            the app restored the flight after
+ *                                                                      a restart (T64); the ticks go on
  * ```
  *
  * The lines are the inputs of the core (`AcarsCore`) in call order, so a replay with the same
  * scenarios and seed gives the same messages (CLAUDE.md, invariant 4). `out` lines are the live
- * output, kept for comparison. Telemetry is the bridge snapshot as received (`t` = bridge
+ * output, kept for comparison; `sent` lines tell which of them left the app, so a restored flight
+ * sends the rest again (T64). Telemetry is the bridge snapshot as received (`t` = bridge
  * clock), `now` is the app clock of the tick. The header carries the normalized OFP (no
  * personal data: no pilot name or ids) and the core options of the flight.
  *
@@ -89,6 +94,8 @@ export interface RecordingHeader {
     readonly icaoHex?: string;
     readonly headerInText?: boolean;
   };
+  /** "Time from the sim" (U-16): the times are the sim's UTC (T64); absent = unknown (before T64). */
+  readonly simTime?: boolean;
 }
 
 export type RecordingEvent =
@@ -122,7 +129,15 @@ export type RecordingEvent =
       readonly command: string;
       readonly data: Readonly<Record<string, unknown>>;
     }
-  | { readonly type: 'stop'; readonly now: number };
+  | { readonly type: 'stop'; readonly now: number }
+  | {
+      readonly type: 'sent';
+      readonly t: number;
+      /** Index of the `out` line among the `out` lines of the file, from 0. */
+      readonly n: number;
+      readonly result: 'sent' | 'failed';
+    }
+  | { readonly type: 'resume'; readonly now: number };
 
 export type RecordedOutbound = Extract<RecordingEvent, { type: 'out' }>;
 
@@ -229,6 +244,7 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     throw bad('probabilities');
   if (x['dataWaitMs'] !== undefined && !(isNum(x['dataWaitMs']) && x['dataWaitMs'] >= 0))
     throw bad('dataWaitMs');
+  if (x['simTime'] !== undefined && typeof x['simTime'] !== 'boolean') throw bad('simTime');
   // Recordings made before T58 call the XATC station `rops`.
   const r = x['xatc'] ?? x['rops'];
   if (
@@ -297,6 +313,7 @@ function checkEvent(x: unknown, no: number): RecordingEvent {
   switch (x['type']) {
     case 'start':
     case 'stop':
+    case 'resume':
       if (!isNum(x['now'])) throw bad('now');
       return x as unknown as RecordingEvent;
     case 'tick':
@@ -340,6 +357,11 @@ function checkEvent(x: unknown, no: number): RecordingEvent {
       if (!isNum(x['t'])) throw bad('t');
       for (const k of ['scenarioId', 'command']) if (!isStr(x[k])) throw bad(k);
       if (!isObj(x['data'])) throw bad('data');
+      return x as unknown as RecordingEvent;
+    case 'sent':
+      if (!isNum(x['t'])) throw bad('t');
+      if (!(Number.isInteger(x['n']) && (x['n'] as number) >= 0)) throw bad('n');
+      if (x['result'] !== 'sent' && x['result'] !== 'failed') throw bad('result');
       return x as unknown as RecordingEvent;
     default:
       throw bad(`unknown type ${JSON.stringify(x['type'])}`);

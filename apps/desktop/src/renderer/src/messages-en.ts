@@ -141,6 +141,13 @@ export const en = {
   'req.title.loadsheet': 'Loadsheet request',
   'req.title.text': 'Free text',
   'req.close': 'Close',
+  'resume.title': 'Continue flight {callsign} {origin}–{destination}?',
+  'resume.text':
+    'The app was closed during this flight (last recorded at {time} UTC). It can go on from where it stopped: the phase, the messages and the replies waited for come back from the flight recording.',
+  'resume.note':
+    'Messages that did not reach the network go out again. Messages due while the app was closed come one after another. Discard: the flight is not loaded; its recording stays in the recordings folder.',
+  'resume.continue': 'Continue flight',
+  'resume.discard': 'Discard',
   'req.kind': 'Request type',
   'req.wx': 'METAR',
   'req.atis': 'ATIS',
@@ -235,6 +242,7 @@ export const en = {
 
   'sys.flight_started': 'Flight {callsign} started ({transport})',
   'sys.flight_stopped': 'Flight stopped in phase {phase}',
+  'sys.flight_resumed': 'Flight {callsign} continued after a restart of the app',
   'sys.late_start':
     'Late start: flight treated as delayed by {min} min; documents use the new departure time',
   'sys.ofp_date':
@@ -533,6 +541,10 @@ export const en = {
   'why.rescue_titles': 'one title per line, no |, up to 8 per group',
   'why.rescue_flipped': 'up to 64 titles, no |',
   'why.setting_value': 'invalid value of {field}',
+  'why.no_resume': 'there is no flight to continue',
+  'why.resume_scenarios': 'scenarios of the flight are missing: {ids}',
+  'why.resume_mismatch': 'the flight does not run the same way with this version of the scenarios',
+  'why.resume_invalid': 'the flight recording cannot be read',
   'err.dismiss': 'Dismiss',
   'err.view_crashed': 'This screen failed to render. Switch tabs or reload the window.',
 

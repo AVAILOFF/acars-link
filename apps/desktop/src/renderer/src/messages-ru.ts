@@ -143,6 +143,13 @@ export const ru: Record<MessageKey, string> = {
   'req.title.loadsheet': 'Запрос лоадшита',
   'req.title.text': 'Свободный текст',
   'req.close': 'Закрыть',
+  'resume.title': 'Продолжить рейс {callsign} {origin}–{destination}?',
+  'resume.text':
+    'Приложение закрылось во время этого рейса (последняя запись в {time} UTC). Рейс можно продолжить с того же места: фаза, сообщения и ожидаемые ответы восстанавливаются из записи полёта.',
+  'resume.note':
+    'Сообщения, которые не успели уйти в сеть, отправятся снова. Сообщения, время которых наступило, пока приложение было закрыто, придут по очереди. «Отказаться» — рейс не загружается, запись остаётся в папке записей.',
+  'resume.continue': 'Продолжить рейс',
+  'resume.discard': 'Отказаться',
   'req.kind': 'Тип запроса',
   'req.wx': 'METAR',
   'req.atis': 'ATIS',
@@ -238,6 +245,7 @@ export const ru: Record<MessageKey, string> = {
 
   'sys.flight_started': 'Рейс {callsign} начат ({transport})',
   'sys.flight_stopped': 'Рейс остановлен в фазе {phase}',
+  'sys.flight_resumed': 'Рейс {callsign} продолжен после перезапуска приложения',
   'sys.late_start':
     'Поздний старт: рейс считается задержанным на {min} мин, документы — по новому времени вылета',
   'sys.ofp_date': 'План полёта был на {planned}: рейс идёт {date} в запланированное время',
@@ -538,6 +546,10 @@ export const ru: Record<MessageKey, string> = {
   'why.rescue_titles': 'по одному названию в строке, без |, не больше 8 в группе',
   'why.rescue_flipped': 'не больше 64 названий, без |',
   'why.setting_value': 'неверное значение {field}',
+  'why.no_resume': 'нет рейса, который можно продолжить',
+  'why.resume_scenarios': 'нет сценариев рейса: {ids}',
+  'why.resume_mismatch': 'с этой версией сценариев рейс идёт иначе, чем был записан',
+  'why.resume_invalid': 'запись полёта не читается',
   'err.dismiss': 'Закрыть',
   'err.view_crashed': 'Не удалось отобразить экран. Переключите вкладку или перезагрузите окно.',
 

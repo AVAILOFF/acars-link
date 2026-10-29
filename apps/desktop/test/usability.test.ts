@@ -355,12 +355,20 @@ describe('time from the simulator (U-16)', () => {
 describe('window close question (U-03)', () => {
   it('has a text in both languages; the default keeps the flight', () => {
     for (const lang of ['en', 'ru'] as const) {
-      const d = closeDialog(lang);
+      const d = closeDialog(lang, true);
       expect(d.message).not.toBe('');
       expect(d.buttons).toHaveLength(2);
       expect(d.cancelId).toBe(1);
     }
-    expect(closeDialog('ru').message).toMatch(/[а-я]/);
+    expect(closeDialog('ru', true).message).toMatch(/[а-я]/);
+  });
+
+  it('T64: says the flight goes on at the next start, or that it is lost without a recording', () => {
+    for (const lang of ['en', 'ru'] as const) {
+      expect(closeDialog(lang, true).detail).toMatch(/24/);
+      expect(closeDialog(lang, false).detail).not.toBe(closeDialog(lang, true).detail);
+    }
+    expect(closeDialog('en', true).detail).not.toMatch(/cannot be resumed/);
   });
 });
 

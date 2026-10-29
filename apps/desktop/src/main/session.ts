@@ -18,7 +18,13 @@ import {
   type XatcOptions,
 } from '@acars/core';
 import type { DataSourceKind, ExternalDataService } from '@acars/data-sources';
-import { encodeLine, type RecordingEvent, recordingHeader } from '@acars/replay';
+import {
+  encodeLine,
+  type Recording,
+  type RecordingEvent,
+  recordedCoreOptions,
+  recordingHeader,
+} from '@acars/replay';
 import type { Transport, TransportStatus } from '@acars/transport';
 import type {
   AtcView,
@@ -45,6 +51,8 @@ import type { RecordingSink } from './recording.js';
  * External data (T13) fetched by the data service goes to the core with the first tick of a
  * batch, into the recording too; the core's `DATA_REQUEST` (`REQ WX` of an unknown airport)
  * asks the service to fetch it.
+ * A flight the app lost (closed, crashed) is restored from its recording (T64): the recorded inputs
+ * go through the core again, the feed is rebuilt, and the telexes that never left are sent anew.
  */
 
 export interface FlightSessionOptions {
@@ -81,7 +89,19 @@ export interface FlightSessionOptions {
     readonly icaoHex?: string;
     readonly headerInText?: boolean;
   };
+  /**
+   * Restore this flight (T64): the core is built from the header, the events are run again; the
+   * recording sink writes on at the end of the same file. The other options must match the header.
+   */
+  readonly resume?: Recording;
 }
+
+/** The recorded flight does not run the same way again (other scenarios, another app version). */
+export class ResumeError extends Error {
+  override readonly name = 'ResumeError';
+}
+
+type Outbound = CoreOutput['outbound'][number];
 
 /** Names of the data sources in the feed (proper names, the same in every language). */
 const DATA_SOURCE_NAMES: Readonly<Record<DataSourceKind, string>> = {
@@ -154,7 +174,15 @@ export class FlightSession {
   private readonly data: ExternalDataService | null;
   private readonly simCommands: (c: SimCommand) => void;
   /** ATC callsigns the transport polls (T23), as last told. */
-  private listening = '';
+  private listening: readonly string[] = [];
+  /** Set while restoring (T64): the replayed telexes go here, not to the transport or the file. */
+  private replayOut: ((m: Outbound, feedId: string) => void) | null = null;
+  /** `out` lines written so far (T64: `sent` lines name them by this index). */
+  private outCount = 0;
+  /** Transport telex id → index of its `out` line. */
+  private readonly outIndex = new Map<string, number>();
+  /** The `resume` line waits for the first core tick (with "time from the sim", its clock). */
+  private resumePending = false;
   /** "Time from the sim" is on; the flight waits for the first sim time. */
   private readonly simTime: boolean;
   /** Sim UTC minus the bridge clock, ms; null until the first snapshot with `simUtcMs`. */
@@ -162,22 +190,26 @@ export class FlightSession {
 
   constructor(o: FlightSessionOptions) {
     this.simTime = o.simTime === true;
-    this.core = AcarsCore.create({
-      ofp: o.ofp,
-      scenarios: o.scenarios,
-      profile: o.profile,
-      station: o.stationTemplate,
-      sessionFired: o.sessionFired,
-      ...(o.data == null ? {} : { dataWaitMs: DATA_WAIT_MS }),
-      ...(o.flags === undefined ? {} : { flags: o.flags }),
-      ...(o.minGapMs === undefined ? {} : { minGapMs: o.minGapMs }),
-      ...(o.xatc === undefined ? {} : { xatc: o.xatc }),
-      ...(o.datalink === undefined ? {} : { datalink: o.datalink }),
-      namesVersion: NAMES_VERSION,
-      nextLegVersion: NEXT_LEG_VERSION,
-      lateStartVersion: LATE_START_VERSION,
-      ...(o.hub === undefined ? {} : { hub: o.hub }),
-    });
+    this.core = AcarsCore.create(
+      o.resume !== undefined
+        ? recordedCoreOptions(o.resume.header, o.scenarios)
+        : {
+            ofp: o.ofp,
+            scenarios: o.scenarios,
+            profile: o.profile,
+            station: o.stationTemplate,
+            sessionFired: o.sessionFired,
+            ...(o.data == null ? {} : { dataWaitMs: DATA_WAIT_MS }),
+            ...(o.flags === undefined ? {} : { flags: o.flags }),
+            ...(o.minGapMs === undefined ? {} : { minGapMs: o.minGapMs }),
+            ...(o.xatc === undefined ? {} : { xatc: o.xatc }),
+            ...(o.datalink === undefined ? {} : { datalink: o.datalink }),
+            namesVersion: NAMES_VERSION,
+            nextLegVersion: NEXT_LEG_VERSION,
+            lateStartVersion: LATE_START_VERSION,
+            ...(o.hub === undefined ? {} : { hub: o.hub }),
+          },
+    );
     this.data = o.data ?? null;
     this.hints = new MessageHints(o.scenarios);
     this.simCommands = o.simCommands ?? (() => {});
@@ -190,6 +222,10 @@ export class FlightSession {
     this.transport = o.transport;
     this.feed = o.feed;
     this.recording = o.recording ?? null;
+    if (o.resume !== undefined) {
+      this.restore(o.resume, o.now);
+      return;
+    }
     this.record(
       recordingHeader({
         recordedAt: o.now,
@@ -210,6 +246,7 @@ export class FlightSession {
         nextLegVersion: NEXT_LEG_VERSION,
         lateStartVersion: LATE_START_VERSION,
         ...(o.hub === undefined ? {} : { hub: o.hub }),
+        simTime: this.simTime,
       }),
     );
     this.core.startFlight();
@@ -218,13 +255,18 @@ export class FlightSession {
       callsign: o.ofp.callsign,
       transport: o.transport.kind,
     });
-    if (this.recording !== null) {
+    if (this.recording !== null && this.recording.temporary !== true) {
       this.feed.system(o.now, 'recording', { file: basename(this.recording.file) });
     }
   }
 
   get phase(): FlightPhase {
     return this.core.phase;
+  }
+
+  /** The flight can go on after a restart (T64): its recording is being written. */
+  get resumable(): boolean {
+    return !this.stopped && this.recording !== null;
   }
 
   get sessionFired(): readonly string[] {
@@ -376,6 +418,10 @@ export class FlightSession {
       return;
     }
     const now = this.clock(wallNow);
+    if (this.resumePending) {
+      this.resumePending = false;
+      this.record({ type: 'resume', now });
+    }
     const batch: (TelemetrySnapshot | null)[] = this.queue
       .splice(0)
       .map((s) => (this.simOffset === null ? s : { ...s, t: s.t + this.simOffset }));
@@ -428,15 +474,120 @@ export class FlightSession {
     }
     this.outbound.clear();
     this.record({ type: 'stop', now });
+    const r = this.recording;
+    this.recording = null;
+    if (r?.end) r.end();
+    else r?.close();
+    this.feed.system(now, 'flight_stopped', { phase: this.core.phase });
+  }
+
+  /**
+   * The app quits during the flight (T64): the recording is closed without `stop`, so the flight
+   * goes on at the next start; telexes not sent yet are sent then.
+   */
+  suspend(): void {
+    if (this.stopped) return;
+    this.stopped = true;
     this.recording?.close();
     this.recording = null;
-    this.feed.system(now, 'flight_stopped', { phase: this.core.phase });
+  }
+
+  /**
+   * Runs the recorded events through the core again (T64): the same inputs in the same order give
+   * the same state (invariant 4). Each telex must come out as recorded; the ones that never left
+   * the app go to the transport now.
+   */
+  private restore(r: Recording, wallNow: number): void {
+    const recorded = r.events.filter((e) => e.type === 'out');
+    const done = new Map<number, 'sent' | 'failed'>();
+    for (const e of r.events) if (e.type === 'sent') done.set(e.n, e.result);
+    const resend: { n: number; m: Outbound; feedId: string }[] = [];
+    let lastNow = wallNow;
+    this.replayOut = (m, feedId) => {
+      const n = this.outCount++;
+      const want = recorded[n];
+      if (
+        want === undefined ||
+        want.scenarioId !== m.scenarioId ||
+        want.text !== m.message.text ||
+        want.to !== m.to
+      ) {
+        throw new ResumeError(`telex #${n + 1} (${m.scenarioId}) differs from the recording`);
+      }
+      const result = done.get(n);
+      if (result === undefined) resend.push({ n, m, feedId });
+      else this.feed.updateOutbound(feedId, { delivery: result, detail: null });
+    };
+    try {
+      for (const e of r.events) {
+        switch (e.type) {
+          case 'start':
+            this.core.startFlight();
+            this.feed.system(e.now, 'flight_started', {
+              callsign: this.callsign,
+              transport: this.transport.kind,
+            });
+            break;
+          case 'tick':
+            lastNow = e.now;
+            if (e.telemetry !== null) this.last = e.telemetry;
+            for (const m of e.inbound ?? []) {
+              this.feed.add({
+                kind: 'inbound',
+                t: e.now,
+                from: m.from,
+                to: m.to ?? this.station,
+                type: m.type,
+                text: m.text,
+              });
+            }
+            this.apply(
+              this.core.tick({
+                now: e.now,
+                telemetry: e.telemetry,
+                ...(e.inbound === undefined ? {} : { inbound: e.inbound }),
+                ...(e.data === undefined ? {} : { data: e.data }),
+                ...(e.force === undefined ? {} : { force: e.force }),
+              }),
+              e.now,
+            );
+            break;
+          case 'end':
+            lastNow = e.now;
+            this.apply(this.core.endFlight(e.to, e.now), e.now);
+            break;
+          case 'resume':
+            this.feed.system(e.now, 'flight_resumed', { callsign: this.callsign });
+            break;
+          default:
+            break;
+        }
+      }
+      if (this.outCount !== recorded.length) {
+        throw new ResumeError(
+          `${recorded.length - this.outCount} recorded telexes do not come out again`,
+        );
+      }
+    } finally {
+      this.replayOut = null;
+    }
+    this.resumePending = true;
+    this.feed.system(lastNow, 'flight_resumed', { callsign: this.callsign });
+    if (this.listening.length > 0) this.transport.listen(this.listening);
+    const waits = this.core.pendingReplies.map((p) => p.leftMs);
+    if (waits.length > 0) this.transport.expectReply(Math.max(...waits));
+    for (const x of resend) this.send(x.m, x.n, x.feedId);
+  }
+
+  /** Running the recorded events again (T64): no file, network, sim or data side effects. */
+  private get replaying(): boolean {
+    return this.replayOut !== null;
   }
 
   /** A failed write ends the recording, not the flight. */
   private record(line: Parameters<typeof encodeLine>[0]): void {
     const r = this.recording;
-    if (r === null) return;
+    if (r === null || this.replaying) return;
     try {
       r.write(encodeLine(line));
     } catch (e) {
@@ -493,12 +644,13 @@ export class FlightSession {
           break;
         case 'REPLY_EXPECTED':
           // The transport caps this itself (Hoppie: 3 min of faster polling).
-          this.transport.expectReply(e.timeoutMs);
+          if (!this.replaying) this.transport.expectReply(e.timeoutMs);
           break;
         case 'FORCED':
           this.feed.system(e.t, `forced_${e.result}`, { id: e.id, detail: e.detail ?? '' });
           break;
         case 'DATA_REQUEST':
+          if (this.replaying) break;
           if (e.kind === 'place') this.data?.requestPlace(e.icao);
           else this.data?.requestWx(e.icao);
           break;
@@ -521,7 +673,7 @@ export class FlightSession {
           break;
         case 'ATC_HANDOVER':
           // The aircraft should log on to the next station soon: poll faster for a while.
-          this.transport.expectReply(180_000);
+          if (!this.replaying) this.transport.expectReply(180_000);
           this.feed.system(e.t, 'atc_handover', { from: e.from, to: e.to });
           break;
         case 'ATC_LOGOFF':
@@ -568,7 +720,7 @@ export class FlightSession {
           break;
         case 'ATC_DCL':
           this.feed.system(e.t, `atc_dcl_${e.what}`, { station: e.station });
-          if (e.what === 'request') this.transport.expectReply(180_000);
+          if (e.what === 'request' && !this.replaying) this.transport.expectReply(180_000);
           break;
         case 'ATC_DCL_CLEARANCE':
           this.feed.system(e.t, 'atc_dcl_clearance', {
@@ -577,7 +729,7 @@ export class FlightSession {
             source: e.squawkSource,
           });
           // An ARINC 623 clearance waits for the pilot's WILCO.
-          if (e.format === 'arinc623') this.transport.expectReply(180_000);
+          if (e.format === 'arinc623' && !this.replaying) this.transport.expectReply(180_000);
           break;
         case 'ATC_DCL_REJECTED':
           this.feed.system(e.t, 'atc_dcl_rejected', {
@@ -593,7 +745,10 @@ export class FlightSession {
             detail: e.detail ?? '',
           });
           // RCL received by Shanwick: the CLX follows within 10 min; a CLX waits for ROGER.
-          if (e.what === 'clearance' || (e.what === 'received' && e.oca === 'EGGX'))
+          if (
+            !this.replaying &&
+            (e.what === 'clearance' || (e.what === 'received' && e.oca === 'EGGX'))
+          )
             this.transport.expectReply(180_000);
           break;
         default:
@@ -602,40 +757,58 @@ export class FlightSession {
     }
     for (const c of out.commands) {
       this.record(cmdLine(c));
-      this.simCommands(c);
+      // Effects of the past are not played again; those running at the crash were cleared (T64).
+      if (!this.replaying) this.simCommands(c);
     }
-    const listen = out.listen.join(' ');
-    if (listen !== this.listening) {
-      this.listening = listen;
-      this.transport.listen(out.listen);
+    if (out.listen.join(' ') !== this.listening.join(' ')) {
+      this.listening = out.listen;
+      if (!this.replaying) this.transport.listen(out.listen);
     }
     for (const m of out.outbound) {
-      this.record(outLine(m));
-      const entry = {
-        kind: 'outbound' as const,
+      const feedId = this.feed.add({
+        kind: 'outbound',
         t: m.t,
         from: m.from,
         to: m.to,
         scenarioId: m.scenarioId,
         text: m.message.text,
         hint: this.hints.forMessage(m),
-      };
-      let feedId: string;
-      try {
-        const id = this.transport.send({
-          from: m.from,
-          to: m.to,
-          message: m.message,
-          ...(m.cpdlc === undefined ? {} : { cpdlc: m.cpdlc }),
-        });
-        feedId = this.feed.add({ ...entry, delivery: 'queued', detail: null });
-        this.outbound.set(id, feedId);
-      } catch (e) {
-        const detail = e instanceof Error ? e.message : String(e);
-        feedId = this.feed.add({ ...entry, delivery: 'failed', detail });
-      }
+        delivery: 'queued',
+        detail: null,
+      });
       this.lastMessage.set(m.scenarioId, feedId);
+      if (this.replayOut !== null) this.replayOut(m, feedId);
+      else {
+        this.record(outLine(m));
+        this.send(m, this.outCount++, feedId);
+      }
     }
+  }
+
+  /** Hands the n-th recorded telex to the transport. */
+  private send(m: Outbound, n: number, feedId: string): void {
+    try {
+      const id = this.transport.send({
+        from: m.from,
+        to: m.to,
+        message: m.message,
+        ...(m.cpdlc === undefined ? {} : { cpdlc: m.cpdlc }),
+      });
+      this.outbound.set(id, feedId);
+      this.outIndex.set(id, n);
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      this.feed.updateOutbound(feedId, { delivery: 'failed', detail });
+      this.record({ type: 'sent', t: m.t, n, result: 'failed' });
+    }
+  }
+
+  /** T64: the n-th `out` line left the app (or never will). */
+  private delivered(id: string, t: number, result: 'sent' | 'failed'): void {
+    const n = this.outIndex.get(id);
+    if (n === undefined) return;
+    this.outIndex.delete(id);
+    this.record({ type: 'sent', t, n, result });
   }
 
   private drainTransport(): void {
@@ -646,6 +819,7 @@ export class FlightSession {
           if (id !== undefined)
             this.feed.updateOutbound(id, { delivery: 'sent', detail: null, t: this.clock(e.t) });
           this.outbound.delete(e.id);
+          this.delivered(e.id, this.clock(e.t), 'sent');
           break;
         }
         case 'SEND_RETRY': {
@@ -659,6 +833,7 @@ export class FlightSession {
           if (id !== undefined)
             this.feed.updateOutbound(id, { delivery: 'failed', detail: e.reason });
           this.outbound.delete(e.id);
+          this.delivered(e.id, this.clock(e.t), 'failed');
           break;
         }
         case 'INBOUND':

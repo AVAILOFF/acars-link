@@ -11,6 +11,7 @@ import {
   type TelemetrySnapshot,
 } from '@acars/core';
 import { type DataCache, ExternalDataService } from '@acars/data-sources';
+import { encodeLine, type Recording } from '@acars/replay';
 import {
   DRONE_RISK_DEFAULT,
   droneProbability,
@@ -24,6 +25,7 @@ import type {
   EndingView,
   FlightSummary,
   Language,
+  ResumeOffer,
   ScenarioInfo,
   Settings,
   SettingsPatch,
@@ -37,9 +39,9 @@ import { normalizeHoppieCode, normalizeRapidApiKey, pingHoppie } from './credent
 import { AppFailure, toAppError } from './errors.js';
 import { Feed } from './feed.js';
 import type { Flags, FlagsStore } from './flags.js';
-import type { OpenRecording, RecordingSink } from './recording.js';
+import type { FlightResume, OpenRecording, RecordingSink, UnfinishedFlight } from './recording.js';
 import type { SecretStore } from './secrets.js';
-import { FlightSession } from './session.js';
+import { FlightSession, ResumeError } from './session.js';
 import type { SettingsStore } from './settings.js';
 import { SimEffects } from './sim-effects.js';
 import { fetchOfp, normalizeSimbriefUsername } from './simbrief.js';
@@ -70,6 +72,8 @@ export interface AppControllerOptions {
   readonly now: () => number;
   /** Creates the JSONL recording of a flight (T11); null = no recordings. */
   readonly openRecording: OpenRecording | null;
+  /** Finds and continues a flight the app lost (T64); absent or null = no restoring. */
+  readonly resume?: FlightResume | null;
   /** Shows the recordings folder (file manager). */
   readonly revealRecordings: () => Promise<void>;
   /** Called when the state may have changed (debounce/compare on the caller side). */
@@ -144,6 +148,8 @@ export class AppController {
   private lastHoppieCheck = Number.NEGATIVE_INFINITY;
   /** UI language for texts of the main process (the close dialog, U-03). */
   private lang: Language = 'en';
+  /** The flight the app lost, offered at the start (T64); null = none or already decided. */
+  private unfinished: UnfinishedFlight | null = null;
 
   constructor(private readonly o: AppControllerOptions) {
     this.data = new ExternalDataService({
@@ -199,12 +205,14 @@ export class AppController {
     this.bridge.start();
     this.effects.clear(); // left over from a crash
     this.memory = Object.keys(await this.flagStore.get()).sort();
+    this.unfinished = this.o.resume?.find(this.o.now()) ?? null;
   }
 
+  /** The app quits: a running flight goes on at the next start (T64), nothing is stopped. */
   dispose(): void {
     this.bridge.stop();
     this.data.stopFlight();
-    this.session?.stop(this.o.now());
+    this.session?.suspend();
     this.session = null;
     this.effects.clear();
   }
@@ -240,6 +248,11 @@ export class AppController {
     return e === null || e.messages > 0 || e.scenarios > 0;
   }
 
+  /** The running flight goes on after a restart (T64): its recording is written. */
+  get canResume(): boolean {
+    return this.session?.resumable === true && this.o.resume != null;
+  }
+
   /** The flight after TURNAROUND / DONE: what still waits (U-04); null before or without a flight. */
   private ending(): EndingView | null {
     const s = this.session;
@@ -264,6 +277,7 @@ export class AppController {
       pendingReplies: s?.pendingReplies ?? [],
       memory: this.memory,
       irregular: s?.irregular ?? [],
+      resume: s === null ? resumeOffer(this.unfinished) : null,
     };
   }
 
@@ -483,14 +497,7 @@ export class AppController {
     const clockNow = this.o.now() + (simTime ? (this.simOffsetMs ?? 0) : 0);
     const { ofp, days } = alignOfpDay(planned, clockNow);
     const flight = this.summary(ofp, settings);
-    let transport: Transport;
-    if (settings.transport === 'hoppie') {
-      const logon = await this.o.secrets.get('hoppieLogon');
-      if (logon === null) throw new AppFailure('no_hoppie_code', 'not set');
-      transport = this.o.createTransport({ kind: 'hoppie', logon });
-    } else {
-      transport = this.o.createTransport({ kind: 'offline' });
-    }
+    const transport = await this.transport(settings);
     const now = this.o.now();
     // T38: the country of the destination (OurAirports; unknown offline → the `*` row).
     const droneOn = settings.scenarios[DRONE_SCENARIO_ID] ?? true;
@@ -513,10 +520,13 @@ export class AppController {
       });
     await this.prefetch(ofp, settings);
     const flags = await this.flagStore.get();
+    // A new flight: the lost one is not offered any more (T64).
+    this.giveUpUnfinished();
     let recording: RecordingSink | null = null;
-    if (settings.recordFlights && this.o.openRecording !== null) {
+    // T64: without "Record flights" the flight is recorded too, for restoring only (decision 6).
+    if (this.o.openRecording !== null) {
       try {
-        recording = this.o.openRecording(ofp.callsign, now);
+        recording = this.o.openRecording(ofp.callsign, now, !settings.recordFlights);
       } catch (e) {
         this.feed.system(now, 'recording_failed', {
           error: e instanceof Error ? e.message : String(e),
@@ -575,6 +585,113 @@ export class AppController {
     this.flight = flight;
     this.o.onChange();
     return null;
+  }
+
+  /** The transport of the user's choice (Hoppie needs the saved code). */
+  private async transport(settings: Settings): Promise<Transport> {
+    if (settings.transport !== 'hoppie') return this.o.createTransport({ kind: 'offline' });
+    const logon = await this.o.secrets.get('hoppieLogon');
+    if (logon === null) throw new AppFailure('no_hoppie_code', 'not set');
+    return this.o.createTransport({ kind: 'hoppie', logon });
+  }
+
+  /**
+   * T64: goes on with the flight the app lost. Its recording runs through the core again (the same
+   * scenarios, options and seed from the header), the feed is rebuilt, the telexes that never left
+   * are sent now, and the recording goes on in the same file. The network is the current setting.
+   */
+  async resumeFlight(): Promise<null> {
+    if (this.session !== null) {
+      throw new AppFailure('bad_state', 'flight already running', 'flight_running');
+    }
+    const lost = this.unfinished;
+    const store = this.o.resume;
+    if (lost === null || store == null) {
+      throw new AppFailure('bad_state', 'no flight to resume', 'no_resume');
+    }
+    if (this.scenarioError !== null) throw new AppFailure('scenarios_invalid', this.scenarioError);
+    const h = lost.recording.header;
+    const scenarios = h.scenarios.flatMap((id) => this.scenarios.filter((c) => c.id === id));
+    const missing = h.scenarios.filter((id) => !scenarios.some((c) => c.id === id));
+    if (missing.length > 0) {
+      throw new AppFailure(
+        'bad_state',
+        `scenarios of the flight not found: ${missing.join(', ')}`,
+        'resume_scenarios',
+        { ids: missing.join(', ') },
+      );
+    }
+    const settings = await this.o.settings.get();
+    const transport = await this.transport(settings);
+    const now = this.o.now();
+    // Live data were on when the core waits for fetched weather (`dataWaitMs`).
+    const live = h.dataWaitMs !== undefined;
+    await this.prefetch(h.ofp, { ...settings, liveData: live });
+    let recording: RecordingSink | null = null;
+    try {
+      recording = store.append(lost.file);
+    } catch (e) {
+      this.feed.system(now, 'recording_failed', {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
+    const before = this.feed.save();
+    try {
+      this.session = new FlightSession({
+        ofp: h.ofp,
+        scenarios,
+        profile: h.profile,
+        stationTemplate: h.station,
+        transport,
+        feed: this.feed,
+        sessionFired: h.sessionFired,
+        now,
+        recording,
+        data: live ? this.data : null,
+        ...(h.flags === undefined ? {} : { flags: h.flags }),
+        ...(h.minGapMs === undefined ? {} : { minGapMs: h.minGapMs }),
+        ...(h.hub === undefined ? {} : { hub: h.hub }),
+        ...(h.simTime === true ? { simTime: true } : {}),
+        simCommands: (c) => this.sendSimCommand(c),
+        ...(h.datalink === undefined ? {} : { datalink: h.datalink }),
+        ...(h.xatc === undefined ? {} : { xatc: h.xatc }),
+        resume: lost.recording,
+      });
+    } catch (e) {
+      recording?.close();
+      this.data.stopFlight();
+      this.feed.restore(before);
+      const detail = e instanceof Error ? e.message : String(e);
+      if (e instanceof ResumeError) throw new AppFailure('bad_state', detail, 'resume_mismatch');
+      throw new AppFailure('bad_state', detail, 'resume_invalid');
+    }
+    this.unfinished = null;
+    this.closing = null;
+    this.ofp = h.ofp;
+    this.flight = this.summary(h.ofp, settings, h.station);
+    this.o.onChange();
+    return null;
+  }
+
+  /** T64: the user gives the lost flight up; it is not offered again. */
+  async discardResume(): Promise<null> {
+    if (this.unfinished === null)
+      throw new AppFailure('bad_state', 'no flight to resume', 'no_resume');
+    this.giveUpUnfinished();
+    this.o.onChange();
+    return null;
+  }
+
+  /** A kept recording gets a `stop` line at its last time (so it is not offered again). */
+  private giveUpUnfinished(): void {
+    const lost = this.unfinished;
+    this.unfinished = null;
+    if (lost === null) return;
+    try {
+      this.o.resume?.discard(lost, encodeLine({ type: 'stop', now: lastTime(lost.recording) }));
+    } catch {
+      // The file may be gone; it is not newer than the next flight's anyway.
+    }
   }
 
   async stopFlight(): Promise<null> {
@@ -746,11 +863,15 @@ export class AppController {
     this.session?.pushTelemetry(s);
   }
 
-  private summary(ofp: Ofp, settings: Settings): FlightSummary {
+  private summary(
+    ofp: Ofp,
+    settings: Settings,
+    stationTemplate = settings.stationTemplate,
+  ): FlightSummary {
     const profile = selectProfile({ icao: ofp.aircraft.icao });
     let station: string;
     try {
-      station = stationCallsign(settings.stationTemplate, ofp);
+      station = stationCallsign(stationTemplate, ofp);
     } catch (e) {
       throw new AppFailure('invalid_input', e instanceof Error ? e.message : String(e));
     }
@@ -769,6 +890,28 @@ export class AppController {
       lineWidth: profile.lineWidth,
     };
   }
+}
+
+/** What the UI shows of a lost flight (T64). */
+function resumeOffer(f: UnfinishedFlight | null): ResumeOffer | null {
+  if (f === null) return null;
+  const { ofp } = f.recording.header;
+  return {
+    callsign: ofp.callsign,
+    origin: ofp.origin.icao,
+    destination: ofp.destination.icao,
+    writtenAt: f.writtenAt,
+  };
+}
+
+/** The flight clock of the last line of a recording. */
+function lastTime(r: Recording): number {
+  for (let i = r.events.length - 1; i >= 0; i--) {
+    const e = r.events[i];
+    if (e === undefined) continue;
+    return 'now' in e ? e.now : e.t;
+  }
+  return r.header.recordedAt;
 }
 
 /** `2026-10-22` (UTC) for the feed. */

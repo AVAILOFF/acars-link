@@ -266,7 +266,7 @@ const en: readonly HelpSection[] = [
         id: 'close',
         q: 'Can I close the window during a flight?',
         a: [
-          'The flight lives only in memory: closing the app ends it, so the app asks first. Keep the window open (it can be minimised) until the flight is closed.',
+          'Yes. The flight is recorded as it goes: after closing the app, or if the app or the PC crashed, the next start (within 24 hours) offers to continue it — the phase, the feed and the replies waited for come back, and messages that did not reach the network are sent again. While the app is closed no messages arrive in the aircraft; those due meanwhile come one after another after the restart. The app still asks before closing.',
         ],
       },
     ],
@@ -482,7 +482,7 @@ const ru: readonly HelpSection[] = [
         id: 'close',
         q: 'Можно закрыть окно во время рейса?',
         a: [
-          'Рейс хранится только в памяти: закрытие приложения его завершит, поэтому приложение сначала спросит. Держите окно открытым (можно свернуть), пока рейс не закрыт.',
+          'Да. Рейс записывается по ходу полёта: после закрытия приложения или падения приложения или ПК следующий запуск (в течение 24 часов) предложит его продолжить — фаза, лента и ожидаемые ответы восстановятся, сообщения, не успевшие уйти в сеть, отправятся снова. Пока приложение закрыто, сообщения в самолёт не приходят; те, чьё время наступило, придут по очереди после перезапуска. Перед закрытием приложение всё равно спросит.',
         ],
       },
     ],

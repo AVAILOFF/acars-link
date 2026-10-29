@@ -27,6 +27,8 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
       return ['DELAY', `late start: flight delayed ${e.delayMin} min`];
     case 'error':
       return ['ERROR', e.error];
+    case 'resume':
+      return ['RESUME', 'the app restored the flight after a restart'];
     case 'cmd':
       return ['SIM', `${e.command.scenarioId}  ${e.command.command}`];
     case 'out': {
