@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
-import { describe, expect, it } from 'vitest';
+import { copyFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 import {
   BRIDGE_EXE,
   BRIDGE_TOKEN_ENV,
@@ -10,6 +12,7 @@ import {
   bridgeExePath,
   startBridge,
 } from '../src/main/bridge-process.js';
+import { tempDir } from './support.js';
 
 describe('bridge process', () => {
   it('looks for the exe in resources/bridge', () => {
@@ -25,6 +28,33 @@ describe('bridge process', () => {
     expect(bridgeArgs(47830, 'msfs')).toEqual(['--port', '47830', '--source', 'simconnect']);
     expect(bridgeArgs(47831, 'xplane')).toEqual(['--port', '47831', '--source', 'xplane']);
   });
+
+  // T67: Node itself stands in for the bridge exe; it refuses `--port` on stderr and exits.
+  it.runIf(process.platform === 'win32')(
+    'T67: the output of the bridge reaches the log line by line, the exit too',
+    async () => {
+      const res = await tempDir();
+      mkdirSync(join(res, 'bridge'));
+      copyFileSync(process.execPath, bridgeExePath(res));
+      const lines: string[] = [];
+      const logged: string[] = [];
+      const stop = startBridge(
+        res,
+        47830,
+        'auto',
+        'tok',
+        (m) => logged.push(m),
+        (stream, line) => lines.push(`${stream} ${line}`),
+      );
+      expect(stop).not.toBeNull();
+      // It exits on its own; `stop` would kill it before it writes.
+      await vi.waitFor(() => expect(logged.at(-1)).toMatch(/^bridge exited/), { timeout: 20_000 });
+      await stop?.();
+      expect(lines.some((l) => l.startsWith('err ') && l.includes('--port'))).toBe(true);
+      expect(logged.at(-1)).toMatch(/^bridge exited \(\d+\)$/);
+    },
+    30_000,
+  );
 
   it('T65: the launch token goes in the environment, never on the command line', () => {
     expect(bridgeEnv({ PATH: 'p' }, 'tok-123')).toEqual({

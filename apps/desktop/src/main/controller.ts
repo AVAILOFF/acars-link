@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
+import { writeFile } from 'node:fs/promises';
 import {
   alignOfpDay,
   type CompiledScenario,
@@ -36,9 +37,11 @@ import type {
 import { activeSim } from '../shared/api.js';
 import { BridgeClient, type SocketLike, type Timers } from './bridge.js';
 import { normalizeHoppieCode, normalizeRapidApiKey, pingHoppie } from './credentials.js';
+import { type DiagnosticsSource, diagnosticsEntries, diagnosticsFileName } from './diagnostics.js';
 import { AppFailure, toAppError } from './errors.js';
 import { Feed } from './feed.js';
 import type { Flags, FlagsStore } from './flags.js';
+import { type Log, NO_LOG } from './log.js';
 import type { FlightResume, OpenRecording, RecordingSink, UnfinishedFlight } from './recording.js';
 import type { SecretStore } from './secrets.js';
 import { FlightSession, ResumeError } from './session.js';
@@ -46,6 +49,7 @@ import type { SettingsStore } from './settings.js';
 import { SimEffects } from './sim-effects.js';
 import { fetchOfp, normalizeSimbriefUsername } from './simbrief.js';
 import { specialGroupOn, specialGroups } from './special.js';
+import { zip } from './zip.js';
 
 /**
  * Everything the app does, without Electron: credentials, settings, scenario selection, OFP,
@@ -88,6 +92,10 @@ export interface AppControllerOptions {
   readonly flags?: FlagsStore;
   /** The bridge port or simulator was changed (T18): the bundled bridge is started anew. */
   readonly onBridgeConfig?: (port: number, simulator: SimChoice) => void;
+  /** File log (T67); default none. */
+  readonly log?: Log;
+  /** "Export diagnostics" (T67); absent or null = not available. */
+  readonly diagnostics?: DiagnosticsSource | null;
 }
 
 /** Title of a scenario in the UI languages. */
@@ -152,8 +160,12 @@ export class AppController {
   private lang: Language = 'en';
   /** The flight the app lost, offered at the start (T64); null = none or already decided. */
   private unfinished: UnfinishedFlight | null = null;
+  private readonly log: Log;
+  /** The bridge state last written to the log (T67): only changes are logged. */
+  private bridgeLogged = '';
 
   constructor(private readonly o: AppControllerOptions) {
+    this.log = o.log ?? NO_LOG;
     this.data = new ExternalDataService({
       http: o.http,
       userAgent: DATA_USER_AGENT,
@@ -531,6 +543,7 @@ export class AppController {
       try {
         recording = this.o.openRecording(ofp.callsign, now, !settings.recordFlights);
       } catch (e) {
+        this.log.error('recording did not open', e);
         this.feed.system(now, 'recording_failed', {
           error: e instanceof Error ? e.message : String(e),
         });
@@ -547,6 +560,7 @@ export class AppController {
       sessionFired: this.sessionFired,
       now,
       recording,
+      log: this.log,
       data: settings.liveData ? this.data : null,
       flags,
       minGapMs: settings.messageGapSec * 1000,
@@ -586,6 +600,7 @@ export class AppController {
       this.feed.system(now, 'memory', { names: Object.keys(flags).sort().join(', ') });
     }
     this.flight = flight;
+    this.log.info(`flight started (${settings.transport})`);
     this.o.onChange();
     return null;
   }
@@ -634,6 +649,7 @@ export class AppController {
     try {
       recording = store.append(lost.file);
     } catch (e) {
+      this.log.error('recording did not open', e);
       this.feed.system(now, 'recording_failed', {
         error: e instanceof Error ? e.message : String(e),
       });
@@ -650,6 +666,7 @@ export class AppController {
         sessionFired: h.sessionFired,
         now,
         recording,
+        log: this.log,
         data: live ? this.data : null,
         ...(h.flags === undefined ? {} : { flags: h.flags }),
         ...(h.minGapMs === undefined ? {} : { minGapMs: h.minGapMs }),
@@ -665,6 +682,7 @@ export class AppController {
       this.data.stopFlight();
       this.feed.restore(before);
       const detail = e instanceof Error ? e.message : String(e);
+      this.log.warn('flight not resumed', e);
       if (e instanceof ResumeError) throw new AppFailure('bad_state', detail, 'resume_mismatch');
       throw new AppFailure('bad_state', detail, 'resume_invalid');
     }
@@ -672,6 +690,7 @@ export class AppController {
     this.closing = null;
     this.ofp = h.ofp;
     this.flight = this.summary(h.ofp, settings, h.station);
+    this.log.info(`flight resumed (${settings.transport})`);
     this.o.onChange();
     return null;
   }
@@ -702,6 +721,7 @@ export class AppController {
     if (s === null) throw new AppFailure('bad_state', 'no flight running', 'no_flight');
     this.closing = null;
     s.stop(this.o.now());
+    this.log.info('flight stopped');
     this.data.stopFlight();
     this.effects.clear();
     await this.saveMemory(s);
@@ -839,6 +859,52 @@ export class AppController {
     return null;
   }
 
+  /**
+   * T67: asks where to save, then writes one .zip of the logs, versions, settings without secrets
+   * and (`withRecording`) the latest flight recording; shows it in the file manager. Returns the
+   * file, or null when the user cancelled.
+   */
+  async exportDiagnostics(withRecording: unknown): Promise<string | null> {
+    if (typeof withRecording !== 'boolean') {
+      throw new AppFailure('invalid_input', 'diagnostics: with recording');
+    }
+    const d = this.o.diagnostics;
+    if (d == null) throw new AppFailure('internal', 'diagnostics are not available');
+    const now = this.o.now();
+    const file = await d.choosePath(diagnosticsFileName(now));
+    if (file === null) return null;
+    const creds = await this.credentials();
+    const state = this.state();
+    const entries = await diagnosticsEntries({
+      source: d,
+      now,
+      bridgeVersion: this.bridge.version,
+      settings: await this.o.settings.get(),
+      accounts: {
+        simbriefUsername: creds.simbriefUsername !== '',
+        hoppieCode: creds.hoppieCodeSet,
+        aerodataboxKey: creds.aerodataboxKeySet,
+        secureStorage: creds.secureStorage,
+      },
+      state: {
+        session: state.session,
+        phase: state.phase,
+        waitingSimTime: state.waitingSimTime,
+        bridge: state.bridge,
+        transport: state.transport,
+      },
+      withRecording,
+    });
+    try {
+      await writeFile(file, zip(entries, new Date(now)));
+    } catch (e) {
+      throw new AppFailure('internal', e instanceof Error ? e.message : String(e));
+    }
+    this.log.info(`diagnostics exported${withRecording ? ' with the latest recording' : ''}`);
+    d.reveal?.(file);
+    return file;
+  }
+
   /** The simulator the app works with now (T59): the connected one, else the fixed choice. */
   private async sim(): Promise<Simulator | null> {
     return activeSim((await this.o.settings.get()).simChoice, this.bridge.view);
@@ -849,6 +915,7 @@ export class AppController {
    * (lost telemetry and the position jump are handled as usual).
    */
   private onBridgeChange(): void {
+    this.logBridge();
     const now = this.bridge.view.source;
     if (now === null || now === this.lastSim) return;
     const before = this.lastSim;
@@ -859,6 +926,23 @@ export class AppController {
         to: SIM_NAMES[now],
       });
     }
+  }
+
+  /**
+   * Link, sim and source of the bridge when one of them changes (T67), not every status frame.
+   * `connecting` is left out: without a bridge every retry would add two lines.
+   */
+  private logBridge(): void {
+    const v = this.bridge.view;
+    if (v.link === 'connecting') return;
+    const version = this.bridge.version === null ? '' : `, bridge ${this.bridge.version}`;
+    const line =
+      `bridge: link ${v.link}, sim ${v.sim ?? '-'}${v.source === null ? '' : ` (${v.source})`}` +
+      `${version}${v.detail === null ? '' : `: ${v.detail}`}`;
+    if (line === this.bridgeLogged) return;
+    this.bridgeLogged = line;
+    if (v.link === 'closed' && v.detail !== null) this.log.warn(line);
+    else this.log.info(line);
   }
 
   private onTelemetry(s: TelemetrySnapshot): void {

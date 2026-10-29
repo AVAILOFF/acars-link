@@ -37,6 +37,7 @@ import type {
 } from '../shared/api.js';
 import type { Feed } from './feed.js';
 import { MessageHints } from './hints.js';
+import { type Log, NO_LOG } from './log.js';
 import type { RecordingSink } from './recording.js';
 
 /**
@@ -94,6 +95,8 @@ export interface FlightSessionOptions {
    * recording sink writes on at the end of the same file. The other options must match the header.
    */
   readonly resume?: Recording;
+  /** File log of the app (T67): transport status and send failures; default none. */
+  readonly log?: Log;
 }
 
 /** The recorded flight does not run the same way again (other scenarios, another app version). */
@@ -185,11 +188,13 @@ export class FlightSession {
   private resumePending = false;
   /** "Time from the sim" is on; the flight waits for the first sim time. */
   private readonly simTime: boolean;
+  private readonly log: Log;
   /** Sim UTC minus the bridge clock, ms; null until the first snapshot with `simUtcMs`. */
   private simOffset: number | null = null;
 
   constructor(o: FlightSessionOptions) {
     this.simTime = o.simTime === true;
+    this.log = o.log ?? NO_LOG;
     this.core = AcarsCore.create(
       o.resume !== undefined
         ? recordedCoreOptions(o.resume.header, o.scenarios)
@@ -825,11 +830,13 @@ export class FlightSession {
         case 'SEND_RETRY': {
           const id = this.outbound.get(e.id);
           const detail = `#${e.attempt}: ${e.reason}`;
+          this.log.warn(`transport: retry ${detail}`);
           if (id !== undefined) this.feed.updateOutbound(id, { delivery: 'retry', detail });
           break;
         }
         case 'SEND_FAILED': {
           const id = this.outbound.get(e.id);
+          this.log.warn(`transport: send failed: ${e.reason}`);
           if (id !== undefined)
             this.feed.updateOutbound(id, { delivery: 'failed', detail: e.reason });
           this.outbound.delete(e.id);
@@ -860,6 +867,9 @@ export class FlightSession {
   }
 
   private onStatus(t: number, status: TransportStatus, reason: string | null): void {
+    const line = `transport: ${status}${reason === null ? '' : ` (${reason})`}`;
+    if (status === 'degraded' || status === 'halted') this.log.warn(line);
+    else this.log.info(line);
     this.transportReason = status === 'ok' || status === 'idle' ? null : reason;
     // `idle → ok` is the normal start; only problems and the recovery from them go to the feed.
     if (status === 'degraded' || status === 'halted' || this.feedHasProblem) {

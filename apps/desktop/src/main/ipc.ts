@@ -4,7 +4,8 @@
 import type { IpcMainInvokeEvent } from 'electron';
 import { IPC } from '../shared/api.js';
 import type { AppController } from './controller.js';
-import { AppFailure, guard } from './errors.js';
+import { AppFailure, guard as guardResult } from './errors.js';
+import { type Log, NO_LOG } from './log.js';
 
 /**
  * IPC handlers. The renderer is treated as untrusted input: every call checks the sender
@@ -22,7 +23,14 @@ export function registerIpc(
   ipc: IpcLike,
   app: AppController,
   isTrustedSender: (event: IpcMainInvokeEvent) => boolean,
+  log: Log = NO_LOG,
 ): void {
+  // T67: an expected failure is one log line; anything else with its stack.
+  const failed = (e: unknown) => {
+    if (e instanceof AppFailure) log.warn(`request failed: ${e.message}`);
+    else log.error('request failed', e);
+  };
+  const guard = <T>(fn: () => T | Promise<T>) => guardResult(fn, failed);
   const on = (channel: string, fn: (...args: unknown[]) => unknown) => {
     ipc.handle(channel, (event, ...args) => {
       if (!isTrustedSender(event)) throw new Error('untrusted sender');
@@ -72,4 +80,5 @@ export function registerIpc(
   on(IPC.sendPilotMessage, (text) => guard(() => app.sendPilotMessage(text)));
   on(IPC.openRecordings, () => guard(() => app.openRecordings()));
   on(IPC.clearMemory, () => guard(() => app.clearMemory()));
+  on(IPC.exportDiagnostics, (withRecording) => guard(() => app.exportDiagnostics(withRecording)));
 }

@@ -2,7 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import { DEFAULT_RESCUE_FLIPPED, DEFAULT_RESCUE_TITLES, RESCUE_TITLE_GROUPS } from '@acars/core';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { Language, Settings, SimChoice, TransportChoice } from '../../shared/api.js';
 import { activeSim } from '../../shared/api.js';
 import { AerodataboxKeyForm, HoppieCodeForm, UsernameForm } from './SettingsAccounts.js';
@@ -196,6 +196,10 @@ function AdvancedSettings({ s }: { s: Settings }) {
   const { off, update } = useUpdate();
   const openRecordings = useStore((st) => st.openRecordings);
   const clearMemory = useStore((st) => st.clearMemory);
+  const exportDiagnostics = useStore((st) => st.exportDiagnostics);
+  const exported = useStore((st) => st.saved === 'diagnostics');
+  // T67 decision 3: the recording (callsign, route, AeroDataBox data) only when ticked, off by default.
+  const [withRecording, setWithRecording] = useState(false);
   // T59: what X-Plane lacks is greyed out by the connected sim, not by the setting.
   const source = useStore((st) => st.app?.bridge.source ?? null);
   const xplane = activeSim(s.simChoice, { source }) === 'xplane';
@@ -440,6 +444,32 @@ function AdvancedSettings({ s }: { s: Settings }) {
           save={(v) => void update({ bridgePort: Number(v) })}
           disabled={off}
         />
+      </Group>
+
+      <Group id="diagnostics" title={t('set.group.diagnostics')}>
+        <Row htmlFor="diag-recording" title={t('set.diagRecording')}>
+          <SwitchInput
+            id="diag-recording"
+            checked={withRecording}
+            disabled={off}
+            onChange={setWithRecording}
+          />
+        </Row>
+        <Row title={t('set.diagExport')} hint={<Hint text={t('set.diagExportHint')} />}>
+          {exported && (
+            <span className="saved" role="status">
+              ✓ {t('set.diagSaved')}
+            </span>
+          )}
+          <button
+            type="button"
+            className="btn"
+            disabled={off}
+            onClick={() => void exportDiagnostics(withRecording)}
+          >
+            {t('set.diagExportButton')}
+          </button>
+        </Row>
       </Group>
     </>
   );

@@ -22,6 +22,7 @@ export const en = {
   'set.group.xatc': 'XATC station',
   'set.group.datalink': 'Data link',
   'set.group.records': 'Recordings and airline memory',
+  'set.group.diagnostics': 'Diagnostics',
   'set.group.connection': 'Connection',
   'page.flight': 'Messages',
   'page.scenarios': 'Scenarios',
@@ -466,6 +467,12 @@ export const en = {
   'set.recordHint':
     'Saves the telemetry and messages of each flight to a file for replay. The last 20 flights are kept.',
   'set.openRecordings': 'Open recordings folder',
+  'set.diagRecording': 'Include the latest flight recording',
+  'set.diagExport': 'Export diagnostics',
+  'set.diagExportHint':
+    'Saves one .zip file to attach to a problem report: the app and bridge logs, versions and the settings, without your logon code, keys or SimBrief name. The flight recording holds the callsign, the route and the flight data; it is added only when the switch above is on. Nothing is sent anywhere.',
+  'set.diagExportButton': 'Export…',
+  'set.diagSaved': 'Saved',
   'set.memory': 'Airline memory: {names}',
   'set.memoryEmpty': 'Airline memory is empty',
   'set.memoryHint':
