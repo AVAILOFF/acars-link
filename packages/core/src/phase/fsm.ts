@@ -81,11 +81,20 @@ export const DEFAULT_PHASE_CONFIG: PhaseConfig = {
   altChangeHoldSec: 30,
 };
 
+/** Fuel and position of one snapshot (T69: the flight report reads them at OOOI). */
+export interface OooiSample {
+  readonly fuelKg: number;
+  readonly lat: number;
+  readonly lon: number;
+}
+
 interface Candidate {
   /** Flight time when the condition became true. */
   readonly sinceSimMs: number;
   /** Snapshot time when the condition became true. */
   readonly sinceT: number;
+  /** That snapshot's fuel and position (T69); absent in older states. */
+  readonly at?: OooiSample | null;
 }
 
 export interface PhaseMachineState {
@@ -104,9 +113,14 @@ export interface PhaseMachineState {
   readonly telemetryLost: boolean;
   readonly candidates: Readonly<Record<string, Candidate>>;
   readonly oooi: Readonly<Record<OooiKind, number | null>>;
+  /** Fuel and position of the snapshot of each OOOI time (T69); absent in older states. */
+  readonly oooiAt?: Readonly<Record<OooiKind, OooiSample | null>>;
   /** Last ground → air / air → ground edge, snapshot time. */
   readonly liftoffT: number | null;
   readonly touchdownT: number | null;
+  /** The snapshots of those edges (T69); absent in older states. */
+  readonly liftoffAt?: OooiSample | null;
+  readonly touchdownAt?: OooiSample | null;
   /** Lowest AGL in the current APPROACH (go-around detection). */
   readonly approachMinAglFt: number | null;
   /** Current cruise level for ALT_CHANGE. */
@@ -118,6 +132,7 @@ type Mutable<T> = { -readonly [K in keyof T]: T[K] };
 type State = Mutable<PhaseMachineState> & {
   candidates: Record<string, Candidate>;
   oooi: Record<OooiKind, number | null>;
+  oooiAt: Record<OooiKind, OooiSample | null>;
   history: { phase: FlightPhase; t: number }[];
 };
 
@@ -234,8 +249,11 @@ export class PhaseMachine {
       telemetryLost: false,
       candidates: {},
       oooi: { OUT: null, OFF: null, ON: null, IN: null },
+      oooiAt: { OUT: null, OFF: null, ON: null, IN: null },
       liftoffT: null,
       touchdownT: null,
+      liftoffAt: null,
+      touchdownAt: null,
       approachMinAglFt: null,
       cruiseLevelFt: null,
       history: [],
@@ -251,6 +269,9 @@ export class PhaseMachine {
       ...(config === undefined ? {} : { config }),
     });
     Object.assign(m.st, clone(state));
+    m.st.oooiAt ??= { OUT: null, OFF: null, ON: null, IN: null };
+    m.st.liftoffAt ??= null;
+    m.st.touchdownAt ??= null;
     return m;
   }
 
@@ -272,6 +293,16 @@ export class PhaseMachine {
 
   get oooi(): Readonly<Record<OooiKind, number | null>> {
     return { ...this.st.oooi };
+  }
+
+  /** Fuel and position at each OOOI time (T69); null = not recorded (or a state from before T69). */
+  get oooiAt(): Readonly<Record<OooiKind, OooiSample | null>> {
+    return { ...this.st.oooiAt };
+  }
+
+  /** Go-arounds flown in this flight (T69): entries into GO_AROUND. */
+  get goArounds(): number {
+    return this.st.history.filter((h) => h.phase === 'GO_AROUND').length;
   }
 
   /** JSON-serializable copy of the whole state. */
@@ -329,8 +360,14 @@ export class PhaseMachine {
     const rate = s.simRate > 0 ? s.simRate : 1;
     const dtFlight = s.paused || gap ? 0 : dtWall * rate;
 
-    if (prev?.onGround && !s.onGround) st.liftoffT = s.t;
-    if (prev !== null && !prev.onGround && s.onGround) st.touchdownT = s.t;
+    if (prev?.onGround && !s.onGround) {
+      st.liftoffT = s.t;
+      st.liftoffAt = sample(s);
+    }
+    if (prev !== null && !prev.onGround && s.onGround) {
+      st.touchdownT = s.t;
+      st.touchdownAt = sample(s);
+    }
 
     st.last = s;
     st.lastRxMs = now;
@@ -381,7 +418,8 @@ export class PhaseMachine {
     }
     let c = st.candidates[id];
     if (c === undefined) {
-      c = { sinceSimMs: st.flightTimeMs, sinceT: t };
+      // `push` keeps the snapshot of `t` as `last` before the conditions are checked.
+      c = { sinceSimMs: st.flightTimeMs, sinceT: t, at: st.last === null ? null : sample(st.last) };
       st.candidates[id] = c;
     }
     return st.flightTimeMs - c.sinceSimMs >= holdSec * 1000 ? c : null;
@@ -393,7 +431,7 @@ export class PhaseMachine {
     const c = this.hold(OUT_KEY, !s.parkingBrake && s.gsKt >= 1, OUT_HOLD_SEC, s.t);
     if (c === null) return;
     delete st.candidates[OUT_KEY];
-    this.recordOooi('OUT', c.sinceT, events);
+    this.recordOooi('OUT', c.sinceT, events, c.at ?? null);
   }
 
   private watchAltChange(s: TelemetrySnapshot, events: PhaseEvent[]): void {
@@ -407,9 +445,15 @@ export class PhaseMachine {
     events.push({ type: 'ALT_CHANGE', t: s.t, fromFt: level, toFt: st.cruiseLevelFt });
   }
 
-  private recordOooi(kind: OooiKind, t: number, events: PhaseEvent[]): void {
+  private recordOooi(
+    kind: OooiKind,
+    t: number,
+    events: PhaseEvent[],
+    at: OooiSample | null | undefined,
+  ): void {
     if (this.st.oooi[kind] !== null) return;
     this.st.oooi[kind] = t;
+    this.st.oooiAt[kind] = at ?? null;
     events.push({ type: `OOOI_${kind}`, t });
   }
 
@@ -423,12 +467,25 @@ export class PhaseMachine {
     st.history.push({ phase: to, t });
     events.push({ type: 'PHASE_CHANGE', t, from, to });
 
-    if (from === 'TAKEOFF' && to === 'CLIMB') this.recordOooi('OFF', st.liftoffT ?? t, events);
-    if (to === 'LANDED') this.recordOooi('ON', st.touchdownT ?? t, events);
-    if (to === 'ON_BLOCK') this.recordOooi('IN', since?.sinceT ?? t, events);
+    // The sample is the snapshot of the OOOI time; without an edge or a candidate, the current one.
+    const now = st.last === null ? null : sample(st.last);
+    if (from === 'TAKEOFF' && to === 'CLIMB') {
+      const edge = st.liftoffT !== null;
+      this.recordOooi('OFF', st.liftoffT ?? t, events, edge ? st.liftoffAt : now);
+    }
+    if (to === 'LANDED') {
+      const edge = st.touchdownT !== null;
+      this.recordOooi('ON', st.touchdownT ?? t, events, edge ? st.touchdownAt : now);
+    }
+    if (to === 'ON_BLOCK')
+      this.recordOooi('IN', since?.sinceT ?? t, events, since ? since.at : now);
     if (to === 'APPROACH') st.approachMinAglFt = null;
     if (to === 'CRUISE' && st.last !== null) st.cruiseLevelFt = round100(st.last.altFt);
   }
+}
+
+function sample(s: TelemetrySnapshot): OooiSample {
+  return { fuelKg: s.fuelKg, lat: s.lat, lon: s.lon };
 }
 
 function clone<T>(x: T): T {

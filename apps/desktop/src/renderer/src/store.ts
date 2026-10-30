@@ -37,7 +37,8 @@ export type Busy =
   | 'force'
   | 'pilot'
   | 'resume'
-  | 'diagnostics';
+  | 'diagnostics'
+  | 'report';
 
 /** Result of a "Check" button (U-06), shown next to its row. */
 export type Checked =
@@ -110,6 +111,8 @@ interface Store {
   clearMemory(): Promise<void>;
   /** T67: "saved" only when a file was written, not when the dialog was cancelled. */
   exportDiagnostics(withRecording: boolean): Promise<void>;
+  /** T69: the flight report as JSON; "saved" only when a file was written. */
+  exportReport(): Promise<void>;
 }
 
 const api = (): AcarsApi => window.acars;
@@ -312,6 +315,17 @@ export const useStore = create<Store>()((set, get) => {
         },
       );
       if (file === null && get().saved === 'diagnostics') set({ saved: null });
+    },
+    async exportReport() {
+      let file: string | null = null;
+      await run(
+        'report',
+        () => api().exportReport(),
+        (f) => {
+          file = f;
+        },
+      );
+      if (file === null && get().saved === 'report') set({ saved: null });
     },
   };
 });

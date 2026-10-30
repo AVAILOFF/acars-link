@@ -9,6 +9,7 @@ import { openActions } from './actions.js';
 import { type Filter, MessageTable } from './FeedList.js';
 import { awaitingIds, type MessageHintView, messageHint } from './hints.js';
 import { phaseKey } from './i18n.js';
+import { ReportPanel } from './ReportPanel.js';
 import { RequestDialog, type RequestKind } from './RequestDialog.js';
 import { useStore } from './store.js';
 import { num, useT, useUiText, zulu } from './ui.js';
@@ -121,6 +122,7 @@ export function FlightView() {
       </section>
       <aside className="context" aria-label={t('ctx.label')}>
         <FlightCard app={app} />
+        {app.report !== null && <ReportPanel view={app.report} />}
         <FmsPanel
           messages={messages}
           selected={selected}

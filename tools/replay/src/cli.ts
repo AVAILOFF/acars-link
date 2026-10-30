@@ -17,8 +17,9 @@ import {
 import { encodeRecording, parseJsonl, type Recording, snapshotsOf } from './format.js';
 import { hasPurgedConnex } from './purge.js';
 import { formatReport } from './report.js';
-import { compareOutbound, replay } from './run.js';
+import { compareOutbound, type ReplayResult, replay } from './run.js';
 import { defaultEnabled, pickScenarios, type ScenarioFile } from './scenarios.js';
+import { formatSummary } from './summary.js';
 import { recordingFromSnapshots, syntheticRecording } from './synthetic.js';
 
 export const USAGE = `usage:
@@ -38,6 +39,10 @@ export const USAGE = `usage:
       --verbose                 also scenario start/done/skip, pauses, step climbs
       --json                    JSON lines instead of text
       --check                   compare with the live telexes in the recording; exit 1 if different
+  pnpm replay summary <file.jsonl> [options]  the flight report (T69) of a recording
+      --json                    the report as JSON
+      --check                   compare with the report the app wrote (summary line); exit 1 if different
+      also --ofp, --scenarios, --no-base, --pilot, --only, --all, --seed, --station, --profile of run
   pnpm replay synth --ofp <simbrief.json> [--out <file.jsonl>]
       --go-around <ft>          go around once at this height AGL
       --boarding <min>          minutes at the gate before pushback (default 35; less = late start)
@@ -71,6 +76,8 @@ export async function main(argv: readonly string[], io: Io = nodeIo): Promise<nu
     switch (command) {
       case 'run':
         return runCommand(rest, io);
+      case 'summary':
+        return summaryCommand(rest, io);
       case 'synth':
         return synthCommand(rest, io);
       case 'snapshots':
@@ -98,27 +105,39 @@ function parse<T extends ParseArgsConfig>(config: T): ReturnType<typeof parseArg
   }
 }
 
-function runCommand(args: string[], io: Io): number {
-  const { values: v, positionals } = parse({
-    args,
-    allowPositionals: true,
-    options: {
-      ofp: { type: 'string' },
-      scenarios: { type: 'string', multiple: true },
-      'no-base': { type: 'boolean' },
-      only: { type: 'string' },
-      all: { type: 'boolean' },
-      seed: { type: 'string' },
-      station: { type: 'string' },
-      profile: { type: 'string' },
-      brief: { type: 'boolean' },
-      verbose: { type: 'boolean' },
-      json: { type: 'boolean' },
-      check: { type: 'boolean' },
-      pilot: { type: 'string', multiple: true },
-    },
-  });
-  const file = one(positionals, 'run <file.jsonl>');
+/** Options of `run` that pick the scenarios and the core options; `summary` takes them too. */
+const REPLAY_OPTIONS = {
+  ofp: { type: 'string' },
+  scenarios: { type: 'string', multiple: true },
+  'no-base': { type: 'boolean' },
+  only: { type: 'string' },
+  all: { type: 'boolean' },
+  seed: { type: 'string' },
+  station: { type: 'string' },
+  profile: { type: 'string' },
+  json: { type: 'boolean' },
+  check: { type: 'boolean' },
+  pilot: { type: 'string', multiple: true },
+} as const;
+
+interface ReplayArgs {
+  readonly ofp?: string | undefined;
+  readonly scenarios?: string[] | undefined;
+  readonly 'no-base'?: boolean | undefined;
+  readonly only?: string | undefined;
+  readonly all?: boolean | undefined;
+  readonly seed?: string | undefined;
+  readonly station?: string | undefined;
+  readonly profile?: string | undefined;
+  readonly pilot?: string[] | undefined;
+}
+
+/** Reads the recording and replays it with the scenarios the options pick. */
+function replayFile(
+  file: string,
+  v: ReplayArgs,
+  io: Io,
+): { recording: Recording; result: ReplayResult; scenarios: number } {
   const base = v['no-base'] === true ? [] : readBase();
   const pilot = (v.pilot ?? []).map(pilotLine);
   const extra = (v.scenarios ?? []).flatMap((p) => readScenarioPath(p));
@@ -141,6 +160,16 @@ function runCommand(args: string[], io: Io): number {
     ...(v.profile === undefined ? {} : { profile: profileById(v.profile) }),
     ...(pilot.length === 0 ? {} : { pilot }),
   });
+  return { recording, result, scenarios: picked.scenarios.length };
+}
+
+function runCommand(args: string[], io: Io): number {
+  const { values: v, positionals } = parse({
+    args,
+    allowPositionals: true,
+    options: { ...REPLAY_OPTIONS, brief: { type: 'boolean' }, verbose: { type: 'boolean' } },
+  });
+  const { recording, result, scenarios } = replayFile(one(positionals, 'run <file.jsonl>'), v, io);
 
   if (v.json === true) {
     for (const e of result.timeline) {
@@ -164,7 +193,7 @@ function runCommand(args: string[], io: Io): number {
     io.out(
       `${h.ofp.callsign} ${h.ofp.origin.icao}-${h.ofp.destination.icao} ` +
         `(${h.source}, recorded ${new Date(h.recordedAt).toISOString()}), ` +
-        `${picked.scenarios.length} scenarios, profile ${result.profile}\n\n`,
+        `${scenarios} scenarios, profile ${result.profile}\n\n`,
     );
     io.out(
       formatReport(result, {
@@ -185,6 +214,33 @@ function runCommand(args: string[], io: Io): number {
     return 0;
   }
   io.err(`check: ${diff.length} differences from the live run:\n${diff.join('\n')}\n`);
+  return 1;
+}
+
+function summaryCommand(args: string[], io: Io): number {
+  const { values: v, positionals } = parse({
+    args,
+    allowPositionals: true,
+    options: REPLAY_OPTIONS,
+  });
+  const { result } = replayFile(one(positionals, 'summary <file.jsonl>'), v, io);
+  io.out(
+    v.json === true
+      ? `${JSON.stringify(result.report)}\n`
+      : formatSummary(result.report, result.ended),
+  );
+  if (v.check !== true) return 0;
+  if (result.recordedReport === null) {
+    io.err('check: the recording has no summary line (the flight was not closed in the app)\n');
+    return 1;
+  }
+  if (JSON.stringify(result.recordedReport) === JSON.stringify(result.report)) {
+    io.err('check: the report matches the one the app wrote\n');
+    return 0;
+  }
+  io.err(
+    `check: the report differs from the one the app wrote:\n${formatSummary(result.recordedReport)}`,
+  );
   return 1;
 }
 

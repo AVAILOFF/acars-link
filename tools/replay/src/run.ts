@@ -8,6 +8,7 @@ import {
   type CoreOptions,
   type DisplayProfile,
   type FlightPhase,
+  type FlightReport,
   type OutboundMessage,
   type PhaseConfig,
   type SimCommand,
@@ -58,6 +59,14 @@ export interface ReplayResult {
   readonly ticks: number;
   readonly firstNow: number | null;
   readonly lastNow: number | null;
+  /**
+   * The flight report (T69): taken when the flight was closed (`end`), as the app shows it; a
+   * recording without `end` gets the report of its last line (`ended` false).
+   */
+  readonly report: FlightReport;
+  readonly ended: boolean;
+  /** The report of the recording's `summary` line (the live one); null = none. */
+  readonly recordedReport: FlightReport | null;
 }
 
 /**
@@ -107,6 +116,8 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
   let firstNow: number | null = null;
   let lastNow: number | null = null;
   let delayReported = false;
+  let report: FlightReport | null = null;
+  let recordedReport: FlightReport | null = null;
   let pilot = [...(o.pilot ?? [])].sort((a, b) => a.afterMin - b.afterMin);
 
   const apply = (now: number, out: ReturnType<AcarsCore['tick']>) => {
@@ -127,7 +138,8 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
   };
 
   loop: for (const e of recording.events) {
-    if (e.type === 'out' || e.type === 'cmd' || e.type === 'sent') continue;
+    if (e.type === 'summary') recordedReport = e.report;
+    if (e.type === 'out' || e.type === 'cmd' || e.type === 'sent' || e.type === 'summary') continue;
     firstNow ??= e.now;
     lastNow = e.now;
     switch (e.type) {
@@ -161,6 +173,7 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
       case 'end':
         try {
           apply(e.now, core.endFlight(e.to, e.now));
+          report ??= core.report();
         } catch (err) {
           const error = `end ${e.to}: ${err instanceof Error ? err.message : String(err)}`;
           timeline.push({ kind: 'error', now: e.now, error });
@@ -185,6 +198,9 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
     ticks,
     firstNow,
     lastNow,
+    report: report ?? core.report(),
+    ended: report !== null,
+    recordedReport,
   };
 }
 

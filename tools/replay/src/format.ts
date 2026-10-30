@@ -6,6 +6,8 @@ import {
   type DisplayProfile,
   ExtDataError,
   type ExtDataUpdate,
+  FLIGHT_REPORT_VERSION,
+  type FlightReport,
   isTelemetrySnapshot,
   type Ofp,
   type PilotMessage,
@@ -36,12 +38,15 @@ import {
  *                                                                      up on) the n-th `out` line (T64)
  * {"type":"resume","now":…}                                            the app restored the flight after
  *                                                                      a restart (T64); the ticks go on
+ * {"type":"summary","now":…,"report":{…}}                              the flight report the app showed
+ *                                                                      when the flight was closed (T69,
+ *                                                                      `FlightReport`), after its `end`
  * ```
  *
  * The lines are the inputs of the core (`AcarsCore`) in call order, so a replay with the same
  * scenarios and seed gives the same messages (CLAUDE.md, invariant 4). `out` lines are the live
  * output, kept for comparison; `sent` lines tell which of them left the app, so a restored flight
- * sends the rest again (T64). Telemetry is the bridge snapshot as received (`t` = bridge
+ * sends the rest again (T64); a `summary` line is output too (the replay computes the report anew). Telemetry is the bridge snapshot as received (`t` = bridge
  * clock), `now` is the app clock of the tick. The header carries the normalized OFP (no
  * personal data: no pilot name or ids) and the core options of the flight.
  *
@@ -137,7 +142,8 @@ export type RecordingEvent =
       readonly n: number;
       readonly result: 'sent' | 'failed';
     }
-  | { readonly type: 'resume'; readonly now: number };
+  | { readonly type: 'resume'; readonly now: number }
+  | { readonly type: 'summary'; readonly now: number; readonly report: FlightReport };
 
 export type RecordedOutbound = Extract<RecordingEvent, { type: 'out' }>;
 
@@ -358,6 +364,14 @@ function checkEvent(x: unknown, no: number): RecordingEvent {
       for (const k of ['scenarioId', 'command']) if (!isStr(x[k])) throw bad(k);
       if (!isObj(x['data'])) throw bad('data');
       return x as unknown as RecordingEvent;
+    case 'summary': {
+      if (!isNum(x['now'])) throw bad('now');
+      const r = x['report'];
+      if (!isObj(r) || r['v'] !== FLIGHT_REPORT_VERSION || !isStr(r['callsign'])) {
+        throw bad(`report must be a FlightReport v${FLIGHT_REPORT_VERSION}`);
+      }
+      return x as unknown as RecordingEvent;
+    }
     case 'sent':
       if (!isNum(x['t'])) throw bad('t');
       if (!(Number.isInteger(x['n']) && (x['n'] as number) >= 0)) throw bad('n');

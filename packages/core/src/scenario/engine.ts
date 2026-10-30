@@ -47,7 +47,7 @@ import {
   parseCommand,
 } from './pilot.js';
 import { TemplateError } from './template.js';
-import type { PilotCommand, StartWindow, TimeRef } from './types.js';
+import type { PilotCommand, ScenarioCategory, StartWindow, TimeRef } from './types.js';
 
 /**
  * Scenario runtime v0 (docs/05 "Исполнение").
@@ -616,6 +616,33 @@ export class ScenarioEngine {
   /** Holding the airline announced (`flight.hold`, T48), null = none. */
   get hold(): { readonly since: number; readonly min: number } | null {
     return this.st.hold === null ? null : { ...this.st.hold };
+  }
+
+  /**
+   * What the flight report reads (T69): the sim's touchdown rate (null = none), what the delay is
+   * made of, and the scenarios that started in this flight (category, last start), oldest first.
+   */
+  get reportData(): {
+    readonly touchdownFpm: number | null;
+    readonly delayParts: readonly DelayPart[];
+    readonly started: readonly {
+      readonly id: string;
+      readonly category: ScenarioCategory;
+      readonly t: number;
+    }[];
+  } {
+    const started = [...this.byId.values()].flatMap((sc) => {
+      const s = this.st.scenarios[sc.id];
+      return s === undefined || s.starts === 0 || s.lastStartMs === null
+        ? []
+        : [{ id: sc.id, category: sc.def.category, t: s.lastStartMs }];
+    });
+    started.sort((a, b) => a.t - b.t || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+    return {
+      touchdownFpm: this.st.touchdown?.fpm ?? null,
+      delayParts: this.st.delayParts.map((p) => ({ ...p })),
+      started,
+    };
   }
 
   /** Ids started in this session (persist them to honour `per_session` across flights). */

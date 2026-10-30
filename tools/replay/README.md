@@ -14,13 +14,15 @@ Flight recordings and their replay through the core (T11, docs/04 «Тестир
 {"type":"stop","now":…}
 {"type":"sent","t":…,"n":…,"result":"sent"|"failed"}
 {"type":"resume","now":…}
+{"type":"summary","now":…,"report":{FlightReport v1}}
 ```
 
 The lines after the header are the calls the app made to `AcarsCore`, in order (`now` = app
 clock, `telemetry.t` = bridge clock). `out` lines are what the core sent live; `sent` (T64) says the transport delivered the `n`-th `out`
 line (from 0) or gave it up, `resume` marks where the app restored the flight after a restart (the
 ticks go on after the gap; the replay runs the file as one flight), and the header field `simTime`
-says the times are the sim's UTC. The OFP is the
+says the times are the sim's UTC. `summary` (T69) is the flight report the app showed when the flight
+was closed at the gate, written right after `end` (output, like `out`). The OFP is the
 normalized one (no pilot name or ids). A file of bare `TelemetrySnapshot` lines (the bridge
 `--source fake --replay` format) is read as well, with `--ofp`.
 
@@ -36,6 +38,7 @@ pnpm replay run <file.jsonl> --scenarios my/crew_info.yaml   # debug an edited s
 pnpm replay run <file.jsonl> --only crew_info,slot_ctot --brief
 pnpm replay run <file.jsonl> --pilot "40=REQ GATE" --pilot "95=DIVERT RJOO"   # pilot telexes (T12)
 pnpm replay synth --ofp <simbrief.json> --out syn.jsonl [--go-around 300] [--boarding 5]
+pnpm replay summary <file.jsonl> [--json] [--check] # flight report (T69); --check: == the app's?
 pnpm replay snapshots <file.jsonl> --out snaps.jsonl   # for acars-msfs-bridge --replay
 pnpm replay --help
 ```
@@ -43,6 +46,9 @@ pnpm replay --help
 `inbound` (T12) are the pilot telexes passed with that tick (from the network or typed in the
 app). Base scenarios are `packages/scenarios/base` plus the pilot command handlers in
 `packages/scenarios/commands`.
+
+`summary` takes the report when the recording closes the flight (`end`), as the app does; a
+recording without `end` (e.g. `synth`) gets the report of its last line, marked as not closed.
 
 Scenario files passed with `--scenarios` replace base scenarios with the same id and are always
 enabled. Without `--only`/`--all` the replay runs the scenarios that were enabled in the flight.

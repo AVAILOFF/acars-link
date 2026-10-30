@@ -37,6 +37,7 @@ import {
   RotatingFile,
   watchProcess,
 } from './log.js';
+import { FileLogbook } from './logbook.js';
 import { migrateOldUserData, OLD_APP_DIR } from './migrate.js';
 import { fileRecordings, fileResume, latestRecording, purgeOldConnex } from './recording.js';
 import { BASE_SCENARIOS } from './scenario-sources.js';
@@ -224,6 +225,18 @@ async function main(): Promise<void> {
       if (stopBridge === null) log.warn('bridge: not started (no exe)');
     });
   };
+  /** The save dialog in Documents (T67 diagnostics, T69 flight report); null = cancelled. */
+  const chooseSavePath = async (defaultName: string, kind: string, ext: string) => {
+    const options = {
+      defaultPath: join(app.getPath('documents'), defaultName),
+      filters: [{ name: kind, extensions: [ext] }],
+    };
+    const r =
+      win === null
+        ? await dialog.showSaveDialog(options)
+        : await dialog.showSaveDialog(win, options);
+    return r.canceled || r.filePath === undefined || r.filePath === '' ? null : r.filePath;
+  };
   let controller: AppController | null = null;
   const onChange = () => {
     if (controller !== null) pushState(controller.state());
@@ -265,17 +278,12 @@ async function main(): Promise<void> {
       latestRecording: () => latestRecording(recordings),
       about: () => about,
       redact: (text) => redactor.redact(text),
-      choosePath: async (defaultName) => {
-        const options = {
-          defaultPath: join(app.getPath('documents'), defaultName),
-          filters: [{ name: 'ZIP', extensions: ['zip'] }],
-        };
-        const r =
-          win === null
-            ? await dialog.showSaveDialog(options)
-            : await dialog.showSaveDialog(win, options);
-        return r.canceled || r.filePath === undefined || r.filePath === '' ? null : r.filePath;
-      },
+      choosePath: (defaultName) => chooseSavePath(defaultName, 'ZIP', 'zip'),
+      reveal: (file) => shell.showItemInFolder(file),
+    },
+    logbook: new FileLogbook(join(userData, 'logbook.json'), clock.now),
+    reportExport: {
+      choosePath: (defaultName) => chooseSavePath(defaultName, 'JSON', 'json'),
       reveal: (file) => shell.showItemInFolder(file),
     },
   });

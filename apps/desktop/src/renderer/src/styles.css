@@ -882,6 +882,65 @@ input.short {
   color: var(--on-shell-1);
 }
 
+/* Flight report (T69): actual / plan / difference, then the facts of the flight. */
+.report {
+  flex: none;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.report-table td,
+.report-label,
+.report-caps {
+  padding: 2px 0;
+  text-align: right;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.report-label {
+  text-align: left;
+  color: var(--on-shell-2);
+}
+
+/* Column heads and the group rows (fuel on board, fuel burnt). */
+.report-caps {
+  padding-top: var(--s-3);
+  font-size: var(--fs-caps);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--on-shell-3);
+}
+
+.report-caps:first-child {
+  text-align: left;
+}
+
+.report-facts {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px var(--s-3);
+  margin: var(--s-4) 0 0;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--btn);
+  font-size: var(--fs-sub);
+}
+
+.report-facts dt {
+  color: var(--on-shell-2);
+}
+
+.report-facts dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
 /* FMS panel: bezel, screen filling the panel height, PREV/NEXT keys. */
 .fms-panel {
   display: flex;

@@ -5,6 +5,7 @@ import { writeFile } from 'node:fs/promises';
 import {
   alignOfpDay,
   type CompiledScenario,
+  type FlightReport,
   type Ofp,
   type SimCommand,
   selectProfile,
@@ -24,6 +25,7 @@ import type {
   AppState,
   CredentialsView,
   EndingView,
+  FlightReportView,
   FlightSummary,
   Language,
   ResumeOffer,
@@ -42,6 +44,7 @@ import { AppFailure, toAppError } from './errors.js';
 import { Feed } from './feed.js';
 import type { Flags, FlagsStore } from './flags.js';
 import { type Log, NO_LOG } from './log.js';
+import type { LogbookStore } from './logbook.js';
 import type { FlightResume, OpenRecording, RecordingSink, UnfinishedFlight } from './recording.js';
 import type { SecretStore } from './secrets.js';
 import { FlightSession, ResumeError } from './session.js';
@@ -96,6 +99,14 @@ export interface AppControllerOptions {
   readonly log?: Log;
   /** "Export diagnostics" (T67); absent or null = not available. */
   readonly diagnostics?: DiagnosticsSource | null;
+  /** The logbook of closed flights (T69); absent or null = none. */
+  readonly logbook?: LogbookStore | null;
+  /** Saving the flight report as JSON (T69); absent or null = not available. */
+  readonly reportExport?: {
+    /** Asks the user where to save (`defaultName` proposed); null = cancelled. */
+    readonly choosePath: (defaultName: string) => Promise<string | null>;
+    readonly reveal?: (file: string) => void;
+  } | null;
 }
 
 /** Title of a scenario in the UI languages. */
@@ -163,6 +174,8 @@ export class AppController {
   private readonly log: Log;
   /** The bridge state last written to the log (T67): only changes are logged. */
   private bridgeLogged = '';
+  /** The report of the flight closed at the gate (T69), until the next OFP is loaded. */
+  private report: FlightReportView | null = null;
 
   constructor(private readonly o: AppControllerOptions) {
     this.log = o.log ?? NO_LOG;
@@ -293,6 +306,7 @@ export class AppController {
       memory: this.memory,
       irregular: s?.irregular ?? [],
       resume: s === null ? resumeOffer(this.unfinished) : null,
+      report: this.report,
     };
   }
 
@@ -477,6 +491,7 @@ export class AppController {
     const summary = this.summary(ofp, await this.o.settings.get());
     this.ofp = ofp;
     this.flight = summary;
+    this.report = null;
     await this.prefetch(ofp, await this.o.settings.get());
     this.o.onChange();
     return summary;
@@ -600,6 +615,7 @@ export class AppController {
       this.feed.system(now, 'memory', { names: Object.keys(flags).sort().join(', ') });
     }
     this.flight = flight;
+    this.report = null;
     this.log.info(`flight started (${settings.transport})`);
     this.o.onChange();
     return null;
@@ -688,6 +704,9 @@ export class AppController {
     }
     this.unfinished = null;
     this.closing = null;
+    // T69: a flight restored after the gate shows its report again (the logbook has it already).
+    const closed = this.session.report;
+    this.report = closed === null ? null : this.reportView(closed);
     this.ofp = h.ofp;
     this.flight = this.summary(h.ofp, settings, h.station);
     this.log.info(`flight resumed (${settings.transport})`);
@@ -740,10 +759,52 @@ export class AppController {
     if (s.phase !== 'ON_BLOCK') {
       throw new AppFailure('bad_state', `phase ${s.phase}`, 'not_on_block', { phase: s.phase });
     }
-    s.endFlight(to, this.o.now());
+    const now = this.o.now();
+    s.endFlight(to, now);
+    const report = s.report;
+    if (report !== null) {
+      this.report = this.reportView(report);
+      try {
+        await this.o.logbook?.append({ closedAt: now, to, recording: s.recordingFile, report });
+      } catch (e) {
+        this.log.error('logbook not written', e);
+      }
+    }
     await this.saveMemory(s);
     this.o.onChange();
     return null;
+  }
+
+  /** The report with the titles of its irregular scenarios (T69). */
+  private reportView(report: FlightReport): FlightReportView {
+    return {
+      report,
+      irregular: report.irregular.map((id) => {
+        const c = this.scenarios.find((x) => x.id === id);
+        return { id, title: c === undefined ? { en: id, ru: null } : titleText(c) };
+      }),
+    };
+  }
+
+  /**
+   * T69: asks where to save, then writes the flight report (`AppState.report`) as JSON; shows it in
+   * the file manager. Returns the file, or null when the user cancelled.
+   */
+  async exportReport(): Promise<string | null> {
+    const view = this.report;
+    if (view === null) throw new AppFailure('bad_state', 'no flight report', 'no_report');
+    const x = this.o.reportExport;
+    if (x == null) throw new AppFailure('internal', 'report export is not available');
+    const file = await x.choosePath(reportFileName(view.report));
+    if (file === null) return null;
+    try {
+      await writeFile(file, `${JSON.stringify(view.report, null, 2)}\n`, 'utf8');
+    } catch (e) {
+      throw new AppFailure('internal', e instanceof Error ? e.message : String(e));
+    }
+    this.log.info('flight report exported');
+    x.reveal?.(file);
+    return file;
   }
 
   /**
@@ -977,6 +1038,13 @@ export class AppController {
       lineWidth: profile.lineWidth,
     };
   }
+}
+
+/** `flight-report-SJX822-RCTP-RJBB-20261008.json`: the date of OUT (else of the schedule), UTC. */
+export function reportFileName(r: FlightReport): string {
+  const day = new Date(r.times.OUT.actual ?? r.times.OUT.plan ?? 0).toISOString().slice(0, 10);
+  const name = `${r.callsign}-${r.origin}-${r.destination}`.replace(/[^A-Za-z0-9-]/g, '');
+  return `flight-report-${name}-${day.replaceAll('-', '')}.json`;
 }
 
 /** What the UI shows of a lost flight (T64). */
