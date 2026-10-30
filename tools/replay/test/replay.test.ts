@@ -575,3 +575,75 @@ describe('rescue services in a replay (T54)', () => {
     expect(report).toContain('SIM        cmd_medical  rescue');
   });
 });
+
+describe('flight report in a replay (T69)', () => {
+  const last = normal.events.at(-1) as { now: number };
+  const end = { type: 'end' as const, now: last.now + 1000, to: 'DONE' as const };
+  const closed: Recording = { ...normal, events: [...normal.events, end] };
+  const r = replay(closed, { scenarios: all });
+
+  it('the report is taken when the flight is closed: OOOI as on the timeline', () => {
+    expect(r.ended).toBe(true);
+    expect(r.recordedReport).toBeNull();
+    const oooi = (k: string) =>
+      r.timeline.flatMap((e) =>
+        e.kind === 'event' && e.event.type === `OOOI_${k}` ? [e.event.t] : [],
+      );
+    for (const k of ['OUT', 'OFF', 'ON', 'IN'] as const) {
+      expect([r.report.times[k].actual]).toEqual(oooi(k));
+    }
+    expect(r.report.blockMs.actual).toBe((oooi('IN')[0] ?? 0) - (oooi('OUT')[0] ?? 0));
+    expect(r.report.touchdownFpm).toBeNull();
+    expect(r.report.landed?.icao).toBe('RJBB');
+  });
+
+  it('what happens after the end (turnaround) is not in the report', () => {
+    const later = Array.from({ length: 600 }, (_, i) => ({
+      type: 'tick' as const,
+      now: end.now + (i + 1) * 1000,
+      telemetry: null,
+    }));
+    const more = replay({ ...closed, events: [...closed.events, ...later] }, { scenarios: all });
+    expect(more.report).toEqual(r.report);
+    // Without `end`: the report of the last line, marked as not closed.
+    const open = replay(normal, { scenarios: all });
+    expect(open.ended).toBe(false);
+    expect(open.report.times.IN.actual).toBe(r.report.times.IN.actual);
+  });
+
+  it('the `summary` line: parsed, compared by `summary --check`', async () => {
+    const line = { type: 'summary' as const, now: end.now, report: r.report };
+    const text = encodeRecording({ ...closed, events: [...closed.events, line] });
+    const parsed = parseJsonl(text);
+    expect(parsed.kind === 'recording' && parsed.recording.events.at(-1)).toEqual(line);
+    const broken = text.replace('"report":{"v":1', '"report":{"v":7');
+    expect(() => parseJsonl(broken)).toThrow(/report must be a FlightReport v1/);
+
+    const dir = await tmp();
+    const good = join(dir, 'good.jsonl');
+    await writeFile(good, text);
+    const out: string[] = [];
+    const err: string[] = [];
+    const io = { out: (t: string) => void out.push(t), err: (t: string) => void err.push(t) };
+    expect(await main(['summary', good, '--check', '--json'], io)).toBe(0);
+    expect(JSON.parse(out.join(''))).toEqual(r.report);
+    expect(err.join('')).toMatch(/matches the one the app wrote/);
+
+    const other = { ...r.report, messages: { ...r.report.messages, airline: 999 } };
+    const bad = join(dir, 'bad.jsonl');
+    await writeFile(
+      bad,
+      encodeRecording({ ...closed, events: [...closed.events, { ...line, report: other }] }),
+    );
+    out.length = 0;
+    expect(await main(['summary', bad, '--check'], io)).toBe(1);
+    expect(out.join('')).toMatch(/^FLIGHT REPORT SJX822 RCTP-RJBB A35K/);
+    expect(out.join('')).toContain('landed        RJBB');
+    expect(out.join('')).toContain('touchdown     no data');
+
+    const none = join(dir, 'none.jsonl');
+    await writeFile(none, encodeRecording(closed));
+    expect(await main(['summary', none, '--check'], io)).toBe(1);
+    expect(err.join('')).toMatch(/has no summary line/);
+  });
+});

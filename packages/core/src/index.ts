@@ -55,6 +55,7 @@ export * from './scenario/types.js';
 export * from './sim/commands.js';
 export * from './sim/rescue.js';
 export * from './sim/vdgs.js';
+export * from './summary/report.js';
 export * from './synthetic/anomalies.js';
 export * from './synthetic/flight.js';
 export * from './telemetry/types.js';

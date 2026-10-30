@@ -52,6 +52,7 @@ pnpm desktop          # сборка apps/desktop/out и запуск
 pnpm hoppie:telex --to <АВИА> [--from OPS…] [--text …] [--listen 180]   # ручной telex в Hoppie; код — только из env HOPPIE_LOGON
 pnpm replay run <запись.jsonl> [--scenarios <yaml|папка>] [--only id,…] [--check] [--pilot "<мин>=<текст>"]   # прогон записи через ядро (tools/replay); --pilot — сообщения пилота
 pnpm replay synth --ofp <simbrief.json> --out <файл.jsonl>   # синтетический полёт как запись; pnpm replay --help
+pnpm replay summary <запись.jsonl> [--json] [--check]   # сводка рейса T69 из записи; --check — сверка со строкой summary приложения
 pnpm desktop:dist     # установщик Windows: apps/desktop/release/ACARS-Link-Setup-<версия>.exe (NSIS, без подписи; мост — в resources/bridge)
 pnpm licenses         # тексты лицензий npm-пакетов бандла и .NET → apps/desktop/build/third-party-licenses.txt (часть desktop:dist)
 pnpm icon             # иконка приложения: design/logo/*.svg → apps/desktop/build/icon.{ico,png} (рендер через Electron)
@@ -73,6 +74,8 @@ pnpm bridge:test      # dotnet test bridge/msfs — при изменениях 
 `tools/replay` (`@acars/replay`) — формат записи полёта (JSONL: заголовок с OFP и опциями ядра, затем входы ядра по порядку), прогон через ядро, CLI. Приложение пишет запись каждого полёта в `<userData>/recordings` (настройка «Записывать полёты», хранятся последние 20; выключена — временная запись в `<userData>/flight-temp`, удаляется с рейсом). Восстановление рейса после закрытия или падения (T64) — из этой записи: `apps/desktop/src/main/recording.ts` (`fileResume`, 24 ч), `FlightSession` с `resume` (`session.ts`), опции ядра из заголовка — `recordedCoreOptions` (`tools/replay/src/run.ts`); строки `sent` и `resume` — docs/03, `tools/replay/README.md`.
 
 Логи (T67): `<userData>/logs/main.log` (main-процесс) и `bridge.log` (stdout/stderr моста), по 5 файлов × 5 МБ, время UTC — `apps/desktop/src/main/log.ts`; каждая строка проходит `Redactor` (logon-код, ключ RapidAPI, имя SimBrief, токен моста → `***`; секреты он узнаёт из `SecretStore`). «Экспорт диагностики» (Расширенные настройки → Диагностика) — один .zip: логи, версии, настройки без секретов, по галочке — последняя запись полёта (`diagnostics.ts`, свой zip — `zip.ts`).
+
+Сводка рейса (T69): расчёт — `packages/core/src/summary/report.ts` (`AcarsCore.report()`, только цифры данных, без оценок; аэропорт посадки — ближайший в пределах 5 NM), снимается при закрытии рейса у гейта (`FlightSession.endFlight`), пишется строкой `summary` после `end` в запись и в журнал рейсов `<userData>/logbook.json` (`main/logbook.ts`, без ограничения); в UI — `ReportPanel.tsx` до загрузки следующего OFP, «Сохранить в JSON» — `AppController.exportReport`.
 
 Пакеты воркспейса импортируют друг друга из исходников: условие экспорта `source` (`customConditions` в `tsconfig.base.json`, `resolve.conditions` в `vitest.config.ts`), сборка для тестов не нужна. `pnpm -F <pkg> test` запускает корневой конфиг Vitest с `--project`.
 

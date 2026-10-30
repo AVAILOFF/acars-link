@@ -34,6 +34,7 @@ import {
 import type { Value } from './scenario/expr.js';
 import type { PilotMessage } from './scenario/pilot.js';
 import type { SimCommand } from './sim/commands.js';
+import { type FlightReport, flightReport, type ReportCounts } from './summary/report.js';
 import type { TelemetrySnapshot } from './telemetry/types.js';
 
 /**
@@ -135,6 +136,8 @@ export interface CoreState {
   readonly link?: DatalinkState;
   /** Emergency chains to start on the next tick (T47); absent in states saved before T64 = none. */
   readonly emergencies?: readonly string[];
+  /** Message counters of the flight report (T69); absent in states saved before it = zero. */
+  readonly counts?: ReportCounts;
 }
 
 export interface OutboxState {
@@ -148,12 +151,15 @@ export class AcarsCore {
   private lastAt: number | null = null;
   /** Scenarios to start by hand on the next tick (T47: the emergency chain after MAYDAY/PAN). */
   private emergencies: string[] = [];
+  /** Messages of the flight for the report (T69). */
+  private counts: ReportCounts = { airline: 0, pilot: 0, replies: 0 };
   private readonly gapMs: number;
   /** The airline's station callsign: messages to it go to the scenarios. */
   private readonly airline: string;
   /** T32: the AES/GES header is put into the message text. */
   private readonly headerInText: boolean;
   private readonly profile: DisplayProfile;
+  private readonly ofp: Ofp;
 
   private constructor(
     private readonly fsm: PhaseMachine,
@@ -162,6 +168,7 @@ export class AcarsCore {
     private readonly xatc: XatcStation | null,
     private link: LinkChannel | null,
   ) {
+    this.ofp = options.ofp;
     this.headerInText = options.datalink?.headerInText === true;
     this.profile = options.profile ?? DEFAULT_PROFILE;
     this.gapMs = options.minGapMs ?? 0;
@@ -203,6 +210,7 @@ export class AcarsCore {
       core.lastAt = copy.lastAt;
     }
     core.emergencies = [...(state.emergencies ?? [])];
+    if (state.counts !== undefined) core.counts = { ...state.counts };
     return core;
   }
 
@@ -261,7 +269,31 @@ export class AcarsCore {
       ...(this.xatc === null ? {} : { xatc: this.xatc.getState() }),
       ...(this.link === null ? {} : { link: this.link.getState() }),
       ...(this.emergencies.length === 0 ? {} : { emergencies: [...this.emergencies] }),
+      counts: { ...this.counts },
     };
+  }
+
+  /**
+   * The flight report (T69, `summary/report.ts`): OOOI, times, fuel and messages against the OFP.
+   * Meant for after ON_BLOCK; earlier, what is not known yet is null.
+   */
+  report(): FlightReport {
+    const data = this.engine.reportData;
+    const ext = this.engine.ext;
+    return flightReport({
+      ofp: this.ofp,
+      oooi: this.fsm.oooi,
+      oooiAt: this.fsm.oooiAt,
+      goArounds: this.fsm.goArounds,
+      touchdownFpm: data.touchdownFpm,
+      delayMs: this.engine.delayMs,
+      delayParts: data.delayParts,
+      divert: this.engine.divert,
+      ...(ext.divertApts === undefined ? {} : { divertApts: ext.divertApts }),
+      ...(ext.places === undefined ? {} : { places: ext.places }),
+      counts: this.counts,
+      started: data.started,
+    });
   }
 
   /** The data link now and what waits on it (T31); null without the link simulation. */
@@ -335,6 +367,7 @@ export class AcarsCore {
       const id = e.kind === 'MAYDAY' ? 'emergency_mayday' : 'emergency_pan';
       if (this.engine.has(id) && !this.emergencies.includes(id)) this.emergencies.push(id);
     }
+    this.count(out);
     const outbound = [...atc.outbound, ...this.pace(now, out.outbound)];
     return {
       outbound: this.link === null ? outbound : this.throughLink(now, outbound),
@@ -343,6 +376,18 @@ export class AcarsCore {
       events: [...phaseEvents, ...out.events, ...atc.events] as CoreEvent[],
       listen: this.xatc?.listen ?? [],
     };
+  }
+
+  /** T69: airline messages as the scenarios produce them, the pilot's telexes to the airline. */
+  private count(out: { outbound: readonly OutboundMessage[]; events: readonly ScenarioEvent[] }) {
+    let { airline, pilot, replies } = this.counts;
+    airline += out.outbound.length;
+    for (const e of out.events) {
+      if (e.type !== 'PILOT_MESSAGE' || e.result === 'ignored') continue;
+      pilot++;
+      if (e.result === 'reply') replies++;
+    }
+    this.counts = { airline, pilot, replies };
   }
 
   /** T31: the messages of this tick enter the link; those whose delay is over leave. */

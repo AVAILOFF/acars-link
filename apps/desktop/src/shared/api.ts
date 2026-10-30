@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
-import type { FlightPhase, RescueTitles, ScenarioCategory } from '@acars/core';
+import type { FlightPhase, FlightReport, RescueTitles, ScenarioCategory } from '@acars/core';
 import type { TransportStatus } from '@acars/transport';
 
 /**
@@ -180,6 +180,16 @@ export interface ScenarioInfo {
 export interface ForceableScenario {
   readonly id: string;
   readonly title: UiText;
+}
+
+/**
+ * The flight report after ON_BLOCK (T69): the core's `FlightReport`, taken when the flight was
+ * closed, with the titles of its irregular scenarios. Stays until the next OFP is loaded.
+ */
+export interface FlightReportView {
+  readonly report: FlightReport;
+  /** Titles of `report.irregular`, in its order (the id when the scenario is unknown). */
+  readonly irregular: readonly ForceableScenario[];
 }
 
 export interface FlightSummary {
@@ -422,6 +432,8 @@ export interface AppState {
   readonly irregular: readonly ForceableScenario[];
   /** A flight the app lost (closed, crashed) that can go on (T64); null = none. */
   readonly resume: ResumeOffer | null;
+  /** The report of the flight closed at the gate (T69); null = none, or the next OFP was loaded. */
+  readonly report: FlightReportView | null;
 }
 
 /** The unfinished flight offered at the start (T64): from its recording. */
@@ -482,6 +494,7 @@ export const ERROR_REASONS = [
   'resume_scenarios',
   'resume_mismatch',
   'resume_invalid',
+  'no_report',
 ] as const;
 
 export type ErrorReason = (typeof ERROR_REASONS)[number];
@@ -563,6 +576,8 @@ export interface AcarsApi {
    * flight recording) where the user picks; the saved file, or null when cancelled.
    */
   exportDiagnostics(withRecording: boolean): Promise<Result<string | null>>;
+  /** T69: saves the flight report (`AppState.report`) as JSON where the user picks; null = cancelled. */
+  exportReport(): Promise<Result<string | null>>;
 }
 
 /** IPC channel names (invoke) and the push channel. */
@@ -595,4 +610,5 @@ export const IPC = {
   openRecordings: 'acars:open-recordings',
   clearMemory: 'acars:clear-memory',
   exportDiagnostics: 'acars:export-diagnostics',
+  exportReport: 'acars:export-report',
 } as const;

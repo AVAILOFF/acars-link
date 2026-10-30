@@ -11,4 +11,6 @@ export * from './format.js';
 export * from './purge.js';
 export * from './report.js';
 export * from './run.js';
+export * from './summary.js';
+export * from './summary.js';
 export * from './synthetic.js';

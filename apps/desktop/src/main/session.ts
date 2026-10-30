@@ -9,6 +9,7 @@ import {
   cpdlcPacket,
   type DisplayProfile,
   type FlightPhase,
+  type FlightReport,
   type Ofp,
   type PilotMessage,
   type SimCommand,
@@ -54,6 +55,7 @@ import type { RecordingSink } from './recording.js';
  * asks the service to fetch it.
  * A flight the app lost (closed, crashed) is restored from its recording (T64): the recorded inputs
  * go through the core again, the feed is rebuilt, and the telexes that never left are sent anew.
+ * Closing the flight at the gate takes the flight report (T69), written as a `summary` line.
  */
 
 export interface FlightSessionOptions {
@@ -191,6 +193,10 @@ export class FlightSession {
   private readonly log: Log;
   /** Sim UTC minus the bridge clock, ms; null until the first snapshot with `simUtcMs`. */
   private simOffset: number | null = null;
+  /** The flight report (T69), taken by {@link endFlight}; null before. */
+  private closedReport: FlightReport | null = null;
+  /** The recording file (null = none, or a temporary one only for restoring). */
+  readonly recordingFile: string | null;
 
   constructor(o: FlightSessionOptions) {
     this.simTime = o.simTime === true;
@@ -227,6 +233,10 @@ export class FlightSession {
     this.transport = o.transport;
     this.feed = o.feed;
     this.recording = o.recording ?? null;
+    this.recordingFile =
+      this.recording === null || this.recording.temporary === true
+        ? null
+        : basename(this.recording.file);
     if (o.resume !== undefined) {
       this.restore(o.resume, o.now);
       return;
@@ -267,6 +277,11 @@ export class FlightSession {
 
   get phase(): FlightPhase {
     return this.core.phase;
+  }
+
+  /** The flight report taken when the flight was closed at the gate (T69); null before. */
+  get report(): FlightReport | null {
+    return this.closedReport;
   }
 
   /** The flight can go on after a restart (T64): its recording is being written. */
@@ -465,6 +480,9 @@ export class FlightSession {
     const out = this.core.endFlight(to, now);
     this.record({ type: 'end', now, to });
     this.apply(out, now);
+    // T69: the report of the flight as it was closed; the turnaround after it is the next leg's.
+    this.closedReport = this.core.report();
+    this.record({ type: 'summary', now, report: this.closedReport });
     this.transport.tick();
     this.drainTransport();
   }
@@ -560,6 +578,7 @@ export class FlightSession {
           case 'end':
             lastNow = e.now;
             this.apply(this.core.endFlight(e.to, e.now), e.now);
+            this.closedReport = this.core.report();
             break;
           case 'resume':
             this.feed.system(e.now, 'flight_resumed', { callsign: this.callsign });
