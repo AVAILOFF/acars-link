@@ -36,7 +36,7 @@ packages/transport      Hoppie, SayIntentions, Mock
 tools/replay            запись и воспроизведение телеметрии для тестов
 ```
 
-Стек по умолчанию (как в других проектах пользователя): pnpm, TypeScript strict, React, Zustand, Vitest, Biome, Playwright для UI. Мост — C# (.NET 8) с управляемым SimConnect из MSFS SDK. Альтернатива — C++ или Rust.
+Стек по умолчанию (как в других проектах пользователя): pnpm, TypeScript strict, React, Zustand, Vitest, Biome, Playwright для UI. Мост — C# (.NET 8); SimConnect — через `acars_simconnect.dll` (C++, `bridge/msfs/native`, статическая линковка клиента из официального MSFS SDK; P/Invoke из C#, T73). Управляемая обёртка SDK и `SimConnect.dll` не используются и не поставляются.
 
 **Electron или Tauri:** выбран Electron (08, решение 1): проще и в экосистеме оригинала; цена — установщик ~100 МБ.
 

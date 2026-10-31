@@ -35,6 +35,7 @@ function run(command, args, env = {}) {
 const env = { ACARS_BUILD: variant };
 run('pnpm', ['bridge:publish']);
 run('node', ['tools/release/verify-bridge.mjs', join('bridge', 'msfs', 'publish')]);
+run('node', ['tools/release/verify-bridge.mjs', join('bridge', 'msfs', 'publish')]);
 run('pnpm', ['run', 'licenses']);
 run('pnpm', ['-F', '@acars/desktop', 'exec', 'electron-vite', 'build'], env);
 if (variant === 'public') {
@@ -46,6 +47,10 @@ if (variant === 'personal') {
   builder.push('-c.nsis.artifactName=ACARS-Link-Setup-personal-${version}.exe');
 }
 run('pnpm', builder, env);
+run('node', [
+  'tools/release/verify-bridge.mjs',
+  join('apps', 'desktop', 'release', 'win-unpacked', 'resources', 'bridge'),
+]);
 run('node', [
   'tools/release/verify-bridge.mjs',
   join('apps', 'desktop', 'release', 'win-unpacked', 'resources', 'bridge'),

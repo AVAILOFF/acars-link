@@ -1,9 +1,9 @@
 <Project>
   <!--
-    Copy to Local.props (gitignored) and point MsfsSdk at a folder with the MSFS SDK layout:
-      <MsfsSdk>\SimConnect SDK\lib\SimConnect.dll
-      <MsfsSdk>\SimConnect SDK\lib\managed\Microsoft.FlightSimulator.SimConnect.dll
-    It can be the official SDK root or a folder holding just these two DLLs.
+    Copy to Local.props (gitignored) and point MsfsSdk at the root of the official MSFS SDK (T73):
+      <MsfsSdk>\SimConnect SDK\include\SimConnect.h
+      <MsfsSdk>\SimConnect SDK\lib\static\SimConnect.lib
+    The build compiles native\acars_simconnect.cpp against them (Visual Studio Build Tools 2022, C++ x64 tools).
     A value passed on the command line (-p:MsfsSdk=...) still wins.
   -->
   <PropertyGroup>

@@ -12,8 +12,8 @@ for SimConnect, so every step below that needs the sim is a human check.
 
 ## Why not `AICreateSimulatedObject_EX1`
 
-The Skybound-derived `Microsoft.FlightSimulator.SimConnect.dll` / `SimConnect.dll` in `C:\Users\avail\SimConnectLibs\sdk2024`
-export `AICreateSimulatedObject` but no `_EX1` (checked 2026-10-15). The plain call "only works with non-modular
+The Skybound-derived `Microsoft.FlightSimulator.SimConnect.dll` / `SimConnect.dll` that the bridge used until T73
+export `AICreateSimulatedObject` but no `_EX1` (checked 2026-10-15; the official SDK 1.8.1 has it, T73 does not use it). The plain call "only works with non-modular
 aircraft", so this SimObject is legacy (non-modular): a `sim.cfg` with `category=StaticObject`, the form of the SDK 2024 sample "Windsock" (an `aircraft.cfg` container was listed in the SimObject Spawner but not created, 2026-10-16). With the official SDK wrapper
 (T19) `_EX1` can replace the call in `SimConnectSource.ApplySmoke`; nothing else changes.
 
