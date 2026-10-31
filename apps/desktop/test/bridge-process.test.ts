@@ -25,9 +25,30 @@ describe('bridge process', () => {
   });
 
   it('"Automatic" is the bridge default (T59); MSFS and X-Plane are fixed with --source', () => {
-    expect(bridgeArgs(47830, 'auto')).toEqual(['--port', '47830']);
-    expect(bridgeArgs(47830, 'msfs')).toEqual(['--port', '47830', '--source', 'simconnect']);
-    expect(bridgeArgs(47831, 'xplane')).toEqual(['--port', '47831', '--source', 'xplane']);
+    expect(bridgeArgs(47830, 'auto', 7)).toEqual(['--port', '47830', '--parent-pid', '7']);
+    expect(bridgeArgs(47830, 'msfs', 7)).toEqual([
+      '--port',
+      '47830',
+      '--parent-pid',
+      '7',
+      '--source',
+      'simconnect',
+    ]);
+    expect(bridgeArgs(47831, 'xplane', 7)).toEqual([
+      '--port',
+      '47831',
+      '--parent-pid',
+      '7',
+      '--source',
+      'xplane',
+    ]);
+  });
+
+  it('T80: the bridge is told the PID of the main process, so it stops with it', () => {
+    for (const sim of ['auto', 'msfs', 'xplane'] as const) {
+      const args = bridgeArgs(47830, sim, 4242);
+      expect(args[args.indexOf('--parent-pid') + 1]).toBe('4242');
+    }
   });
 
   // T67: Node itself stands in for the bridge exe; it refuses `--port` on stderr and exits.
@@ -69,7 +90,7 @@ describe('bridge process', () => {
       [BRIDGE_TOKEN_ENV]: 'tok-123',
     });
     for (const sim of ['auto', 'msfs', 'xplane'] as const) {
-      expect(bridgeArgs(47830, sim).join(' ')).not.toContain('tok-123');
+      expect(bridgeArgs(47830, sim, 7).join(' ')).not.toContain('tok-123');
     }
   });
 });
