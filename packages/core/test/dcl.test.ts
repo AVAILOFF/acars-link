@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   AcarsCore,
+  assignable,
   type CoreEvent,
   cpdlcPacket,
   DCL_DELAY_MS,
@@ -18,6 +19,7 @@ import {
   type PilotMessage,
   parseDclRequest,
   parseSimbriefOfp,
+  type SquawkTables,
   squawkPlan,
 } from '../src/index.js';
 
@@ -81,6 +83,7 @@ function fly(
     seed?: string;
     standAside?: boolean;
     profile?: DisplayProfile;
+    squawkTables?: SquawkTables;
   } = {},
 ): Run {
   const ofp = o.ofp ?? base;
@@ -89,7 +92,11 @@ function fly(
     scenarios: [],
     seed: o.seed ?? 'dcl',
     profile: o.profile ?? WIDE,
-    xatc: { enabled: true, ...(o.standAside === undefined ? {} : { standAside: o.standAside }) },
+    xatc: {
+      enabled: true,
+      ...(o.standAside === undefined ? {} : { standAside: o.standAside }),
+      ...(o.squawkTables === undefined ? {} : { squawkTables: o.squawkTables }),
+    },
   });
   core.startFlight();
   const out: OutboundMessage[] = [];
@@ -194,6 +201,14 @@ describe('ARINC 623 DCL (Europe, Asia)', () => {
     // Listened to on the ground until the exchange is over.
     expect(r.listen[at]).toContain('XCTP');
     expect(r.listen[cldAt + 5]).not.toContain('XCTP');
+  });
+
+  it('public tables (T72): the APAC table is not used, the code is random', () => {
+    const r = fly(new Map([[30, [fbwRequest()]]]), { data: TW_JP, squawkTables: 'public' });
+    const clearance = r.events.find((e) => e.type === 'ATC_DCL_CLEARANCE');
+    expect(clearance).toMatchObject({ squawkSource: 'random' });
+    const code = /SQUAWK @(\d{4})@/.exec(packet(dclOut(r)[1] as OutboundMessage))?.[1] as string;
+    expect(assignable(code)).toBe(true);
   });
 
   it('has the layout of real DCLs (WSSS, VHHH, EFHK, EDDF) and of the AIP samples', () => {

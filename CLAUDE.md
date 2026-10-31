@@ -53,7 +53,8 @@ pnpm hoppie:telex --to <АВИА> [--from OPS…] [--text …] [--listen 180]   
 pnpm replay run <запись.jsonl> [--scenarios <yaml|папка>] [--only id,…] [--check] [--pilot "<мин>=<текст>"]   # прогон записи через ядро (tools/replay); --pilot — сообщения пилота
 pnpm replay synth --ofp <simbrief.json> --out <файл.jsonl>   # синтетический полёт как запись; pnpm replay --help
 pnpm replay summary <запись.jsonl> [--json] [--check]   # сводка рейса T69 из записи; --check — сверка со строкой summary приложения
-pnpm desktop:dist     # установщик Windows: apps/desktop/release/ACARS-Link-Setup-<версия>.exe (NSIS, без подписи; мост — в resources/bridge)
+pnpm desktop:dist     # установщик Windows, ПУБЛИЧНЫЙ вариант (T72): без таблиц сквоков EUROCONTROL CAL / ICAO APAC eANP и без natTrak; apps/desktop/release/ACARS-Link-Setup-<версия>.exe (NSIS, без подписи; мост — в resources/bridge); после сборки tools/dist/verify-public.mjs проверяет out/ и app.asar
+pnpm desktop:dist:personal   # то же, ЛИЧНЫЙ вариант (всё включено), ACARS-Link-Setup-personal-<версия>.exe; вариант выбирает ACARS_BUILD=public|personal для electron-vite (tools/dist/build.mjs), заглушки — apps/desktop/variants/public
 pnpm licenses         # тексты лицензий npm-пакетов бандла и .NET → apps/desktop/build/third-party-licenses.txt (часть desktop:dist)
 pnpm icon             # иконка приложения: design/logo/*.svg → apps/desktop/build/icon.{ico,png} (рендер через Electron)
 pnpm bridge:publish   # мост самодостаточной папкой с exe (.NET не нужен; не single-file: управляемая обёртка SimConnect в нём не работает) → bridge/msfs/publish

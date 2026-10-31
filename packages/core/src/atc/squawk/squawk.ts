@@ -78,13 +78,21 @@ export interface Squawk {
   readonly rule: string;
 }
 
+/**
+ * Which regional tables are used (T72, docs/07). `full` — US, EUR and APAC (private build);
+ * `public` — only the US (FAA NBCAP, public domain): EUROCONTROL CAL and ICAO APAC eANP are not
+ * licensed for redistribution, so Europe and Asia/Pacific get the random rule of the rest of
+ * the world. The public build does not even contain the two tables.
+ */
+export type SquawkTables = 'full' | 'public';
+
 /** Allowed codes for a flight: the first table that has any, else every assignable code. */
-export function squawkPlan(f: SquawkFlight): SquawkPlan {
-  return usPlan(f) ?? eurPlan(f) ?? apacPlan(f) ?? randomPlan();
+export function squawkPlan(f: SquawkFlight, tables: SquawkTables = 'full'): SquawkPlan {
+  return usPlan(f) ?? (tables === 'full' ? (eurPlan(f) ?? apacPlan(f)) : null) ?? randomPlan();
 }
 
-export function assignSquawk(f: SquawkFlight, rng: Rng): Squawk {
-  const plan = squawkPlan(f);
+export function assignSquawk(f: SquawkFlight, rng: Rng, tables: SquawkTables = 'full'): Squawk {
+  const plan = squawkPlan(f, tables);
   const code = plan.codes[rng.int(0, plan.codes.length - 1)] as string;
   return { code, source: plan.source, rule: plan.rule };
 }

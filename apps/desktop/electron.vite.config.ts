@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'electron-vite';
 import type { Plugin } from 'vite';
@@ -25,11 +26,40 @@ const copyrightBanner = (): Plugin => ({
   },
 });
 
+// Build variant (T72): `ACARS_BUILD=public` leaves out data that is not licensed for
+// redistribution — the EUROCONTROL CAL and ICAO APAC squawk tables and the natTrak adapter:
+// their modules are replaced by empty stand-ins from variants/public. Default (and
+// `personal`) is the full build. `__ACARS_PUBLIC__` tells the main process which one it is.
+const variantName = process.env['ACARS_BUILD'] ?? 'personal';
+if (variantName !== 'public' && variantName !== 'personal') {
+  throw new Error(`ACARS_BUILD must be "public" or "personal", got "${variantName}"`);
+}
+const isPublic = variantName === 'public';
+const PUBLIC_STAND_INS: readonly (readonly [RegExp, RegExp, string])[] = [
+  [/(^|\/)eur-cal\.js$/, /packages[/]core[/]src[/]atc[/]squawk[/]/, 'eur-cal.ts'],
+  [/(^|\/)icao-apac\.js$/, /packages[/]core[/]src[/]atc[/]squawk[/]/, 'icao-apac.ts'],
+  [/(^|\/)nattrak\.js$/, /packages[/]data-sources[/]src[/]/, 'nattrak.ts'],
+];
+const publicVariant = (): Plugin => ({
+  name: 'acars-public-variant',
+  enforce: 'pre',
+  resolveId(source, importer) {
+    if (!isPublic || importer === undefined) return null;
+    for (const [name, from, stand] of PUBLIC_STAND_INS) {
+      if (name.test(source) && from.test(importer)) {
+        return fileURLToPath(new URL(`./variants/public/${stand}`, import.meta.url));
+      }
+    }
+    return null;
+  },
+});
+
 export default defineConfig({
   main: {
     resolve: { conditions },
     ssr: { resolve: { conditions, externalConditions: ['source'] } },
-    plugins: [copyrightBanner()],
+    define: { __ACARS_PUBLIC__: JSON.stringify(isPublic) },
+    plugins: [publicVariant(), copyrightBanner()],
     build: { externalizeDeps: false },
   },
   preload: {

@@ -52,6 +52,7 @@ import type { SettingsStore } from './settings.js';
 import { SimEffects } from './sim-effects.js';
 import { fetchOfp, normalizeSimbriefUsername } from './simbrief.js';
 import { specialGroupOn, specialGroups } from './special.js';
+import { SQUAWK_TABLES } from './variant.js';
 import { zip } from './zip.js';
 
 /**
@@ -597,6 +598,7 @@ export class AppController {
               enabled: true,
               standAside: settings.xatcStandAside,
               randomDirects: settings.xatcRandomDirects,
+              squawkTables: SQUAWK_TABLES,
             },
           }
         : {}),
