@@ -18,10 +18,11 @@ export function bridgeExePath(resourcesPath: string): string {
 
 /**
  * Command line of the bridge (bridge/msfs/README.md): its default source is `auto` (T59, whichever sim runs);
- * a fixed choice is `--source simconnect` or `--source xplane` (T18).
+ * a fixed choice is `--source simconnect` or `--source xplane` (T18). `--parent-pid` is the main process: the
+ * bridge stops when it is gone, even if it was killed and never ran `stop` (T80).
  */
-export function bridgeArgs(port: number, simulator: SimChoice): string[] {
-  const args = ['--port', String(port)];
+export function bridgeArgs(port: number, simulator: SimChoice, parentPid: number): string[] {
+  const args = ['--port', String(port), '--parent-pid', String(parentPid)];
   if (simulator === 'auto') return args;
   return [...args, '--source', simulator === 'xplane' ? 'xplane' : 'simconnect'];
 }
@@ -66,7 +67,7 @@ export function startBridge(
   if (!existsSync(exe)) return null;
   let child: ChildProcess;
   try {
-    child = spawn(exe, bridgeArgs(port, simulator), {
+    child = spawn(exe, bridgeArgs(port, simulator, process.pid), {
       cwd: join(resourcesPath, 'bridge'),
       windowsHide: true,
       env: bridgeEnv(process.env, token),

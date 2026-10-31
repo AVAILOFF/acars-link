@@ -12,6 +12,7 @@ const string Usage = """
       --source <name>     auto (default: MSFS or X-Plane 12, whichever runs) | simconnect | xplane | fake
       --xplane-port <n>   with --source auto or xplane: X-Plane's web server port (default 8086)
       --replay <file>     with --source fake: loop a JSONL file of TelemetrySnapshot v1
+      --parent-pid <n>    stop (exit code 0) when this process exits; set by the app (T80)
       --verbose           log HTTP/Kestrel details
       --help
 
@@ -25,6 +26,7 @@ var sourceName = AutoSimSource.SourceName;
 string? replay = null;
 var xplanePort = XPlaneSource.DefaultPort;
 var verbose = false;
+int? parentPid = null;
 
 for (var i = 0; i < args.Length; i++)
 {
@@ -44,6 +46,10 @@ for (var i = 0; i < args.Length; i++)
         case "--replay" when i + 1 < args.Length:
             replay = args[++i];
             break;
+        case "--parent-pid" when i + 1 < args.Length && int.TryParse(args[i + 1], out var pp) && pp > 0:
+            parentPid = pp;
+            i++;
+            break;
         case "--verbose":
             verbose = true;
             break;
@@ -55,6 +61,26 @@ for (var i = 0; i < args.Length; i++)
             return ExitCodes.BadArguments;
     }
 }
+
+// T80: the app's main process may be killed without stopping the bridge; then the bridge stops by itself.
+ParentProcess? parent = null;
+if (parentPid is { } pid)
+{
+    try
+    {
+        parent = ParentProcess.Open(pid);
+        if (parent is null)
+        {
+            Console.WriteLine(ParentProcess.GoneMessage(pid));
+            return ExitCodes.Ok;
+        }
+    }
+    catch (Exception e)
+    {
+        Console.Error.WriteLine($"parent process {pid} cannot be watched ({e.Message}): the bridge keeps running without it");
+    }
+}
+using var parentHandle = parent;
 
 var clock = TimeProvider.System;
 ISimSource source;
@@ -125,6 +151,13 @@ catch (Exception e) when (BridgeServer.IsAddressInUse(e))
 }
 Console.WriteLine($"{Protocol.BridgeName} {version}: source={source.Name}, listening on ws://127.0.0.1:{port}{BridgeServer.Path}" +
                   $" (protocol {Protocol.MinProtocolVersion}-{Protocol.ProtocolVersion}, commands: {string.Join(", ", commands.Commands)})");
+
+// Only once the server runs: a cancel during StartAsync would end in an exception, not a clean stop.
+parent?.Exited.ContinueWith(_ =>
+{
+    Console.WriteLine(ParentProcess.GoneMessage(parentPid!.Value));
+    cts.Cancel();
+}, TaskScheduler.Default);
 
 var run = source.RunAsync(hub, cts.Token);
 try

@@ -42,6 +42,7 @@ acars-msfs-bridge --source fake --replay flight.jsonl   # loop a JSONL of Teleme
 acars-msfs-bridge --port 47831 --verbose
 acars-msfs-bridge --source xplane          # X-Plane 12 Web API on localhost:8086
 acars-msfs-bridge --source xplane --xplane-port 8088   # X-Plane started with --web_server_port=8088
+acars-msfs-bridge --parent-pid 1234        # stop when process 1234 exits (the app passes its main process)
 ```
 
 Start order does not matter. Until the sim is up, the bridge retries with backoff
@@ -54,7 +55,7 @@ The app starts the bridge itself and reads how it ended (`apps/desktop/src/main/
 
 | Code | Meaning | The app |
 |---|---|---|
-| 0 | stopped normally (Ctrl+C) | starts it again if it did not ask for the stop |
+| 0 | stopped normally (Ctrl+C), or the `--parent-pid` process is gone | starts it again if it did not ask for the stop |
 | 2 | unknown or incomplete option, unknown source | as for any unexpected exit |
 | 3 | `--source simconnect` without SimConnect compiled in | as for any unexpected exit |
 | 4 | the port is already in use by another program | shows "port N is used by another program", does not start it again |
@@ -63,6 +64,14 @@ Any other exit (a crash) is started again after 1, 2, 4 … 30 s, at most 5 time
 from other failures by the exception type (`AddressInUseException` / `SocketException` 10048 inside the
 `IOException` Kestrel throws, checked 2026-10-31 on .NET 8 and .NET 10), not by its text; stderr gets
 `acars-msfs-bridge: port N is already in use by another program (exit code 4)`.
+
+`--parent-pid` (T80, decision of 2026-10-31: code 0): the app passes the PID of its main process. The bridge
+opens that process at start and holds the handle, so a later process with the same PID is not taken for it.
+The process is gone already — the bridge exits at once; it exits later — the bridge closes the sim session and
+the server and exits. Either way stdout gets `acars-msfs-bridge: parent process N has exited, stopping`. So a
+killed app (Task Manager, a crash) does not leave a bridge holding the port with a stale token (T65, T75).
+Without the option (by hand, `ACARS Link.bat`) the bridge runs until Ctrl+C. A process that cannot be opened
+(access denied) is reported on stderr, and the bridge runs without watching it.
 
 `auto` (T59, decisions of 2026-10-23): each round tries SimConnect, then X-Plane (`localhost:8086`, or
 `--xplane-port`); the first that answers keeps the bridge until it closes, and the other is not tried meanwhile.
