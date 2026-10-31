@@ -2,9 +2,10 @@
 // Copyright (c) 2026 AVAILOFF
 
 import { randomBytes, randomInt } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { arch, release } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { createRng } from '@acars/core';
 import { ROUTES_CACHE_PREFIX, ROUTES_RETENTION_MS } from '@acars/data-sources';
 import { fetchHttpClient, HoppieTransport, MockTransport } from '@acars/transport';
@@ -27,6 +28,7 @@ import { AppController } from './controller.js';
 import { FileDataCache } from './data-cache.js';
 import { FlagsStore } from './flags.js';
 import { registerIpc } from './ipc.js';
+import { legalFile } from './legal.js';
 import {
   BRIDGE_LOG,
   type Log,
@@ -44,6 +46,7 @@ import { BASE_SCENARIOS } from './scenario-sources.js';
 import { type Cipher, SecretStore } from './secrets.js';
 import { defaultSettings, SettingsStore } from './settings.js';
 import { holdSingleInstance } from './single-instance.js';
+import { PUBLIC_BUILD } from './variant.js';
 import { gsxVdgsDir } from './vdgs.js';
 
 /**
@@ -178,6 +181,7 @@ async function main(): Promise<void> {
     node: process.versions.node,
     os: `${process.platform} ${release()} ${arch()}`,
     locale: app.getLocale(),
+    build: PUBLIC_BUILD ? 'public' : 'personal',
   };
   log.info(
     `start: ${about.app}, Electron ${about.electron}, Node ${about.node}, ${about.os}, ${about.locale}`,
@@ -285,6 +289,23 @@ async function main(): Promise<void> {
     reportExport: {
       choosePath: (defaultName) => chooseSavePath(defaultName, 'JSON', 'json'),
       reveal: (file) => shell.showItemInFolder(file),
+    },
+    about: () => ({
+      version: app.getVersion(),
+      dev: !app.isPackaged,
+      electron: about.electron,
+      chrome: about.chrome,
+      variant: PUBLIC_BUILD ? 'public' : 'personal',
+    }),
+    openLegal: async (doc) => {
+      const file = legalFile(doc, {
+        packaged: app.isPackaged,
+        resourcesPath: process.resourcesPath,
+        desktopDir: join(here, '../..'),
+      });
+      if (!existsSync(file)) throw new Error(`file not found: ${basename(file)}`);
+      const error = await shell.openPath(file);
+      if (error !== '') throw new Error(error);
     },
   });
   const ctl = controller;

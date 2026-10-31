@@ -39,6 +39,8 @@ const api: AcarsApi = {
   clearMemory: () => ipcRenderer.invoke(IPC.clearMemory),
   exportDiagnostics: (withRecording) => ipcRenderer.invoke(IPC.exportDiagnostics, withRecording),
   exportReport: () => ipcRenderer.invoke(IPC.exportReport),
+  getAbout: () => ipcRenderer.invoke(IPC.getAbout),
+  openLegal: (doc) => ipcRenderer.invoke(IPC.openLegal, doc),
   setScenarioChance: (id, percent) => ipcRenderer.invoke(IPC.setScenarioChance, id, percent),
   forceScenario: (id) => ipcRenderer.invoke(IPC.forceScenario, id),
 };

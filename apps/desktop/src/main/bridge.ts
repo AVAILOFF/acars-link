@@ -105,6 +105,7 @@ const INITIAL_VIEW: BridgeView = {
   protocol: null,
   commands: [],
   source: null,
+  version: null,
 };
 
 /** Bridge source names (`hello.source`, `status.source`) → simulator; `auto`, `fake` and others → null. */
@@ -293,6 +294,7 @@ export class BridgeClient {
       this.attempt = 0;
       this.set({
         ...this.v,
+        version: this.helloVersion,
         protocol: protocol === 2 ? 2 : 1,
         commands: offered.filter((c): c is string => typeof c === 'string'),
       });

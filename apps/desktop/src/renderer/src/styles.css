@@ -2129,3 +2129,23 @@ span.subject {
   color: var(--on-sheet-2);
   font-size: var(--fs-sub);
 }
+
+/* "About" on the Help tab (T74). */
+.about-value {
+  color: var(--on-sheet-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.about-block {
+  margin-top: var(--s-4);
+}
+
+.row-credit {
+  display: block;
+  margin-top: 2px;
+  color: var(--on-sheet-1);
+}
+
+.sheet-note.credit a {
+  color: var(--link);
+}

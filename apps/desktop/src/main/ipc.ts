@@ -82,4 +82,6 @@ export function registerIpc(
   on(IPC.clearMemory, () => guard(() => app.clearMemory()));
   on(IPC.exportDiagnostics, (withRecording) => guard(() => app.exportDiagnostics(withRecording)));
   on(IPC.exportReport, () => guard(() => app.exportReport()));
+  on(IPC.getAbout, () => app.getAbout());
+  on(IPC.openLegal, (doc) => guard(() => app.openLegal(doc)));
 }
