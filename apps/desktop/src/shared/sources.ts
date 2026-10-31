@@ -187,8 +187,12 @@ export const SOURCES: readonly DataSource[] = [
     kind: 'service',
     build: 'both',
     what: t('Controllers online on VATSIM', 'Диспетчеры на VATSIM'),
-    license: t('VATSIM data rules', 'Правила использования данных VATSIM'),
+    license: t(
+      'Free non-commercial use (VATSIM Commercial Use Policy v2.0)',
+      'Бесплатное некоммерческое использование (VATSIM Commercial Use Policy v2.0)',
+    ),
     credit: null,
+    url: 'https://vatsim.net/docs/policy/commercial-use',
   },
   {
     id: 'nattrak',
@@ -238,8 +242,12 @@ export const SOURCES: readonly DataSource[] = [
     kind: 'service',
     build: 'both',
     what: t('Natural events near the route', 'Природные события у маршрута'),
-    license: t('NASA open data', 'Открытые данные NASA'),
-    credit: null,
+    license: t(
+      'NASA open data (CC0); for general information only',
+      'Открытые данные NASA (CC0); только для общей информации',
+    ),
+    credit: 'NASA EONET',
+    url: 'https://eonet.gsfc.nasa.gov/',
   },
   {
     id: 'swpc',

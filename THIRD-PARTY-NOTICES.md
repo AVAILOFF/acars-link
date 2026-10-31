@@ -44,12 +44,12 @@ of the world.
 |---|---|---|
 | Hoppie's ACARS (hoppie.nl) | no written terms for third-party clients found on the site; owner contact hoppie@hoppie.nl | **open, ask the owner before public release** |
 | VATSpy Data Project (FIR boundaries, VATSIM centres) | CC BY-SA 4.0, attribution to the VATSpy Data Project | attribution required |
-| VATSIM data | VATSIM terms | see the VATSIM data rules |
+| VATSIM data (data feed v3: controllers and ATIS online; names and CIDs are not stored or shown) | VATSIM Commercial Use Policy v2.0 (VATSIM-POL-COM-002, issued 20 Jul 2026, PDF linked from `vatsim.net/docs/policy/commercial-use`, checked 2026-11-01): network data is for non-commercial simulation use; any product that charges a fee, earns from ads or sponsorship, or resells the data needs a Data Use License (licensing@vatsim.net, §3.2–3.3); free non-commercial use needs none (§3.5). No attribution required. Name, CID and rating are personal data (Data Protection & Handling Policy v1.4, 20 Jul 2025) | ok while ACARS Link is free and without ads (EULA §1); a paid or ad-supported version needs the licence first |
 | natTrak (NAT tracks) — **personal build only** | natTrak (vatsimnetwork/nattrak) has no API terms in its README, and no licence file was found (checked 2026-10-22, again 2026-10-31) | **not verified**, ask the VATSIM tech team; not in the public build (tracks come from the SimBrief OFP) |
 | OurAirports | public domain | ok |
 | OpenStreetMap via Overpass API | ODbL, (c) OpenStreetMap contributors | attribution required |
 | aviationweather.gov (METAR, TAF, SIGMET) | US government data | rate limit 100 requests/min respected |
-| NASA EONET | NASA open data | verify |
+| NASA EONET | NASA Earth science data: CC0 unless marked otherwise, no restrictions on use, citation strongly urged (Earthdata "Data Use Guidance"; the page answers 403 to automated access, wording taken from its indexed text 2026-11-01). EONET disclaimer (`eonet.gsfc.nasa.gov/what-is-eonet#disclaimer`, checked 2026-11-01): for visualization and general information only, extents not official, often approximations | ok: credit "NASA EONET" in About; messages give events as general information, not as official extents |
 | NOAA SWPC | US government data, public domain (`spaceweather.gov` footer → `weather.gov/disclaimer`, checked 2026-10-31); do not present it as our own, do not present modified data as official, do not imply NOAA endorsement | ok |
 | USGS earthquake feed | USGS-authored data is U.S. public domain; credit requested: "U.S. Geological Survey" (usgs.gov copyright page, checked 2026-10-22) | ok, credit given here |
 | TheSpaceDevs Launch Library 2 | "free to use the data in any way" (`github.com/TheSpaceDevs/Tutorials`, `faqs/faq_TSD.md`, checked 2026-10-31); attribution optional, they ask to cache and not to call from clients; 15 requests/hour without a key | ok, source named here |
@@ -59,7 +59,10 @@ of the world.
 | SimBrief | user's own account | terms of SimBrief apply |
 
 "Verified" lines come from the checks recorded in `docs/06-integrations.md`. Lines marked
-"not verified" must be resolved before the installer is given to other people.
+"not verified" must be resolved before the installer is given to other people — except the two
+the owner decided on (2026-11-01, docs/08): the public installer may be given to other people
+while the letters to Hoppie and to Microsoft/Asobo (SimConnect client) are unanswered. A "no" in
+either answer removes that part from the public build.
 
 ## Where the app names its sources (T74)
 
