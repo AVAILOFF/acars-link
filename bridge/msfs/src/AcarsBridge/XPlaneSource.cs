@@ -244,7 +244,7 @@ public sealed class XPlaneSource(TimeProvider clock, int port = XPlaneSource.Def
         {
             var o = new JsonObject { ["id"] = id };
             if (spec.Index is not null) o["index"] = new JsonArray([.. spec.Index.Select(i => (JsonNode)i)]);
-            list.Add(o);
+            list.Add((JsonNode)o);
         }
         return new JsonObject
         {

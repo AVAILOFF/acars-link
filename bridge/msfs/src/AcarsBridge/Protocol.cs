@@ -94,13 +94,6 @@ public static class Protocol
     public const int MinProtocolVersion = 1;
     public const string BridgeName = "acars-msfs-bridge";
 
-    public static readonly JsonSerializerOptions Json = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
-    };
-
     /// <summary>
     /// Version for a client from its <c>protocol</c> query value: the highest supported version not
     /// above the requested one; v1 when absent or not a number.
@@ -113,28 +106,11 @@ public static class Protocol
     public static string Hello(string version, string source, int protocol = MinProtocolVersion, IReadOnlyList<string>? commands = null) =>
         protocol < 2
             ? JsonSerializer.Serialize(
-                new
-                {
-                    type = "hello",
-                    protocol = 1,
-                    telemetryVersion = TelemetrySnapshot.Version,
-                    bridge = BridgeName,
-                    version,
-                    source,
-                },
-                Json)
+                new HelloV1Frame("hello", 1, TelemetrySnapshot.Version, BridgeName, version, source),
+                BridgeJson.Default.HelloV1Frame)
             : JsonSerializer.Serialize(
-                new
-                {
-                    type = "hello",
-                    protocol,
-                    telemetryVersion = TelemetrySnapshot.Version,
-                    bridge = BridgeName,
-                    version,
-                    source,
-                    commands = commands ?? [],
-                },
-                Json);
+                new HelloFrame("hello", protocol, TelemetrySnapshot.Version, BridgeName, version, source, commands ?? []),
+                BridgeJson.Default.HelloFrame);
 
     /// <summary><c>id</c> is always present (null when the frame had no readable id); <c>detail</c> only when set.</summary>
     public static string Ack(string? id, CommandResult result)
@@ -147,19 +123,35 @@ public static class Protocol
 
     public static string Status(BridgeStatus s) =>
         JsonSerializer.Serialize(
-            new
-            {
-                type = "status",
-                sim = s.Sim,
-                running = s.Running,
-                paused = s.Paused,
-                simRate = s.SimRate,
-                detail = s.Detail,
-                retryInMs = s.RetryInMs,
-                source = s.Source,
-            },
-            Json);
+            new StatusFrame("status", s.Sim, s.Running, s.Paused, s.SimRate, s.Detail, s.RetryInMs, s.Source),
+            BridgeJson.Default.StatusFrame);
 
     public static string Telemetry(TelemetrySnapshot snapshot) =>
-        JsonSerializer.Serialize(new { type = "telemetry", data = snapshot }, Json);
+        JsonSerializer.Serialize(new TelemetryFrame("telemetry", snapshot), BridgeJson.Default.TelemetryFrame);
 }
+
+// Frames as types (not anonymous objects) for the JSON source generator; property order = wire order.
+internal sealed record HelloV1Frame(string Type, int Protocol, int TelemetryVersion, string Bridge, string Version, string Source);
+internal sealed record HelloFrame(
+    string Type, int Protocol, int TelemetryVersion, string Bridge, string Version, string Source, IReadOnlyList<string> Commands);
+internal sealed record StatusFrame(
+    string Type, SimLink Sim, bool Running, bool Paused, double SimRate, string? Detail, int? RetryInMs, string? Source);
+internal sealed record TelemetryFrame(string Type, TelemetrySnapshot Data);
+
+/// <summary><see cref="SimLink"/> on the wire: <c>disconnected</c> / <c>connecting</c> / <c>connected</c>.</summary>
+internal sealed class SimLinkJsonConverter() : JsonStringEnumConverter<SimLink>(JsonNamingPolicy.CamelCase);
+
+/// <summary>
+/// Source-generated serializers of every frame (T82): the published bridge is trimmed, and reflection-based
+/// <see cref="JsonSerializer"/> calls would be trimming errors.
+/// </summary>
+[JsonSourceGenerationOptions(
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    Converters = [typeof(SimLinkJsonConverter)])]
+[JsonSerializable(typeof(HelloV1Frame))]
+[JsonSerializable(typeof(HelloFrame))]
+[JsonSerializable(typeof(StatusFrame))]
+[JsonSerializable(typeof(TelemetryFrame))]
+[JsonSerializable(typeof(TelemetrySnapshot))]
+internal sealed partial class BridgeJson : JsonSerializerContext;

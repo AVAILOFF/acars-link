@@ -10,6 +10,13 @@
     <Company>AVAILOFF</Company>
     <Copyright>Copyright (c) 2026 AVAILOFF. All rights reserved.</Copyright>
     <AssemblyTitle>ACARS Link simulator bridge</AssemblyTitle>
+    <!--
+      T82: the self-contained publish is trimmed (full ASP.NET Core shared framework → only what Kestrel + WebSockets
+      use). Kestrel and WebSockets are trim-compatible ("ASP.NET Core support for Native AOT", learn.microsoft.com,
+      aspnetcore-10.0, checked 2026-11-01). Trim warnings are errors (TreatWarningsAsErrors, Directory.Build.props);
+      JSON goes through the source-generated BridgeJson (Protocol.cs).
+    -->
+    <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
 
   <ItemGroup>

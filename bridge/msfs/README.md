@@ -32,7 +32,13 @@ Redistributable (x64), as MSFS and the .NET runtime do. The ABI between the two 
 publish folder and fails if they are there afterwards. The bridge's `acars-msfs-bridge.pdb` (it holds the build paths of
 this machine) is moved from the publish folder to `bridge/msfs/symbols/` (T82); `pnpm desktop:dist` keeps it next to the
 installer in `apps/desktop/release/bridge-symbols-<version>/` — put it next to the exe to get line numbers in a stack
-trace from `bridge.log`. `tools/release/verify-bridge.mjs` fails on any `.pdb` in a bridge folder. `pnpm bridge:test` runs the SimConnect layer against a fake
+trace from `bridge.log`. `tools/release/verify-bridge.mjs` fails on any `.pdb` in a bridge folder.
+
+The publish is trimmed (`PublishTrimmed`, T82): of the ASP.NET Core shared framework only what Kestrel and WebSockets use
+stays — about 26 MB and 122 files instead of 106 MB and 335 (2026-11-01, .NET 10). Trim warnings are build errors, so
+JSON goes only through the source-generated `BridgeJson` (`Protocol.cs`): a new frame is a record listed there, not an
+anonymous object. `pnpm bridge:test` runs the untrimmed build; `pnpm bridge:smoke` (`tools/release/smoke-bridge.mjs`, also
+in `pnpm desktop:dist`) starts the published exe: fake source, replay, port in use, `--parent-pid`. `pnpm bridge:test` runs the SimConnect layer against a fake
 (`SimConnectTests.cs`); the tests of the real DLL pass without doing anything where it was not built.
 
 ## Run

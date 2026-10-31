@@ -37,6 +37,7 @@ const { version } = JSON.parse(readFileSync(join(root, 'apps', 'desktop', 'packa
 const env = { ACARS_BUILD: variant };
 run('pnpm', ['bridge:publish']);
 run('node', ['tools/release/verify-bridge.mjs', join('bridge', 'msfs', 'publish')]);
+run('pnpm', ['bridge:smoke']);
 run('pnpm', ['run', 'licenses']);
 run('pnpm', ['-F', '@acars/desktop', 'exec', 'electron-vite', 'build'], env);
 run('node', [
