@@ -51,6 +51,8 @@ pnpm desktop:dist   # установщик: apps/desktop/release/ACARS-Link-Setu
 
 Проверка — GitHub Actions, [.github/workflows/check.yml](.github/workflows/check.yml): на каждый push в любую ветку и на pull request, `windows-latest`, `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm bridge:test`. MSFS SDK в CI нет — мост собирается без SimConnect. Результат — вкладка Actions репозитория или `gh run list`; вручную — `gh workflow run check --ref <ветка>`.
 
+Уязвимости зависимостей (T81) — [.github/workflows/audit.yml](.github/workflows/audit.yml): по понедельникам и вручную (`gh workflow run audit`), не на push — новая запись в базе уязвимостей не роняет проверку кода. `pnpm audit --prod --audit-level=moderate` (дерево бандла) и `dotnet list bridge/msfs package --vulnerable --include-transitive`.
+
 ## Выпуски
 
 Версии — SemVer, до публичного выпуска 0.x (T77). Выпуск — аннотированный тег `vX.Y.Z` на коммите `master`; точка отсчёта — `v0.1.0`. Версия записана в двух местах — `apps/desktop/package.json` и `<Version>` в `bridge/msfs/src/AcarsBridge/AcarsBridge.csproj`, тест `tools/release/test` проверяет, что они совпадают. В приложении она видна в «О программе» и пишется в заголовок каждой записи полёта (`appVersion`).

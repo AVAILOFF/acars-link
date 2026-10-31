@@ -1,0 +1,44 @@
+# T81: known vulnerabilities in the dependencies — npm (the production tree only: what goes into the
+# app bundle) and NuGet of the bridge, transitive included. Weekly and by hand, not on push: a new
+# record in the advisory database must not break a push that changes nothing (decision 2026-11-01).
+# By hand: `gh workflow run audit`.
+name: audit
+
+on:
+  schedule:
+    # Mondays 06:00 UTC.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # Reads pnpm-lock.yaml; no install needed. Fails on moderate and above.
+      - run: pnpm audit --prod --audit-level=moderate
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      # `dotnet list package --vulnerable` exits 0 even when it finds something, so the step reads its
+      # output: "has the following vulnerable packages" is printed per project with findings.
+      - name: dotnet vulnerable packages
+        shell: pwsh
+        run: |
+          $out = dotnet list bridge/msfs package --vulnerable --include-transitive 2>&1 | Out-String
+          Write-Output $out
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($out -match 'has the following vulnerable packages') { exit 1 }
