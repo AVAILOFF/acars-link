@@ -23,7 +23,7 @@
     "licenses": "node tools/licenses/collect.mjs",
     "icon": "pnpm -F @acars/desktop exec electron ../../tools/icon/render.mjs",
     "bridge:build": "dotnet build bridge/msfs",
-    "bridge:publish": "dotnet publish bridge/msfs/src/AcarsBridge -c Release -r win-x64 --self-contained -o bridge/msfs/publish",
+    "bridge:publish": "node -e \"require('node:fs').rmSync('bridge/msfs/publish',{recursive:true,force:true})\" && dotnet publish bridge/msfs/src/AcarsBridge -c Release -r win-x64 --self-contained -o bridge/msfs/publish",
     "bridge:test": "dotnet test bridge/msfs",
     "replay": "pnpm -F @acars/core -F @acars/scenarios -F @acars/replay build && node tools/replay/dist/cli.js",
     "hoppie:telex": "pnpm -F @acars/core -F @acars/transport build && pnpm -F @acars/transport telex"

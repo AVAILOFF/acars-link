@@ -55,8 +55,8 @@ export const SOURCES: readonly DataSource[] = [
   },
   {
     id: 'dotnet',
-    name: '.NET 8, ASP.NET Core',
-    notice: '.NET 8 runtime and ASP.NET Core',
+    name: '.NET 10, ASP.NET Core',
+    notice: '.NET 10 runtime and ASP.NET Core',
     kind: 'bundled',
     build: 'both',
     what: t('Runtime of the simulator bridge', 'Среда выполнения моста к симулятору'),
