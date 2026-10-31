@@ -202,18 +202,27 @@ describe('REQ ATIS [ICAO] (T44)', () => {
 
 describe('RDY (T44)', () => {
   const sched = kg.times.schedOutMs;
+  /**
+   * The slot, RDY and its answer all happen at the gate: the flight up to the cruise is enough
+   * (the climb is kept, so an answer that came late would still be seen).
+   */
+  const toCruise = (f: SyntheticFlight): SyntheticFlight => ({
+    ...f,
+    snapshots: f.snapshots.slice(0, stageIndex(f, 'CRUISE')),
+  });
+  const plain = toCruise(flightOf());
   // The slot of a seed, from a plain run.
   const slotOf = (seed: string) =>
     Number(
       /DELAY (\d+) MIN/.exec(
-        textsOf(run(only('slot_ctot'), flightOf(), [], { seed }), 'slot_ctot')[0] ?? '',
+        textsOf(run(only('slot_ctot'), plain, [], { seed }), 'slot_ctot')[0] ?? '',
       )?.[1],
     );
 
   /** RDY near the end of the window; the flight leaves just after it, as a ready crew would. */
   const rdy = (seed: string) => {
     const slot = slotOf(seed);
-    const flight = flightOf(kg, sched - 35 * MIN + slot * MIN);
+    const flight = toCruise(flightOf(kg, sched - 35 * MIN + slot * MIN));
     const at = flight.snapshots.findIndex((s) => s.t >= sched + (slot - 4) * MIN);
     return run(only('slot_ctot', 'cmd_rdy', 'cmd_rdy_none'), flight, [{ at, text: 'RDY' }], {
       seed,
@@ -244,7 +253,7 @@ describe('RDY (T44)', () => {
       }
     }
     expect([...seen].sort()).toEqual(['better', 'same']);
-  }, 60_000);
+  });
 
   it('same seed → same answer', () => {
     expect(all(rdy('rdy3'))).toBe(all(rdy('rdy3')));
@@ -314,7 +323,7 @@ describe('REQ GATE CHANGE (T44)', () => {
       }
     }
     expect([...seen].sort()).toEqual(['approved', 'refused']);
-  }, 60_000);
+  });
 
   it('a gate that is not known is not asked for: the alternative is offered', () => {
     for (let n = 1; n <= 8; n++) {
@@ -322,7 +331,7 @@ describe('REQ GATE CHANGE (T44)', () => {
       const gc = textsOf(r, 'cmd_gate_change')[0] ?? '';
       if (gc.includes('APPROVED')) expect(gc).not.toContain('Z99');
     }
-  }, 60_000);
+  });
 
   it('no stands known: no gate change, nothing invented', () => {
     const r = run(set, f, [{ at: cruise, text: 'REQ GATE CHANGE' }], { stands: false });

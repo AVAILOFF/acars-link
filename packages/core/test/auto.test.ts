@@ -193,13 +193,16 @@ describe('XATC station sends clearances on its own (T26)', () => {
     ],
   };
 
+  // One synthetic flight per OFP for the whole file.
+  const flights = new Map<Ofp, ReturnType<typeof generateSyntheticFlight>>();
   function fly(
     o: Ofp,
     seed: string,
     say: (i: number, s: { lon: number }) => PilotMessage[],
     randomDirects?: boolean,
   ) {
-    const flight = generateSyntheticFlight({ ofp: o });
+    const flight = flights.get(o) ?? generateSyntheticFlight({ ofp: o });
+    flights.set(o, flight);
     const xatc = { enabled: true, ...(randomDirects === undefined ? {} : { randomDirects }) };
     const core = AcarsCore.create({ ofp: o, scenarios: [], seed, xatc });
     core.startFlight();
@@ -262,11 +265,21 @@ describe('XATC station sends clearances on its own (T26)', () => {
   };
   const directs = (o: Ofp, seed: string, randomDirects?: boolean) =>
     autos(fly(o, seed, () => [], randomDirects)).filter((t) => t?.startsWith('PROCEED DIRECT TO'));
+  const SEEDS = 10;
+  // The Direct To of `bent` by seed, flown once for the tests below.
+  const bentDirects = new Map<string, ReturnType<typeof directs>>();
+  const directsOfBent = (seed: string) => {
+    const d = bentDirects.get(seed) ?? directs(bent, seed);
+    bentDirects.set(seed, d);
+    return d;
+  };
 
   it('random Direct To: at most one per FIR, to the exit fix, never the same fix twice', () => {
     const got: Record<string, number> = {};
-    for (let k = 0; k < 20; k++) {
-      const d = directs(bent, `d${k}`);
+    // A FIR gives a Direct To to about half of the seeds: 5 of these 10 get one. Each seed is a
+    // whole XATC flight, most of the file's time.
+    for (let k = 0; k < SEEDS; k++) {
+      const d = directsOfBent(`d${k}`);
       expect(d.length).toBeLessThanOrEqual(2);
       expect(new Set(d).size).toBe(d.length);
       for (const t of d) got[t ?? ''] = (got[t ?? ''] ?? 0) + 1;
@@ -277,8 +290,8 @@ describe('XATC station sends clearances on its own (T26)', () => {
   });
 
   it('random Direct To can be turned off; step climb and descent stay', () => {
-    const seed = Array.from({ length: 20 }, (_, k) => `d${k}`).find(
-      (x) => directs(bent, x).length > 0,
+    const seed = Array.from({ length: SEEDS }, (_, k) => `d${k}`).find(
+      (x) => directsOfBent(x).length > 0,
     );
     expect(seed).toBeDefined();
     const off = autos(fly(bent, seed ?? '', () => [], false));

@@ -989,6 +989,8 @@ describe('live data (T13)', () => {
     });
   });
 
+  // Two whole flights through the controller and a replay: up to 10 s with the whole suite running
+  // (T76); one flight cannot show both "off" and "on".
   it('data link (T31): off by default; on, messages are delayed, the stations are recorded and replay the same', async () => {
     const plain = await setup({ http: await dataHttp() });
     await plain.app.setSimbriefUsername('pilot42');
