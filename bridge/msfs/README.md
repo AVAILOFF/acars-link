@@ -29,7 +29,10 @@ Redistributable (x64), as MSFS and the .NET runtime do. The ABI between the two 
 `native/acars_simconnect.h` (checked at load); change the header and `SimConnectNative.cs` together.
 
 `dotnet publish` (`pnpm bridge:publish`) removes `SimConnect.dll` and `Microsoft.FlightSimulator.SimConnect.dll` from the
-publish folder and fails if they are there afterwards. `pnpm bridge:test` runs the SimConnect layer against a fake
+publish folder and fails if they are there afterwards. The bridge's `acars-msfs-bridge.pdb` (it holds the build paths of
+this machine) is moved from the publish folder to `bridge/msfs/symbols/` (T82); `pnpm desktop:dist` keeps it next to the
+installer in `apps/desktop/release/bridge-symbols-<version>/` — put it next to the exe to get line numbers in a stack
+trace from `bridge.log`. `tools/release/verify-bridge.mjs` fails on any `.pdb` in a bridge folder. `pnpm bridge:test` runs the SimConnect layer against a fake
 (`SimConnectTests.cs`); the tests of the real DLL pass without doing anything where it was not built.
 
 ## Run

@@ -59,6 +59,22 @@
            Text="$(PublishDir) holds a Microsoft SimConnect DLL: the bridge ships only acars_simconnect.dll (T73)." />
   </Target>
 
+  <!--
+    T82: no .pdb in what ships (it holds the build paths of this machine). Publish copies it as usual (with trimming,
+    the one that matches the trimmed dll), then it moves to bridge/msfs/symbols; tools/release/build.mjs keeps it next
+    to the installer for reading stack traces from bridge.log.
+  -->
+  <PropertyGroup>
+    <BridgeSymbolsDir>$(MSBuildProjectDirectory)\..\..\symbols\</BridgeSymbolsDir>
+  </PropertyGroup>
+  <Target Name="MoveSymbolsOutOfPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <BridgeSymbols Include="$(PublishDir)*.pdb" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BridgeSymbols)" DestinationFolder="$(BridgeSymbolsDir)" />
+    <Delete Files="@(BridgeSymbols)" />
+  </Target>
+
   <Target Name="ReportSimConnect" BeforeTargets="Build">
     <Message Importance="high" Text="acars-msfs-bridge: SimConnect support ON (acars_simconnect.dll from $(MsfsSdk))" Condition="'$(HasSimConnect)' == 'true'" />
     <Message Importance="high" Text="acars-msfs-bridge: SimConnect support OFF (MSFS SDK not found; set -p:MsfsSdk=...)" Condition="'$(HasSimConnect)' != 'true'" />

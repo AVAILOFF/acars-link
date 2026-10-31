@@ -1451,6 +1451,8 @@ Hoppie в самолёте (сверено 2026-10-25): официальный �
 1. `.pdb` моста хранить рядом с установщиком (предложение) или не хранить.
 2. Обрезка рантайма: пробовать (предложение: после T79, отдельным коммитом, откат при любых сомнениях) или оставить размер как есть.
 
+**Решено (2026-11-01):** 1 — хранить: publish кладёт `.pdb` как обычно, цель `MoveSymbolsOutOfPublish` (`AcarsBridge.csproj`) переносит его в `bridge/msfs/symbols/`, `tools/release/build.mjs` копирует в `apps/desktop/release/bridge-symbols-<версия>/` (свойство `CopyOutputSymbolsToPublishDirectory` не взято: при обрезке нужен `.pdb` обрезанной сборки, его кладёт publish). CSP: плагин `productionCsp` в `electron.vite.config.ts` (только `build`; нет строки в `index.html` — ошибка сборки), проверка — `tools/release/verify-renderer.mjs`. 2 — пробовать, отдельным коммитом.
+
 **Не входит:** размер Electron и `app.asar`.
 
 **Зависимость:** T79 (обрезка — на .NET 10).

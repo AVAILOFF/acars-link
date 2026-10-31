@@ -3,9 +3,11 @@
 
 // Bridge folder check (T73): the installer must not carry Microsoft's SimConnect binaries (no
 // written permission to redistribute them); the bridge brings its own client in
-// acars_simconnect.dll, which has SimConnect linked in statically from the MSFS SDK.
+// acars_simconnect.dll, which has SimConnect linked in statically from the MSFS SDK. No .pdb
+// either (T82): it holds the build paths of the developer's machine; the publish moves it to
+// bridge/msfs/symbols, and tools/release/build.mjs keeps it next to the installer.
 //   node tools/release/verify-bridge.mjs <bridge folder> …
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -17,6 +19,9 @@ export function problems(dir) {
   const out = [];
   for (const name of FORBIDDEN) {
     if (existsSync(join(dir, name))) out.push(`${dir}: ${name} must not be shipped`);
+  }
+  for (const name of readdirSync(dir)) {
+    if (name.toLowerCase().endsWith('.pdb')) out.push(`${dir}: ${name} must not be shipped`);
   }
   for (const name of REQUIRED) {
     if (!existsSync(join(dir, name))) out.push(`${dir}: ${name} is missing`);
