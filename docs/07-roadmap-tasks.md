@@ -1376,6 +1376,8 @@ Hoppie в самолёте (сверено 2026-10-25): официальный �
 
 **Готово, когда:** `git log origin/master..master` пуст; тег `v0.1.0` в `git ls-remote --tags origin`; прогон CI на `master` зелёный.
 
+**Сделано (2026-10-31):** решение 1 — отправлять и ветки задач. Ветка аудита `task/audit-2026-10-31-release` (карточки T78–T84) влита в `master` перемоткой; `git push origin master v0.1.0` и ветки `task/T72-public-build`, `task/T73-simconnect-static`, `task/T74-about`, `task/T75-bridge-supervisor`, `task/T77-releases`, `task/audit-2026-10-31-release`. `git log origin/master..master` пуст, тег `v0.1.0` на `origin`; CI на `master` (`045a83d`, прогон 41239807853) — зелёный, 7 мин.
+
 **Проверка человеком:** нет.
 
 #### T79 — Мост на .NET 10 LTS (P0, до 2026-11-10)
