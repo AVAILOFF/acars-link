@@ -117,8 +117,10 @@ describe('BridgeClient', () => {
     expect(c.view.link).toBe('connecting');
     const s = sockets.last();
     s.frame({ type: 'telemetry', data: SAMPLE }); // before hello: ignored
+    expect(c.view.version).toBeNull();
     s.hello();
     expect(c.view.link).toBe('open');
+    expect(c.view.version).toBe('t'); // T74: shown in "About"
     s.frame({ type: 'status', sim: 'connected', running: true, paused: true, simRate: 4 });
     expect(c.view).toMatchObject({ sim: 'connected', running: true, paused: true, simRate: 4 });
     s.frame({ type: 'telemetry', data: SAMPLE });

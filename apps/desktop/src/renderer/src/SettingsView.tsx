@@ -5,6 +5,7 @@ import { DEFAULT_RESCUE_FLIPPED, DEFAULT_RESCUE_TITLES, RESCUE_TITLE_GROUPS } fr
 import { useEffect, useState } from 'react';
 import type { Language, Settings, SimChoice, TransportChoice } from '../../shared/api.js';
 import { activeSim } from '../../shared/api.js';
+import { SourceCredit } from './AboutSection.js';
 import { AerodataboxKeyForm, HoppieCodeForm, UsernameForm } from './SettingsAccounts.js';
 import {
   Group,
@@ -148,6 +149,7 @@ function BasicSettings({ s }: { s: Settings }) {
           hint={t('set.turnaroundHint')}
           next
         />
+        <SourceCredit id="openflights" label="credit.openflights" />
       </Group>
 
       <Group id="data" title={t('set.group.data')}>
@@ -158,6 +160,7 @@ function BasicSettings({ s }: { s: Settings }) {
           hint={t('set.liveDataHint')}
           next
         />
+        <SourceCredit id="osm" label="credit.osm" />
         <p className="sheet-note">
           <strong>{t('set.special')}</strong> {t('set.specialHint')}
         </p>
@@ -186,6 +189,7 @@ function BasicSettings({ s }: { s: Settings }) {
           disabled={!s.xatc}
           offHint={t('set.offXatc')}
         />
+        <SourceCredit id="vatspy" label="credit.vatspy" />
       </Group>
     </>
   );

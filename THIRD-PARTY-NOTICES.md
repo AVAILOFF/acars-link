@@ -60,3 +60,14 @@ of the world.
 
 "Verified" lines come from the checks recorded in `docs/06-integrations.md`. Lines marked
 "not verified" must be resolved before the installer is given to other people.
+
+## Where the app names its sources (T74)
+
+- Help → "About ACARS Link": versions (app, bridge, Electron, build) and the list of all components
+  and data of the installed build with licence and credit (`apps/desktop/src/shared/sources.ts`;
+  the personal-only rows above are left out of the public build's list). A test keeps the list in
+  step with the two tables above. Buttons there open the licence agreement (`EULA.txt`), this file
+  and `THIRD-PARTY-LICENSES.txt` from the installation folder.
+- Settings, next to the data they use, worded as the source asks: "© OpenStreetMap contributors"
+  (live data), "VATSpy Data Project, CC BY-SA 4.0" (XATC station), "OpenFlights.org, ODbL" (the
+  next leg).

@@ -3,6 +3,7 @@
 
 import type { FlightPhase, FlightReport, RescueTitles, ScenarioCategory } from '@acars/core';
 import type { TransportStatus } from '@acars/transport';
+import type { BuildVariant } from './sources.js';
 
 /**
  * Main ↔ renderer contract. The renderer gets this API from the preload script as
@@ -228,6 +229,8 @@ export interface BridgeView {
    * while the sim is connected; null otherwise.
    */
   readonly source: Simulator | null;
+  /** `hello.version` of the connected bridge (T74, "About"); null before `hello`. */
+  readonly version: string | null;
 }
 
 export interface TelemetryView {
@@ -515,6 +518,22 @@ export interface SimbriefCheck {
   readonly destination: string;
 }
 
+/** Versions and the build for the "About" page (T74). */
+export interface AboutInfo {
+  /** Version of the application (`package.json`). */
+  readonly version: string;
+  /** Run from the sources (`pnpm desktop:dev`), not an installed build. */
+  readonly dev: boolean;
+  readonly electron: string;
+  readonly chrome: string;
+  /** The personal build holds data that is not licensed for redistribution (T72). */
+  readonly variant: BuildVariant;
+}
+
+/** The licence files next to the application (T74): the EULA, third-party notices, component licences. */
+export const LEGAL_DOCS = ['eula', 'notices', 'licenses'] as const;
+export type LegalDoc = (typeof LEGAL_DOCS)[number];
+
 export type Result<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly error: AppError };
@@ -578,6 +597,10 @@ export interface AcarsApi {
   exportDiagnostics(withRecording: boolean): Promise<Result<string | null>>;
   /** T69: saves the flight report (`AppState.report`) as JSON where the user picks; null = cancelled. */
   exportReport(): Promise<Result<string | null>>;
+  /** T74: versions of the app, Electron and the build; the bridge's version is `AppState.bridge.version`. */
+  getAbout(): Promise<AboutInfo>;
+  /** T74: opens a licence file in the program the OS has for it. */
+  openLegal(doc: LegalDoc): Promise<Result<null>>;
 }
 
 /** IPC channel names (invoke) and the push channel. */
@@ -611,4 +634,6 @@ export const IPC = {
   clearMemory: 'acars:clear-memory',
   exportDiagnostics: 'acars:export-diagnostics',
   exportReport: 'acars:export-report',
+  getAbout: 'acars:get-about',
+  openLegal: 'acars:open-legal',
 } as const;

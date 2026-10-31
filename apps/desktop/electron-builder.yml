@@ -23,6 +23,9 @@ extraResources:
     to: THIRD-PARTY-LICENSES.txt
   - from: ../../LICENSE
     to: LICENSE.txt
+  # The EULA the installer shows, also for "About" (T74).
+  - from: build/license.txt
+    to: EULA.txt
 # Electron fuses (T62), flipped in the packed exe: no Node mode, NODE_OPTIONS or --inspect, and
 # only an app.asar whose header hash electron-builder embedded is loaded (Windows: Electron 30+).
 # The bridge in resources/bridge is outside the asar and not covered.

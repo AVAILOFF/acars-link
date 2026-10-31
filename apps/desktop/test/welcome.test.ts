@@ -29,6 +29,7 @@ const bridge = (b: Partial<BridgeView>): BridgeView =>
     protocol: null,
     commands: [],
     source: null,
+    version: null,
     ...b,
   }) as BridgeView;
 
