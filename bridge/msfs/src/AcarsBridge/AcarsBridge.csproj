@@ -10,6 +10,13 @@
     <Company>AVAILOFF</Company>
     <Copyright>Copyright (c) 2026 AVAILOFF. All rights reserved.</Copyright>
     <AssemblyTitle>ACARS Link simulator bridge</AssemblyTitle>
+    <!--
+      T82: the self-contained publish is trimmed (full ASP.NET Core shared framework → only what Kestrel + WebSockets
+      use). Kestrel and WebSockets are trim-compatible ("ASP.NET Core support for Native AOT", learn.microsoft.com,
+      aspnetcore-10.0, checked 2026-11-01). Trim warnings are errors (TreatWarningsAsErrors, Directory.Build.props);
+      JSON goes through the source-generated BridgeJson (Protocol.cs).
+    -->
+    <PublishTrimmed>true</PublishTrimmed>
   </PropertyGroup>
 
   <ItemGroup>
@@ -57,6 +64,22 @@
   <Target Name="NoForeignSimConnect" AfterTargets="Publish">
     <Error Condition="Exists('$(PublishDir)SimConnect.dll') Or Exists('$(PublishDir)Microsoft.FlightSimulator.SimConnect.dll')"
            Text="$(PublishDir) holds a Microsoft SimConnect DLL: the bridge ships only acars_simconnect.dll (T73)." />
+  </Target>
+
+  <!--
+    T82: no .pdb in what ships (it holds the build paths of this machine). Publish copies it as usual (with trimming,
+    the one that matches the trimmed dll), then it moves to bridge/msfs/symbols; tools/release/build.mjs keeps it next
+    to the installer for reading stack traces from bridge.log.
+  -->
+  <PropertyGroup>
+    <BridgeSymbolsDir>$(MSBuildProjectDirectory)\..\..\symbols\</BridgeSymbolsDir>
+  </PropertyGroup>
+  <Target Name="MoveSymbolsOutOfPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <BridgeSymbols Include="$(PublishDir)*.pdb" />
+    </ItemGroup>
+    <Copy SourceFiles="@(BridgeSymbols)" DestinationFolder="$(BridgeSymbolsDir)" />
+    <Delete Files="@(BridgeSymbols)" />
   </Target>
 
   <Target Name="ReportSimConnect" BeforeTargets="Build">

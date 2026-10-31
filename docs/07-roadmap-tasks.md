@@ -1453,6 +1453,8 @@ Hoppie в самолёте (сверено 2026-10-25): официальный �
 1. `.pdb` моста хранить рядом с установщиком (предложение) или не хранить.
 2. Обрезка рантайма: пробовать (предложение: после T79, отдельным коммитом, откат при любых сомнениях) или оставить размер как есть.
 
+**Решено (2026-11-01):** 1 — хранить: publish кладёт `.pdb` как обычно, цель `MoveSymbolsOutOfPublish` (`AcarsBridge.csproj`) переносит его в `bridge/msfs/symbols/`, `tools/release/build.mjs` копирует в `apps/desktop/release/bridge-symbols-<версия>/` (свойство `CopyOutputSymbolsToPublishDirectory` не взято: при обрезке нужен `.pdb` обрезанной сборки, его кладёт publish). CSP: плагин `productionCsp` в `electron.vite.config.ts` (только `build`; нет строки в `index.html` — ошибка сборки), проверка — `tools/release/verify-renderer.mjs`. 2 — пробовать, отдельным коммитом. Сделано: `PublishTrimmed` в `AcarsBridge.csproj`; 6 ошибок обрезки IL2026 (JSON через рефлексию, `JsonArray.Add<T>`) сняты — кадры стали записями, сериализация через source-gen `BridgeJson`, текст кадров тот же (тест `ProtocolJsonTests` прогнан и на старом коде). Мост 105,6 МБ / 335 файлов → 25,8 МБ / 122, установщик 157 → 130 МБ (2026-11-01). Опубликованный мост проверяет `pnpm bridge:smoke` (`tools/release/smoke-bridge.mjs`, шаг `desktop:dist`).
+
 **Не входит:** размер Electron и `app.asar`.
 
 **Зависимость:** T79 (обрезка — на .NET 10).

@@ -44,7 +44,7 @@ public sealed class FakeSimSource(TimeProvider clock, IReadOnlyList<TelemetrySna
     {
         var frames = File.ReadLines(path)
             .Where(l => !string.IsNullOrWhiteSpace(l))
-            .Select(l => JsonSerializer.Deserialize<TelemetrySnapshot>(l, Protocol.Json)
+            .Select(l => JsonSerializer.Deserialize(l, BridgeJson.Default.TelemetrySnapshot)
                 ?? throw new InvalidDataException($"{path}: empty line"))
             .ToList();
         return new FakeSimSource(clock, frames);

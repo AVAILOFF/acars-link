@@ -7,6 +7,7 @@
 //   personal — everything (private use); installer name gets `-personal`.
 // `pnpm desktop:dist` = public, `pnpm desktop:dist:personal` = personal.
 import { spawnSync } from 'node:child_process';
+import { copyFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -32,12 +33,17 @@ function run(command, args, env = {}) {
   }
 }
 
+const { version } = JSON.parse(readFileSync(join(root, 'apps', 'desktop', 'package.json'), 'utf8'));
 const env = { ACARS_BUILD: variant };
 run('pnpm', ['bridge:publish']);
 run('node', ['tools/release/verify-bridge.mjs', join('bridge', 'msfs', 'publish')]);
-run('node', ['tools/release/verify-bridge.mjs', join('bridge', 'msfs', 'publish')]);
+run('pnpm', ['bridge:smoke']);
 run('pnpm', ['run', 'licenses']);
 run('pnpm', ['-F', '@acars/desktop', 'exec', 'electron-vite', 'build'], env);
+run('node', [
+  'tools/release/verify-renderer.mjs',
+  join('apps', 'desktop', 'out', 'renderer', 'index.html'),
+]);
 if (variant === 'public') {
   run('node', ['tools/release/verify-public.mjs', join('apps', 'desktop', 'out')]);
 }
@@ -51,10 +57,14 @@ run('node', [
   'tools/release/verify-bridge.mjs',
   join('apps', 'desktop', 'release', 'win-unpacked', 'resources', 'bridge'),
 ]);
-run('node', [
-  'tools/release/verify-bridge.mjs',
-  join('apps', 'desktop', 'release', 'win-unpacked', 'resources', 'bridge'),
-]);
+// The bridge's .pdb is not in the installer (T82); kept here to read stack traces from bridge.log.
+const symbols = join(root, 'apps', 'desktop', 'release', `bridge-symbols-${version}`);
+mkdirSync(symbols, { recursive: true });
+copyFileSync(
+  join(root, 'bridge', 'msfs', 'symbols', 'acars-msfs-bridge.pdb'),
+  join(symbols, 'acars-msfs-bridge.pdb'),
+);
+console.log(`bridge symbols: ${symbols}`);
 if (variant === 'public') {
   run('node', [
     'tools/release/verify-public.mjs',

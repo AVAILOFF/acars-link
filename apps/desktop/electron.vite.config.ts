@@ -54,6 +54,22 @@ const publicVariant = (): Plugin => ({
   },
 });
 
+// CSP of the built renderer (T82): `ws://localhost:*` in index.html is for the Vite dev server
+// (HMR) only; the renderer itself connects to nothing (the bridge talks to the main process).
+// Missing text is an error, so a changed index.html cannot leave the rule in silently;
+// tools/release/verify-renderer.mjs checks the result.
+export const DEV_CONNECT_SRC = ' ws://localhost:*';
+export const productionCsp = (): Plugin => ({
+  name: 'acars-production-csp',
+  apply: 'build',
+  transformIndexHtml(html) {
+    if (!html.includes(DEV_CONNECT_SRC)) {
+      throw new Error(`index.html: "connect-src 'self'${DEV_CONNECT_SRC}" not found`);
+    }
+    return html.replace(DEV_CONNECT_SRC, '');
+  },
+});
+
 export default defineConfig({
   main: {
     resolve: { conditions },
@@ -72,6 +88,6 @@ export default defineConfig({
   },
   renderer: {
     resolve: { conditions: ['source', 'module', 'browser', 'development|production'] },
-    plugins: [react(), copyrightBanner()],
+    plugins: [react(), productionCsp(), copyrightBanner()],
   },
 });
