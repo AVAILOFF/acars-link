@@ -17,7 +17,7 @@ import * as standNatTrak from '../variants/public/nattrak.js';
 /** T72: the public build leaves out the CAL and eANP squawk tables and the natTrak adapter. */
 
 const root = resolve(import.meta.dirname, '../../..');
-const verify = join(root, 'tools/dist/verify-public.mjs');
+const verify = join(root, 'tools/release/verify-public.mjs');
 const keys = (m: object) => Object.keys(m).sort();
 
 describe('build variants (T72)', () => {
@@ -41,7 +41,7 @@ describe('build variants (T72)', () => {
   });
 });
 
-describe('tools/dist/verify-public.mjs', () => {
+describe('tools/release/verify-public.mjs', () => {
   const run = (...paths: string[]) =>
     spawnSync(process.execPath, [verify, ...paths], { encoding: 'utf8' });
 

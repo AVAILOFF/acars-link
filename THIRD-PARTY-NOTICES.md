@@ -9,7 +9,7 @@ verification (docs/06-integrations.md has the details and dates), not legal advi
 `pnpm desktop:dist` builds the **public** installer; `pnpm desktop:dist:personal` the **personal**
 one (private use, `ACARS-Link-Setup-personal-<version>.exe`). Data without a licence for
 redistribution is in the personal build only; the public build has empty stand-ins
-(`apps/desktop/variants/public`), `tools/dist/verify-public.mjs` checks `out/` and `app.asar`.
+(`apps/desktop/variants/public`), `tools/release/verify-public.mjs` checks `out/` and `app.asar`.
 
 | Data | Public | Personal |
 |---|---|---|
