@@ -26,7 +26,7 @@ import { defaultSettings, SettingsStore } from '../src/main/settings.js';
 import { SPECIAL_SCENARIOS } from '../src/main/special.js';
 import { VDGS_FILE } from '../src/main/vdgs.js';
 import { MESSAGES } from '../src/renderer/src/i18n.js';
-import type { FeedEntry, SimChoice } from '../src/shared/api.js';
+import type { AboutInfo, FeedEntry, SimChoice } from '../src/shared/api.js';
 import {
   FakeCipher,
   FakeHttp,
@@ -50,6 +50,7 @@ async function setup(
     flags?: FlagsStore;
     vdgsDir?: string;
     onBridgeConfig?: (port: number, simulator: SimChoice) => void;
+    about?: () => AboutInfo;
   } = {},
 ) {
   const dir = await tempDir();
@@ -81,6 +82,7 @@ async function setup(
     ...(o.flags === undefined ? {} : { flags: o.flags }),
     ...(o.vdgsDir === undefined ? {} : { vdgsDir: o.vdgsDir }),
     ...(o.onBridgeConfig === undefined ? {} : { onBridgeConfig: o.onBridgeConfig }),
+    ...(o.about === undefined ? {} : { about: o.about }),
   });
   await app.init();
   return { app, clock, sockets, transports, secretsFile, recordings, revealed: () => revealed };
@@ -410,6 +412,20 @@ describe('flight recording (T11)', () => {
     s.sockets.last().hello();
     await s.app.startFlight();
   }
+
+  it('the app version is in the header (T77), +dev outside the installer; none unknown', async () => {
+    const about = (dev: boolean) => () =>
+      ({ version: '0.2.0', dev, electron: '44', chrome: '1', variant: 'public' }) as const;
+    for (const [s, want] of [
+      [await setup({ about: about(false) }), '0.2.0'],
+      [await setup({ about: about(true) }), '0.2.0+dev'],
+      [await setup(), undefined],
+    ] as const) {
+      await offlineFlight(s);
+      await s.app.stopFlight();
+      expect((await readRecording(s.recordings)).header.appVersion).toBe(want);
+    }
+  });
 
   it('records the core inputs; the replay reproduces the live telexes exactly', async () => {
     const s = await setup();

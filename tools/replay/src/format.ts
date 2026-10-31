@@ -65,6 +65,8 @@ export interface RecordingHeader {
   readonly recordedAt: number;
   /** Who wrote it: `desktop`, `synthetic`, `snapshots`. */
   readonly source: string;
+  /** Version of the app that wrote it (T77, `desktop`; `+dev` outside the installer); absent = older. */
+  readonly appVersion?: string;
   readonly ofp: Ofp;
   /** Core seed; null = the default `${callsign}/${requestId}`. */
   readonly seed: string | number | null;
@@ -229,6 +231,7 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
   if (x['v'] !== RECORDING_VERSION) throw bad(`unsupported version ${String(x['v'])}`);
   if (!isNum(x['recordedAt'])) throw bad('recordedAt');
   if (!isStr(x['source'])) throw bad('source');
+  if (x['appVersion'] !== undefined && !isStr(x['appVersion'])) throw bad('appVersion');
   if (!(x['seed'] === null || isStr(x['seed']) || isNum(x['seed']))) throw bad('seed');
   if (!isStr(x['station'])) throw bad('station');
   if (!isStrArr(x['scenarios'])) throw bad('scenarios');

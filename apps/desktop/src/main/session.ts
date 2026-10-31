@@ -99,6 +99,8 @@ export interface FlightSessionOptions {
   readonly resume?: Recording;
   /** File log of the app (T67): transport status and send failures; default none. */
   readonly log?: Log;
+  /** Version of the app for the recording header (T77); absent = not recorded. */
+  readonly appVersion?: string;
 }
 
 /** The recorded flight does not run the same way again (other scenarios, another app version). */
@@ -245,6 +247,7 @@ export class FlightSession {
       recordingHeader({
         recordedAt: o.now,
         source: 'desktop',
+        ...(o.appVersion === undefined ? {} : { appVersion: o.appVersion }),
         ofp: o.ofp,
         seed: null,
         station: o.stationTemplate,

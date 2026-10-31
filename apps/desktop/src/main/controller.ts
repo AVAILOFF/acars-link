@@ -587,6 +587,7 @@ export class AppController {
       now,
       recording,
       log: this.log,
+      ...this.appVersion(),
       data: settings.liveData ? this.data : null,
       flags,
       minGapMs: settings.messageGapSec * 1000,
@@ -976,6 +977,13 @@ export class AppController {
     this.log.info(`diagnostics exported${withRecording ? ' with the latest recording' : ''}`);
     d.reveal?.(file);
     return file;
+  }
+
+  /** T77: the app version for the recording header; `+dev` outside the installer; none unknown. */
+  private appVersion(): { appVersion?: string } {
+    const a = this.o.about?.();
+    if (a == null || a.version === '') return {};
+    return { appVersion: a.dev ? `${a.version}+dev` : a.version };
   }
 
   /** T74: versions of the app and Electron and the build, for the "About" page. */

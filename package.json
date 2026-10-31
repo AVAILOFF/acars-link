@@ -19,6 +19,7 @@
     "desktop": "pnpm -F @acars/desktop build && pnpm -F @acars/desktop start",
     "desktop:dist": "node tools/release/build.mjs public",
     "desktop:dist:personal": "node tools/release/build.mjs personal",
+    "release": "node tools/release/release.mjs",
     "licenses": "node tools/licenses/collect.mjs",
     "icon": "pnpm -F @acars/desktop exec electron ../../tools/icon/render.mjs",
     "bridge:build": "dotnet build bridge/msfs",

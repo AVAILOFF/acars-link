@@ -281,6 +281,16 @@ describe('replay through the core', () => {
     expect(() => parseJsonl(JSON.stringify({ ...header, simTime: 'yes' }))).toThrow(/simTime/);
   });
 
+  it('T77: the app version in the header; a recording without it reads as before', () => {
+    expect(normal.header.appVersion).toBeUndefined();
+    const v: Recording = { ...normal, header: { ...normal.header, appVersion: '0.1.1' } };
+    const parsed = parseJsonl(encodeRecording(v));
+    expect(parsed.kind === 'recording' && parsed.recording.header.appVersion).toBe('0.1.1');
+    const [h] = encodeRecording(v).split('\n');
+    const header = JSON.parse(h as string);
+    expect(() => parseJsonl(JSON.stringify({ ...header, appVersion: 11 }))).toThrow(/appVersion/);
+  });
+
   it('compareOutbound names missing, extra and changed telexes', () => {
     const live = r.outbound.map((m) => ({
       type: 'out' as const,
