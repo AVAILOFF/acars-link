@@ -1,0 +1,1792 @@
+{
+  "fetch": {
+    "status": "Success"
+  },
+  "params": {
+    "request_id": "0",
+    "time_generated": "2026-10-31T18:12:42Z",
+    "ofp_layout": "UAL 2018",
+    "airac": "2503",
+    "units": "lbs"
+  },
+  "general": {
+    "icao_airline": "DAL",
+    "flight_number": "8955",
+    "costindex": "120",
+    "initial_altitude": "37000",
+    "stepclimb_string": "KATL/0370/YAZUU/0390/SUPRY/0400/XETBO/0410",
+    "route": "PHIIL3 HRTWL Q64 SAWED Q108 ZJAAY Q167 RIFLE DCT YAHOO DCT VITOL N21A CARAC DCT DOPHN DCT SUPRY DCT 46N050W 49N040W 51N030W 52N020W DCT LIMRI DCT XETBO DCT EVRIN DCT INFEC DCT JETZI DCT AMFUL DCT CAWZE DCT SIRIC P2 DVR UL9 KONAN DCT KOK DCT REMBA DCT SPI T180 NIVNU T847 TUTOV DCT",
+    "sid_ident": "PHIIL3",
+    "star_ident": "",
+    "passengers": "30",
+    "route_distance": "4089",
+    "gc_distance": "4001"
+  },
+  "origin": {
+    "icao_code": "KATL",
+    "iata_code": "ATL",
+    "name": "HARTSFIELD/JACKSON ATLANTA INT",
+    "elevation": "1026",
+    "pos_lat": "33.636700",
+    "pos_long": "-84.427864",
+    "timezone": "-4",
+    "plan_rwy": "08R",
+    "trans_alt": "18000",
+    "trans_level": "18000",
+    "metar": "KATL 311752Z 07014KT 10SM SCT170 OVC210 21/06 A3033 RMK AO2 SLP267 VIRGA OHD-ALQDS T02110056 10222 20156 58004 $",
+    "atis": [
+      {
+        "network": "real-world",
+        "issued": "2026-10-31T17:52:00Z",
+        "letter": "U",
+        "type": "DEP"
+      },
+      {
+        "network": "real-world",
+        "issued": "2026-10-31T17:52:00Z",
+        "letter": "H",
+        "type": "ARR"
+      },
+      {
+        "network": "sayintentions",
+        "issued": "2026-10-31T17:52:00Z",
+        "letter": "M",
+        "type": "DEP/ARR"
+      }
+    ]
+  },
+  "destination": {
+    "icao_code": "EDDF",
+    "iata_code": "FRA",
+    "name": "FRANKFURT/MAIN",
+    "elevation": "363",
+    "pos_lat": "50.033306",
+    "pos_long": "8.570456",
+    "timezone": "1",
+    "plan_rwy": "07L",
+    "trans_alt": "05000",
+    "trans_level": "06000",
+    "metar": "EDDF 311750Z AUTO 03008KT 9999 OVC036 10/06 Q1031 NOSIG",
+    "atis": [
+      {
+        "network": "vatsim",
+        "issued": "2026-10-31T17:50:00Z",
+        "letter": "D",
+        "type": "DEP"
+      },
+      {
+        "network": "vatsim",
+        "issued": "2026-10-31T17:50:00Z",
+        "letter": "D",
+        "type": "ARR"
+      },
+      {
+        "network": "ivao",
+        "issued": "2026-10-31T18:02:00Z",
+        "letter": "C",
+        "type": "DEP/ARR"
+      },
+      {
+        "network": "sayintentions",
+        "issued": "2026-10-31T17:50:00Z",
+        "letter": "D",
+        "type": "DEP/ARR"
+      }
+    ]
+  },
+  "alternate": [
+    {
+      "icao_code": "EDDL",
+      "iata_code": "DUS",
+      "name": "DUESSELDORF",
+      "elevation": "147",
+      "pos_lat": "51.280925",
+      "pos_long": "6.757311",
+      "timezone": "1",
+      "plan_rwy": "05R",
+      "trans_alt": "05000",
+      "trans_level": "06000",
+      "metar": "EDDL 311750Z AUTO 07004KT 9999 BKN031 09/07 Q1032 NOSIG",
+      "atis": [
+        {
+          "network": "ivao",
+          "issued": "2026-10-31T17:24:00Z",
+          "letter": "F",
+          "type": "DEP/ARR"
+        },
+        {
+          "network": "sayintentions",
+          "issued": "2026-10-31T17:50:00Z",
+          "letter": "G",
+          "type": "DEP/ARR"
+        }
+      ]
+    }
+  ],
+  "navlog": [
+    {
+      "ident": "RONII",
+      "name": "RONII",
+      "type": "wpt",
+      "pos_lat": "33.684867",
+      "pos_long": "-84.179092",
+      "stage": "CLB",
+      "via_airway": "PHIIL3",
+      "is_sid_star": "1",
+      "distance": "13",
+      "altitude_feet": "10000",
+      "track_mag": "082",
+      "mora": "3100",
+      "fir": "KZTL",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "00:04:28",
+      "fuel_plan_onboard": "55453"
+    },
+    {
+      "ident": "IGEBE",
+      "name": "IGEBE",
+      "type": "wpt",
+      "pos_lat": "33.733050",
+      "pos_long": "-84.037239",
+      "stage": "CLB",
+      "via_airway": "PHIIL3",
+      "is_sid_star": "1",
+      "distance": "8",
+      "altitude_feet": "13500",
+      "track_mag": "073",
+      "mora": "3100",
+      "fir": "KZTL",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "00:05:50",
+      "fuel_plan_onboard": "55114"
+    },
+    {
+      "ident": "PHIIL",
+      "name": "PHIIL",
+      "type": "wpt",
+      "pos_lat": "33.656317",
+      "pos_long": "-83.637172",
+      "stage": "CLB",
+      "via_airway": "PHIIL3",
+      "is_sid_star": "1",
+      "distance": "21",
+      "altitude_feet": "21300",
+      "track_mag": "109",
+      "mora": "3100",
+      "fir": "KZTL",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "00:09:14",
+      "fuel_plan_onboard": "54359"
+    },
+    {
+      "ident": "LAGGR",
+      "name": "LAGGR",
+      "type": "wpt",
+      "pos_lat": "33.748203",
+      "pos_long": "-83.143408",
+      "stage": "CLB",
+      "via_airway": "PHIIL3",
+      "is_sid_star": "1",
+      "distance": "25",
+      "altitude_feet": "27500",
+      "track_mag": "083",
+      "mora": "2900",
+      "fir": "KZTL",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "00:12:30",
+      "fuel_plan_onboard": "53760"
+    },
+    {
+      "ident": "MULSN",
+      "name": "MULSN",
+      "type": "wpt",
+      "pos_lat": "33.985531",
+      "pos_long": "-82.682886",
+      "stage": "CLB",
+      "via_airway": "PHIIL3",
+      "is_sid_star": "1",
+      "distance": "27",
+      "altitude_feet": "32200",
+      "track_mag": "064",
+      "mora": "2800",
+      "fir": "KZTL",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "00:15:48",
+      "fuel_plan_onboard": "53310"
+    },
+    {
+      "ident": "HRTWL",
+      "name": "HRTWL",
+      "type": "wpt",
+      "pos_lat": "34.251481",
+      "pos_long": "-82.154319",
+      "stage": "CLB",
+      "via_airway": "PHIIL3",
+      "is_sid_star": "0",
+      "distance": "31",
+      "altitude_feet": "36700",
+      "track_mag": "065",
+      "mora": "2800",
+      "fir": "KZTL",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "00:19:41",
+      "fuel_plan_onboard": "52789"
+    },
+    {
+      "ident": "TOC",
+      "name": "TOP OF CLIMB",
+      "type": "ltlg",
+      "pos_lat": "34.277502",
+      "pos_long": "-82.102705",
+      "stage": "CLB",
+      "via_airway": "Q64",
+      "is_sid_star": "0",
+      "distance": "3",
+      "altitude_feet": "37000",
+      "track_mag": "066",
+      "mora": "2700",
+      "fir": "KZTL",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "00:19:59",
+      "fuel_plan_onboard": "52751"
+    },
+    {
+      "ident": "DARRL",
+      "name": "DARRL",
+      "type": "wpt",
+      "pos_lat": "34.797075",
+      "pos_long": "-81.056006",
+      "stage": "CRZ",
+      "via_airway": "Q64",
+      "is_sid_star": "0",
+      "distance": "60",
+      "altitude_feet": "37000",
+      "track_mag": "065",
+      "mora": "2800",
+      "fir": "KZTL",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "00:27:22",
+      "fuel_plan_onboard": "52055"
+    },
+    {
+      "ident": "IDDAA",
+      "name": "IDDAA",
+      "type": "wpt",
+      "pos_lat": "35.184750",
+      "pos_long": "-79.991858",
+      "stage": "CRZ",
+      "via_airway": "Q64",
+      "is_sid_star": "0",
+      "distance": "57",
+      "altitude_feet": "37000",
+      "track_mag": "074",
+      "mora": "2800",
+      "fir": "KZTL",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "00:34:21",
+      "fuel_plan_onboard": "51399"
+    },
+    {
+      "ident": "DADDS",
+      "name": "DADDS",
+      "type": "wpt",
+      "pos_lat": "35.608431",
+      "pos_long": "-78.789083",
+      "stage": "CRZ",
+      "via_airway": "Q64",
+      "is_sid_star": "0",
+      "distance": "64",
+      "altitude_feet": "37000",
+      "track_mag": "075",
+      "mora": "2800",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "00:42:07",
+      "fuel_plan_onboard": "50671"
+    },
+    {
+      "ident": "MARCL",
+      "name": "MARCL",
+      "type": "wpt",
+      "pos_lat": "35.731781",
+      "pos_long": "-78.429603",
+      "stage": "CRZ",
+      "via_airway": "Q64",
+      "is_sid_star": "0",
+      "distance": "19",
+      "altitude_feet": "37000",
+      "track_mag": "076",
+      "mora": "2500",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "00:44:25",
+      "fuel_plan_onboard": "50456"
+    },
+    {
+      "ident": "TYI",
+      "name": "TAR RIVER (ROCKY MOUNT)",
+      "type": "vor",
+      "pos_lat": "35.976725",
+      "pos_long": "-77.703731",
+      "stage": "CRZ",
+      "via_airway": "Q64",
+      "is_sid_star": "0",
+      "distance": "38",
+      "altitude_feet": "37000",
+      "track_mag": "077",
+      "mora": "2400",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "00:49:03",
+      "fuel_plan_onboard": "50024"
+    },
+    {
+      "ident": "GUILD",
+      "name": "GUILD",
+      "type": "wpt",
+      "pos_lat": "36.313767",
+      "pos_long": "-77.249989",
+      "stage": "CRZ",
+      "via_airway": "Q64",
+      "is_sid_star": "0",
+      "distance": "30",
+      "altitude_feet": "37000",
+      "track_mag": "057",
+      "mora": "2100",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "00:52:46",
+      "fuel_plan_onboard": "49678"
+    },
+    {
+      "ident": "SAWED",
+      "name": "SAWED",
+      "type": "wpt",
+      "pos_lat": "37.533536",
+      "pos_long": "-75.858083",
+      "stage": "CRZ",
+      "via_airway": "Q64",
+      "is_sid_star": "0",
+      "distance": "99",
+      "altitude_feet": "37000",
+      "track_mag": "052",
+      "mora": "2200",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "01:05:02",
+      "fuel_plan_onboard": "48538"
+    },
+    {
+      "ident": "KALDA",
+      "name": "KALDA",
+      "type": "wpt",
+      "pos_lat": "37.841961",
+      "pos_long": "-75.626483",
+      "stage": "CRZ",
+      "via_airway": "Q108",
+      "is_sid_star": "0",
+      "distance": "22",
+      "altitude_feet": "37000",
+      "track_mag": "042",
+      "mora": "2100",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "01:07:49",
+      "fuel_plan_onboard": "48280"
+    },
+    {
+      "ident": "ZJAAY",
+      "name": "ZJAAY",
+      "type": "wpt",
+      "pos_lat": "38.052764",
+      "pos_long": "-75.442853",
+      "stage": "CRZ",
+      "via_airway": "Q108",
+      "is_sid_star": "0",
+      "distance": "15",
+      "altitude_feet": "37000",
+      "track_mag": "046",
+      "mora": "2000",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "01:09:42",
+      "fuel_plan_onboard": "48105"
+    },
+    {
+      "ident": "PAJET",
+      "name": "PAJET",
+      "type": "wpt",
+      "pos_lat": "38.467814",
+      "pos_long": "-75.050153",
+      "stage": "CRZ",
+      "via_airway": "Q167",
+      "is_sid_star": "0",
+      "distance": "31",
+      "altitude_feet": "37000",
+      "track_mag": "048",
+      "mora": "2100",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "01:13:34",
+      "fuel_plan_onboard": "47746"
+    },
+    {
+      "ident": "CAANO",
+      "name": "CAANO",
+      "type": "wpt",
+      "pos_lat": "38.529547",
+      "pos_long": "-74.981200",
+      "stage": "CRZ",
+      "via_airway": "Q167",
+      "is_sid_star": "0",
+      "distance": "5",
+      "altitude_feet": "37000",
+      "track_mag": "053",
+      "mora": "2000",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "01:14:11",
+      "fuel_plan_onboard": "47689"
+    },
+    {
+      "ident": "TBONN",
+      "name": "TBONN",
+      "type": "wpt",
+      "pos_lat": "38.750786",
+      "pos_long": "-74.751047",
+      "stage": "CRZ",
+      "via_airway": "Q167",
+      "is_sid_star": "0",
+      "distance": "17",
+      "altitude_feet": "37000",
+      "track_mag": "051",
+      "mora": "2000",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "01:16:18",
+      "fuel_plan_onboard": "47494"
+    },
+    {
+      "ident": "ZIZZI",
+      "name": "ZIZZI",
+      "type": "wpt",
+      "pos_lat": "38.940683",
+      "pos_long": "-74.528967",
+      "stage": "CRZ",
+      "via_airway": "Q167",
+      "is_sid_star": "0",
+      "distance": "15",
+      "altitude_feet": "37000",
+      "track_mag": "054",
+      "mora": "2000",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "01:18:09",
+      "fuel_plan_onboard": "47323"
+    },
+    {
+      "ident": "YAZUU",
+      "name": "YAZUU",
+      "type": "wpt",
+      "pos_lat": "39.412450",
+      "pos_long": "-74.017097",
+      "stage": "CRZ",
+      "via_airway": "Q167",
+      "is_sid_star": "0",
+      "distance": "37",
+      "altitude_feet": "37000",
+      "track_mag": "052",
+      "mora": "2000",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "01:22:48",
+      "fuel_plan_onboard": "46894"
+    },
+    {
+      "ident": "TOPRR",
+      "name": "TOPRR",
+      "type": "wpt",
+      "pos_lat": "39.846981",
+      "pos_long": "-73.536672",
+      "stage": "CRZ",
+      "via_airway": "Q167",
+      "is_sid_star": "0",
+      "distance": "34",
+      "altitude_feet": "39000",
+      "track_mag": "053",
+      "mora": "2000",
+      "fir": "KZDC",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "01:27:07",
+      "fuel_plan_onboard": "46417"
+    },
+    {
+      "ident": "EMJAY",
+      "name": "EMJAY",
+      "type": "wpt",
+      "pos_lat": "40.093025",
+      "pos_long": "-73.261753",
+      "stage": "CRZ",
+      "via_airway": "Q167",
+      "is_sid_star": "0",
+      "distance": "19",
+      "altitude_feet": "39000",
+      "track_mag": "053",
+      "mora": "2000",
+      "fir": "KZBW",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "01:29:31",
+      "fuel_plan_onboard": "46202"
+    },
+    {
+      "ident": "SPDEY",
+      "name": "SPDEY",
+      "type": "wpt",
+      "pos_lat": "40.248994",
+      "pos_long": "-73.085747",
+      "stage": "CRZ",
+      "via_airway": "Q167",
+      "is_sid_star": "0",
+      "distance": "12",
+      "altitude_feet": "39000",
+      "track_mag": "054",
+      "mora": "2000",
+      "fir": "KZBW",
+      "fir_valid_levels": "19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "01:31:02",
+      "fuel_plan_onboard": "46067"
+    },
+    {
+      "ident": "RIFLE",
+      "name": "RIFLE",
+      "type": "wpt",
+      "pos_lat": "40.690050",
+      "pos_long": "-72.581914",
+      "stage": "CRZ",
+      "via_airway": "Q167",
+      "is_sid_star": "0",
+      "distance": "35",
+      "altitude_feet": "39000",
+      "track_mag": "054",
+      "mora": "2000",
+      "fir": "KZBW",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "01:35:31",
+      "fuel_plan_onboard": "45667"
+    },
+    {
+      "ident": "YAHOO",
+      "name": "YAHOO",
+      "type": "wpt",
+      "pos_lat": "41.069250",
+      "pos_long": "-69.746217",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "131",
+      "altitude_feet": "39000",
+      "track_mag": "092",
+      "mora": "2000",
+      "fir": "KZBW",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "01:50:24",
+      "fuel_plan_onboard": "44349"
+    },
+    {
+      "ident": "VITOL",
+      "name": "VITOL",
+      "type": "wpt",
+      "pos_lat": "41.783333",
+      "pos_long": "-67.000000",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "131",
+      "altitude_feet": "39000",
+      "track_mag": "084",
+      "mora": "2000",
+      "fir": "KZBW",
+      "fir_valid_levels": "29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000",
+      "time_total": "02:05:43",
+      "fuel_plan_onboard": "42987"
+    },
+    {
+      "ident": "CARAC",
+      "name": "CARAC",
+      "type": "wpt",
+      "pos_lat": "43.000000",
+      "pos_long": "-60.000000",
+      "stage": "CRZ",
+      "via_airway": "N21A",
+      "is_sid_star": "0",
+      "distance": "319",
+      "altitude_feet": "39000",
+      "track_mag": "090",
+      "mora": "2000",
+      "fir": "KZWY",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "02:42:39",
+      "fuel_plan_onboard": "39689"
+    },
+    {
+      "ident": "DOPHN",
+      "name": "DOPHN",
+      "type": "wpt",
+      "pos_lat": "44.555000",
+      "pos_long": "-55.483333",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "217",
+      "altitude_feet": "39000",
+      "track_mag": "079",
+      "mora": "2000",
+      "fir": "KZWY",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "03:07:47",
+      "fuel_plan_onboard": "37449"
+    },
+    {
+      "ident": "SUPRY",
+      "name": "SUPRY",
+      "type": "wpt",
+      "pos_lat": "45.500000",
+      "pos_long": "-52.000000",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "158",
+      "altitude_feet": "39000",
+      "track_mag": "084",
+      "mora": "2000",
+      "fir": "CZQX",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "03:25:52",
+      "fuel_plan_onboard": "35852"
+    },
+    {
+      "ident": "46N050W",
+      "name": "46N050W",
+      "type": "ltlg",
+      "pos_lat": "46.000000",
+      "pos_long": "-50.000000",
+      "stage": "CRZ",
+      "via_airway": "NATW",
+      "is_sid_star": "0",
+      "distance": "89",
+      "altitude_feet": "40000",
+      "track_mag": "086",
+      "mora": "2000",
+      "fir": "CZQX",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "03:36:02",
+      "fuel_plan_onboard": "34898"
+    },
+    {
+      "ident": "49N040W",
+      "name": "49N040W",
+      "type": "ltlg",
+      "pos_lat": "49.000000",
+      "pos_long": "-40.000000",
+      "stage": "CRZ",
+      "via_airway": "NATW",
+      "is_sid_star": "0",
+      "distance": "443",
+      "altitude_feet": "40000",
+      "track_mag": "078",
+      "mora": "2000",
+      "fir": "CZQX",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "04:24:48",
+      "fuel_plan_onboard": "30733"
+    },
+    {
+      "ident": "51N030W",
+      "name": "51N030W",
+      "type": "ltlg",
+      "pos_lat": "51.000000",
+      "pos_long": "-30.000000",
+      "stage": "CRZ",
+      "via_airway": "NATW",
+      "is_sid_star": "0",
+      "distance": "404",
+      "altitude_feet": "40000",
+      "track_mag": "083",
+      "mora": "2000",
+      "fir": "CZQX",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "05:11:03",
+      "fuel_plan_onboard": "26906"
+    },
+    {
+      "ident": "52N020W",
+      "name": "52N020W",
+      "type": "ltlg",
+      "pos_lat": "52.000000",
+      "pos_long": "-20.000000",
+      "stage": "CRZ",
+      "via_airway": "NATW",
+      "is_sid_star": "0",
+      "distance": "378",
+      "altitude_feet": "40000",
+      "track_mag": "088",
+      "mora": "2000",
+      "fir": "EGGX",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "05:57:43",
+      "fuel_plan_onboard": "23102"
+    },
+    {
+      "ident": "LIMRI",
+      "name": "LIMRI",
+      "type": "wpt",
+      "pos_lat": "52.000000",
+      "pos_long": "-15.000000",
+      "stage": "CRZ",
+      "via_airway": "NATW",
+      "is_sid_star": "0",
+      "distance": "185",
+      "altitude_feet": "40000",
+      "track_mag": "095",
+      "mora": "2000",
+      "fir": "EGGX",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "06:20:39",
+      "fuel_plan_onboard": "21254"
+    },
+    {
+      "ident": "XETBO",
+      "name": "XETBO",
+      "type": "wpt",
+      "pos_lat": "52.000000",
+      "pos_long": "-14.000000",
+      "stage": "CRZ",
+      "via_airway": "NATW",
+      "is_sid_star": "0",
+      "distance": "37",
+      "altitude_feet": "40000",
+      "track_mag": "094",
+      "mora": "2000",
+      "fir": "EISN",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "06:25:13",
+      "fuel_plan_onboard": "20888"
+    },
+    {
+      "ident": "EVRIN",
+      "name": "EVRIN",
+      "type": "wpt",
+      "pos_lat": "51.782347",
+      "pos_long": "-6.563225",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "276",
+      "altitude_feet": "41000",
+      "track_mag": "094",
+      "mora": "5500",
+      "fir": "EISN",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "06:59:08",
+      "fuel_plan_onboard": "18145"
+    },
+    {
+      "ident": "INFEC",
+      "name": "INFEC",
+      "type": "wpt",
+      "pos_lat": "51.543814",
+      "pos_long": "-4.191942",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "89",
+      "altitude_feet": "41000",
+      "track_mag": "100",
+      "mora": "2600",
+      "fir": "EGTT",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "07:10:12",
+      "fuel_plan_onboard": "17270"
+    },
+    {
+      "ident": "JETZI",
+      "name": "JETZI",
+      "type": "wpt",
+      "pos_lat": "51.507525",
+      "pos_long": "-3.869983",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "12",
+      "altitude_feet": "41000",
+      "track_mag": "101",
+      "mora": "2500",
+      "fir": "EGTT",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "07:11:41",
+      "fuel_plan_onboard": "17153"
+    },
+    {
+      "ident": "AMFUL",
+      "name": "AMFUL",
+      "type": "wpt",
+      "pos_lat": "51.479000",
+      "pos_long": "-3.622600",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "9",
+      "altitude_feet": "41000",
+      "track_mag": "101",
+      "mora": "2700",
+      "fir": "EGTT",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "07:12:49",
+      "fuel_plan_onboard": "17064"
+    },
+    {
+      "ident": "CAWZE",
+      "name": "CAWZE",
+      "type": "wpt",
+      "pos_lat": "51.374264",
+      "pos_long": "-1.988903",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "61",
+      "altitude_feet": "41000",
+      "track_mag": "096",
+      "mora": "2900",
+      "fir": "EGTT",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "07:20:32",
+      "fuel_plan_onboard": "16457"
+    },
+    {
+      "ident": "SIRIC",
+      "name": "SIRIC",
+      "type": "wpt",
+      "pos_lat": "51.343381",
+      "pos_long": "-1.566358",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "16",
+      "altitude_feet": "41000",
+      "track_mag": "096",
+      "mora": "3000",
+      "fir": "EGTT",
+      "fir_valid_levels": "11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "07:22:33",
+      "fuel_plan_onboard": "16299"
+    },
+    {
+      "ident": "NIGIT",
+      "name": "NIGIT",
+      "type": "wpt",
+      "pos_lat": "51.313044",
+      "pos_long": "-1.170753",
+      "stage": "CRZ",
+      "via_airway": "P2",
+      "is_sid_star": "0",
+      "distance": "15",
+      "altitude_feet": "41000",
+      "track_mag": "096",
+      "mora": "3000",
+      "fir": "EGTT",
+      "fir_valid_levels": "11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "07:24:26",
+      "fuel_plan_onboard": "16151"
+    },
+    {
+      "ident": "PAWDE",
+      "name": "PAWDE",
+      "type": "wpt",
+      "pos_lat": "51.248114",
+      "pos_long": "0.038039",
+      "stage": "CRZ",
+      "via_airway": "P2",
+      "is_sid_star": "0",
+      "distance": "46",
+      "altitude_feet": "41000",
+      "track_mag": "094",
+      "mora": "2900",
+      "fir": "EGTT",
+      "fir_valid_levels": "11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "07:30:15",
+      "fuel_plan_onboard": "15695"
+    },
+    {
+      "ident": "HABCI",
+      "name": "HABCI",
+      "type": "wpt",
+      "pos_lat": "51.233644",
+      "pos_long": "0.279156",
+      "stage": "CRZ",
+      "via_airway": "P2",
+      "is_sid_star": "0",
+      "distance": "9",
+      "altitude_feet": "41000",
+      "track_mag": "094",
+      "mora": "2600",
+      "fir": "EGTT",
+      "fir_valid_levels": "11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "07:31:23",
+      "fuel_plan_onboard": "15606"
+    },
+    {
+      "ident": "ZORFE",
+      "name": "ZORFE",
+      "type": "wpt",
+      "pos_lat": "51.215592",
+      "pos_long": "0.568853",
+      "stage": "CRZ",
+      "via_airway": "P2",
+      "is_sid_star": "0",
+      "distance": "11",
+      "altitude_feet": "41000",
+      "track_mag": "094",
+      "mora": "2600",
+      "fir": "EGTT",
+      "fir_valid_levels": "11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "07:32:46",
+      "fuel_plan_onboard": "15498"
+    },
+    {
+      "ident": "DVR",
+      "name": "DOVER",
+      "type": "vor",
+      "pos_lat": "51.162622",
+      "pos_long": "1.359086",
+      "stage": "CRZ",
+      "via_airway": "P2",
+      "is_sid_star": "0",
+      "distance": "30",
+      "altitude_feet": "41000",
+      "track_mag": "095",
+      "mora": "2600",
+      "fir": "EGTT",
+      "fir_valid_levels": "25000,27000,29000,31000,33000,35000,37000,39000,41000,45000",
+      "time_total": "07:36:34",
+      "fuel_plan_onboard": "15200"
+    },
+    {
+      "ident": "KONAN",
+      "name": "KONAN",
+      "type": "wpt",
+      "pos_lat": "51.130764",
+      "pos_long": "2.000000",
+      "stage": "CRZ",
+      "via_airway": "UL9",
+      "is_sid_star": "0",
+      "distance": "24",
+      "altitude_feet": "41000",
+      "track_mag": "093",
+      "mora": "2200",
+      "fir": "EGTT",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "07:39:37",
+      "fuel_plan_onboard": "14961"
+    },
+    {
+      "ident": "KOK",
+      "name": "KOKSY",
+      "type": "vor",
+      "pos_lat": "51.094722",
+      "pos_long": "2.651667",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "25",
+      "altitude_feet": "41000",
+      "track_mag": "093",
+      "mora": "2000",
+      "fir": "EBUR",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "07:42:49",
+      "fuel_plan_onboard": "14711"
+    },
+    {
+      "ident": "REMBA",
+      "name": "REMBA",
+      "type": "wpt",
+      "pos_lat": "50.662222",
+      "pos_long": "4.914028",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "90",
+      "altitude_feet": "41000",
+      "track_mag": "104",
+      "mora": "2600",
+      "fir": "EBUR",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "07:54:28",
+      "fuel_plan_onboard": "13801"
+    },
+    {
+      "ident": "SPI",
+      "name": "SPRIMONT",
+      "type": "vor",
+      "pos_lat": "50.514722",
+      "pos_long": "5.623611",
+      "stage": "CRZ",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "28",
+      "altitude_feet": "41000",
+      "track_mag": "105",
+      "mora": "3300",
+      "fir": "EBUR",
+      "fir_valid_levels": "21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000",
+      "time_total": "07:58:06",
+      "fuel_plan_onboard": "13518"
+    },
+    {
+      "ident": "TOD",
+      "name": "TOP OF DESCENT",
+      "type": "ltlg",
+      "pos_lat": "50.505373",
+      "pos_long": "5.673886",
+      "stage": "CRZ",
+      "via_airway": "T180",
+      "is_sid_star": "0",
+      "distance": "2",
+      "altitude_feet": "41000",
+      "track_mag": "104",
+      "mora": "3300",
+      "fir": "EBUR",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "07:58:21",
+      "fuel_plan_onboard": "13498"
+    },
+    {
+      "ident": "PESOV",
+      "name": "PESOV",
+      "type": "wpt",
+      "pos_lat": "50.377500",
+      "pos_long": "6.348333",
+      "stage": "DSC",
+      "via_airway": "T180",
+      "is_sid_star": "0",
+      "distance": "27",
+      "altitude_feet": "31400",
+      "track_mag": "105",
+      "mora": "4400",
+      "fir": "EDVV",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "08:03:45",
+      "fuel_plan_onboard": "13343"
+    },
+    {
+      "ident": "TOBOP",
+      "name": "TOBOP",
+      "type": "wpt",
+      "pos_lat": "50.363889",
+      "pos_long": "6.418333",
+      "stage": "DSC",
+      "via_airway": "T180",
+      "is_sid_star": "0",
+      "distance": "3",
+      "altitude_feet": "30300",
+      "track_mag": "104",
+      "mora": "4300",
+      "fir": "EDVV",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "08:04:21",
+      "fuel_plan_onboard": "13326"
+    },
+    {
+      "ident": "NIVNU",
+      "name": "NIVNU",
+      "type": "wpt",
+      "pos_lat": "50.359444",
+      "pos_long": "6.493056",
+      "stage": "DSC",
+      "via_airway": "T180",
+      "is_sid_star": "0",
+      "distance": "3",
+      "altitude_feet": "29200",
+      "track_mag": "092",
+      "mora": "4300",
+      "fir": "EDUU",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "08:04:57",
+      "fuel_plan_onboard": "13309"
+    },
+    {
+      "ident": "KULZO",
+      "name": "KULZO",
+      "type": "wpt",
+      "pos_lat": "50.343333",
+      "pos_long": "6.746111",
+      "stage": "DSC",
+      "via_airway": "T847",
+      "is_sid_star": "0",
+      "distance": "10",
+      "altitude_feet": "25700",
+      "track_mag": "093",
+      "mora": "4200",
+      "fir": "EDUU",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "08:06:57",
+      "fuel_plan_onboard": "13252"
+    },
+    {
+      "ident": "IMCOM",
+      "name": "IMCOM",
+      "type": "wpt",
+      "pos_lat": "50.336111",
+      "pos_long": "6.861944",
+      "stage": "DSC",
+      "via_airway": "T847",
+      "is_sid_star": "0",
+      "distance": "4",
+      "altitude_feet": "24200",
+      "track_mag": "093",
+      "mora": "4100",
+      "fir": "EDGG",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "08:07:45",
+      "fuel_plan_onboard": "13229"
+    },
+    {
+      "ident": "TUTOV",
+      "name": "TUTOV",
+      "type": "wpt",
+      "pos_lat": "50.310000",
+      "pos_long": "7.253056",
+      "stage": "DSC",
+      "via_airway": "T847",
+      "is_sid_star": "0",
+      "distance": "15",
+      "altitude_feet": "18900",
+      "track_mag": "093",
+      "mora": "4300",
+      "fir": "EDGG",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "08:10:45",
+      "fuel_plan_onboard": "13143"
+    },
+    {
+      "ident": "EDDF",
+      "name": "FRANKFURT/MAIN",
+      "type": "apt",
+      "pos_lat": "50.033306",
+      "pos_long": "8.570456",
+      "stage": "DSC",
+      "via_airway": "DCT",
+      "is_sid_star": "0",
+      "distance": "55",
+      "altitude_feet": "2900",
+      "track_mag": "104",
+      "mora": "4100",
+      "fir": "EDGG",
+      "fir_valid_levels": "1000,3000,5000,7000,9000,11000,13000,15000,17000,19000,21000,23000,25000,27000,29000,31000,33000,35000,37000,39000,41000,45000,49000,53000,57000,61000,65000,69000",
+      "time_total": "08:24:58",
+      "fuel_plan_onboard": "12637"
+    }
+  ],
+  "atc": {
+    "callsign": "DAL8955",
+    "flight_rules": "I",
+    "flight_type": "S",
+    "initial_alt": "370"
+  },
+  "aircraft": {
+    "icao_code": "B752",
+    "iata_code": "752",
+    "name": "B757-200",
+    "engines": "PW2037",
+    "reg": "BB752",
+    "equip": "M-SDE2E3FGHIJ4J7M3P2RWXYZ/LB1D1",
+    "equip_category": "M",
+    "max_passengers": "176"
+  },
+  "fuel": {
+    "taxi": "875",
+    "enroute_burn": "44031",
+    "contingency": "2202",
+    "alternate_burn": "3519",
+    "reserve": "2146",
+    "extra": "4764",
+    "min_takeoff": "51898",
+    "plan_takeoff": "56662",
+    "plan_ramp": "57537",
+    "plan_landing": "12631"
+  },
+  "times": {
+    "est_time_enroute": "08:24:58",
+    "sched_out": "2026-10-31T16:40:00Z",
+    "sched_off": "2026-10-31T17:05:00Z",
+    "sched_on": "2026-11-01T01:22:00Z",
+    "sched_in": "2026-11-01T01:30:00Z",
+    "sched_block": "08:50:00",
+    "est_out": "2026-10-31T16:40:00Z",
+    "est_off": "2026-10-31T17:05:00Z",
+    "est_on": "2026-11-01T01:29:58Z",
+    "est_in": "2026-11-01T01:37:58Z",
+    "est_block": "08:57:58",
+    "taxi_out": "00:25:00",
+    "taxi_in": "00:08:00"
+  },
+  "weights": {
+    "oew": "131275",
+    "pax_count": "30",
+    "bag_count": "30",
+    "pax_weight": "185",
+    "bag_weight": "35",
+    "cargo": "1050",
+    "payload": "6600",
+    "est_zfw": "137875",
+    "max_zfw": "184000",
+    "est_tow": "194537",
+    "max_tow": "242031",
+    "est_ldw": "150506",
+    "max_ldw": "198000",
+    "est_ramp": "195412"
+  },
+  "tracks": {
+    "nat": [
+      {
+        "id": "A",
+        "group": "West",
+        "addr": "EGGX",
+        "tmi": "304",
+        "route": "SUNOT 58N020W 59N030W 59N040W 58N050W DORYY",
+        "levels": "340 350 360 370 380 390 400",
+        "start": "2026-10-31T11:30:00Z",
+        "end": "2026-10-31T19:00:00Z",
+        "fixes": [
+          {
+            "ident": "SUNOT",
+            "pos_lat": "57",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "5820N",
+            "pos_lat": "58",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "5930N",
+            "pos_lat": "59",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "5940N",
+            "pos_lat": "59",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "5850N",
+            "pos_lat": "58",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "DORYY",
+            "pos_lat": "56.033333",
+            "pos_long": "-57"
+          }
+        ]
+      },
+      {
+        "id": "B",
+        "group": "West",
+        "addr": "EGGX",
+        "tmi": "304",
+        "route": "PIKIL 57N020W 58N030W 58N040W 57N050W HOIST",
+        "levels": "340 350 360 370 380 390 400",
+        "start": "2026-10-31T11:30:00Z",
+        "end": "2026-10-31T19:00:00Z",
+        "fixes": [
+          {
+            "ident": "PIKIL",
+            "pos_lat": "56",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "5720N",
+            "pos_lat": "57",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "5830N",
+            "pos_lat": "58",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "5840N",
+            "pos_lat": "58",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "5750N",
+            "pos_lat": "57",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "HOIST",
+            "pos_lat": "55.033333",
+            "pos_long": "-57"
+          }
+        ]
+      },
+      {
+        "id": "C",
+        "group": "West",
+        "addr": "EGGX",
+        "tmi": "304",
+        "route": "RESNO 56N020W 56N030W 56N040W 55N050W LOMSI",
+        "levels": "340 350 360 370 380 400",
+        "start": "2026-10-31T11:30:00Z",
+        "end": "2026-10-31T19:00:00Z",
+        "fixes": [
+          {
+            "ident": "RESNO",
+            "pos_lat": "55",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "5620N",
+            "pos_lat": "56",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "5630N",
+            "pos_lat": "56",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "5640N",
+            "pos_lat": "56",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "5550N",
+            "pos_lat": "55",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "LOMSI",
+            "pos_lat": "53.1",
+            "pos_long": "-56.783333"
+          }
+        ]
+      },
+      {
+        "id": "D",
+        "group": "West",
+        "addr": "EGGX",
+        "tmi": "304",
+        "route": "DOGAL 55N020W 55N030W 55N040W 54N050W NEEKO",
+        "levels": "340 350 360 370 380 390 400",
+        "start": "2026-10-31T11:30:00Z",
+        "end": "2026-10-31T19:00:00Z",
+        "fixes": [
+          {
+            "ident": "DOGAL",
+            "pos_lat": "54",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "5520N",
+            "pos_lat": "55",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "5530N",
+            "pos_lat": "55",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "5540N",
+            "pos_lat": "55",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "5450N",
+            "pos_lat": "54",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "NEEKO",
+            "pos_lat": "52.4",
+            "pos_long": "-55.833333"
+          }
+        ]
+      },
+      {
+        "id": "E",
+        "group": "West",
+        "addr": "EGGX",
+        "tmi": "304",
+        "route": "MALOT 54N020W 54N030W 54N040W 53N050W RIKAL",
+        "levels": "340 350 360 370 380 390 400",
+        "start": "2026-10-31T11:30:00Z",
+        "end": "2026-10-31T19:00:00Z",
+        "fixes": [
+          {
+            "ident": "MALOT",
+            "pos_lat": "53",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "5420N",
+            "pos_lat": "54",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "5430N",
+            "pos_lat": "54",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "5440N",
+            "pos_lat": "54",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "5350N",
+            "pos_lat": "53",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "RIKAL",
+            "pos_lat": "51.8",
+            "pos_long": "-54.533333"
+          }
+        ]
+      },
+      {
+        "id": "F",
+        "group": "West",
+        "addr": "EGGX",
+        "tmi": "304",
+        "route": "LIMRI 53N020W 53N030W 53N040W 52N050W TUDEP",
+        "levels": "340 350 360 370 380 390 400",
+        "start": "2026-10-31T11:30:00Z",
+        "end": "2026-10-31T19:00:00Z",
+        "fixes": [
+          {
+            "ident": "LIMRI",
+            "pos_lat": "52",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "5320N",
+            "pos_lat": "53",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "5330N",
+            "pos_lat": "53",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "5340N",
+            "pos_lat": "53",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "5250N",
+            "pos_lat": "52",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "TUDEP",
+            "pos_lat": "51.166667",
+            "pos_long": "-53.233333"
+          }
+        ]
+      },
+      {
+        "id": "U",
+        "group": "East",
+        "addr": "CZQX",
+        "tmi": "305",
+        "route": "NICSO 48N050W 51N040W 53N030W 54N020W DOGAL BEXET",
+        "levels": "340 350 360 370 380 390 400",
+        "start": "2026-11-01T01:00:00Z",
+        "end": "2026-11-01T08:00:00Z",
+        "fixes": [
+          {
+            "ident": "NICSO",
+            "pos_lat": "47.5",
+            "pos_long": "-52"
+          },
+          {
+            "ident": "4850N",
+            "pos_lat": "48",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "5140N",
+            "pos_lat": "51",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "5330N",
+            "pos_lat": "53",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "5420N",
+            "pos_lat": "54",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "DOGAL",
+            "pos_lat": "54",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "BEXET",
+            "pos_lat": "54",
+            "pos_long": "-14"
+          }
+        ]
+      },
+      {
+        "id": "V",
+        "group": "East",
+        "addr": "CZQX",
+        "tmi": "305",
+        "route": "PORTI 47N050W 50N040W 52N030W 53N020W MALOT GISTI",
+        "levels": "340 350 360 370 380 390 400",
+        "start": "2026-11-01T01:00:00Z",
+        "end": "2026-11-01T08:00:00Z",
+        "fixes": [
+          {
+            "ident": "PORTI",
+            "pos_lat": "46.5",
+            "pos_long": "-52"
+          },
+          {
+            "ident": "4750N",
+            "pos_lat": "47",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "5040N",
+            "pos_lat": "50",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "5230N",
+            "pos_lat": "52",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "5320N",
+            "pos_lat": "53",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "MALOT",
+            "pos_lat": "53",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "GISTI",
+            "pos_lat": "53",
+            "pos_long": "-14"
+          }
+        ]
+      },
+      {
+        "id": "W",
+        "group": "East",
+        "addr": "CZQX",
+        "tmi": "305",
+        "route": "SUPRY 46N050W 49N040W 51N030W 52N020W LIMRI XETBO",
+        "levels": "340 350 360 370 380 390 400",
+        "start": "2026-11-01T01:00:00Z",
+        "end": "2026-11-01T08:00:00Z",
+        "fixes": [
+          {
+            "ident": "SUPRY",
+            "pos_lat": "45.5",
+            "pos_long": "-52"
+          },
+          {
+            "ident": "4650N",
+            "pos_lat": "46",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "4940N",
+            "pos_lat": "49",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "5130N",
+            "pos_lat": "51",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "5220N",
+            "pos_lat": "52",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "LIMRI",
+            "pos_lat": "52",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "XETBO",
+            "pos_lat": "52",
+            "pos_long": "-14"
+          }
+        ]
+      },
+      {
+        "id": "X",
+        "group": "East",
+        "addr": "CZQX",
+        "tmi": "305",
+        "route": "RAFIN 45N050W 48N040W 50N030W 51N020W DINIM ELSOX",
+        "levels": "340 350 360 370 380 390 400",
+        "start": "2026-11-01T01:00:00Z",
+        "end": "2026-11-01T08:00:00Z",
+        "fixes": [
+          {
+            "ident": "RAFIN",
+            "pos_lat": "44.883333",
+            "pos_long": "-51.804722"
+          },
+          {
+            "ident": "4550N",
+            "pos_lat": "45",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "4840N",
+            "pos_lat": "48",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "5030N",
+            "pos_lat": "50",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "5120N",
+            "pos_lat": "51",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "DINIM",
+            "pos_lat": "51",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "ELSOX",
+            "pos_lat": "51",
+            "pos_long": "-14"
+          }
+        ]
+      },
+      {
+        "id": "Y",
+        "group": "East",
+        "addr": "CZQX",
+        "tmi": "305",
+        "route": "DOVEY 42N060W 44N050W 47N040W 49N030W 50N020W SOMAX ATSUR",
+        "levels": "340 360 380 400",
+        "start": "2026-11-01T01:00:00Z",
+        "end": "2026-11-01T08:00:00Z",
+        "fixes": [
+          {
+            "ident": "DOVEY",
+            "pos_lat": "41.116667",
+            "pos_long": "-67"
+          },
+          {
+            "ident": "4260N",
+            "pos_lat": "42",
+            "pos_long": "-60"
+          },
+          {
+            "ident": "4450N",
+            "pos_lat": "44",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "4740N",
+            "pos_lat": "47",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "4930N",
+            "pos_lat": "49",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "5020N",
+            "pos_lat": "50",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "SOMAX",
+            "pos_lat": "50",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "ATSUR",
+            "pos_lat": "50",
+            "pos_long": "-14"
+          }
+        ]
+      },
+      {
+        "id": "Z",
+        "group": "East",
+        "addr": "CZQX",
+        "tmi": "305",
+        "route": "SOORY 43N050W 46N040W 48N030W 49N020W BEDRA NASBA",
+        "levels": "360 380 400",
+        "start": "2026-11-01T01:00:00Z",
+        "end": "2026-11-01T08:00:00Z",
+        "fixes": [
+          {
+            "ident": "SOORY",
+            "pos_lat": "38.5",
+            "pos_long": "-60.267583"
+          },
+          {
+            "ident": "4350N",
+            "pos_lat": "43",
+            "pos_long": "-50"
+          },
+          {
+            "ident": "4640N",
+            "pos_lat": "46",
+            "pos_long": "-40"
+          },
+          {
+            "ident": "4830N",
+            "pos_lat": "48",
+            "pos_long": "-30"
+          },
+          {
+            "ident": "4920N",
+            "pos_lat": "49",
+            "pos_long": "-20"
+          },
+          {
+            "ident": "BEDRA",
+            "pos_lat": "49",
+            "pos_long": "-15"
+          },
+          {
+            "ident": "NASBA",
+            "pos_lat": "49",
+            "pos_long": "-13"
+          }
+        ]
+      }
+    ]
+  }
+}

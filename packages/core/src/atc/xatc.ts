@@ -514,7 +514,8 @@ export class XatcStation {
     const ocl: OclContext = {
       now,
       telemetry: input.telemetry,
-      natTracks: input.ext.natTracks ?? [],
+      // The tracks of the OFP (SimBrief) first; the downloaded ones (personal build only) after them.
+      natTracks: [...(this.ofp.natTracks ?? []), ...(input.ext.natTracks ?? [])],
       firAt: (p) => map?.locate(p)?.id ?? null,
       sendTelex,
       events,
