@@ -1474,6 +1474,8 @@ Hoppie в самолёте (сверено 2026-10-25): официальный �
 **Решения пользователя (нужны до реализации):**
 1. Можно ли дать установщик другим людям, пока Hoppie или Microsoft/Asobo не ответили (предложение: нет — так записано в `THIRD-PARTY-NOTICES.md`: «not verified must be resolved before the installer is given to other people»); если да — решение записать в docs/08 с датой.
 
+**Решено (2026-11-01):** 1 — **да, можно** (docs/08, «Решение 2026-11-01 (T83)»; оговорка в `THIRD-PARTY-NOTICES.md`). Сверено 2026-11-01: VATSIM — Commercial Use Policy v2.0 (§3.5: бесплатное некоммерческое — без лицензии), EONET — CC0 по Earthdata и дисклеймер EONET; строки `THIRD-PARTY-NOTICES.md`, `sources.ts` (у EONET — credit «NASA EONET»), docs/06. Черновики писем Hoppie и Microsoft/Asobo (и по желанию EUROCONTROL, ICAO, VATSIM Tech Team) — `docs/_drafts/T83-letters.md`.
+
 **Не входит:** юридическая оценка; таблицы сквоков и natTrak в публичной сборке (T72 — только по письменному разрешению).
 
 **Готово, когда:** в таблицах `THIRD-PARTY-NOTICES.md` у источников публичной сборки нет «verify» и «not verified» — или есть записанное решение пользователя по каждому открытому; тест `about.test.ts` зелёный; `pnpm check` зелёный.
