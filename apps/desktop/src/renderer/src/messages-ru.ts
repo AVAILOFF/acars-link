@@ -210,6 +210,16 @@ export const ru: Record<MessageKey, string> = {
   'status.phase': 'Фаза',
   'bridge.connecting': 'подключение…',
   'bridge.open': 'подключён',
+  'bridge.restarting': 'перезапуск…',
+  'bridge.restartingText':
+    'Мост остановился и запускается снова (остановка {n} за последние 5 минут)',
+  'bridge.portBusy': 'порт занят',
+  'bridge.portBusyText':
+    'Порт {port} занят другой программой: закройте другой мост или смените порт в настройках',
+  'bridge.failed': 'не запускается',
+  'bridge.failedText':
+    'Мост не запускается (остановился 6 раз за 5 минут); перезапустите приложение или смените порт моста',
+  'bridge.lastLines': 'Последние строки его журнала',
   'bridge.closed': 'не запущен',
   'sim.disconnected': 'не подключён',
   'sim.connecting': 'подключение…',
@@ -290,6 +300,7 @@ export const ru: Record<MessageKey, string> = {
   'sys.reply_timeout': 'Нет ответа на {id}: принят вариант {option}',
   'sys.transport_status': 'Сеть: {status} {reason}',
   'sys.sim_command_failed': 'Команда симулятору {command} не выполнена: {error} {detail}',
+  'sys.bridge_restarted': 'Мост к симулятору остановился и запущен снова; рейс продолжается',
   'sys.sim_changed': 'Сменился симулятор: {from} → {to}; рейс продолжается',
   'net.outbox': 'ждут интервала: {n}',
   'flight.fplnHint':

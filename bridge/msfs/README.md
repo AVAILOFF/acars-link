@@ -47,6 +47,23 @@ acars-msfs-bridge --source xplane --xplane-port 8088   # X-Plane started with --
 Start order does not matter. Until the sim is up, the bridge retries with backoff
 1, 2, 4, 8, 16, 30, 30 … s. The same happens after the sim quits.
 
+### Exit codes (T75)
+
+The app starts the bridge itself and reads how it ended (`apps/desktop/src/main/bridge-supervisor.ts`).
+`ExitCodes` in `BridgeServer.cs` is the one list.
+
+| Code | Meaning | The app |
+|---|---|---|
+| 0 | stopped normally (Ctrl+C) | starts it again if it did not ask for the stop |
+| 2 | unknown or incomplete option, unknown source | as for any unexpected exit |
+| 3 | `--source simconnect` without SimConnect compiled in | as for any unexpected exit |
+| 4 | the port is already in use by another program | shows "port N is used by another program", does not start it again |
+
+Any other exit (a crash) is started again after 1, 2, 4 … 30 s, at most 5 times in 5 minutes. Code 4 is told
+from other failures by the exception type (`AddressInUseException` / `SocketException` 10048 inside the
+`IOException` Kestrel throws, checked 2026-10-31 on .NET 8), not by its text; stderr gets
+`acars-msfs-bridge: port N is already in use by another program (exit code 4)`.
+
 `auto` (T59, decisions of 2026-10-23): each round tries SimConnect, then X-Plane (`localhost:8086`, or
 `--xplane-port`); the first that answers keeps the bridge until it closes, and the other is not tried meanwhile.
 One backoff for both, reset when one answered; `detail` of the wait lists the reasons of the round

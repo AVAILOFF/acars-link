@@ -38,13 +38,20 @@ export function bridgeEnv(base: NodeJS.ProcessEnv, token: string): NodeJS.Proces
   return { ...base, [BRIDGE_TOKEN_ENV]: token };
 }
 
+/** How a bridge process ended: its exit code, or the error that kept it from starting. */
+export interface BridgeExit {
+  readonly code: number | null;
+  readonly error: string | null;
+}
+
 /**
  * Starts the bundled bridge next to the app, hidden, and returns a stop function that resolves once
  * the process has exited (so a new one can take the port). Returns null when there is no exe (dev
  * run: the bridge is started by hand) or it cannot start. If the port is already taken (a bridge
  * started by hand), the new process exits on its own and the app simply connects to the running one.
  * The bridge lets in only clients with `token` (T65). Its stdout and stderr go to `output` line by
- * line (T67: `bridge.log`); without `output` they are not opened.
+ * line (T67: `bridge.log`); without `output` they are not opened. `onExit` is told how the process ended,
+ * whoever asked for it (T75: the supervisor tells an unexpected exit from a stop).
  */
 export function startBridge(
   resourcesPath: string,
@@ -53,6 +60,7 @@ export function startBridge(
   token: string,
   log: (msg: string) => void = console.error,
   output?: (stream: 'out' | 'err', line: string) => void,
+  onExit?: (exit: BridgeExit) => void,
 ): (() => Promise<void>) | null {
   const exe = bridgeExePath(resourcesPath);
   if (!existsSync(exe)) return null;
@@ -72,14 +80,22 @@ export function startBridge(
     lines(child.stdout, (line) => output('out', line));
     lines(child.stderr, (line) => output('err', line));
   }
+  let reported = false;
   const exited = new Promise<void>((resolve) => {
+    const done = (exit: BridgeExit) => {
+      if (!reported) {
+        reported = true;
+        onExit?.(exit);
+      }
+      resolve();
+    };
     child.on('exit', (code) => {
       log(`bridge exited (${String(code)})`);
-      resolve();
+      done({ code, error: null });
     });
     child.on('error', (e) => {
       log(`bridge failed: ${e.message}`);
-      resolve();
+      done({ code: null, error: e.message });
     });
   });
   return () => {

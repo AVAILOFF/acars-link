@@ -22,6 +22,7 @@ import {
 import { type AppState, IPC, type SimChoice } from '../shared/api.js';
 import type { SocketLike } from './bridge.js';
 import { startBridge } from './bridge-process.js';
+import { BridgeSupervisor } from './bridge-supervisor.js';
 import { CLOSE_BUTTON, closeDialog } from './close-dialog.js';
 import { AppController } from './controller.js';
 import { FileDataCache } from './data-cache.js';
@@ -205,24 +206,39 @@ async function main(): Promise<void> {
     join(userData, 'settings.json'),
     defaultSettings(app.getLocale()),
   );
-  // Installed build only (dev: the bridge is started by hand). One start at a time: the old process
-  // leaves the port before the new one takes it.
-  let stopBridge: (() => Promise<void>) | null = null;
-  let bridgeQueue = Promise.resolve();
-  const restartBridge = (port: number, simulator: SimChoice) => {
-    if (!app.isPackaged) return;
-    bridgeQueue = bridgeQueue.then(async () => {
-      await stopBridge?.();
-      log.info(`bridge: starting on port ${port}, simulator ${simulator}`);
-      stopBridge = startBridge(
+  let controller: AppController | null = null;
+  // Installed build only (dev: the bridge is started by hand). T75: the supervisor starts the process
+  // again when it stops by itself and tells the app why when it cannot.
+  const supervisor = new BridgeSupervisor({
+    spawn: (port, simulator, hooks) =>
+      startBridge(
         process.resourcesPath,
         port,
         simulator,
         bridgeToken,
         (msg) => log.warn(msg),
-        (stream, line) => (stream === 'err' ? bridgeLog.warn(line) : bridgeLog.info(line)),
-      );
-      if (stopBridge === null) log.warn('bridge: not started (no exe)');
+        (stream, line) => {
+          if (stream === 'err') bridgeLog.warn(line);
+          else bridgeLog.info(line);
+          hooks.onLine(stream, line);
+        },
+        hooks.onExit,
+      ),
+    timers: { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as never) },
+    now: () => Date.now(),
+    redact: (text) => redactor.redact(text),
+    onStatus: (status) => controller?.setBridgeProcess(status),
+    onRestarted: () => controller?.noteBridgeRestarted(),
+    log,
+  });
+  // One start at a time: the old process leaves the port before the new one takes it.
+  let bridgeQueue = Promise.resolve();
+  const restartBridge = (port: number, simulator: SimChoice) => {
+    if (!app.isPackaged) return;
+    bridgeQueue = bridgeQueue.then(async () => {
+      await supervisor.stop();
+      log.info(`bridge: starting on port ${port}, simulator ${simulator}`);
+      if (!supervisor.start(port, simulator)) log.warn('bridge: not started (no exe)');
     });
   };
   /** The save dialog in Documents (T67 diagnostics, T69 flight report); null = cancelled. */
@@ -237,7 +253,6 @@ async function main(): Promise<void> {
         : await dialog.showSaveDialog(win, options);
     return r.canceled || r.filePath === undefined || r.filePath === '' ? null : r.filePath;
   };
-  let controller: AppController | null = null;
   const onChange = () => {
     if (controller !== null) pushState(controller.state());
   };
@@ -314,7 +329,7 @@ async function main(): Promise<void> {
     log.info('quit');
     clearInterval(loop);
     ctl.dispose();
-    void stopBridge?.();
+    void supervisor.stop();
   });
 }
 

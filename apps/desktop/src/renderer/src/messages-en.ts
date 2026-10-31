@@ -208,6 +208,16 @@ export const en = {
   'bridge.connecting': 'connecting…',
   'bridge.open': 'connected',
   'bridge.closed': 'not running',
+  'bridge.restarting': 'restarting…',
+  'bridge.restartingText':
+    'The bridge stopped and is being started again (stop {n} in the last 5 minutes)',
+  'bridge.portBusy': 'port busy',
+  'bridge.portBusyText':
+    'Port {port} is used by another program: close the other bridge or change the port in the settings',
+  'bridge.failed': 'does not start',
+  'bridge.failedText':
+    'The bridge does not start (it stopped 6 times in 5 minutes); restart the app or change the bridge port',
+  'bridge.lastLines': 'Last lines of its log',
   'sim.disconnected': 'not connected',
   'sim.connecting': 'connecting…',
   'sim.connected': 'connected',
@@ -288,6 +298,7 @@ export const en = {
   'sys.reply_timeout': 'No reply to {id}: {option} assumed',
   'sys.transport_status': 'Network: {status} {reason}',
   'sys.sim_command_failed': 'Sim command {command} failed: {error} {detail}',
+  'sys.bridge_restarted': 'The simulator bridge stopped and was started again; the flight goes on',
   'sys.sim_changed': 'Simulator changed: {from} → {to}; the flight goes on',
   'net.outbox': '{n} held by message gap',
   'flight.fplnHint':
