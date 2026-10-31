@@ -455,7 +455,8 @@ describe('late start version 3: the span counts scenarios that can start (docs/0
       ['a', 'b', 'c', 'd', 'e', 'f'].map(
         (seed) => sent(fly([coin], late, { lateStartVersion: v, seed }), 'coin').length,
       );
-    expect(ids(3)).toEqual(ids(2));
-    expect(new Set(ids(3)).size).toBe(2);
+    const v3 = ids(3);
+    expect(v3).toEqual(ids(2));
+    expect(new Set(v3).size).toBe(2);
   });
 });

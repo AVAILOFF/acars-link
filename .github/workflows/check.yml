@@ -1,6 +1,8 @@
 # T63: the same checks as before "done" locally (CLAUDE.md): pnpm check and pnpm bridge:test.
 # Windows only: the bridge and the file paths are Windows. Without the MSFS SDK the bridge
 # builds with SimConnect support OFF (AcarsBridge.csproj), which the bridge tests allow.
+# T76: the tests (most of the time, ~15 min in one job) run in 3 shards next to the other checks;
+# `pnpm check` = these steps plus all the shards.
 name: check
 
 on:
@@ -36,6 +38,33 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm check
+      - run: pnpm typecheck
+
+      - run: pnpm lint
+
+      - run: pnpm spdx
 
       - run: pnpm bridge:test
+
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: test (${{ matrix.shard }}/3)
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Vitest splits the test files by the hash of their path (the same split every run).
+      - run: pnpm test --shard=${{ matrix.shard }}/3

@@ -19,6 +19,7 @@ import {
   parseSimbriefOfp,
   stageIndex,
   type TelemetrySnapshot,
+  type Value,
 } from '@acars/core';
 import { describe, expect, it } from 'vitest';
 import { loadScenarios } from '../src/index.js';
@@ -169,16 +170,43 @@ const texts = (h: Hold, id: string) =>
   h.out.filter((m) => m.scenarioId === id).map((m) => m.message.text.replaceAll('\n', ' '));
 
 describe('drawn length of the holding (T50)', () => {
-  const holdMinutes = (id: string, seed: string): number => {
-    const core = AcarsCore.create({ ofp, scenarios: [scenario(id)], seed });
+  /** The run variables of `s` on the tick it starts (the draw is its first step). */
+  const drawn = (
+    s: CompiledScenario,
+    seed: string,
+  ): Readonly<Record<string, Value | undefined>> => {
+    const core = AcarsCore.create({ ofp, scenarios: [s], seed });
     core.startFlight();
-    for (const s of flight.snapshots) {
-      core.tick({ now: s.t, telemetry: s });
-      const run = core.getState().engine.runs.find((r) => r.id === id);
-      if (run !== undefined) return run.vars['run.hold_min'] as number;
+    for (const x of flight.snapshots) {
+      const r = core.tick({ now: x.t, telemetry: x });
+      // The state is read only on the start tick: a copy of it on every tick costs a third
+      // of the run.
+      if (!r.events.some((e) => e.type === 'SCENARIO_STARTED' && e.id === s.id)) continue;
+      return core.getState().engine.runs.find((v) => v.id === s.id)?.vars ?? {};
     }
-    return Number.NaN;
+    return {};
   };
+  /**
+   * `id` started at boarding, on the first tick: the dice of a run depend on the seed and the
+   * scenario, not on the moment (checked below), so the draw is the one at its own trigger,
+   * without flying each seed to the destination (T76).
+   */
+  const atBoarding = (id: string): CompiledScenario => {
+    const s = scenario(id);
+    const trigger = { on: 'phase_enter', phase: 'BOARDING' } as const;
+    return { ...s, conditions: [], def: { ...s.def, trigger } };
+  };
+  const holdMinutes = (id: string, seed: string): number =>
+    (drawn(atBoarding(id), seed)['run.hold_min'] as number | undefined) ?? Number.NaN;
+
+  it.each(['drone_activity', 'dest_fire', 'runway_closure_dest'])(
+    '%s: the draw at boarding is the draw at its own trigger',
+    (id) => {
+      const real = drawn(scenario(id), 'seed1');
+      expect(real['run.hold_min']).toBeDefined();
+      expect(drawn(atBoarding(id), 'seed1')).toEqual(real);
+    },
+  );
 
   it.each([
     ['drone_activity', 30, 180],
@@ -194,20 +222,10 @@ describe('drawn length of the holding (T50)', () => {
   });
 
   it('runway_closure_dest: length by reason, one in ten until further notice', () => {
-    const core = (seed: string) => {
-      const c = AcarsCore.create({ ofp, scenarios: [scenario('runway_closure_dest')], seed });
-      c.startFlight();
-      for (const s of flight.snapshots) {
-        c.tick({ now: s.t, telemetry: s });
-        const run = c.getState().engine.runs.find((r) => r.id === 'runway_closure_dest');
-        if (run !== undefined) return run.vars;
-      }
-      return {};
-    };
     let ufn = 0;
     const n = 60;
     for (let i = 0; i < n; i++) {
-      const v = core(`rwy${i}`);
+      const v = drawn(atBoarding('runway_closure_dest'), `rwy${i}`);
       const min = v['run.hold_min'] as number | null;
       if (v['run.ufn'] === true) {
         ufn++;
@@ -225,7 +243,7 @@ describe('drawn length of the holding (T50)', () => {
     // 3 of 30 by weight: about 6 of 60.
     expect(ufn).toBeGreaterThan(0);
     expect(ufn).toBeLessThan(18);
-  }, 60_000);
+  });
 });
 
 describe('updates and the end of the holding (T50)', () => {
