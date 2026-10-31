@@ -7,7 +7,7 @@ setlocal
 cd /d "%~dp0"
 title ACARS Link
 
-set "BRIDGE_EXE=%~dp0bridge\msfs\src\AcarsBridge\bin\Debug\net8.0\acars-msfs-bridge.exe"
+set "BRIDGE_EXE=%~dp0bridge\msfs\src\AcarsBridge\bin\Debug\net10.0\acars-msfs-bridge.exe"
 set "BRIDGE_STARTED="
 set "BRIDGE_ARGS="
 set "SETTINGS=%APPDATA%\ACARS Link\settings.json"

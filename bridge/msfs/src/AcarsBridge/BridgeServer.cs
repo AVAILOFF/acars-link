@@ -81,7 +81,7 @@ public static class BridgeServer
     public const string Path = "/";
 
     /// <summary>
-    /// Kestrel could not bind because the port is taken. Checked on a real second start (2026-10-31, .NET 8):
+    /// Kestrel could not bind because the port is taken. Checked on a real second start (2026-10-31, .NET 8 and .NET 10.0.14, T79):
     /// <c>IOException</c> "Failed to bind to address http://127.0.0.1:N: address already in use" around
     /// <c>AddressInUseException</c> around <c>SocketException</c> 10048 (WSAEADDRINUSE). The text is not matched,
     /// only the types, so the check does not depend on the language of the system.

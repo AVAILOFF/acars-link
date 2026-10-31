@@ -102,7 +102,7 @@ SDK или DevMode, а не в нашем пакете.
 
 Порядок запуска:
 1. MSFS, полёт на стоянке.
-2. Мост: `bridge\msfs\src\AcarsBridge\bin\Debug\net8.0\acars-msfs-bridge.exe` (по желанию с `--verbose`).
+2. Мост: `bridge\msfs\src\AcarsBridge\bin\Debug\net10.0\acars-msfs-bridge.exe` (по желанию с `--verbose`).
    Окно не закрывать.
 3. `pnpm desktop` → в статусе мост подключён, источник `simconnect`.
 4. Загрузить OFP, начать рейс, логон и FLT NBR — как обычно.

@@ -133,7 +133,7 @@ dotnet build bridge/msfs -p:MsfsSdk="C:\MSFS 2024 SDK"
 Готовый мост лежит здесь:
 
 ```
-bridge\msfs\src\AcarsBridge\bin\Debug\net8.0\acars-msfs-bridge.exe
+bridge\msfs\src\AcarsBridge\bin\Debug\net10.0\acars-msfs-bridge.exe
 ```
 
 **Приложение мост само не запускает.** Его нужно запускать вручную перед каждым полётом (часть 3).
@@ -428,7 +428,7 @@ Inspector — разберу по нему.
 1. **MSFS** → полёт на стоянке аэропорта вылета.
 2. **Мост:**
    ```
-   bridge\msfs\src\AcarsBridge\bin\Debug\net8.0\acars-msfs-bridge.exe --verbose
+   bridge\msfs\src\AcarsBridge\bin\Debug\net10.0\acars-msfs-bridge.exe --verbose
    ```
    Окно не закрывать до конца проверки.
 3. **Приложение** (`pnpm desktop`) → статус «Мост симулятора»: подключён, `simconnect`.

@@ -1,6 +1,6 @@
 # acars-msfs-bridge
 
-MSFS 2020/2024 → SimConnect → WebSocket `ws://127.0.0.1:47830/`. C# / .NET 8 (docs/08, decision 2).
+MSFS 2020/2024 → SimConnect → WebSocket `ws://127.0.0.1:47830/`. C# / .NET 10 LTS (docs/08, decision 2; T79).
 X-Plane 12 (12.1.1 or later) → its built-in Web API → the same WebSocket (T18). By default (`--source auto`, T59)
 the bridge connects to whichever of the two runs.
 Streams `TelemetrySnapshot` v1 (docs/03, `packages/core/src/telemetry/types.ts`) at ~1 Hz.
@@ -61,7 +61,7 @@ The app starts the bridge itself and reads how it ended (`apps/desktop/src/main/
 
 Any other exit (a crash) is started again after 1, 2, 4 … 30 s, at most 5 times in 5 minutes. Code 4 is told
 from other failures by the exception type (`AddressInUseException` / `SocketException` 10048 inside the
-`IOException` Kestrel throws, checked 2026-10-31 on .NET 8), not by its text; stderr gets
+`IOException` Kestrel throws, checked 2026-10-31 on .NET 8 and .NET 10), not by its text; stderr gets
 `acars-msfs-bridge: port N is already in use by another program (exit code 4)`.
 
 `auto` (T59, decisions of 2026-10-23): each round tries SimConnect, then X-Plane (`localhost:8086`, or
