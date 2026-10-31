@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 using System.Net;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -254,5 +255,48 @@ public sealed class BridgeTokenTests : IAsyncLifetime
         using var http = new HttpClient();
         var r = await http.GetAsync($"http://127.0.0.1:{_port}/");
         Assert.Equal(HttpStatusCode.Forbidden, r.StatusCode);
+    }
+}
+
+/// <summary>T75: a port that is taken is told apart from other start failures and has its own exit code.</summary>
+public class PortInUseTests
+{
+    [Fact]
+    public async Task A_second_bridge_on_a_taken_port_fails_with_a_port_in_use_error()
+    {
+        using var holder = new TcpListener(IPAddress.Loopback, 0);
+        holder.Start();
+        var port = ((IPEndPoint)holder.LocalEndpoint).Port;
+
+        await using var app = BridgeServer.Build(new BridgeHub("0.1.0", "fake"), port);
+        var ex = await Record.ExceptionAsync(() => app.StartAsync());
+
+        Assert.NotNull(ex);
+        Assert.True(BridgeServer.IsAddressInUse(ex), ex.ToString());
+    }
+
+    [Fact]
+    public void Only_the_port_error_counts_not_other_failures()
+    {
+        Assert.False(BridgeServer.IsAddressInUse(null));
+        Assert.False(BridgeServer.IsAddressInUse(new IOException("disk full")));
+        Assert.False(BridgeServer.IsAddressInUse(new IOException("x", new SocketException((int)SocketError.ConnectionRefused))));
+        // The type is what counts, not the text (the system may speak another language).
+        Assert.True(BridgeServer.IsAddressInUse(new IOException("x", new SocketException((int)SocketError.AddressAlreadyInUse))));
+        Assert.True(BridgeServer.IsAddressInUse(new InvalidOperationException("x", new Microsoft.AspNetCore.Connections.AddressInUseException("y"))));
+    }
+
+    [Fact]
+    public void Exit_codes_are_the_contract_with_the_app()
+    {
+        // apps/desktop/src/main/bridge-supervisor.ts has EXIT_PORT_IN_USE = 4.
+        Assert.Equal(0, ExitCodes.Ok);
+        Assert.Equal(2, ExitCodes.BadArguments);
+        Assert.Equal(3, ExitCodes.NoSimConnect);
+        Assert.Equal(4, ExitCodes.PortInUse);
+        var line = BridgeServer.PortInUseMessage(47830);
+        Assert.Contains("47830", line);
+        Assert.Contains("already in use", line);
+        Assert.Contains("exit code 4", line);
     }
 }

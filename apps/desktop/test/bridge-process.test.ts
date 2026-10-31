@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   BRIDGE_EXE,
   BRIDGE_TOKEN_ENV,
+  type BridgeExit,
   bridgeArgs,
   bridgeEnv,
   bridgeExePath,
@@ -38,6 +39,7 @@ describe('bridge process', () => {
       copyFileSync(process.execPath, bridgeExePath(res));
       const lines: string[] = [];
       const logged: string[] = [];
+      const exits: BridgeExit[] = [];
       const stop = startBridge(
         res,
         47830,
@@ -45,6 +47,7 @@ describe('bridge process', () => {
         'tok',
         (m) => logged.push(m),
         (stream, line) => lines.push(`${stream} ${line}`),
+        (exit) => exits.push(exit),
       );
       expect(stop).not.toBeNull();
       // It exits on its own; `stop` would kill it before it writes.
@@ -52,6 +55,10 @@ describe('bridge process', () => {
       await stop?.();
       expect(lines.some((l) => l.startsWith('err ') && l.includes('--port'))).toBe(true);
       expect(logged.at(-1)).toMatch(/^bridge exited \(\d+\)$/);
+      // T75: the exit code reaches the supervisor, once.
+      expect(exits).toHaveLength(1);
+      expect(exits[0]?.code).not.toBe(0);
+      expect(exits[0]?.error).toBeNull();
     },
     30_000,
   );

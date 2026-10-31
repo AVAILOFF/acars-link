@@ -233,6 +233,18 @@ export interface BridgeView {
   readonly version: string | null;
 }
 
+/**
+ * What is wrong with the bundled bridge process (T75); `AppState.bridgeProcess` is null while all is
+ * well, in a dev run (the bridge is started by hand) and for a bridge that was not started by the app.
+ */
+export type BridgeProcessView =
+  /** It stopped by itself and is started again; `attempt` counts the stops in the last 5 minutes. */
+  | { readonly kind: 'restarting'; readonly attempt: number }
+  /** Another program holds the port; the app does not start the bridge again. */
+  | { readonly kind: 'port_in_use'; readonly port: number }
+  /** It keeps stopping: given up until the app or the bridge settings are restarted. */
+  | { readonly kind: 'failed'; readonly lastLines: string };
+
 export interface TelemetryView {
   readonly t: number;
   readonly aircraftTitle: string;
@@ -307,6 +319,7 @@ export type SystemCode =
   | 'transport_status'
   | 'sim_command_failed'
   | 'sim_changed'
+  | 'bridge_restarted'
   | 'atc_station'
   | 'atc_logon'
   | 'atc_logon_refused'
@@ -419,6 +432,8 @@ export interface AppState {
   /** "Time from the simulator" is on and the flight waits for the first sim time (U-16). */
   readonly waitingSimTime: boolean;
   readonly bridge: BridgeView;
+  /** T75: the state of the bridge process the app started; null = nothing to report. */
+  readonly bridgeProcess: BridgeProcessView | null;
   readonly telemetry: TelemetryView | null;
   readonly transport: TransportView | null;
   /** XATC station of the running flight (T23); null = off or no flight. */

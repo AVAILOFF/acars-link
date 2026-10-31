@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 using System.Net;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
@@ -54,6 +55,21 @@ public static class AccessPolicy
 }
 
 /// <summary>
+/// Exit codes of <c>acars-msfs-bridge.exe</c>. The app (<c>bridge-process.ts</c>) reads them: code 4 means
+/// another program holds the port, so restarting would only repeat it (T75).
+/// </summary>
+public static class ExitCodes
+{
+    public const int Ok = 0;
+    /// <summary>Unknown or incomplete option, unknown source.</summary>
+    public const int BadArguments = 2;
+    /// <summary>--source simconnect, but SimConnect is not compiled in.</summary>
+    public const int NoSimConnect = 3;
+    /// <summary>The listen port is already in use (Kestrel could not bind to it).</summary>
+    public const int PortInUse = 4;
+}
+
+/// <summary>
 /// WebSocket server on 127.0.0.1 that streams <see cref="BridgeHub"/> frames. A client asking for
 /// <c>?protocol=2</c> may send commands (<see cref="CommandDispatcher"/>); the <c>ack</c> goes to it alone.
 /// With a launch <c>token</c> (set by the app, T65) a client without the same
@@ -63,6 +79,26 @@ public static class BridgeServer
 {
     public const int DefaultPort = 47830;
     public const string Path = "/";
+
+    /// <summary>
+    /// Kestrel could not bind because the port is taken. Checked on a real second start (2026-10-31, .NET 8):
+    /// <c>IOException</c> "Failed to bind to address http://127.0.0.1:N: address already in use" around
+    /// <c>AddressInUseException</c> around <c>SocketException</c> 10048 (WSAEADDRINUSE). The text is not matched,
+    /// only the types, so the check does not depend on the language of the system.
+    /// </summary>
+    public static bool IsAddressInUse(Exception? error)
+    {
+        for (var e = error; e is not null; e = e.InnerException)
+        {
+            if (e is Microsoft.AspNetCore.Connections.AddressInUseException) return true;
+            if (e is SocketException { SocketErrorCode: SocketError.AddressAlreadyInUse }) return true;
+        }
+        return false;
+    }
+
+    /// <summary>The line the app shows next to exit code 4 (stderr, so it reaches bridge.log).</summary>
+    public static string PortInUseMessage(int port) =>
+        $"{Protocol.BridgeName}: port {port} is already in use by another program (exit code {ExitCodes.PortInUse})";
 
     public static WebApplication Build(BridgeHub hub, int port, CommandDispatcher? commands = null, LogLevel logLevel = LogLevel.Warning,
         string? token = null)

@@ -257,7 +257,8 @@ const en: readonly HelpSection[] = [
             list: [
               'Start MSFS and wait for the main menu; the bridge connects on its own.',
               'X-Plane 12: “Simulator” in Settings must be “Automatic” or “X-Plane 12”, X-Plane must be 12.1.1 or later, and Settings > Network in X-Plane must allow incoming traffic. The simulator shows “connected” once a flight is loaded.',
-              'Make sure nothing else uses the port from “Sim bridge port” (advanced settings). The installed app restarts the bridge when it changes.',
+              'Make sure nothing else uses the port from “Sim bridge port” (advanced settings). The installed app restarts the bridge when it changes. “Port busy” in the top bar means another program (another bridge, started by hand) holds the port: close it or change the port.',
+              'If the bridge stops by itself, the installed app starts it again after a few seconds (a line in the feed says so, the flight goes on). “Does not start” means it stopped 6 times in 5 minutes: restart the app or change the bridge port, and send the diagnostics (Settings → Diagnostics) with the problem.',
               'The bridge only listens on 127.0.0.1: the app and the simulator must run on the same PC.',
             ],
           },
@@ -481,7 +482,8 @@ const ru: readonly HelpSection[] = [
             list: [
               'Запустите MSFS и дождитесь главного меню — мост подключится сам.',
               'X-Plane 12: в настройках «Симулятор» должен быть «Автоматически» или «X-Plane 12», версия X-Plane — 12.1.1 или новее, а в X-Plane в Settings > Network должен быть разрешён входящий трафик. «Подключён» появится, когда загружен полёт.',
-              'Проверьте, что порт из «Порт моста симулятора» (расширенные настройки) не занят другой программой. Установленное приложение перезапускает мост при смене порта.',
+              'Проверьте, что порт из «Порт моста симулятора» (расширенные настройки) не занят другой программой. Установленное приложение перезапускает мост при смене порта. «Порт занят» в верхней строке значит, что порт держит другая программа (другой мост, запущенный вручную): закройте её или смените порт.',
+              'Если мост остановился сам, установленное приложение запустит его снова через несколько секунд (в ленте будет строка об этом, рейс продолжается). «Не запускается» — он остановился 6 раз за 5 минут: перезапустите приложение или смените порт моста и приложите диагностику (Настройки → Диагностика) к описанию проблемы.',
               'Мост слушает только 127.0.0.1: приложение и симулятор должны работать на одном ПК.',
             ],
           },

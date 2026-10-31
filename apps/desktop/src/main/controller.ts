@@ -24,6 +24,7 @@ import type { HttpClient, Transport } from '@acars/transport';
 import type {
   AboutInfo,
   AppState,
+  BridgeProcessView,
   CredentialsView,
   EndingView,
   FlightReportView,
@@ -150,6 +151,8 @@ export const HOPPIE_CHECK_GAP_MS = 15_000;
 export class AppController {
   private readonly feed = new Feed();
   private readonly bridge: BridgeClient;
+  /** T75: set by the bridge process supervisor in `main/index.ts`. */
+  private bridgeProcess: BridgeProcessView | null = null;
   private scenarios: readonly CompiledScenario[] = [];
   private scenarioError: string | null = null;
   private ofp: Ofp | null = null;
@@ -304,6 +307,7 @@ export class AppController {
       ending: this.ending(),
       waitingSimTime: s?.waitingSimTime ?? false,
       bridge: this.bridge.view,
+      bridgeProcess: this.bridgeProcess,
       telemetry: s?.telemetry ?? null,
       transport: s?.transportView ?? null,
       atc: s?.atc ?? null,
@@ -1000,6 +1004,21 @@ export class AppController {
       throw new AppFailure('internal', e instanceof Error ? e.message : String(e));
     }
     return null;
+  }
+
+  /** T75: the supervisor of the bridge process reports its state (null = nothing to report). */
+  setBridgeProcess(status: BridgeProcessView | null): void {
+    this.bridgeProcess = status;
+    this.o.onChange();
+  }
+
+  /**
+   * T75: the bridge process was started again after it stopped; the flight goes on, the feed says so
+   * (like `sim_changed`, only while a flight runs).
+   */
+  noteBridgeRestarted(): void {
+    if (this.session !== null) this.feed.system(this.o.now(), 'bridge_restarted', {});
+    this.o.onChange();
   }
 
   /** The simulator the app works with now (T59): the connected one, else the fixed choice. */

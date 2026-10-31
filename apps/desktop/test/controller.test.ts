@@ -130,6 +130,28 @@ describe('AppController', () => {
     expect(s.app.state().bridge).toMatchObject({ protocol: 2, commands: ['ping'] });
   });
 
+  it('T75: the state of the bridge process is in the app state; a restart is a feed line during a flight only', async () => {
+    const s = await setup();
+    expect(s.app.state().bridgeProcess).toBeNull();
+    s.app.setBridgeProcess({ kind: 'port_in_use', port: 47830 });
+    expect(s.app.state().bridgeProcess).toEqual({ kind: 'port_in_use', port: 47830 });
+    s.app.setBridgeProcess(null);
+    expect(s.app.state().bridgeProcess).toBeNull();
+
+    const restarts = () =>
+      s.app.state().feed.filter((e) => e.kind === 'system' && e.code === 'bridge_restarted');
+    s.app.noteBridgeRestarted(); // no flight: nothing to tell
+    expect(restarts()).toEqual([]);
+
+    await s.app.updateSettings({ transport: 'offline' });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.loadOfp();
+    await s.app.startFlight();
+    s.app.noteBridgeRestarted();
+    expect(restarts()).toHaveLength(1);
+    expect(s.app.state().session).toBe('running'); // the flight goes on
+  });
+
   it('a new simulator or bridge port restarts the bridge (T18); other settings do not', async () => {
     const calls: [number, SimChoice][] = [];
     const { app } = await setup({ onBridgeConfig: (port, sim) => calls.push([port, sim]) });

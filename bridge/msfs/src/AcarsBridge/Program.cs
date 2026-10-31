@@ -49,10 +49,10 @@ for (var i = 0; i < args.Length; i++)
             break;
         case "--help" or "-h":
             Console.WriteLine(Usage);
-            return 0;
+            return ExitCodes.Ok;
         default:
             Console.Error.WriteLine($"unknown or incomplete option: {args[i]}\n\n{Usage}");
-            return 2;
+            return ExitCodes.BadArguments;
     }
 }
 
@@ -82,11 +82,11 @@ switch (sourceName)
 #else
         Console.Error.WriteLine("SimConnect support is not compiled in (MSFS SDK not found at build time). " +
                                 "Rebuild with -p:MsfsSdk=<SDK root>, or run with --source fake.");
-        return 3;
+        return ExitCodes.NoSimConnect;
 #endif
     default:
         Console.Error.WriteLine($"unknown source: {sourceName}");
-        return 2;
+        return ExitCodes.BadArguments;
 }
 
 // T65: the token comes in the environment (not on the command line, which audit logs may keep);
@@ -112,7 +112,17 @@ Console.CancelKeyPress += (_, e) =>
     cts.Cancel();
 };
 
-await app.StartAsync(cts.Token);
+try
+{
+    await app.StartAsync(cts.Token);
+}
+catch (Exception e) when (BridgeServer.IsAddressInUse(e))
+{
+    // T75: another program holds the port (a bridge started by hand, say). A code of its own tells the app
+    // not to start this process again in a loop.
+    Console.Error.WriteLine(BridgeServer.PortInUseMessage(port));
+    return ExitCodes.PortInUse;
+}
 Console.WriteLine($"{Protocol.BridgeName} {version}: source={source.Name}, listening on ws://127.0.0.1:{port}{BridgeServer.Path}" +
                   $" (protocol {Protocol.MinProtocolVersion}-{Protocol.ProtocolVersion}, commands: {string.Join(", ", commands.Commands)})");
 
@@ -127,7 +137,7 @@ catch (OperationCanceledException)
 await run;
 hub.Hub.Complete();
 await app.StopAsync();
-return 0;
+return ExitCodes.Ok;
 
 /// <summary>Prints status changes to the console (no telemetry spam).</summary>
 internal sealed class LoggingSink(BridgeHub hub) : ISimSink
