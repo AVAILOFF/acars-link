@@ -54,6 +54,7 @@ pnpm replay run <запись.jsonl> [--scenarios <yaml|папка>] [--only id,
 pnpm replay synth --ofp <simbrief.json> --out <файл.jsonl>   # синтетический полёт как запись; pnpm replay --help
 pnpm replay summary <запись.jsonl> [--json] [--check]   # сводка рейса T69 из записи; --check — сверка со строкой summary приложения
 pnpm desktop:dist     # установщик Windows, ПУБЛИЧНЫЙ вариант (T72): без таблиц сквоков EUROCONTROL CAL / ICAO APAC eANP и без natTrak; apps/desktop/release/ACARS-Link-Setup-<версия>.exe (NSIS, без подписи; мост — в resources/bridge); после сборки tools/release/verify-public.mjs проверяет out/ и app.asar
+pnpm release <X.Y.Z> [--no-dist] [--any-branch]   # выпуск (T77): на master, чистая копия; версия в apps/desktop/package.json и .csproj моста, раздел CHANGELOG.md из `Merge task/…` с прошлого тега, pnpm check + bridge:test (ошибка — файлы назад), коммит «Release vX.Y.Z», тег vX.Y.Z, desktop:dist; push — только по просьбе пользователя; README.md, «Выпуски»
 pnpm desktop:dist:personal   # то же, ЛИЧНЫЙ вариант (всё включено), ACARS-Link-Setup-personal-<версия>.exe; вариант выбирает ACARS_BUILD=public|personal для electron-vite (tools/release/build.mjs), заглушки — apps/desktop/variants/public
 pnpm licenses         # тексты лицензий npm-пакетов бандла и .NET → apps/desktop/build/third-party-licenses.txt (часть desktop:dist)
 pnpm icon             # иконка приложения: design/logo/*.svg → apps/desktop/build/icon.{ico,png} (рендер через Electron)

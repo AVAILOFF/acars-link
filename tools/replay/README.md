@@ -20,8 +20,9 @@ Flight recordings and their replay through the core (T11, docs/04 «Тестир
 The lines after the header are the calls the app made to `AcarsCore`, in order (`now` = app
 clock, `telemetry.t` = bridge clock). `out` lines are what the core sent live; `sent` (T64) says the transport delivered the `n`-th `out`
 line (from 0) or gave it up, `resume` marks where the app restored the flight after a restart (the
-ticks go on after the gap; the replay runs the file as one flight), and the header field `simTime`
-says the times are the sim's UTC. `summary` (T69) is the flight report the app showed when the flight
+ticks go on after the gap; the replay runs the file as one flight), the header field `simTime`
+says the times are the sim's UTC, and `appVersion` (T77) is the version of the app that wrote the
+file (`+dev` when run from the sources; absent in older files). `summary` (T69) is the flight report the app showed when the flight
 was closed at the gate, written right after `end` (output, like `out`). The OFP is the
 normalized one (no pilot name or ids). A file of bare `TelemetrySnapshot` lines (the bridge
 `--source fake --replay` format) is read as well, with `--ofp`.

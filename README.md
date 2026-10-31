@@ -51,6 +51,18 @@ pnpm desktop:dist   # установщик: apps/desktop/release/ACARS-Link-Setu
 
 Проверка — GitHub Actions, [.github/workflows/check.yml](.github/workflows/check.yml): на каждый push в любую ветку и на pull request, `windows-latest`, `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm bridge:test`. MSFS SDK в CI нет — мост собирается без SimConnect. Результат — вкладка Actions репозитория или `gh run list`; вручную — `gh workflow run check --ref <ветка>`.
 
+## Выпуски
+
+Версии — SemVer, до публичного выпуска 0.x (T77). Выпуск — аннотированный тег `vX.Y.Z` на коммите `master`; точка отсчёта — `v0.1.0`. Версия записана в двух местах — `apps/desktop/package.json` и `<Version>` в `bridge/msfs/src/AcarsBridge/AcarsBridge.csproj`, тест `tools/release/test` проверяет, что они совпадают. В приложении она видна в «О программе» и пишется в заголовок каждой записи полёта (`appVersion`).
+
+```
+pnpm release 0.1.1   # на master, рабочая копия чистая
+```
+
+[tools/release/release.mjs](tools/release/release.mjs): проверяет ветку `master`, чистую рабочую копию, что тега ещё нет и версия больше текущей; пишет версию в оба файла и раздел [CHANGELOG.md](CHANGELOG.md) (по-английски) из коммитов `Merge task/… into …: <заголовок>` с прошлого тега; запускает `pnpm check` и `pnpm bridge:test` — при ошибке файлы возвращаются как были, ничего не коммитится; затем коммит «Release vX.Y.Z», тег и `pnpm desktop:dist` (публичный установщик `apps/desktop/release/ACARS-Link-Setup-<версия>.exe`). `--no-dist` — без установщика, `--any-branch` — попробовать на другой ветке (копии). Собирается локально, не в CI: в CI нет MSFS SDK, без него мост собирается без SimConnect. CI на push тега только проверяет (`check.yml` срабатывает на любой push).
+
+Ничего не отправляется само: `git push origin master vX.Y.Z` — вручную, по решению владельца. Установщики для других людей — в отдельном публичном репозитории только с установщиками и заметками к выпускам (например, `AVAILOFF/acars-link-releases`, решение 2026-10-31; создание и публикация — по отдельной просьбе). Обновлений в приложении нет: ни уведомления, ни автообновления (решение 2026-10-31).
+
 ## Документы
 
 1. [CLAUDE.md](CLAUDE.md) — инварианты и порядок работы (обязательно).
