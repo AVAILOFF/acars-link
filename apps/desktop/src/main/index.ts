@@ -2,9 +2,10 @@
 // Copyright (c) 2026 AVAILOFF
 
 import { randomBytes, randomInt } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { arch, release } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { createRng } from '@acars/core';
 import { ROUTES_CACHE_PREFIX, ROUTES_RETENTION_MS } from '@acars/data-sources';
 import { fetchHttpClient, HoppieTransport, MockTransport } from '@acars/transport';
@@ -22,11 +23,13 @@ import {
 import { type AppState, IPC, type SimChoice } from '../shared/api.js';
 import type { SocketLike } from './bridge.js';
 import { startBridge } from './bridge-process.js';
+import { BridgeSupervisor } from './bridge-supervisor.js';
 import { CLOSE_BUTTON, closeDialog } from './close-dialog.js';
 import { AppController } from './controller.js';
 import { FileDataCache } from './data-cache.js';
 import { FlagsStore } from './flags.js';
 import { registerIpc } from './ipc.js';
+import { legalFile } from './legal.js';
 import {
   BRIDGE_LOG,
   type Log,
@@ -44,6 +47,7 @@ import { BASE_SCENARIOS } from './scenario-sources.js';
 import { type Cipher, SecretStore } from './secrets.js';
 import { defaultSettings, SettingsStore } from './settings.js';
 import { holdSingleInstance } from './single-instance.js';
+import { PUBLIC_BUILD } from './variant.js';
 import { gsxVdgsDir } from './vdgs.js';
 
 /**
@@ -178,6 +182,7 @@ async function main(): Promise<void> {
     node: process.versions.node,
     os: `${process.platform} ${release()} ${arch()}`,
     locale: app.getLocale(),
+    build: PUBLIC_BUILD ? 'public' : 'personal',
   };
   log.info(
     `start: ${about.app}, Electron ${about.electron}, Node ${about.node}, ${about.os}, ${about.locale}`,
@@ -205,24 +210,39 @@ async function main(): Promise<void> {
     join(userData, 'settings.json'),
     defaultSettings(app.getLocale()),
   );
-  // Installed build only (dev: the bridge is started by hand). One start at a time: the old process
-  // leaves the port before the new one takes it.
-  let stopBridge: (() => Promise<void>) | null = null;
-  let bridgeQueue = Promise.resolve();
-  const restartBridge = (port: number, simulator: SimChoice) => {
-    if (!app.isPackaged) return;
-    bridgeQueue = bridgeQueue.then(async () => {
-      await stopBridge?.();
-      log.info(`bridge: starting on port ${port}, simulator ${simulator}`);
-      stopBridge = startBridge(
+  let controller: AppController | null = null;
+  // Installed build only (dev: the bridge is started by hand). T75: the supervisor starts the process
+  // again when it stops by itself and tells the app why when it cannot.
+  const supervisor = new BridgeSupervisor({
+    spawn: (port, simulator, hooks) =>
+      startBridge(
         process.resourcesPath,
         port,
         simulator,
         bridgeToken,
         (msg) => log.warn(msg),
-        (stream, line) => (stream === 'err' ? bridgeLog.warn(line) : bridgeLog.info(line)),
-      );
-      if (stopBridge === null) log.warn('bridge: not started (no exe)');
+        (stream, line) => {
+          if (stream === 'err') bridgeLog.warn(line);
+          else bridgeLog.info(line);
+          hooks.onLine(stream, line);
+        },
+        hooks.onExit,
+      ),
+    timers: { set: (fn, ms) => setTimeout(fn, ms), clear: (h) => clearTimeout(h as never) },
+    now: () => Date.now(),
+    redact: (text) => redactor.redact(text),
+    onStatus: (status) => controller?.setBridgeProcess(status),
+    onRestarted: () => controller?.noteBridgeRestarted(),
+    log,
+  });
+  // One start at a time: the old process leaves the port before the new one takes it.
+  let bridgeQueue = Promise.resolve();
+  const restartBridge = (port: number, simulator: SimChoice) => {
+    if (!app.isPackaged) return;
+    bridgeQueue = bridgeQueue.then(async () => {
+      await supervisor.stop();
+      log.info(`bridge: starting on port ${port}, simulator ${simulator}`);
+      if (!supervisor.start(port, simulator)) log.warn('bridge: not started (no exe)');
     });
   };
   /** The save dialog in Documents (T67 diagnostics, T69 flight report); null = cancelled. */
@@ -237,7 +257,6 @@ async function main(): Promise<void> {
         : await dialog.showSaveDialog(win, options);
     return r.canceled || r.filePath === undefined || r.filePath === '' ? null : r.filePath;
   };
-  let controller: AppController | null = null;
   const onChange = () => {
     if (controller !== null) pushState(controller.state());
   };
@@ -286,6 +305,23 @@ async function main(): Promise<void> {
       choosePath: (defaultName) => chooseSavePath(defaultName, 'JSON', 'json'),
       reveal: (file) => shell.showItemInFolder(file),
     },
+    about: () => ({
+      version: app.getVersion(),
+      dev: !app.isPackaged,
+      electron: about.electron,
+      chrome: about.chrome,
+      variant: PUBLIC_BUILD ? 'public' : 'personal',
+    }),
+    openLegal: async (doc) => {
+      const file = legalFile(doc, {
+        packaged: app.isPackaged,
+        resourcesPath: process.resourcesPath,
+        desktopDir: join(here, '../..'),
+      });
+      if (!existsSync(file)) throw new Error(`file not found: ${basename(file)}`);
+      const error = await shell.openPath(file);
+      if (error !== '') throw new Error(error);
+    },
   });
   const ctl = controller;
   registerIpc(ipcMain, ctl, isTrustedSender, log);
@@ -314,7 +350,7 @@ async function main(): Promise<void> {
     log.info('quit');
     clearInterval(loop);
     ctl.dispose();
-    void stopBridge?.();
+    void supervisor.stop();
   });
 }
 

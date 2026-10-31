@@ -18,6 +18,28 @@ export interface StatusItem {
 
 export function bridgeStatus(app: AppState, t: Translate): StatusItem {
   const b = app.bridge;
+  // T75: why the bridge the app started is not there. A bridge that answers (one started by hand,
+  // without our token) wins: then everything works and there is nothing to explain.
+  const p = app.bridgeProcess;
+  if (p !== null && b.link !== 'open') {
+    if (p.kind === 'restarting') {
+      const short = t('bridge.restarting');
+      return { tone: 'warn', short, text: t('bridge.restartingText', { n: p.attempt }) };
+    }
+    if (p.kind === 'port_in_use') {
+      return {
+        tone: 'bad',
+        short: t('bridge.portBusy'),
+        text: t('bridge.portBusyText', { port: p.port }),
+      };
+    }
+    const lines = p.lastLines.replaceAll('\n', ' · ');
+    return {
+      tone: 'bad',
+      short: t('bridge.failed'),
+      text: t('bridge.failedText') + (lines === '' ? '' : `. ${t('bridge.lastLines')}: ${lines}`),
+    };
+  }
   const tone: Tone = b.link === 'open' ? 'ok' : b.link === 'connecting' ? 'warn' : 'bad';
   const short = t(`bridge.${b.link}`);
   return { tone, short, text: short + (b.detail === null ? '' : ` — ${b.detail}`) };

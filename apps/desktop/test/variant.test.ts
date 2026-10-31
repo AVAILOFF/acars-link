@@ -81,3 +81,41 @@ describe('tools/release/verify-public.mjs', () => {
     expect(run().status).toBe(2);
   });
 });
+
+describe('tools/release/verify-bridge.mjs (T73)', () => {
+  const script = join(root, 'tools/release/verify-bridge.mjs');
+  const run = (...dirs: string[]) =>
+    spawnSync(process.execPath, [script, ...dirs], { encoding: 'utf8' });
+  const folder = (...files: string[]) => {
+    const dir = mkdtempSync(join(tmpdir(), 'verify-bridge-'));
+    for (const f of files) writeFileSync(join(dir, f), '');
+    return dir;
+  };
+
+  it('passes a bridge with its own SimConnect layer and no Microsoft binaries', () => {
+    const dir = folder('acars-msfs-bridge.exe', 'acars_simconnect.dll');
+    try {
+      expect(run(dir).status).toBe(0);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('fails on SimConnect.dll, on the managed wrapper and on a missing layer', () => {
+    const ok = ['acars-msfs-bridge.exe', 'acars_simconnect.dll'];
+    for (const [files, text] of [
+      [[...ok, 'SimConnect.dll'], 'SimConnect.dll must not be shipped'],
+      [[...ok, 'Microsoft.FlightSimulator.SimConnect.dll'], 'must not be shipped'],
+      [['acars-msfs-bridge.exe'], 'acars_simconnect.dll is missing'],
+    ] as const) {
+      const dir = folder(...files);
+      try {
+        const r = run(dir);
+        expect(r.status, text).toBe(1);
+        expect(r.stderr).toContain(text);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+  });
+});

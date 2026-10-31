@@ -19,32 +19,48 @@
   </ItemGroup>
 
   <!--
-    SimConnect comes from the MSFS SDK, which is not in the repo (and not on NuGet officially).
-    Point MsfsSdk at the SDK root (or set MSFS2024_SDK / MSFS_SDK, which the SDK installer sets):
+    SimConnect (T73): the bridge talks to MSFS through acars_simconnect.dll (bridge/msfs/native, C++), which has the
+    SimConnect client linked in statically from the official MSFS SDK (SimConnect SDK\lib\static\SimConnect.lib).
+    Neither SimConnect.dll nor the managed Microsoft.FlightSimulator.SimConnect.dll is used or shipped.
+
+    The SDK is not in the repo. Point MsfsSdk at its root (or set MSFS2024_SDK / MSFS_SDK, which the SDK installer sets,
+    or MsfsSdk in Local.props):
       dotnet build -p:MsfsSdk="C:\MSFS 2024 SDK"
-    Without the SDK the bridge still builds and runs with the fake source; the simconnect source
-    then exits with an error that SimConnect support was not compiled in.
+    Building the DLL needs Visual Studio Build Tools 2022 with the C++ x64 tools (native/build.cmd finds them).
+    Without the SDK the bridge still builds and runs (X-Plane, fake source); the simconnect source then exits with an
+    error that SimConnect support was not compiled in. The property BuildSimConnect=false skips the DLL even with the SDK.
   -->
   <PropertyGroup>
     <MsfsSdk Condition="'$(MsfsSdk)' == ''">$(MSFS2024_SDK)</MsfsSdk>
     <MsfsSdk Condition="'$(MsfsSdk)' == ''">$(MSFS_SDK)</MsfsSdk>
-    <SimConnectManagedDll>$(MsfsSdk)\SimConnect SDK\lib\managed\Microsoft.FlightSimulator.SimConnect.dll</SimConnectManagedDll>
-    <SimConnectNativeDll>$(MsfsSdk)\SimConnect SDK\lib\SimConnect.dll</SimConnectNativeDll>
-    <HasSimConnect Condition="'$(MsfsSdk)' != '' And Exists('$(SimConnectManagedDll)')">true</HasSimConnect>
+    <SimConnectStaticLib>$(MsfsSdk)\SimConnect SDK\lib\static\SimConnect.lib</SimConnectStaticLib>
+    <NativeSource>$(MSBuildProjectDirectory)\..\..\native</NativeSource>
+    <NativeOut>$(MSBuildProjectDirectory)\obj\native</NativeOut>
+    <HasSimConnect Condition="'$(BuildSimConnect)' != 'false' And '$(OS)' == 'Windows_NT' And '$(MsfsSdk)' != '' And Exists('$(SimConnectStaticLib)')">true</HasSimConnect>
     <DefineConstants Condition="'$(HasSimConnect)' == 'true'">$(DefineConstants);SIMCONNECT</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(HasSimConnect)' == 'true'">
-    <Reference Include="Microsoft.FlightSimulator.SimConnect">
-      <HintPath>$(SimConnectManagedDll)</HintPath>
-      <Private>true</Private>
-    </Reference>
-    <!-- The managed wrapper loads the native SimConnect.dll at runtime. -->
-    <None Include="$(SimConnectNativeDll)" Link="SimConnect.dll" CopyToOutputDirectory="PreserveNewest" />
+    <NativeInput Include="$(NativeSource)\acars_simconnect.cpp;$(NativeSource)\acars_simconnect.h;$(NativeSource)\build.cmd;$(SimConnectStaticLib)" />
+    <None Include="$(NativeOut)\acars_simconnect.dll" Link="acars_simconnect.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <Target Name="BuildNativeSimConnect" BeforeTargets="BeforeBuild" Condition="'$(HasSimConnect)' == 'true'"
+          Inputs="@(NativeInput)" Outputs="$(NativeOut)\acars_simconnect.dll">
+    <Exec Command="&quot;$(NativeSource)\build.cmd&quot; &quot;$(MsfsSdk)&quot; &quot;$(NativeOut)&quot;" />
+  </Target>
+
+  <!-- A publish folder keeps old files: the SimConnect DLLs of earlier builds must not stay in what ships (T73). -->
+  <Target Name="CleanForeignSimConnect" BeforeTargets="Publish">
+    <Delete Files="$(PublishDir)SimConnect.dll;$(PublishDir)Microsoft.FlightSimulator.SimConnect.dll" />
+  </Target>
+  <Target Name="NoForeignSimConnect" AfterTargets="Publish">
+    <Error Condition="Exists('$(PublishDir)SimConnect.dll') Or Exists('$(PublishDir)Microsoft.FlightSimulator.SimConnect.dll')"
+           Text="$(PublishDir) holds a Microsoft SimConnect DLL: the bridge ships only acars_simconnect.dll (T73)." />
+  </Target>
+
   <Target Name="ReportSimConnect" BeforeTargets="Build">
-    <Message Importance="high" Text="acars-msfs-bridge: SimConnect support ON ($(MsfsSdk))" Condition="'$(HasSimConnect)' == 'true'" />
+    <Message Importance="high" Text="acars-msfs-bridge: SimConnect support ON (acars_simconnect.dll from $(MsfsSdk))" Condition="'$(HasSimConnect)' == 'true'" />
     <Message Importance="high" Text="acars-msfs-bridge: SimConnect support OFF (MSFS SDK not found; set -p:MsfsSdk=...)" Condition="'$(HasSimConnect)' != 'true'" />
   </Target>
 

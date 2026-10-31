@@ -3,10 +3,12 @@
 
 import { create } from 'zustand';
 import type {
+  AboutInfo,
   AcarsApi,
   AppError,
   AppState,
   CredentialsView,
+  LegalDoc,
   Result,
   ScenarioInfo,
   Settings,
@@ -38,7 +40,8 @@ export type Busy =
   | 'pilot'
   | 'resume'
   | 'diagnostics'
-  | 'report';
+  | 'report'
+  | 'legal';
 
 /** Result of a "Check" button (U-06), shown next to its row. */
 export type Checked =
@@ -68,6 +71,8 @@ interface Store {
   readonly focusField: string | null;
   /** The question about the lost flight (T64) was put away with Esc until the next start. */
   readonly resumeHidden: boolean;
+  /** Versions and build for the "About" page (T74); null until loaded. */
+  readonly about: AboutInfo | null;
 
   init(): Promise<() => void>;
   setTab(tab: Tab): void;
@@ -113,6 +118,8 @@ interface Store {
   exportDiagnostics(withRecording: boolean): Promise<void>;
   /** T69: the flight report as JSON; "saved" only when a file was written. */
   exportReport(): Promise<void>;
+  /** T74: opens the EULA, the third-party notices or the component licences. */
+  openLegal(doc: LegalDoc): Promise<void>;
 }
 
 const api = (): AcarsApi => window.acars;
@@ -157,17 +164,20 @@ export const useStore = create<Store>()((set, get) => {
     tour: null,
     focusField: null,
     resumeHidden: false,
+    about: null,
 
     async init() {
       const off = api().onState((app) => set({ app }));
-      const [app, settings, creds, scenarios] = await Promise.all([
+      const [app, settings, creds, scenarios, about] = await Promise.all([
         api().getState(),
         api().getSettings(),
         api().getCredentials(),
         api().listScenarios(),
+        api().getAbout(),
       ]);
       set({
         app,
+        about,
         settings,
         creds,
         scenarios: scenarios.ok ? scenarios.value : [],
@@ -326,6 +336,11 @@ export const useStore = create<Store>()((set, get) => {
         },
       );
       if (file === null && get().saved === 'report') set({ saved: null });
+    },
+    async openLegal(doc) {
+      await run('legal', () => api().openLegal(doc));
+      // Opening a file is not a saved setting: no "saved" mark.
+      if (get().saved === 'legal') set({ saved: null });
     },
   };
 });

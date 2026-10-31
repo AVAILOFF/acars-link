@@ -13,11 +13,24 @@ dotnet build bridge/msfs -p:MsfsSdk="C:\MSFS 2024 SDK"     # with SimConnect
 dotnet test bridge/msfs                                    # or: pnpm bridge:test
 ```
 
-The MSFS SDK is not in the repo. The project looks for
-`<SDK>\SimConnect SDK\lib\managed\Microsoft.FlightSimulator.SimConnect.dll` in `-p:MsfsSdk=…`, then in
+SimConnect (T73): the bridge does not use Microsoft's `SimConnect.dll` or the managed
+`Microsoft.FlightSimulator.SimConnect.dll`. It calls its own `acars_simconnect.dll` (C++, `native/`) by P/Invoke
+(`SimConnectNative.cs`, `SimConnectClient.cs`); the SimConnect client is linked into that DLL statically, from
+`<SDK>\SimConnect SDK\lib\static\SimConnect.lib` of the official MSFS SDK.
+
+The MSFS SDK is not in the repo. The project looks for that library in `-p:MsfsSdk=…` (the SDK root), then in
 `bridge/msfs/Local.props` (gitignored, copy from `Local.props.example`), then in the `MSFS2024_SDK` and
-`MSFS_SDK` environment variables. Native `SimConnect.dll` is copied next to the exe. x64 only.
-The build prints which folder it used (`SimConnect support ON (…)`).
+`MSFS_SDK` environment variables. When it is found, the build runs `native/build.cmd`, which needs Visual Studio
+Build Tools 2022 with the C++ x64 tools (it finds them with `vswhere`), and puts `acars_simconnect.dll` next to the exe
+(and into a publish). `-p:BuildSimConnect=false` skips it. Without the SDK the bridge builds with SimConnect support
+OFF (`--source simconnect` then says so; X-Plane and the fake source work) — what CI does. x64 only.
+The build prints which folder it used (`SimConnect support ON (…)`). The DLL needs the Visual C++ 2015–2022
+Redistributable (x64), as MSFS and the .NET runtime do. The ABI between the two sides is `ACARS_SC_ABI` in
+`native/acars_simconnect.h` (checked at load); change the header and `SimConnectNative.cs` together.
+
+`dotnet publish` (`pnpm bridge:publish`) removes `SimConnect.dll` and `Microsoft.FlightSimulator.SimConnect.dll` from the
+publish folder and fails if they are there afterwards. `pnpm bridge:test` runs the SimConnect layer against a fake
+(`SimConnectTests.cs`); the tests of the real DLL pass without doing anything where it was not built.
 
 ## Run
 
@@ -33,6 +46,23 @@ acars-msfs-bridge --source xplane --xplane-port 8088   # X-Plane started with --
 
 Start order does not matter. Until the sim is up, the bridge retries with backoff
 1, 2, 4, 8, 16, 30, 30 … s. The same happens after the sim quits.
+
+### Exit codes (T75)
+
+The app starts the bridge itself and reads how it ended (`apps/desktop/src/main/bridge-supervisor.ts`).
+`ExitCodes` in `BridgeServer.cs` is the one list.
+
+| Code | Meaning | The app |
+|---|---|---|
+| 0 | stopped normally (Ctrl+C) | starts it again if it did not ask for the stop |
+| 2 | unknown or incomplete option, unknown source | as for any unexpected exit |
+| 3 | `--source simconnect` without SimConnect compiled in | as for any unexpected exit |
+| 4 | the port is already in use by another program | shows "port N is used by another program", does not start it again |
+
+Any other exit (a crash) is started again after 1, 2, 4 … 30 s, at most 5 times in 5 minutes. Code 4 is told
+from other failures by the exception type (`AddressInUseException` / `SocketException` 10048 inside the
+`IOException` Kestrel throws, checked 2026-10-31 on .NET 8), not by its text; stderr gets
+`acars-msfs-bridge: port N is already in use by another program (exit code 4)`.
 
 `auto` (T59, decisions of 2026-10-23): each round tries SimConnect, then X-Plane (`localhost:8086`, or
 `--xplane-port`); the first that answers keeps the bridge until it closes, and the other is not tried meanwhile.

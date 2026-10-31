@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import { useState } from 'react';
+import { AboutSection } from './AboutSection.js';
 import { HELP, type HelpBlock, searchHelp } from './help.js';
 import { useStore } from './store.js';
 import { useT } from './ui.js';
@@ -76,6 +77,7 @@ export function HelpView() {
           </div>
         </section>
       ))}
+      {!searching && <AboutSection />}
     </section>
   );
 }

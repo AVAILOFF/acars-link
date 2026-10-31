@@ -22,12 +22,15 @@ import {
 } from '@acars/scenarios';
 import type { HttpClient, Transport } from '@acars/transport';
 import type {
+  AboutInfo,
   AppState,
+  BridgeProcessView,
   CredentialsView,
   EndingView,
   FlightReportView,
   FlightSummary,
   Language,
+  LegalDoc,
   ResumeOffer,
   ScenarioInfo,
   Settings,
@@ -36,7 +39,7 @@ import type {
   SimChoice,
   Simulator,
 } from '../shared/api.js';
-import { activeSim } from '../shared/api.js';
+import { activeSim, LEGAL_DOCS } from '../shared/api.js';
 import { BridgeClient, type SocketLike, type Timers } from './bridge.js';
 import { normalizeHoppieCode, normalizeRapidApiKey, pingHoppie } from './credentials.js';
 import { type DiagnosticsSource, diagnosticsEntries, diagnosticsFileName } from './diagnostics.js';
@@ -52,7 +55,7 @@ import type { SettingsStore } from './settings.js';
 import { SimEffects } from './sim-effects.js';
 import { fetchOfp, normalizeSimbriefUsername } from './simbrief.js';
 import { specialGroupOn, specialGroups } from './special.js';
-import { SQUAWK_TABLES } from './variant.js';
+import { PUBLIC_BUILD, SQUAWK_TABLES } from './variant.js';
 import { zip } from './zip.js';
 
 /**
@@ -108,6 +111,10 @@ export interface AppControllerOptions {
     readonly choosePath: (defaultName: string) => Promise<string | null>;
     readonly reveal?: (file: string) => void;
   } | null;
+  /** Versions and build for the "About" page (T74); absent = unknown versions. */
+  readonly about?: (() => AboutInfo) | null;
+  /** Opens a licence file in the OS program for it (T74); throws when it cannot. Absent = not available. */
+  readonly openLegal?: ((doc: LegalDoc) => Promise<void>) | null;
 }
 
 /** Title of a scenario in the UI languages. */
@@ -144,6 +151,8 @@ export const HOPPIE_CHECK_GAP_MS = 15_000;
 export class AppController {
   private readonly feed = new Feed();
   private readonly bridge: BridgeClient;
+  /** T75: set by the bridge process supervisor in `main/index.ts`. */
+  private bridgeProcess: BridgeProcessView | null = null;
   private scenarios: readonly CompiledScenario[] = [];
   private scenarioError: string | null = null;
   private ofp: Ofp | null = null;
@@ -298,6 +307,7 @@ export class AppController {
       ending: this.ending(),
       waitingSimTime: s?.waitingSimTime ?? false,
       bridge: this.bridge.view,
+      bridgeProcess: this.bridgeProcess,
       telemetry: s?.telemetry ?? null,
       transport: s?.transportView ?? null,
       atc: s?.atc ?? null,
@@ -966,6 +976,49 @@ export class AppController {
     this.log.info(`diagnostics exported${withRecording ? ' with the latest recording' : ''}`);
     d.reveal?.(file);
     return file;
+  }
+
+  /** T74: versions of the app and Electron and the build, for the "About" page. */
+  getAbout(): AboutInfo {
+    return (
+      this.o.about?.() ?? {
+        version: '',
+        dev: true,
+        electron: '',
+        chrome: '',
+        variant: PUBLIC_BUILD ? 'public' : 'personal',
+      }
+    );
+  }
+
+  /** T74: opens the EULA, the third-party notices or the component licences. */
+  async openLegal(doc: unknown): Promise<null> {
+    if (typeof doc !== 'string' || !(LEGAL_DOCS as readonly string[]).includes(doc)) {
+      throw new AppFailure('invalid_input', 'licence file');
+    }
+    const open = this.o.openLegal;
+    if (open == null) throw new AppFailure('internal', 'licence files are not available');
+    try {
+      await open(doc as LegalDoc);
+    } catch (e) {
+      throw new AppFailure('internal', e instanceof Error ? e.message : String(e));
+    }
+    return null;
+  }
+
+  /** T75: the supervisor of the bridge process reports its state (null = nothing to report). */
+  setBridgeProcess(status: BridgeProcessView | null): void {
+    this.bridgeProcess = status;
+    this.o.onChange();
+  }
+
+  /**
+   * T75: the bridge process was started again after it stopped; the flight goes on, the feed says so
+   * (like `sim_changed`, only while a flight runs).
+   */
+  noteBridgeRestarted(): void {
+    if (this.session !== null) this.feed.system(this.o.now(), 'bridge_restarted', {});
+    this.o.onChange();
   }
 
   /** The simulator the app works with now (T59): the connected one, else the fixed choice. */

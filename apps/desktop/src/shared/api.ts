@@ -3,6 +3,7 @@
 
 import type { FlightPhase, FlightReport, RescueTitles, ScenarioCategory } from '@acars/core';
 import type { TransportStatus } from '@acars/transport';
+import type { BuildVariant } from './sources.js';
 
 /**
  * Main ↔ renderer contract. The renderer gets this API from the preload script as
@@ -228,7 +229,21 @@ export interface BridgeView {
    * while the sim is connected; null otherwise.
    */
   readonly source: Simulator | null;
+  /** `hello.version` of the connected bridge (T74, "About"); null before `hello`. */
+  readonly version: string | null;
 }
+
+/**
+ * What is wrong with the bundled bridge process (T75); `AppState.bridgeProcess` is null while all is
+ * well, in a dev run (the bridge is started by hand) and for a bridge that was not started by the app.
+ */
+export type BridgeProcessView =
+  /** It stopped by itself and is started again; `attempt` counts the stops in the last 5 minutes. */
+  | { readonly kind: 'restarting'; readonly attempt: number }
+  /** Another program holds the port; the app does not start the bridge again. */
+  | { readonly kind: 'port_in_use'; readonly port: number }
+  /** It keeps stopping: given up until the app or the bridge settings are restarted. */
+  | { readonly kind: 'failed'; readonly lastLines: string };
 
 export interface TelemetryView {
   readonly t: number;
@@ -304,6 +319,7 @@ export type SystemCode =
   | 'transport_status'
   | 'sim_command_failed'
   | 'sim_changed'
+  | 'bridge_restarted'
   | 'atc_station'
   | 'atc_logon'
   | 'atc_logon_refused'
@@ -416,6 +432,8 @@ export interface AppState {
   /** "Time from the simulator" is on and the flight waits for the first sim time (U-16). */
   readonly waitingSimTime: boolean;
   readonly bridge: BridgeView;
+  /** T75: the state of the bridge process the app started; null = nothing to report. */
+  readonly bridgeProcess: BridgeProcessView | null;
   readonly telemetry: TelemetryView | null;
   readonly transport: TransportView | null;
   /** XATC station of the running flight (T23); null = off or no flight. */
@@ -515,6 +533,22 @@ export interface SimbriefCheck {
   readonly destination: string;
 }
 
+/** Versions and the build for the "About" page (T74). */
+export interface AboutInfo {
+  /** Version of the application (`package.json`). */
+  readonly version: string;
+  /** Run from the sources (`pnpm desktop:dev`), not an installed build. */
+  readonly dev: boolean;
+  readonly electron: string;
+  readonly chrome: string;
+  /** The personal build holds data that is not licensed for redistribution (T72). */
+  readonly variant: BuildVariant;
+}
+
+/** The licence files next to the application (T74): the EULA, third-party notices, component licences. */
+export const LEGAL_DOCS = ['eula', 'notices', 'licenses'] as const;
+export type LegalDoc = (typeof LEGAL_DOCS)[number];
+
 export type Result<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly error: AppError };
@@ -578,6 +612,10 @@ export interface AcarsApi {
   exportDiagnostics(withRecording: boolean): Promise<Result<string | null>>;
   /** T69: saves the flight report (`AppState.report`) as JSON where the user picks; null = cancelled. */
   exportReport(): Promise<Result<string | null>>;
+  /** T74: versions of the app, Electron and the build; the bridge's version is `AppState.bridge.version`. */
+  getAbout(): Promise<AboutInfo>;
+  /** T74: opens a licence file in the program the OS has for it. */
+  openLegal(doc: LegalDoc): Promise<Result<null>>;
 }
 
 /** IPC channel names (invoke) and the push channel. */
@@ -611,4 +649,6 @@ export const IPC = {
   clearMemory: 'acars:clear-memory',
   exportDiagnostics: 'acars:export-diagnostics',
   exportReport: 'acars:export-report',
+  getAbout: 'acars:get-about',
+  openLegal: 'acars:open-legal',
 } as const;

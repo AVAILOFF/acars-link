@@ -8,5 +8,11 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["test", "src/main", "src/shared", "src/renderer/src/i18n.ts"]
+  "include": [
+    "test",
+    "src/main",
+    "src/shared",
+    "src/renderer/src/i18n.ts",
+    "src/renderer/src/env.d.ts"
+  ]
 }

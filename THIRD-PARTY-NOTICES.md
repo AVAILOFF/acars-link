@@ -29,7 +29,7 @@ of the world.
 | Electron, Chromium | MIT and the licences in `LICENSE.electron.txt` / `LICENSES.chromium.html`, which electron-builder puts next to the app | automatic |
 | React, Zustand, Vite runtime parts bundled into the renderer | MIT | texts of the bundled packages (also ajv, yaml and their dependencies) are collected by `pnpm licenses` into `THIRD-PARTY-LICENSES.txt` |
 | .NET 8 runtime and ASP.NET Core (self-contained bridge) | MIT, Microsoft | `LICENSE.TXT` and `THIRD-PARTY-NOTICES.TXT` of the runtime packs go into `THIRD-PARTY-LICENSES.txt` (`pnpm licenses`) |
-| `SimConnect.dll` (MSFS SDK, copied into the bridge) | Microsoft MSFS SDK EULA | **not verified, checked 2026-10-22:** the SDK EULA allows "distributable code" but no document names `SimConnect.dll` as such; the questions on devsupport.flightsimulator.com (topics 18233, 18295, latest post 2026-10-13) have no answer from Microsoft/Asobo. Needs a written answer before a public release |
+| SimConnect client, linked statically into `acars_simconnect.dll` from the official MSFS SDK 1.8.1 (`SimConnect SDK\lib\static\SimConnect.lib`; the SDK supplies the library and its property sheet for this use). `SimConnect.dll` and `Microsoft.FlightSimulator.SimConnect.dll` are **not** shipped (T73) | Microsoft MSFS SDK EULA | **not verified, checked 2026-10-31:** no written permission from Microsoft/Asobo to redistribute the client code (devsupport.flightsimulator.com, topics 18233, 18295: no answer). Needs a written answer before a public release |
 | OpenFlights `airlines.dat`, `airports.dat`, `routes.dat`, `planes.dat` as `packages/core/src/ext/openflights.ts` | ODbL 1.0, Database Contents License; route data public domain; airline data from Wikipedia may be GFDL. Source: OpenFlights.org. Non-commercial use only without a separate OpenFlights licence | attribution required; the derived table stays under ODbL |
 | EUROCONTROL SSR Code Allocation List v4.13 (squawk tables) — **personal build only** | EUROCONTROL / ICAO EUR Doc 023 | reuse terms **not verified** (checked 2026-10-31: `eurocontrol.int` states none, only "© EUROCONTROL"); not in the public build until EUROCONTROL allows it in writing |
 | ICAO APAC eANP Vol II Part IV, Table ATM II-APAC-2 (squawk tables) — **personal build only** | (c) ICAO, "All rights reserved", reproduction only with written permission (`icao.int/pages/copyright.aspx`, checked 2026-10-31) | not in the public build until ICAO allows it in writing |
@@ -60,3 +60,14 @@ of the world.
 
 "Verified" lines come from the checks recorded in `docs/06-integrations.md`. Lines marked
 "not verified" must be resolved before the installer is given to other people.
+
+## Where the app names its sources (T74)
+
+- Help → "About ACARS Link": versions (app, bridge, Electron, build) and the list of all components
+  and data of the installed build with licence and credit (`apps/desktop/src/shared/sources.ts`;
+  the personal-only rows above are left out of the public build's list). A test keeps the list in
+  step with the two tables above. Buttons there open the licence agreement (`EULA.txt`), this file
+  and `THIRD-PARTY-LICENSES.txt` from the installation folder.
+- Settings, next to the data they use, worded as the source asks: "© OpenStreetMap contributors"
+  (live data), "VATSpy Data Project, CC BY-SA 4.0" (XATC station), "OpenFlights.org, ODbL" (the
+  next leg).
