@@ -24,6 +24,7 @@ import {
   parseJsonl,
   type Recording,
   RecordingError,
+  recordedCoreOptions,
   recordingFromSnapshots,
   replay,
   snapshotsOf,
@@ -103,6 +104,20 @@ describe('JSONL format', () => {
     expect(() =>
       parseJsonl([JSON.stringify({ ...header, rops: { enabled: 1 } }), ...rest].join('\n')),
     ).toThrow(/xatc/);
+  });
+
+  it('keeps `squawkTables` of the public build in the header and restores it (T72)', () => {
+    const xatc = { enabled: true, squawkTables: 'public' } as const;
+    const rec: Recording = { ...normal, header: { ...normal.header, xatc } };
+    const back = parseJsonl(encodeRecording(rec));
+    if (back.kind !== 'recording') throw new Error('not a recording');
+    expect(back.recording.header.xatc).toEqual(xatc);
+    expect(recordedCoreOptions(back.recording.header, all).xatc).toEqual(xatc);
+    const bad = encodeRecording({
+      ...normal,
+      header: { ...normal.header, xatc: { enabled: true, squawkTables: 'everything' } as never },
+    });
+    expect(() => parseJsonl(bad)).toThrow(/xatc/);
   });
 
   it('reads bare snapshot files (bridge --replay format) and writes them back', () => {

@@ -1596,7 +1596,12 @@ describe('XATC station (T23)', () => {
       expect(codes).toContain(c);
 
     const rec = await readRecording(s.recordings);
-    expect(rec.header.xatc).toEqual({ enabled: true, standAside: true, randomDirects: true });
+    expect(rec.header.xatc).toEqual({
+      enabled: true,
+      standAside: true,
+      randomDirects: true,
+      squawkTables: 'full',
+    });
     const out = rec.events.flatMap((e) =>
       e.type === 'out' && e.packet !== undefined ? [e.packet] : [],
     );

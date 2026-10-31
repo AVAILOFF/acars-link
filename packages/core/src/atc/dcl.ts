@@ -15,7 +15,7 @@ import { createRng } from '../random/rng.js';
 import { normalizePilotText, type PilotMessage } from '../scenario/pilot.js';
 import { type CpdlcResponse, parseCpdlc } from './cpdlc.js';
 import { xatcStation } from './fir.js';
-import { assignSquawk, type Squawk } from './squawk/squawk.js';
+import { assignSquawk, type Squawk, type SquawkTables } from './squawk/squawk.js';
 
 /**
  * Departure clearance by data link (T24, docs/07): the pilot sends the Hoppie request telex
@@ -189,6 +189,7 @@ export class DclService {
     private readonly seed: string | number,
     private readonly profile: DisplayProfile,
     state: DclState = EMPTY_DCL,
+    private readonly squawkTables: SquawkTables = 'full',
   ) {
     this.station = xatcStation(ofp.origin.icao);
     const copy = JSON.parse(JSON.stringify(state)) as DclState;
@@ -406,6 +407,7 @@ export class DclService {
         destinationCountry: info[o.destination.icao]?.country ?? null,
       },
       createRng(`${this.seed}/#squawk`),
+      this.squawkTables,
     );
     this.st.squawk = sq;
     return sq;

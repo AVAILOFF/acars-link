@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
+import type { NatTrack } from '../ext/data.js';
 import type {
   Ofp,
   OfpAircraft,
@@ -269,6 +270,58 @@ function parseAirport(r: Reader): OfpAirport {
   };
 }
 
+/**
+ * A point of a track route as SimBrief writes it (`58N020W`, `5530N02000W`, `SUNOT`) → as in the
+ * track message (`58/20`, `5530/20`, `SUNOT`). NAT points are north and west on whole degrees of
+ * longitude; anything else is null.
+ */
+function natPoint(token: string): string | null {
+  if (/^[A-Z]{2,5}$/.test(token)) return token;
+  const m = /^(\d{2})(\d{2})?N(\d{3})(?:00)?W$/.exec(token);
+  if (m === null) return null;
+  return `${m[1]}${m[2] ?? ''}/${String(Number(m[3])).padStart(2, '0')}`;
+}
+
+/** One entry of `tracks.nat` (T72); null when it does not read as a NAT track. */
+function natTrack(t: Reader): NatTrack | null {
+  try {
+    const ident = t.optStr('id');
+    if (ident === null || !/^[A-Z]{1,2}$/.test(ident)) return null;
+    const route = (t.optStr('route') ?? '').split(/\s+/).map(natPoint);
+    if (route.length < 2 || route.includes(null)) return null;
+    const levels = (t.optStr('levels') ?? '').split(/\s+/).map(Number);
+    if (levels.some((l) => !Number.isInteger(l) || l < 10 || l > 600)) return null;
+    const validFrom = t.optTimeMs('start');
+    const validTo = t.optTimeMs('end');
+    if (validFrom === null || validTo === null || validTo <= validFrom) return null;
+    return {
+      ident,
+      route: route as string[],
+      validFrom,
+      validTo,
+      levelsFt: levels.map((l) => l * 100),
+    };
+  } catch (e) {
+    // The tracks are an extra of the OFP: one that does not read must not refuse the plan.
+    if (e instanceof OfpParseError) return null;
+    throw e;
+  }
+}
+
+/**
+ * `tracks.nat` of the OFP (T72): the NAT tracks the dispatcher planned with (checked on a real
+ * KATL–EDDF OFP of 2026-10-31, json=v2: `id`, `group`, `addr`, `tmi`, `route`, `levels`,
+ * `start`/`end` UTC, `fixes`). `tracks` is `[]` (or has no `nat`) when the route does not use them.
+ */
+function parseNatTracks(root: Reader): readonly NatTrack[] {
+  const tracks = root.optSection('tracks');
+  if (tracks === null) return [];
+  return tracks.objects('nat').flatMap((t) => {
+    const k = natTrack(t);
+    return k === null ? [] : [k];
+  });
+}
+
 /** `etops` of the OFP (T50): an object when planned ETOPS, `[]` (or missing) otherwise. */
 function parseEtops(root: Reader): OfpEtops | null {
   const e = root.optSection('etops');
@@ -521,6 +574,7 @@ export function parseSimbriefOfp(json: unknown): Ofp {
 
   const general = root.section('general');
   const atc = root.section('atc');
+  const natTracks = parseNatTracks(root);
 
   return {
     source: {
@@ -551,6 +605,7 @@ export function parseSimbriefOfp(json: unknown): Ofp {
     landingPerf: parseLandingPerf(root.optSection('tlr')),
     crew: parseCrew(root.optSection('crew')),
     etops: parseEtops(root),
+    ...(natTracks.length === 0 ? {} : { natTracks }),
   };
 }
 

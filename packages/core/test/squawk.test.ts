@@ -227,3 +227,52 @@ describe('assignSquawk', () => {
     expect(a.source).toBe('eur-cal');
   });
 });
+
+describe('public tables (T72): the US table only, random elsewhere', () => {
+  const eu = flight({ origin: 'EGLL', destination: 'OTHH', originFir: 'EGTT' });
+  const apac = flight({
+    origin: 'VHHH',
+    destination: 'WMKK',
+    originFir: 'VHHK',
+    originCountry: 'X',
+    destinationCountry: 'Y',
+  });
+  const us = flight({
+    origin: 'KMSP',
+    destination: 'KRDU',
+    originFir: 'KZMP',
+    destinationFir: 'KZDC',
+  });
+
+  it('EUR and APAC departures get the random plan, not the tables', () => {
+    for (const f of [eu, apac]) {
+      expect(squawkPlan(f, 'full').source).not.toBe('random');
+      const p = squawkPlan(f, 'public');
+      expect(p.source).toBe('random');
+      expect(p.rule).toBe('no table');
+    }
+  });
+
+  it('the US keeps FAA NBCAP', () => {
+    expect(squawkPlan(us, 'public')).toEqual(squawkPlan(us, 'full'));
+    expect(squawkPlan(us, 'public').source).toBe('faa-nbcap');
+  });
+
+  it('assigned codes are discrete octal, never special and never xx00', () => {
+    for (const f of [eu, apac]) {
+      for (let i = 0; i < 200; i++) {
+        const a = assignSquawk(f, createRng(`seed-${i}`), 'public');
+        expect(a.source).toBe('random');
+        expect(assignable(a.code), a.code).toBe(true);
+        expect(SPECIAL_CODES.has(a.code), a.code).toBe(false);
+        expect(a.code.endsWith('00'), a.code).toBe(false);
+      }
+    }
+  });
+
+  it('is deterministic for a seed', () => {
+    expect(assignSquawk(eu, createRng('x'), 'public')).toEqual(
+      assignSquawk(eu, createRng('x'), 'public'),
+    );
+  });
+});

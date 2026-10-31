@@ -9,6 +9,8 @@
  * seconds, distances are nautical miles. Absent optional values are `null`.
  */
 
+import type { NatTrack } from '../ext/data.js';
+
 export type OfpMassUnit = 'kg' | 'lb';
 
 export interface OfpSource {
@@ -211,6 +213,11 @@ export interface Ofp {
    * Recordings made before T50 have no such field: readers treat `undefined` as null.
    */
   readonly etops: OfpEtops | null;
+  /**
+   * The NAT tracks of the OFP (T72): `tracks.nat` of SimBrief, the tracks the dispatcher planned
+   * with. Absent when the OFP has none (`tracks: []`) and in recordings made before T72.
+   */
+  readonly natTracks?: readonly NatTrack[];
 }
 
 /** An ETOPS airport of the OFP: entry, exit or en-route suitable airport. */

@@ -36,6 +36,7 @@ import { levelText } from './levels.js';
 import { type OclContext, type OclEvent, OclService, type OclState, parseRcl } from './oceanic.js';
 import { type AtcRequest, decide, parseRequest, type RefusalReason } from './requests.js';
 import { routePosition, starEntryIndex } from './route.js';
+import type { SquawkTables } from './squawk/squawk.js';
 
 /**
  * XATC station (T23, docs/07): a simulated CPDLC ground station for the own pilot only,
@@ -90,6 +91,11 @@ export interface XatcOptions {
   readonly standAside?: boolean;
   /** Random Direct To on the station's own (T26; default true). */
   readonly randomDirects?: boolean;
+  /**
+   * Regional squawk tables (T72): `full` (default; recordings before T72) or `public` (US table
+   * and random codes elsewhere). Recorded in the header with the other options (invariant 4).
+   */
+  readonly squawkTables?: SquawkTables;
 }
 
 export type AtcEvent =
@@ -404,7 +410,13 @@ export class XatcStation {
         n: copy.link?.n ?? 0,
       },
     };
-    this.dcl = new DclService(ofp, deps.seed, deps.profile ?? DEFAULT_PROFILE, copy.dcl);
+    this.dcl = new DclService(
+      ofp,
+      deps.seed,
+      deps.profile ?? DEFAULT_PROFILE,
+      copy.dcl,
+      options.squawkTables ?? 'full',
+    );
     this.ocl = new OclService(ofp, deps.seed, deps.profile ?? DEFAULT_PROFILE, copy.ocl);
   }
 
@@ -502,7 +514,8 @@ export class XatcStation {
     const ocl: OclContext = {
       now,
       telemetry: input.telemetry,
-      natTracks: input.ext.natTracks ?? [],
+      // The tracks of the OFP (SimBrief) first; the downloaded ones (personal build only) after them.
+      natTracks: [...(this.ofp.natTracks ?? []), ...(input.ext.natTracks ?? [])],
       firAt: (p) => map?.locate(p)?.id ?? null,
       sendTelex,
       events,

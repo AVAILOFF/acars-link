@@ -169,8 +169,11 @@ function exchange(
     rogerAfterMs?: number | null;
     runMs?: number;
     svc?: OclService;
+    /** The time of the RCL (default T0). */
+    t0?: number;
   } = {},
 ) {
+  const t0 = o.t0 ?? T0;
   const ofp = o.ofp ?? natOfp();
   const svc = o.svc ?? new OclService(ofp, 'ocl', WIDE);
   const out: Sent[] = [];
@@ -178,18 +181,18 @@ function exchange(
   const minutes = o.minutes ?? 60;
   const ctx = (now: number): OclContext => ({
     now,
-    telemetry: before(ofp, minutes - (now - T0) / 60_000, now),
+    telemetry: before(ofp, minutes - (now - t0) / 60_000, now),
     natTracks: o.tracks ?? [TRACK_E],
     firAt: () => null,
     sendTelex: (from, m) => out.push({ from, text: m.text, t: now }),
     events,
   });
   const rcl = parseRcl(o.rcl ?? RCL());
-  const handled = rcl !== null && svc.receive(rcl, 'XGPX', ctx(T0));
-  const end = T0 + (o.runMs ?? 15 * 60_000);
+  const handled = rcl !== null && svc.receive(rcl, 'XGPX', ctx(t0));
+  const end = t0 + (o.runMs ?? 15 * 60_000);
   const roger = o.rogerAfterMs === undefined ? 60_000 : o.rogerAfterMs;
   let clxAt: number | null = null;
-  for (let now = T0 + 5000; now <= end; now += 5000) {
+  for (let now = t0 + 5000; now <= end; now += 5000) {
     svc.tick(ctx(now));
     if (clxAt === null && out.some((m) => m.text.startsWith('CLX'))) clxAt = now;
     if (clxAt !== null && roger !== null && now === clxAt + roger) svc.acknowledge(ctx(now));
@@ -324,6 +327,66 @@ describe('Shanwick: RCL, CLX, CLA (NAT OPS Bulletin 2020_001 §12)', () => {
     const b = exchange({ ofp, svc, rcl: 'NOT AN RCL' });
     const whole = exchange({ ofp });
     expect(b.texts).toEqual(whole.texts.slice(1));
+  });
+});
+
+describe('Shanwick: the NAT tracks of a real OFP (T72)', () => {
+  // `tracks.nat` of a real SimBrief OFP (KATL–EDDF, 2026-10-31, anonymized): track A, planned for
+  // westbound flights 11:30–19:00Z, SUNOT 58N020W 59N030W 59N040W 58N050W DORYY.
+  const real = parseSimbriefOfp(
+    JSON.parse(
+      readFileSync(
+        join(import.meta.dirname, 'fixtures', 'ofp', 'katl-eddf-b752-nat-w.json'),
+        'utf8',
+      ),
+    ),
+  );
+  const tracks = real.natTracks ?? [];
+  const t0 = Date.parse('2026-10-31T12:00:00Z');
+  const onA: readonly FixSpec[] = [
+    ['BPK', 'vor', 51.75, -0.1, 'EGTT', 30],
+    ['TOC', 'ltlg', 52.4, -1.3, 'EGTT', 320],
+    ['SUNOT', 'wpt', 57.0, -15.0, 'EGPX', 315],
+    ['58N020W', 'ltlg', 58, -20, 'EGGX', 285],
+    ['59N030W', 'ltlg', 59, -30, 'EGGX', 290],
+    ['59N040W', 'ltlg', 59, -40, 'CZQX', 285],
+    ['58N050W', 'ltlg', 58, -50, 'CZQX', 270],
+    ['DORYY', 'wpt', 56.0333, -57.0, 'CZQX', 265],
+    ['TOD', 'ltlg', 42.1, -70.6, 'KZBW', 230],
+  ];
+  const ofpOnA: Ofp = {
+    ...natOfp(),
+    route: 'BPK SUNOT 58N020W 59N030W 59N040W 58N050W DORYY',
+    navlog: navlog(onA, EGLL),
+  };
+
+  it('track A is read from tracks.nat', () => {
+    expect(tracks.find((k) => k.ident === 'A')).toEqual({
+      ident: 'A',
+      route: ['SUNOT', '58/20', '59/30', '59/40', '58/50', 'DORYY'],
+      validFrom: Date.parse('2026-10-31T11:30:00Z'),
+      validTo: Date.parse('2026-10-31T19:00:00Z'),
+      levelsFt: [34000, 35000, 36000, 37000, 38000, 39000, 40000],
+    });
+  });
+
+  it('the CLX of a flight on that track is NAT A, from the tracks of the OFP alone', () => {
+    const r = exchange({ ofp: ofpOnA, tracks, t0 });
+    const clx = (r.texts.find((t) => t.startsWith('CLX')) ?? '').split('\n');
+    expect(clx.slice(1)).toEqual([
+      'BAW117 CLRD TO KJFK VIA SUNOT',
+      'NAT A',
+      '58N020W 59N030W 59N040W 58N050W DORYY',
+      'FM SUNOT/1348 MNTN F360 M085',
+      'END OF MESSAGE',
+    ]);
+    expect(r.events[1]?.detail).toBe('NAT A F360 M085');
+  });
+
+  it('without track A in the OFP the same flight gets RANDOM ROUTE', () => {
+    const others = tracks.filter((k) => k.ident !== 'A');
+    const r = exchange({ ofp: ofpOnA, tracks: others, t0 });
+    expect(r.texts.find((t) => t.startsWith('CLX'))).toContain('\nRANDOM ROUTE\n');
   });
 });
 

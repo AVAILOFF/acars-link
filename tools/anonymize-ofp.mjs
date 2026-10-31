@@ -3,7 +3,7 @@
 
 // Turns a real SimBrief OFP (json=v2) into a small anonymized test fixture.
 //
-//   node tools/anonymize-ofp.mjs <raw.json> <out.json> [--to-lbs] [--no-flight-number] [--extra-alternate] [--with-perf] [--with-etops]
+//   node tools/anonymize-ofp.mjs <raw.json> <out.json> [--to-lbs] [--no-flight-number] [--extra-alternate] [--with-perf] [--with-etops] [--with-tracks]
 //
 // Keeps only the sections the parser reads, drops personal data (pilot id, crew, user ids,
 // links, files, NOTAMs, free text). Raw OFPs live in reference/ofp/raw/ (gitignored).
@@ -182,6 +182,9 @@ if (has('--with-etops')) {
   out.enroute_altn = raw.enroute_altn ?? [];
   out.takeoff_altn = raw.takeoff_altn ?? [];
 }
+
+// The NAT tracks of the OFP (T72): `tracks.nat` only; the NOTAM texts (`nat_notams`) are dropped.
+if (has('--with-tracks')) out.tracks = { nat: raw.tracks?.nat ?? [] };
 
 if (has('--to-lbs')) {
   const KG_TO_LB = 1 / 0.45359237;
