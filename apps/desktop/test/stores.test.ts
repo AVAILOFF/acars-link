@@ -107,6 +107,10 @@ describe('settings', () => {
       welcomeDone: false,
     });
     expect(defaultSettings('ru-RU').language).toBe('ru');
+    // T85: a ready language by the locale prefix, else English.
+    expect(defaultSettings('RU').language).toBe('ru');
+    expect(defaultSettings('pt-BR').language).toBe('en');
+    expect(defaultSettings('').language).toBe('en');
   });
 
   it('welcome (T70): shown on a new profile, not to settings saved before it; saved as a boolean', () => {
@@ -165,7 +169,8 @@ describe('settings', () => {
       stationTemplate: '{airline}OPS',
     });
     for (const bad of [
-      { language: 'de' },
+      { language: 'xx' },
+      { language: 'toString' },
       { transport: 'sayintentions' },
       { stationTemplate: 'OPS {flight}' },
       { stationTemplate: '{callsign}' },

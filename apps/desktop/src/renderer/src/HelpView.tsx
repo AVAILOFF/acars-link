@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { AboutSection } from './AboutSection.js';
-import { HELP, type HelpBlock, searchHelp } from './help.js';
+import { type HelpBlock, helpFor, searchHelp } from './help.js';
 import { useStore } from './store.js';
 import { useT } from './ui.js';
 
@@ -12,7 +12,7 @@ export function HelpView() {
   const t = useT();
   const lang = useStore((s) => s.settings?.language ?? 'en');
   const [query, setQuery] = useState('');
-  const sections = searchHelp(HELP[lang], query);
+  const sections = searchHelp(helpFor(lang), query);
   const searching = query.trim() !== '';
   const { openWelcome, setTour } = useStore.getState();
 

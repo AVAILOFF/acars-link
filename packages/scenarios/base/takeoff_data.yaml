@@ -5,11 +5,8 @@ id: takeoff_data
 version: 1
 category: docs
 title: Takeoff data
-title_ru: "Данные для взлёта"
 description: "Departure data from the OFP: runway, weather, flaps, thrust and V-speeds when the OFP has them."
-description_ru: "Данные вылета из OFP: ВПП, погода, закрылки, тяга и V-скорости, если они есть в OFP."
 hint: "Takeoff data from the flight plan: runway and SID, elevation, transition altitude, takeoff weight against the limit, takeoff fuel, cruise level and cost index and the departure weather; flaps, thrust and V-speeds when the flight plan has them. Check them against your own calculation; no reply needed."
-hint_ru: "Данные на взлёт из плана полёта: ВПП и SID, превышение, высота перехода, взлётная масса против ограничения, топливо на взлёт, крейсерский эшелон, cost index и погода на вылете; закрылки, тяга и скорости V, если они есть в плане. Сверьте со своим расчётом; ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time

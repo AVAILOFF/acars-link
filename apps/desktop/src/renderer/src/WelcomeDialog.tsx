@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Language, TransportChoice } from '../../shared/api.js';
 import type { MessageKey } from './i18n.js';
 import { HoppieCodeForm, UsernameForm } from './SettingsAccounts.js';
-import { Row } from './SettingsControls.js';
+import { LanguageOptions, Row } from './SettingsControls.js';
 import { useStore } from './store.js';
 import { useT } from './ui.js';
 import { type ReadyItem, type ReadyKey, readiness, WELCOME_STEPS } from './welcome.js';
@@ -104,8 +104,7 @@ function HelloStep() {
           value={language}
           onChange={(e) => void update({ language: e.currentTarget.value as Language })}
         >
-          <option value="en">English</option>
-          <option value="ru">Русский</option>
+          <LanguageOptions current={language} />
         </select>
       </Row>
     </>

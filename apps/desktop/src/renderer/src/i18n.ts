@@ -6,11 +6,21 @@ import type { AppError, ErrorCode, ErrorReason, Language, SystemCode } from '../
 import { en, type MessageKey } from './messages-en.js';
 import { ru } from './messages-ru.js';
 
-/** UI strings, EN + RU (docs/08 decision 7). ACARS messages themselves are always English. */
+/**
+ * UI strings by language (docs/08 decision 7, T85): `messages-<lang>.ts`. English has every key; another
+ * language may lack some (shown in English), Russian is complete (its type requires it). ACARS messages
+ * themselves are always English.
+ */
 
 export type { MessageKey };
 
-export const MESSAGES: Readonly<Record<Language, Readonly<Record<MessageKey, string>>>> = {
+export type Messages = Readonly<Partial<Record<MessageKey, string>>>;
+
+type Complete = Readonly<Record<MessageKey, string>>;
+
+export const MESSAGES: { readonly en: Complete; readonly ru: Complete } & Readonly<
+  Partial<Record<Language, Messages>>
+> = {
   en,
   ru,
 };
@@ -20,11 +30,18 @@ export type Translate = (
   params?: Readonly<Record<string, string | number>>,
 ) => string;
 
-/** An unknown key (e.g. a code from a newer main process) shows as text instead of crashing the UI. */
-export function translator(lang: Language): Translate {
-  const dict: Readonly<Record<string, string | undefined>> = MESSAGES[lang];
+/**
+ * An unknown key (e.g. a code from a newer main process) shows as text instead of crashing the UI; a key
+ * not translated into `lang` shows in English (T85), without an error.
+ */
+export function translator(
+  lang: Language,
+  messages: Readonly<Partial<Record<string, Messages>>> = MESSAGES,
+): Translate {
+  const own: Readonly<Record<string, string | undefined>> = messages[lang] ?? {};
+  const english: Readonly<Record<string, string | undefined>> = MESSAGES.en;
   return (key, params) => {
-    const template = dict[key];
+    const template = own[key] ?? english[key];
     if (template === undefined) {
       console.error(`i18n: no message for key "${key}" (${lang})`);
       return key;

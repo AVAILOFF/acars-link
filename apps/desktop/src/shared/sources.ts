@@ -8,8 +8,7 @@
  * one place cannot be missing from the other.
  */
 
-export type Lang = 'en' | 'ru';
-export type Bilingual = Readonly<Record<Lang, string>>;
+import type { UiText } from './api.js';
 
 /** The two installers (T72): the personal build holds data without a licence for redistribution. */
 export type BuildVariant = 'public' | 'personal';
@@ -23,14 +22,15 @@ export interface DataSource {
   readonly kind: 'bundled' | 'service';
   /** `personal`: not in the public build. */
   readonly build: 'both' | 'personal';
-  readonly what: Bilingual;
-  readonly license: Bilingual;
+  readonly what: UiText;
+  readonly license: UiText;
   /** The credit line the source's terms ask for or require; null = none asked. Shown as written. */
   readonly credit: string | null;
   readonly url?: string;
 }
 
-const t = (en: string, ru: string): Bilingual => ({ en, ru });
+/** T85: a language missing here is shown in English. */
+const t = (en: string, ru: string): UiText => ({ en, ru });
 
 export const SOURCES: readonly DataSource[] = [
   {

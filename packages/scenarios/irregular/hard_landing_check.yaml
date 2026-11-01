@@ -7,11 +7,8 @@ id: hard_landing_check
 version: 1
 category: irregular
 title: Hard landing check
-title_ru: "Проверка после грубой посадки"
 description: "On block, if the touchdown rate was above 350 ft/min (needs the bridge reading): maintenance asks to CONFIRM a hard landing. CONFIRM puts an inspection before the next flight of the same aircraft."
-description_ru: "На стоянке, если вертикальная скорость касания была выше 350 фут/мин (нужно значение от моста): техслужба просит подтвердить грубую посадку. CONFIRM — осмотр перед следующим рейсом на этом борту."
 hint: "Maintenance control: the flight data monitoring (FDM) recorded your touchdown at the rate given. It asks whether the crew felt a hard landing."
-hint_ru: "Техслужба: система мониторинга полётных данных (FDM) записала касание с указанной вертикальной скоростью. Она спрашивает, почувствовал ли экипаж грубую посадку."
 enabled_by_default: true
 trigger:
   on: phase_enter
@@ -31,21 +28,20 @@ steps:
         REPLY CONFIRM OR NEGATIVE
   - wait:
       reply:
+        id: reply
         options: [CONFIRM, NEGATIVE]
         timeout_min: 15
         default: NEGATIVE
         reply_hints:
           CONFIRM: "Yes, the crew observed a hard landing."
           NEGATIVE: "No, the crew did not."
-        reply_hints_ru:
-          CONFIRM: "Да, экипаж отметил грубую посадку."
-          NEGATIVE: "Нет, не отметил."
   - branch:
       CONFIRM:
         - set:
             flags.hardland_reg: "{ofp.ac_reg}"
             flags.hardland_date: "{flight.date}"
         - send:
+            id: confirm
             header: MAINT CONTROL
             body: |
               ENTER HARD LANDING
@@ -54,12 +50,11 @@ steps:
               BEFORE NEXT FLIGHT
               MX AT {ofp.dest}
             hint: "Enter the hard landing in the technical log: the aircraft gets an inspection by the maintenance manual (AMM) before its next flight. No reply needed."
-            hint_ru: "Запишите грубую посадку в бортовой журнал: перед следующим рейсом самолёт осмотрят по руководству по ТО (AMM). Ответ не нужен."
       NEGATIVE:
         - send:
+            id: negative
             header: MAINT CONTROL
             body: |
               NOTED NO CREW REPORT
               FDM DATA FILED
             hint: "Maintenance notes that the crew did not report a hard landing; the flight data are filed. No reply needed."
-            hint_ru: "Техслужба приняла, что экипаж грубой посадки не отметил; полётные данные сохранены. Ответ не нужен."

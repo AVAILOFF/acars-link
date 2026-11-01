@@ -5,11 +5,8 @@ id: cmd_rdy
 version: 1
 category: ops
 title: "Pilot command: RDY"
-title_ru: "Команда пилота: RDY"
 description: "RDY with a CTOT issued, before off-block: READY MSG SENT; then (40 %) an earlier CTOT or NO IMPROVEMENT."
-description_ru: "RDY при выданном CTOT, до OUT: READY MSG SENT; затем (в 40 % случаев) более ранний CTOT или NO IMPROVEMENT."
 hint: "OPS sent your ready message (RDY: the crew can go earlier than the slot) to ATC flow management. Keep planning for the present CTOT until the update comes. No reply needed."
-hint_ru: "OPS передал ваше сообщение о готовности (RDY: экипаж может вылететь раньше слота) в службу управления потоками УВД. Пока не придёт ответ, планируйте вылет по текущему CTOT. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command
@@ -31,18 +28,18 @@ steps:
   - branch:
       MET:
         - send:
+            id: met
             header: SLOT
             body: |
               IMPROVED SLOT
               NEW CTOT {ops.ctot_ready|hhmm}Z
               OLD CTOT {ops.ctot|hhmm}Z
             hint: "Answer to your ready message: flow management gave an earlier slot. Plan to take off at the new CTOT. No reply needed."
-            hint_ru: "Ответ на сообщение о готовности: служба потоков дала более ранний слот. Планируйте взлёт к новому CTOT. Ответ не нужен."
       TIMEOUT:
         - send:
+            id: timeout
             header: SLOT
             body: |
               NO IMPROVEMENT
               CTOT {ops.ctot|hhmm}Z UNCHANGED
             hint: "Answer to your ready message: no earlier slot is free, the CTOT stays. No reply needed."
-            hint_ru: "Ответ на сообщение о готовности: более раннего слота нет, CTOT остаётся прежним. Ответ не нужен."

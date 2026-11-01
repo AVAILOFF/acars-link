@@ -6,11 +6,8 @@ id: volcanic_ash
 version: 1
 category: external
 title: Volcanic ash near the route
-title_ru: Вулканический пепел у маршрута
 description: "A valid SIGMET VA near the route ahead."
-description_ru: "Действующий SIGMET VA в пределах 300 NM от маршрута впереди."
 hint: "OPS advisory: a volcanic ash SIGMET is valid near your route ahead, with the volcano, the levels of the ash cloud, the distances and the validity. Stay clear of the ash area and check the SIGMET. No reply needed."
-hint_ru: "Предупреждение OPS: впереди рядом с маршрутом действует SIGMET о вулканическом пепле — вулкан, высоты облака пепла, расстояния и срок действия. Держитесь в стороне от зоны пепла и проверьте SIGMET. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase

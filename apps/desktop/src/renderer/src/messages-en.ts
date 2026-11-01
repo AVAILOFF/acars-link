@@ -508,6 +508,7 @@ export const en = {
     '{flight} = flight number, {airline} = airline ICAO code. Default: OPS{flight}.',
   'set.bridgePort': 'Sim bridge port (127.0.0.1)',
   'set.language': 'Language',
+  'set.language.machine': 'machine translation',
   'set.nextFlight': 'next flight',
   'set.nextFlightTitle': 'Applies from the next flight',
   'set.more': 'More',

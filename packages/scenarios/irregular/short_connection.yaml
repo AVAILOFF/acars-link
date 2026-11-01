@@ -4,11 +4,8 @@ id: short_connection
 version: 1
 category: irregular
 title: Short passenger connection
-title_ru: "Короткая стыковка пассажиров"
 description: "Before the descent when the onward connection is less than an hour away: number of passengers, flight, STD; please expedite."
-description_ru: "Перед снижением, если до стыковочного рейса меньше часа: сколько пассажиров, рейс, STD; просьба ускориться."
 hint: "Connections: passengers of your flight have a short connection to an onward flight; the message gives the flight, its STD and the time margin. OPS asks you to expedite the arrival if you can; transfer staff will meet them at your gate. No reply needed."
-hint_ru: "Стыковки: у пассажиров вашего рейса короткая пересадка на дальнейший рейс; в сообщении — рейс, его STD и запас времени. OPS просит по возможности ускорить прилёт; у гейта их встретят сотрудники трансфера. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: distance

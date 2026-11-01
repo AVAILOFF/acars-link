@@ -6,11 +6,8 @@ id: atis_update
 version: 1
 category: external
 title: Destination ATIS changed
-title_ru: Сменилась ATIS назначения
 description: "On the way down the VATSIM ATIS letter of the destination changed: the new letter and the METAR."
-description_ru: "На снижении сменилась буква онлайн-ATIS VATSIM аэропорта назначения: новая буква и METAR."
 hint: "The ATIS of the destination (VATSIM) has a new information letter, which replaces the one before; with it the latest METAR. Use the new letter on first contact with approach. No reply needed."
-hint_ru: "У ATIS аэропорта назначения (VATSIM) новая буква информации вместо прежней; с ней — последний METAR. Называйте новую букву при первом выходе на связь с подходом. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: distance

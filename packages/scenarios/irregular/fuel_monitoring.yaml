@@ -7,11 +7,8 @@ id: fuel_monitoring
 version: 1
 category: irregular
 title: Fuel below plan
-title_ru: "Топливо ниже плана"
 description: "In cruise, if the fuel on board is below the OFP plan at that place by more than 5 % (at least 500 kg), dispatch asks for the reason: WX, ATC, LEAK or NORMAL."
-description_ru: "В крейсере, если топливо на борту ниже плана OFP в этой точке больше чем на 5 % (не менее 500 кг), диспетчер спрашивает причину: WX, ATC, LEAK или NORMAL."
 hint: "Dispatch sees that your fuel on board is below the flight plan figure for this point, by the amount given. It asks for the reason."
-hint_ru: "Диспетчер авиакомпании видит, что топлива на борту меньше, чем по плану полёта в этой точке, на указанную величину. Он спрашивает причину."
 enabled_by_default: true
 trigger:
   on: phase
@@ -35,6 +32,7 @@ steps:
               WX ATC LEAK NORMAL
         - wait:
             reply:
+              id: reply
               options: [WX, ATC, LEAK, NORMAL]
               timeout_min: 15
               default: NORMAL
@@ -43,14 +41,10 @@ steps:
                 ATC: "ATC: routing, levels or holding other than planned."
                 LEAK: "You suspect a fuel leak."
                 NORMAL: "Nothing abnormal, the difference is expected."
-              reply_hints_ru:
-                WX: "Погода: обходы, ветер, обледенение."
-                ATC: "УВД: маршрут, эшелоны или ожидание не по плану."
-                LEAK: "Вы подозреваете утечку топлива."
-                NORMAL: "Ничего необычного, разница ожидаемая."
         - branch:
             WX:
               - send:
+                  id: wx
                   header: DISPATCH
                   body: |
                     NOTED WX
@@ -58,9 +52,9 @@ steps:
                     AND {ofp.altn}
                     ADVISE IF BELOW REQ
                   hint: "Dispatch notes the weather as the reason and asks you to recheck the fuel at the destination and the alternate; tell dispatch by free-text telex if it is below the required minimum. No reply needed."
-                  hint_ru: "Диспетчер авиакомпании принял погоду как причину и просит пересчитать топливо на назначение и запасной; если его меньше требуемого — сообщите telex свободным текстом. Ответ не нужен."
             ATC:
               - send:
+                  id: atc
                   header: DISPATCH
                   body: |
                     NOTED ATC
@@ -68,9 +62,9 @@ steps:
                     BETTER LEVEL
                     ADVISE IF BELOW REQ
                   hint: "Dispatch notes ATC as the reason and suggests asking ATC for a direct routing or a better level; tell dispatch by free-text telex if the fuel is below the required minimum. No reply needed."
-                  hint_ru: "Диспетчер авиакомпании принял УВД как причину и советует запросить у УВД прямой маршрут или более выгодный эшелон; если топлива меньше требуемого — сообщите telex свободным текстом. Ответ не нужен."
             LEAK:
               - send:
+                  id: leak
                   header: DISPATCH
                   body: |
                     FUEL LEAK SUSPECTED
@@ -80,9 +74,9 @@ steps:
                     {flight.nearest_altn_nm|or:-} NM
                     DIVERT IF CONFIRMED
                   hint: "Dispatch suspects a fuel leak: check the fuel system. It gives the nearest alternate and its distance; divert if the leak is confirmed. No reply needed."
-                  hint_ru: "Диспетчер авиакомпании подозревает утечку топлива: проверьте топливную систему. Он называет ближайший запасной и расстояние; если утечка подтвердится — уходите на него. Ответ не нужен."
             NORMAL:
               - send:
+                  id: normal
                   header: DISPATCH
                   body: |
                     NOTED
@@ -90,4 +84,3 @@ steps:
                     ADVISE IF DEVIATION
                     INCREASES
                   hint: "Dispatch notes it. Keep watching the fuel and tell dispatch if the difference grows. No reply needed."
-                  hint_ru: "Диспетчер авиакомпании принял к сведению. Следите за топливом и сообщите, если разница будет расти. Ответ не нужен."

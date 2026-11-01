@@ -3,11 +3,8 @@ id: cmd_eta_gs
 version: 1
 category: ops
 title: "Pilot command: ETA, by ground speed"
-title_ru: "Команда пилота: ETA по скорости"
 description: "ETA command by ground speed and the distance left."
-description_ru: "Команда ETA по путевой скорости и оставшемуся расстоянию."
 hint: "Answer to ETA in flight: the arrival time from your ground speed and the distance to go, against the schedule (STA), with your gate or stand and the transfer passengers OPS has told the connecting flights about. No reply needed."
-hint_ru: "Ответ на ETA в полёте: время прилёта по путевой скорости и оставшемуся расстоянию против расписания (STA), ваш гейт или стоянка и пассажиры на пересадку, о которых OPS предупредил стыковочные рейсы. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

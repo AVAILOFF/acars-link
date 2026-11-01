@@ -4,11 +4,8 @@ id: drone_activity
 version: 1
 category: irregular
 title: Drone activity at destination
-title_ru: "Дрон у аэропорта назначения"
 description: "About 90 NM out: arrivals suspended because of a drone for 30 min to 3 h, with an update every 20 min. HOLD (default) or DIVERT to the alternate."
-description_ru: "Примерно за 90 NM: прилёты приостановлены из-за дрона на срок от 30 мин до 3 ч, обновления каждые 20 мин. HOLD (по умолчанию) или DIVERT — на запасной."
 hint: "OPS of the destination: a drone is reported near the airport and arrivals are suspended, with no estimate yet. Tell OPS whether you hold or divert to the alternate."
-hint_ru: "OPS аэропорта назначения: у аэропорта замечен дрон, приём рейсов приостановлен, оценки пока нет. Сообщите OPS, будете ли вы ждать в зоне ожидания или уходите на запасной."
 enabled_by_default: true
 trigger:
   on: distance
@@ -31,27 +28,25 @@ steps:
         REPLY HOLD OR DIVERT
   - wait:
       reply:
+        id: reply
         options: [HOLD, DIVERT]
         timeout_min: 8
         default: HOLD
         reply_hints:
           HOLD: "Hold and wait for the airport; OPS updates you at the time given."
           DIVERT: "Divert to the alternate, or to another airport named after the word (DIVERT EDDM)."
-        reply_hints_ru:
-          HOLD: "Ждать в зоне ожидания; OPS сообщит новости к указанному времени."
-          DIVERT: "Уйти на запасной или на другой аэропорт, названный после слова (DIVERT EDDM)."
   - branch:
       HOLD:
         # The XATC station gives the holding clearance and a new time at every update (T48, T50);
         # null below ends it.
         - set: { flight.hold: 20 }
         - send:
+            id: hold
             header: OPS MSG {ofp.dest}
             body: |
               NOTED, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
               ADVISE IF FUEL BECOMES CRITICAL
             hint: "OPS notes that you hold; the next update comes at the time given. Tell OPS by free-text telex if your fuel becomes critical."
-            hint_ru: "OPS принял, что вы ждёте; следующее обновление — к указанному времени. Если топливо станет критическим, сообщите OPS telex свободным текстом."
         - loop:
             until: "loop.min >= run.hold_min"
             stop: "flight.divert != null or phase in ['LANDED','TAXI_IN','ON_BLOCK']"
@@ -59,15 +54,13 @@ steps:
             steps:
               - wait:
                   reply:
+                    id: reply_2
                     options: [HOLD, DIVERT]
                     timeout_round: true
                     default: HOLD
                     reply_hints:
                       HOLD: "Keep holding and wait for the next update."
                       DIVERT: "Divert to the alternate, or to another airport named after the word (DIVERT EDDM)."
-                    reply_hints_ru:
-                      HOLD: "Продолжать ожидание до следующего обновления."
-                      DIVERT: "Уйти на запасной или на другой аэропорт, названный после слова (DIVERT EDDM)."
               - branch:
                   # The update comes when the round ends; the pilot's own HOLD only confirms.
                   HOLD:
@@ -75,16 +68,17 @@ steps:
                       steps:
                         - set: { flight.hold: 20 }
                         - send:
+                            id: hold_2
                             header: OPS MSG {ofp.dest}
                             body: |
                               ARRIVALS STILL SUSPENDED AT {ofp.dest}
                               NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
                               REPLY HOLD OR DIVERT
                             hint: "Update from OPS of the destination: arrivals are still suspended. Tell OPS whether you keep holding or divert."
-                            hint_ru: "Обновление от OPS аэропорта назначения: приём рейсов всё ещё приостановлен. Сообщите OPS, продолжаете ли вы ожидание или уходите на запасной."
                   DIVERT:
                     - set: { flight.divert: "{reply.icao|else:ofp.altn}" }
                     - send:
+                        id: divert
                         header: OPS MSG {ofp.dest}
                         body: |
                           ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
@@ -92,22 +86,22 @@ steps:
                           ~{flight.divert_nm} NM FROM PRESENT POS
                           HANDLING ORDERED, PAX INFO SENT
                         hint: "OPS notes your diversion and its distance; handling is ordered there and the passenger information is sent. No reply needed."
-                        hint_ru: "OPS принял вашу диверсию и расстояние до аэропорта; хендлинг там заказан, данные о пассажирах отправлены. Ответ не нужен."
                     - break: true
         - set: { flight.hold: null }
         - branch:
             MET:
               - send:
+                  id: met
                   header: OPS MSG {ofp.dest}
                   body: |
                     ARRIVALS RESUMED AT {ofp.dest}
                     DRONE ACTIVITY CLEARED
                     EXPECT NORMAL APPROACH
                   hint: "The drone activity is over and arrivals at the destination have resumed: expect a normal approach. No reply needed."
-                  hint_ru: "Активность дрона прекратилась, приём рейсов в аэропорту назначения возобновлён: ожидайте обычного захода. Ответ не нужен."
       DIVERT:
         - set: { flight.divert: "{reply.icao|else:ofp.altn}" }
         - send:
+            id: divert_2
             header: OPS MSG {ofp.dest}
             body: |
               ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
@@ -115,4 +109,3 @@ steps:
               ~{flight.divert_nm} NM FROM PRESENT POS
               HANDLING ORDERED, PAX INFO SENT
             hint: "OPS notes your diversion and its distance; handling is ordered there and the passenger information is sent. No reply needed."
-            hint_ru: "OPS принял вашу диверсию и расстояние до аэропорта; хендлинг там заказан, данные о пассажирах отправлены. Ответ не нужен."

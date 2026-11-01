@@ -10,6 +10,7 @@ import { AerodataboxKeyForm, HoppieCodeForm, UsernameForm } from './SettingsAcco
 import {
   Group,
   Hint,
+  LanguageOptions,
   Row,
   SavedMark,
   SettingSwitch,
@@ -87,8 +88,7 @@ function BasicSettings({ s }: { s: Settings }) {
             disabled={off}
             onChange={(e) => void update({ language: e.currentTarget.value as Language })}
           >
-            <option value="en">English</option>
-            <option value="ru">Русский</option>
+            <LanguageOptions current={s.language} />
           </select>
           <SavedMark field="language" />
         </Row>

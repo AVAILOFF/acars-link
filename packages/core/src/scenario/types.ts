@@ -98,7 +98,8 @@ export interface SendStep {
     readonly footer?: string;
     /** App hint to this message instead of the scenario's (T57); UI only, never sent. */
     readonly hint?: string;
-    readonly hint_ru?: string;
+    /** T85: address of the step in the translation files; required with `hint`. */
+    readonly id?: string;
   };
 }
 
@@ -115,7 +116,8 @@ export interface ReplyWait {
   readonly default: string;
   /** App hints (T57): what each option means, one line per option; UI only, never sent. */
   readonly reply_hints?: Readonly<Record<string, string>>;
-  readonly reply_hints_ru?: Readonly<Record<string, string>>;
+  /** T85: address of the step in the translation files; required with `reply_hints`. */
+  readonly id?: string;
 }
 
 /**
@@ -290,16 +292,13 @@ export interface ScenarioDef {
   readonly version: 1;
   readonly category: ScenarioCategory;
   readonly title: string;
-  /** For the app UI only (Russian title, description in English and Russian). */
-  readonly title_ru?: string;
+  /** For the app UI only; translations — `@acars/scenarios` locale files (T85). */
   readonly description?: string;
-  readonly description_ru?: string;
   /**
    * App hint to the scenario's messages (T57): who sends it, what it is about, what the pilot is
    * expected to do. Unlike `description` it does not tell the outcomes. UI only, never sent.
    */
   readonly hint?: string;
-  readonly hint_ru?: string;
   readonly enabled_by_default: boolean;
   readonly trigger: Trigger;
   /** All must be true (expression language: `scenario/expr.ts`). */

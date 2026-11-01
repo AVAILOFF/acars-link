@@ -63,7 +63,10 @@
   --notam: #d9480f;
 
   /* Type */
-  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  /* Japanese (T85, for T87): the Windows system fonts after the Latin ones; no font files of our own. */
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "Yu Gothic UI", Meiryo, system-ui,
+    sans-serif;
   --fs-title-lg: 22px; /* 28 lh */
   --fs-title: 17px; /* 22 lh, semibold */
   --fs-control: 15px; /* 20 lh, medium */

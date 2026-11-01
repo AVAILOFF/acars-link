@@ -54,7 +54,9 @@ export type CompiledStep =
       readonly body: CompiledTemplate;
       readonly footer: CompiledTemplate | null;
       /** The step's own app hint (T57); null = the scenario's. */
-      readonly hint: HintText | null;
+      readonly hint: LocalText | null;
+      /** Address of the step in the translation files (T85, `send.id`); null = none. */
+      readonly id: string | null;
     }
   | { readonly kind: 'wait_minutes'; readonly minutes: number }
   | { readonly kind: 'wait_phase'; readonly phase: FlightPhase }
@@ -65,7 +67,9 @@ export type CompiledStep =
       readonly timeoutMin: number | 'round';
       readonly default: string;
       /** What each option means (T57, `reply_hints`); null = none. */
-      readonly hints: Readonly<Record<string, HintText>> | null;
+      readonly hints: Readonly<Record<string, LocalText>> | null;
+      /** Address of the step in the translation files (T85, `reply.id`); null = none. */
+      readonly id: string | null;
     }
   | {
       readonly kind: 'wait_until';
@@ -138,10 +142,20 @@ export interface CompiledAssign {
     | { readonly k: 'tpl'; readonly t: CompiledTemplate };
 }
 
-/** An app hint (T57) in English and, when given, Russian. Shown in the app only, never sent. */
-export interface HintText {
+/**
+ * A text of the app UI (T57 hints, titles, descriptions): English, and translations by language code
+ * (T85: from `@acars/scenarios` locale files; a missing language = English). Never sent.
+ */
+export interface LocalText {
   readonly en: string;
-  readonly ru: string | null;
+  readonly [lang: string]: string | undefined;
+}
+
+/** The scenario's own UI texts (T85): `title`, `description`, `hint` and their translations. */
+export interface ScenarioTexts {
+  readonly title: LocalText;
+  readonly description: LocalText | null;
+  readonly hint: LocalText | null;
 }
 
 export interface CompiledScenario {
@@ -153,6 +167,7 @@ export interface CompiledScenario {
   readonly priority: number;
   /** Members of the group that may start in one flight; null = no limit (T39). */
   readonly groupMax: number | null;
+  readonly texts: ScenarioTexts;
 }
 
 /** Group descriptions (`@acars/scenarios`): name → limit. */
@@ -238,15 +253,21 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
 
   if (def.group !== undefined && !ID.test(def.group)) fail('group', 'must be snake_case');
 
-  /** T57: a Russian hint goes with an English one. */
-  const hint = (path: string, en: string | undefined, ru: string | undefined): HintText | null => {
-    if (en === undefined) {
-      if (ru !== undefined) fail(`${path}_ru`, 'needs the English hint');
+  const text = (en: string | undefined): LocalText | null => (en === undefined ? null : { en });
+  /** T85: ids of the steps for the translation files, unique among sends and among replies. */
+  const sendIds = new Set<string>();
+  const replyIds = new Set<string>();
+  const stepId = (path: string, v: string | undefined, seen: Set<string>, hinted: boolean) => {
+    if (v === undefined) {
+      if (hinted)
+        fail(path, 'a step with a hint needs an id (T85: address in the translation files)');
       return null;
     }
-    return { en, ru: ru ?? null };
+    if (!ID.test(v)) fail(path, 'must be snake_case');
+    if (seen.has(v)) fail(path, `"${v}" is used twice`);
+    seen.add(v);
+    return v;
   };
-  hint('hint', def.hint, def.hint_ru);
 
   const vars = (path: string, used: readonly string[]) => {
     for (const v of used) if (!isContextVariable(v)) fail(path, `unknown variable ${v}`);
@@ -275,25 +296,17 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
     }
   };
 
-  /** T57: `reply_hints` (and `_ru`) name exactly the options of the wait. */
+  /** T57: `reply_hints` name exactly the options of the wait. */
   const replyHints = (
     path: string,
     options: readonly string[],
     en: Readonly<Record<string, string>> | undefined,
-    ru: Readonly<Record<string, string>> | undefined,
-  ): Readonly<Record<string, HintText>> | null => {
-    if (en === undefined) {
-      if (ru !== undefined) fail(`${path}.reply_hints_ru`, 'needs reply_hints');
-      return null;
-    }
-    const same = (keys: readonly string[]) =>
-      keys.length === options.length && options.every((o) => keys.includes(o));
-    if (!same(Object.keys(en))) fail(`${path}.reply_hints`, 'one line for each option');
-    if (ru !== undefined && !same(Object.keys(ru))) {
-      fail(`${path}.reply_hints_ru`, 'one line for each option');
-    }
-    const out: Record<string, HintText> = {};
-    for (const o of options) out[o] = { en: en[o] as string, ru: ru?.[o] ?? null };
+  ): Readonly<Record<string, LocalText>> | null => {
+    if (en === undefined) return null;
+    if (!sameOptions(options, Object.keys(en)))
+      fail(`${path}.reply_hints`, 'one line for each option');
+    const out: Record<string, LocalText> = {};
+    for (const o of options) out[o] = { en: en[o] as string };
     return out;
   };
 
@@ -321,7 +334,8 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
           header: template(`${path}.send.header`, s.send.header),
           body,
           footer: template(`${path}.send.footer`, s.send.footer),
-          hint: hint(`${path}.send.hint`, s.send.hint, s.send.hint_ru),
+          hint: text(s.send.hint),
+          id: stepId(`${path}.send.id`, s.send.id, sendIds, s.send.hint !== undefined),
         });
         continue;
       }
@@ -360,7 +374,8 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
             options: [...r.options],
             timeoutMin: round ? 'round' : (r.timeout_min as number),
             default: r.default,
-            hints: replyHints(`${path}.wait.reply`, r.options, r.reply_hints, r.reply_hints_ru),
+            hints: replyHints(`${path}.wait.reply`, r.options, r.reply_hints),
+            id: stepId(`${path}.wait.reply.id`, r.id, replyIds, r.reply_hints !== undefined),
           });
           reply = r.options;
         } else if ('until' in w) {
@@ -614,10 +629,28 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
   };
   emit(def.steps, 'steps', null);
 
-  return { def, id, conditions, steps, probability, priority: def.priority ?? 0, groupMax: null };
+  const texts: ScenarioTexts = {
+    title: { en: def.title },
+    description: text(def.description),
+    hint: text(def.hint),
+  };
+  return {
+    def,
+    id,
+    conditions,
+    steps,
+    probability,
+    priority: def.priority ?? 0,
+    groupMax: null,
+    texts,
+  };
 }
 
 const OPTION = /^[A-Z][A-Z0-9]*$/;
+
+/** `keys` are exactly `options` (T57 `reply_hints`, T85 their translations). */
+export const sameOptions = (options: readonly string[], keys: readonly string[]): boolean =>
+  keys.length === options.length && options.every((o) => keys.includes(o));
 const MIXED = Symbol('mixed');
 const UNTIL_OPTIONS: readonly string[] = UNTIL_OUTCOMES;
 type Reply = readonly string[] | null | typeof MIXED;

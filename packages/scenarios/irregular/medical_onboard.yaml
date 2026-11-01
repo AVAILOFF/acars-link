@@ -5,11 +5,8 @@ id: medical_onboard
 version: 1
 category: irregular
 title: Medical case on board
-title_ru: "Медицинский случай на борту"
 description: "In cruise the cabin crew report a sick passenger. Reply CONTINUE or DIVERT (default CONTINUE after 10 min). DIVERT diverts to the nearest of the origin and the alternates."
-description_ru: "В крейсере бортпроводники сообщают о плохом самочувствии пассажира. Ответ CONTINUE или DIVERT (через 10 мин — CONTINUE). DIVERT — диверсия на ближайший из аэропорта вылета и запасных."
 hint: "OPS: the cabin crew report a medical case on board, with the seat, the passenger's age, the symptoms and whether a doctor is on board. MedLink, the ground doctors who advise crews, give their advice next."
-hint_ru: "OPS: бортпроводники сообщают о медицинском случае на борту — место, возраст пассажира, симптомы и есть ли на борту врач. Следом придёт совет MedLink — наземных врачей, которые консультируют экипажи."
 enabled_by_default: true
 trigger:
   on: phase
@@ -36,37 +33,36 @@ steps:
   - branch:
       MET:
         - send:
+            id: met
             header: OPS MSG MEDICAL
             body: |
               NO DOCTOR ON BOARD
               MEDLINK STRONGLY ADVISES DIVERT NOW
               REPLY CONTINUE OR DIVERT
             hint: "There is no doctor on board and MedLink strongly advises diverting now. Tell OPS whether you continue or divert."
-            hint_ru: "Врача на борту нет, MedLink настоятельно советует уходить на запасной сейчас. Сообщите OPS, продолжаете ли вы полёт или уходите."
       TIMEOUT:
         - send:
+            id: timeout
             header: OPS MSG MEDICAL
             body: |
               MEDLINK ADVISES DIVERT IF NO IMPROVEMENT
               REPLY CONTINUE OR DIVERT
             hint: "MedLink advises diverting if the passenger does not get better. Tell OPS whether you continue or divert."
-            hint_ru: "MedLink советует уходить на запасной, если пассажиру не станет лучше. Сообщите OPS, продолжаете ли вы полёт или уходите."
   - set: { flags.med_doc: null }
   - wait:
       reply:
+        id: reply
         options: [CONTINUE, DIVERT]
         timeout_min: 10
         default: CONTINUE
         reply_hints:
           CONTINUE: "Continue to the destination; you may add a short note after the word."
           DIVERT: "Divert; you may add the airport ICAO and a short note after the word (DIVERT EDDM PAX STABLE)."
-        reply_hints_ru:
-          CONTINUE: "Продолжать полёт до назначения; после слова можно добавить короткое пояснение."
-          DIVERT: "Уйти на запасной; после слова можно указать ICAO аэропорта и короткое пояснение (DIVERT EDDM PAX STABLE)."
   - branch:
       DIVERT:
         - set: { flight.divert: "{reply.icao|else:flight.nearest_altn}" }
         - send:
+            id: divert
             header: OPS MSG MEDICAL
             body: |
               ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
@@ -76,18 +72,18 @@ steps:
               AMBULANCE AND HANDLING ORDERED
               SEND NEW ETA WHEN ABLE
             hint: "OPS confirms the diversion airport and its distance and has ordered an ambulance and handling there. Send your new ETA by free-text telex when you can."
-            hint_ru: "OPS подтверждает аэропорт диверсии и расстояние до него, заказал туда скорую и хендлинг. Сообщите новое ETA telex свободным текстом, когда сможете."
         - rescue: { level: medical }
         - wait: { phase: ON_BLOCK }
         - send:
+            id: divert_2
             header: OPS MSG MEDICAL
             body: |
               PARAMEDICS AT AIRCRAFT DOOR
               PATIENT DEPLANES FIRST
             hint: "Paramedics are waiting at the aircraft door; the patient leaves the aircraft before the other passengers. No reply needed."
-            hint_ru: "Медики ждут у двери самолёта; пациент выходит раньше остальных пассажиров. Ответ не нужен."
       CONTINUE:
         - send:
+            id: continue
             header: OPS MSG MEDICAL
             body: |
               MEDICAL UPDATE NOTED
@@ -95,14 +91,13 @@ steps:
               CREW INFO: {reply.arg|or:NO ADDL INFO}
               PLEASE REQUEST PRIORITY WITH ATC
             hint: "OPS notes that you continue to the destination and asks you to request priority from ATC. No reply needed."
-            hint_ru: "OPS принял, что вы продолжаете полёт до назначения, и просит запросить у УВД приоритет. Ответ не нужен."
         - rescue: { level: medical }
         - wait: { phase: ON_BLOCK }
         - send:
+            id: continue_2
             header: OPS MSG MEDICAL
             body: |
               PARAMEDICS AT AIRCRAFT DOOR
               {ops.gate_place}
               PATIENT DEPLANES FIRST
             hint: "Paramedics are waiting at the aircraft door; the patient leaves the aircraft before the other passengers. No reply needed."
-            hint_ru: "Медики ждут у двери самолёта; пациент выходит раньше остальных пассажиров. Ответ не нужен."

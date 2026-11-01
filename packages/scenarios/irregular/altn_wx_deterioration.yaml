@@ -3,11 +3,8 @@ id: altn_wx_deterioration
 version: 1
 category: irregular
 title: Alternate weather deteriorating
-title_ru: "Ухудшение погоды на запасном"
 description: "Before TOD the alternate weather turns bad. OK (default) or LOW: the nearest airport and its distance."
-description_ru: "Перед TOD погода на запасном ухудшается. OK (по умолчанию) или LOW — ближайший аэропорт и расстояние до него."
 hint: "Dispatch: the weather at your alternate is getting worse (the reason is in the message). Consider an en-route alternate or more fuel, and tell dispatch your fuel state."
-hint_ru: "Диспетчер авиакомпании (dispatch): погода на вашем запасном ухудшается (причина — в сообщении). Рассмотрите запасной на маршруте или дополнительное топливо и сообщите диспетчеру авиакомпании, как у вас с топливом."
 enabled_by_default: true
 trigger:
   on: distance
@@ -27,24 +24,22 @@ steps:
         REPLY OK OR LOW FUEL STATE
   - wait:
       reply:
+        id: reply
         options: [OK, LOW]
         timeout_min: 10
         default: OK
         reply_hints:
           OK: "Your fuel is enough for the situation."
           LOW: "Your fuel is low for the situation."
-        reply_hints_ru:
-          OK: "Топлива достаточно с учётом ситуации."
-          LOW: "Топлива с учётом ситуации мало."
   - branch:
       OK:
         - send:
+            id: ok
             header: DISPATCH
             body: |
               NOTED, MONITOR {ofp.altn} WX
               UPDATE WILL FOLLOW BEFORE TOD
             hint: "Dispatch notes that your fuel is fine and keeps watching the alternate weather; an update follows before the top of descent. No reply needed."
-            hint_ru: "Диспетчер авиакомпании принял, что с топливом всё в порядке, и следит за погодой на запасном; обновление придёт до начала снижения. Ответ не нужен."
         - wait: { until: "flight.dist_to_tod_nm < 40", timeout_min: 90 }
         # Live METAR of the alternate or none: the second wait is an "if" (the condition is
         # checked at once; false for a second of flight time = TIMEOUT).
@@ -52,15 +47,16 @@ steps:
         - branch:
             MET:
               - send:
+                  id: met
                   header: DISPATCH
                   body: |
                     ALTN {ofp.altn} WX UPDATE
                     {wx.altn_metar}
                     ADVISE IF FUEL REQUIRES ACTION
                   hint: "Alternate weather update from dispatch before the top of descent. Tell dispatch by free-text telex if your fuel requires action."
-                  hint_ru: "Обновление погоды на запасном от диспетчера авиакомпании перед началом снижения. Сообщите ему telex свободным текстом, если по топливу нужно что-то предпринять."
             TIMEOUT:
               - send:
+                  id: timeout
                   header: DISPATCH
                   body: |
                     ALTN {ofp.altn} WX UPDATE
@@ -68,13 +64,12 @@ steps:
                     CHECK ALTN WX WITH ATIS OR VOLMET
                     ADVISE IF FUEL REQUIRES ACTION
                   hint: "Alternate weather update from dispatch before the top of descent. Tell dispatch by free-text telex if your fuel requires action."
-                  hint_ru: "Обновление погоды на запасном от диспетчера авиакомпании перед началом снижения. Сообщите ему telex свободным текстом, если по топливу нужно что-то предпринять."
       LOW:
         - send:
+            id: low
             header: DISPATCH
             body: |
               NEAREST ALTN {flight.nearest_altn|or:NONE}
               {flight.nearest_altn_nm|or:-} NM FROM PRESENT POS
               DECLARE MIN FUEL IF REQUIRED
             hint: "Dispatch gives the nearest alternate and its distance from your present position. Declare minimum fuel to ATC if required. No reply needed."
-            hint_ru: "Диспетчер авиакомпании называет ближайший запасной и расстояние до него от текущего места. При необходимости объявите УВД минимальный остаток топлива (MIN FUEL). Ответ не нужен."

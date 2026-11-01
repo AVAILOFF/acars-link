@@ -4,11 +4,8 @@ id: welcome_turnaround
 version: 1
 category: ops
 title: Welcome and turnaround
-title_ru: "Приветствие и оборот"
 description: "Welcome message with the turnaround plan."
-description_ru: "Приветствие и план оборота самолёта."
 hint: "Welcome from the destination station with the turnaround plan: turn time, next flight and STD, cleaning and catering en route. No reply needed."
-hint_ru: "Приветствие от станции в аэропорту назначения с планом оборота: время на оборот, следующий рейс и STD, уборка и бортпитание в пути. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: event

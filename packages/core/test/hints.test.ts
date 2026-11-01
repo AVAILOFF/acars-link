@@ -30,7 +30,6 @@ const question: ScenarioDef = {
   category: 'irregular',
   title: 'Question',
   hint: 'Scenario hint.',
-  hint_ru: 'Подсказка сценария.',
   enabled_by_default: true,
   trigger: { on: 'phase_enter', phase: 'CRUISE' },
   steps: [
@@ -41,14 +40,14 @@ const question: ScenarioDef = {
           options: ['CONFIRM', 'NEGATIVE'],
           timeout_min: 10,
           default: 'NEGATIVE',
+          id: 'ask',
           reply_hints: { CONFIRM: 'Yes.', NEGATIVE: 'No.' },
-          reply_hints_ru: { CONFIRM: 'Да.', NEGATIVE: 'Нет.' },
         },
       },
     },
     {
       branch: {
-        CONFIRM: [{ send: { body: 'CONFIRMED', hint: 'Step hint.', hint_ru: 'Подсказка шага.' } }],
+        CONFIRM: [{ send: { id: 'confirmed', body: 'CONFIRMED', hint: 'Step hint.' } }],
       },
     },
     { send: { body: 'END' } },
@@ -58,18 +57,41 @@ const question: ScenarioDef = {
 const withSteps = (steps: ScenarioDef['steps']): ScenarioDef => ({ ...question, steps });
 
 describe('hints in the scenario (T57)', () => {
-  it('compiles the step hint and the hints of the answers; the scenario hint stays in def', () => {
+  it('compiles the step hint and the hints of the answers, English only (T85)', () => {
     const c = compileScenario(question);
-    expect(c.def.hint).toBe('Scenario hint.');
+    expect(c.texts).toEqual({
+      title: { en: 'Question' },
+      description: null,
+      hint: { en: 'Scenario hint.' },
+    });
     const wait = c.steps.find((s) => s.kind === 'wait_reply');
     expect(wait).toMatchObject({
-      hints: { CONFIRM: { en: 'Yes.', ru: 'Да.' }, NEGATIVE: { en: 'No.', ru: 'Нет.' } },
+      id: 'ask',
+      hints: { CONFIRM: { en: 'Yes.' }, NEGATIVE: { en: 'No.' } },
     });
-    const sends = c.steps.flatMap((s) => (s.kind === 'send' ? [s.hint] : []));
-    expect(sends).toEqual([null, { en: 'Step hint.', ru: 'Подсказка шага.' }, null]);
+    const sends = c.steps.flatMap((s) => (s.kind === 'send' ? [[s.id, s.hint]] : []));
+    expect(sends).toEqual([
+      [null, null],
+      ['confirmed', { en: 'Step hint.' }],
+      [null, null],
+    ]);
   });
 
-  it('reply_hints name exactly the options; a Russian hint needs the English one', () => {
+  it('a step with a hint needs a unique snake_case id (T85)', () => {
+    expect(() => compileScenario(withSteps([{ send: { body: 'X', hint: 'x' } }]))).toThrow(
+      /send\.id: a step with a hint needs an id/,
+    );
+    const two = withSteps([
+      { send: { id: 'a', body: 'X', hint: 'x' } },
+      { send: { id: 'a', body: 'Y' } },
+    ]);
+    expect(() => compileScenario(two)).toThrow(/"a" is used twice/);
+    expect(() => compileScenario(withSteps([{ send: { id: 'Bad', body: 'X' } }]))).toThrow(
+      /snake_case/,
+    );
+  });
+
+  it('reply_hints name exactly the options', () => {
     const reply = (extra: object) =>
       withSteps([
         { send: { body: 'X' } },
@@ -84,16 +106,8 @@ describe('hints in the scenario (T57)', () => {
       /one line for each option/,
     );
     expect(() =>
-      compileScenario(reply({ reply_hints: { A: 'a', B: 'b' }, reply_hints_ru: { A: 'а' } })),
-    ).toThrow(/reply_hints_ru/);
-    expect(() => compileScenario(reply({ reply_hints_ru: { A: 'а', B: 'б' } }))).toThrow(
-      /needs reply_hints/,
-    );
-    const { hint: _, ...noHint } = question;
-    expect(() => compileScenario(noHint)).toThrow(/hint_ru/);
-    expect(() => compileScenario(withSteps([{ send: { body: 'X', hint_ru: 'х' } }]))).toThrow(
-      /send\.hint_ru/,
-    );
+      compileScenario(reply({ id: 'r', reply_hints: { A: 'a', B: 'b' } })),
+    ).not.toThrow();
   });
 });
 

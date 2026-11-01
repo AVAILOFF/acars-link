@@ -2,7 +2,13 @@
 // Copyright (c) 2026 AVAILOFF
 
 import { type ReactNode, useState } from 'react';
-import type { Settings, SettingsPatch } from '../../shared/api.js';
+import {
+  LANGUAGE_CHOICES,
+  LANGUAGES,
+  type Language,
+  type Settings,
+  type SettingsPatch,
+} from '../../shared/api.js';
 import { firstSentence } from './hints.js';
 import { Switch } from './Switch.js';
 import { useStore } from './store.js';
@@ -103,6 +109,25 @@ export function SavedMark({ field }: { field: string }) {
 }
 
 /** One sheet row: title and hint on the left, the control on the right; `off` dims it (U-13). */
+/**
+ * The options of a language list (settings, welcome; T85): the ready languages by their own names, a
+ * machine translation marked; the current language stays listed even when it is not ready.
+ */
+export function LanguageOptions({ current }: { current: Language }) {
+  const t = useT();
+  const list = LANGUAGE_CHOICES.includes(current)
+    ? LANGUAGE_CHOICES
+    : [...LANGUAGE_CHOICES, current];
+  return list.map((l) => {
+    const info = LANGUAGES[l];
+    return (
+      <option key={l} value={l} lang={l}>
+        {info.machine ? `${info.name} (${t('set.language.machine')})` : info.name}
+      </option>
+    );
+  });
+}
+
 export function Row({
   htmlFor,
   title,

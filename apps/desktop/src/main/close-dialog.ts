@@ -6,7 +6,7 @@ import type { Language } from '../shared/api.js';
 /**
  * The question before the window closes during a flight (T56 U-03). With its recording written the
  * flight is offered to go on at the next start (T64); without it, it is lost. Texts of the main
- * process, EN + RU like `i18n.ts`. Button 0 closes, button 1 (default, Esc) keeps the flight.
+ * process, by language like `i18n.ts` (T85: a missing language = English). Button 0 closes, button 1 (default, Esc) keeps the flight.
  */
 export interface CloseDialog {
   readonly type: 'warning';
@@ -21,9 +21,9 @@ export interface CloseDialog {
 
 export const CLOSE_BUTTON = 0;
 
-const TEXTS: Readonly<
-  Record<Language, Omit<CloseDialog, 'type' | 'defaultId' | 'cancelId' | 'noLink' | 'detail'>>
-> = {
+type Texts = Omit<CloseDialog, 'type' | 'defaultId' | 'cancelId' | 'noLink' | 'detail'>;
+
+const TEXTS: { readonly en: Texts } & Readonly<Partial<Record<Language, Texts>>> = {
   en: {
     title: 'ACARS Link',
     message: 'A flight is in progress. Close the app?',
@@ -36,7 +36,9 @@ const TEXTS: Readonly<
   },
 };
 
-const DETAIL: Readonly<Record<Language, Readonly<Record<'resume' | 'lost', string>>>> = {
+type Detail = Readonly<Record<'resume' | 'lost', string>>;
+
+const DETAIL: { readonly en: Detail } & Readonly<Partial<Record<Language, Detail>>> = {
   en: {
     resume:
       'At the next start (within 24 hours) the app offers to continue the flight. Unsent messages are sent then.',
@@ -52,8 +54,8 @@ const DETAIL: Readonly<Record<Language, Readonly<Record<'resume' | 'lost', strin
 export function closeDialog(lang: Language, resumable: boolean): CloseDialog {
   return {
     type: 'warning',
-    ...TEXTS[lang],
-    detail: DETAIL[lang][resumable ? 'resume' : 'lost'],
+    ...(TEXTS[lang] ?? TEXTS.en),
+    detail: (DETAIL[lang] ?? DETAIL.en)[resumable ? 'resume' : 'lost'],
     defaultId: 1,
     cancelId: 1,
     noLink: true,
