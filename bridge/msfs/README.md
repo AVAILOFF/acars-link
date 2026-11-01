@@ -1,6 +1,6 @@
 # acars-msfs-bridge
 
-MSFS 2020/2024 → SimConnect → WebSocket `ws://127.0.0.1:47830/`. C# / .NET 10 LTS (docs/08, decision 2; T79).
+MSFS 2024 → SimConnect → WebSocket `ws://127.0.0.1:47830/`. C# / .NET 10 LTS (docs/08, decision 2; T79).
 X-Plane 12 (12.1.1 or later) → its built-in Web API → the same WebSocket (T18). By default (`--source auto`, T59)
 the bridge connects to whichever of the two runs.
 Streams `TelemetrySnapshot` v1 (docs/03, `packages/core/src/telemetry/types.ts`) at ~1 Hz.
@@ -198,7 +198,7 @@ Checked by a human in MSFS 2024 (A350-1000, 2026-10-08): connect, `running`, `do
 (0-based, order L1, R1, L2, R2), `xpdrState` (AUTO on the ground → 5 Ground), `beacon`,
 `engRunning`/`engN2`, `fuelKg`, `parkingBrake`, pause and active pause, `flapsIdx`, `gearDown`,
 `onGround` on takeoff, reconnect after MSFS quits (2024 breaks the pipe, `0xC000014B`, instead of
-sending Quit; the backoff loop handles both). Not yet checked: `simRate`, MSFS 2020.
+sending Quit; the backoff loop handles both). Not yet checked: `simRate`. MSFS 2020 is not supported (decision 2026-11-01, T84).
 
 Seen while a flight loads in MSFS 2024: pause flips many times per second (the pump keeps the stream
 ≤ 1 Hz), and aircraft state jumps (engines, transponder, flaps) before the flight settles.

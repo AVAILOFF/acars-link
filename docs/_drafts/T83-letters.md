@@ -10,7 +10,7 @@
 
 Hello Jeroen,
 
-I am writing a free, non-commercial desktop app, ACARS Link, for MSFS 2020/2024 and X-Plane 12.
+I am writing a free, non-commercial desktop app, ACARS Link, for MSFS 2024 and X-Plane 12.
 It reads the SimBrief plan and the sim's telemetry and sends the pilot realistic "airline" messages
 (load sheet, gate, delays, irregular operations) and a few clearance messages over your network.
 Every user enters their own Hoppie logon code; the app never ships or shares one. It follows
@@ -51,7 +51,7 @@ Best regards,
 Hello,
 
 I develop ACARS Link, a free, non-commercial add-on application for Microsoft Flight Simulator
-2020/2024 (Windows, x64). It reads aircraft data through SimConnect.
+2024 (Windows, x64). It reads aircraft data through SimConnect.
 
 To avoid redistributing `SimConnect.dll` or `Microsoft.FlightSimulator.SimConnect.dll`, the app
 uses a small DLL of its own, `acars_simconnect.dll`, which links the static client library shipped

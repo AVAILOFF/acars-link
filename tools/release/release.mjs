@@ -8,10 +8,11 @@
 //   3. pnpm check and pnpm bridge:test (any failure: the three files back as they were, nothing
 //      else touched);
 //   4. commit "Release vX.Y.Z" and the annotated tag vX.Y.Z;
-//   5. pnpm desktop:dist (the public installer).
+//   5. pnpm desktop:dist (the public installer) and its SHA-256 in `<installer>.sha256` (T84).
 // Nothing is pushed: push the commit and the tag by hand when the user asks (CLAUDE.md).
 // --any-branch: run on another branch (to try the script on a copy); --no-dist: skip step 5.
 import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,6 +23,7 @@ import {
   parseVersion,
   readVersions,
   setVersions,
+  sha256Line,
   withSection,
 } from './version.mjs';
 
@@ -122,5 +124,13 @@ console.log(`\nrelease: commit "Release ${tag}" and tag ${tag} on ${branch}`);
 if (dist && !pnpm('desktop:dist')) {
   fail(`${tag} is committed and tagged, the installer failed: fix it and run pnpm desktop:dist`);
 }
-if (dist) console.log(`release: apps/desktop/release/ACARS-Link-Setup-${version}.exe`);
+if (dist) {
+  const installer = `ACARS-Link-Setup-${version}.exe`;
+  const path = join(root, 'apps/desktop/release', installer);
+  if (!existsSync(path)) fail(`${tag} is committed and tagged, but ${path} is missing`);
+  const hex = createHash('sha256').update(readFileSync(path)).digest('hex');
+  writeFileSync(`${path}.sha256`, sha256Line(hex, installer));
+  console.log(`release: apps/desktop/release/${installer}`);
+  console.log(`release: SHA-256 ${hex} (${installer}.sha256)`);
+}
 console.log(`release: not pushed; when asked: git push origin ${branch} ${tag}`);

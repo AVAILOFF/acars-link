@@ -17,7 +17,7 @@
 
 ## Пользователи
 
-- Симмеры MSFS 2020/2024 на лайнерах (Fenix A320, FBW A32NX, PMDG 737/777, iniBuilds A350/A300, Headwind и др.) с поддержкой Hoppie telex.
+- Симмеры MSFS 2024 на лайнерах (MSFS 2020 не поддерживается — решение 2026-11-01, T84) (Fenix A320, FBW A32NX, PMDG 737/777, iniBuilds A350/A300, Headwind и др.) с поддержкой Hoppie telex.
 - Приоритет для проверки человеком: Fenix A320, PMDG 777, iniBuilds A350/A380/A340.
 - X-Plane 12 — во второй очереди (T18).
 - UI на английском и русском.
