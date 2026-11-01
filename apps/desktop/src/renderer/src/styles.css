@@ -390,15 +390,18 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: var(--h-ctl);
-  padding: 0 14px;
+  /* A label longer than the room (German, T86) wraps to a second line instead of pushing the row out. */
+  min-height: var(--h-ctl);
+  max-width: 100%;
+  padding: 2px 14px;
   border: 0;
   border-radius: var(--r-ctl);
   background: var(--btn);
   color: var(--on-shell-1);
   font-size: var(--fs-control);
   font-weight: 500;
-  white-space: nowrap;
+  line-height: 1.25;
+  text-align: center;
   cursor: pointer;
   transition: background-color var(--dur-fast);
 }

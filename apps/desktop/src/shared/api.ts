@@ -26,6 +26,10 @@ export interface LanguageInfo {
 export const LANGUAGES = {
   en: { name: 'English', ready: true, machine: false },
   ru: { name: 'Русский', ready: true, machine: false },
+  // T86: machine translation (DeepL, tools/i18n) until a native speaker checks it.
+  de: { name: 'Deutsch', ready: true, machine: true },
+  fr: { name: 'Français', ready: true, machine: true },
+  es: { name: 'Español', ready: true, machine: true },
 } as const satisfies Readonly<Record<string, LanguageInfo>>;
 
 export type Language = keyof typeof LANGUAGES;

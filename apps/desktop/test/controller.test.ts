@@ -604,7 +604,7 @@ describe('message hints (T57)', () => {
       default: 'OTHER',
       minutesLeft: 10,
     });
-    expect(pending?.hints?.['TECH']).toEqual({
+    expect(pending?.hints?.['TECH']).toMatchObject({
       en: 'A technical problem with the aircraft.',
       ru: 'Техническая неисправность самолёта.',
     });
@@ -1447,7 +1447,7 @@ describe('irregular events by hand', () => {
     await s.app.startFlight();
     const list = s.app.state().irregular;
     expect(list.length).toBe(34);
-    expect(list.find((x) => x.id === 'vip_onboard')?.title).toEqual({
+    expect(list.find((x) => x.id === 'vip_onboard')?.title).toMatchObject({
       en: 'VIP on board',
       ru: 'VIP на борту',
     });

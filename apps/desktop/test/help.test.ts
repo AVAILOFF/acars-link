@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { HELP, type HelpSection, helpFor, searchHelp } from '../src/renderer/src/help.js';
+import { MESSAGES } from '../src/renderer/src/i18n.js';
 import type { Language } from '../src/shared/api.js';
 
 /** T85: every language that has a help file (`help-<lang>.ts`). */
@@ -40,5 +41,38 @@ describe('Help tab', () => {
     expect(found.flatMap((s) => s.items.map((i) => i.id))).toContain('inibuilds');
     expect(searchHelp(helpFor('ru'), 'zzzz')).toEqual([]);
     expect(searchHelp(helpFor('ru'), '  ')).toHaveLength(helpFor('ru').length);
+  });
+});
+
+/** The texts of a help, in order: titles, questions, paragraphs, list lines, link texts. */
+const texts = (sections: readonly HelpSection[]): string[] =>
+  sections.flatMap((s) => [
+    s.title,
+    ...s.items.flatMap((i) => [
+      i.q,
+      ...i.a.flatMap((b) => (typeof b === 'string' ? [b] : 'list' in b ? b.list : [b.link])),
+    ]),
+  ]);
+
+describe('Help quotes the UI (T86)', () => {
+  const english = new Map<string, string>();
+  for (const [k, v] of Object.entries(MESSAGES.en)) if (!english.has(v)) english.set(v, k);
+
+  it('a label quoted in the English help that is a UI string appears in that language’s help as its UI string', () => {
+    let checked = 0;
+    for (const { lang, sections } of LANGS.filter((l) => l.lang !== 'en')) {
+      const own = MESSAGES[lang as Language] as Readonly<Record<string, string | undefined>>;
+      const theirs = texts(sections);
+      for (const [n, text] of texts(HELP.en).entries()) {
+        for (const m of text.matchAll(/“([^”]+)”/g)) {
+          const key = english.get(m[1] ?? '');
+          const label = key === undefined ? undefined : own[key];
+          if (label === undefined || lang === 'ru') continue; // ru: written by hand before T86
+          expect(theirs[n], `${lang}: “${m[1]}”`).toContain(label);
+          checked++;
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(0);
   });
 });

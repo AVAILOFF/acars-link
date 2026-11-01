@@ -1,0 +1,628 @@
+# Spanish (Spain) UI texts of the scenarios (T86/T87): machine translation by `pnpm i18n translate`
+# (tools/i18n), not yet checked by a native speaker. Hand edits are kept on the next run. Telexes are never translated.
+aircraft_change:
+  title: Cambio de aeronave
+  description: Cambio de aeronave para la siguiente etapa.
+  hint: "El control de operaciones (OPS) indica que el próximo tramo se realizará en otra aeronave: esta se someterá a mantenimiento tras la llegada y la tripulación cambiará de aeronave. No es necesario responder."
+airshow_dest:
+  title: Espectáculo aéreo en el destino
+  description: Un espectáculo aéreo a menos de 50 km del destino el día de llegada (lista de referencia de las páginas web oficiales).
+  hint: "Información OPS: un espectáculo aéreo en el destino o cerca de él el día de su vuelo. Prevea restricciones en las exhibiciones y un tráfico intenso; consulte los NOTAM. No es necesario responder."
+altn_wx_deterioration:
+  title: La meteorología del aeropuerto alternativo está empeorando
+  description: "Antes del TOD, las condiciones meteorológicas del aeropuerto alternativo empeoran. OK (por defecto) o LOW: el aeropuerto más cercano y su distancia."
+  hint: "Despacho de vuelos: las condiciones meteorológicas en su aeropuerto alternativo están empeorando (el motivo se indica en el mensaje). Considere la posibilidad de utilizar un aeropuerto alternativo en ruta o de aumentar el combustible, e informe al despacho de vuelos de su estado de combustible."
+  steps:
+    reply:
+      reply_hints:
+        OK: Su combustible es suficiente para la situación.
+        LOW: Su nivel de combustible es bajo para la situación.
+    ok:
+      hint: El despacho de vuelos constata que su nivel de combustible es adecuado y sigue vigilando la meteorología del aeropuerto alternativo; se le facilitará una actualización antes de iniciar el descenso. No es necesario responder.
+    met:
+      hint: Actualización meteorológica del aeropuerto alternativo por parte del despacho de vuelos antes de iniciar el descenso. Informe al despacho de vuelos mediante un télex de texto libre si su nivel de combustible requiere alguna medida.
+    timeout:
+      hint: Actualización meteorológica del aeropuerto alternativo por parte del despacho de vuelos antes de iniciar el descenso. Informe al despacho de vuelos mediante un télex de texto libre si su nivel de combustible requiere alguna medida.
+    low:
+      hint: El despacho de vuelos le indica el aeropuerto alternativo más cercano y su distancia desde su posición actual. Declare el combustible mínimo al ATC si es necesario. No es necesario responder.
+arrival_info:
+  title: Información de llegada
+  description: Puerta de embarque, cinta de equipajes, pasajeros en tránsito y asistencia en tierra durante el descenso.
+  hint: "Información de llegada de OPS para el destino: la puerta de embarque o el puesto de estacionamiento, la cinta de equipajes, el número de pasajeros que hacen transbordo a otros vuelos y la asistencia en tierra prevista. No es necesario responder."
+atc_flow_delay:
+  title: Retraso por control de flujo del ATC
+  description: Poco antes de la salida, el CTOT indicado anteriormente (slot_ctot) se retrasa debido al control de flujo.
+  hint: "La gestión del flujo de ATC (ATFM) ha retrasado su franja horaria: el motivo es el cambio entre el CTOT anterior y el nuevo, así como el retraso adicional. Planifique el arranque y el remolque hacia atrás de la aeronave en función del nuevo CTOT. No es necesario que responda."
+atis_update:
+  title: ATIS del destino modificado
+  description: "Durante el descenso, ha cambiado la carta del VATSIM ATIS del destino: la nueva carta y el METAR."
+  hint: El ATIS del destino (VATSIM) cuenta con una nueva carta informativa, que sustituye a la anterior; junto con ella, el último METAR. Utilice la nueva carta en el primer contacto con el control de aproximación. No es necesario responder.
+aurora_on_route:
+  title: Aurora en la ruta
+  description: Probabilidad de aurora del 30 % o más en un punto de la ruta en la próxima hora, durante la noche (NOAA OVATION).
+  hint: "Información de OPS: la previsión de NOAA indica la posibilidad de auroras (del norte o del sur) a lo largo de su ruta; el mensaje especifica dónde y cuándo. La tripulación de cabina puede informar a los pasajeros. No es necesario responder."
+aviation_history:
+  title: En este día en la historia de la aviación
+  description: Un dato de la historia de la aviación correspondiente a la fecha de hoy (lista de referencias con fuentes).
+  hint: "Información OPS: un acontecimiento de la historia de la aviación que tuvo lugar en esta fecha. No es necesaria respuesta."
+block_report:
+  title: Tiempos de bloque (OOOI)
+  description: Tiempos de bloque y códigos de retraso tras la llegada al bloque.
+  hint: "Informe de bloque tras el estacionamiento: tiempos de OUT, OFF, ON e IN (salida del bloque, despegue, aterrizaje, entrada en el bloque), tiempo de bloque y de vuelo, y combustible a bordo; tras un retraso, también los códigos de retraso de la IATA que indican sus causas. Para los registros de la aerolínea; no es necesaria respuesta."
+cmd_delay:
+  title: "Comando del piloto: DELAY"
+  description: "Comando DELAY: confirma la nueva hora de salida del bloque."
+  hint: "OPS confirma su informe de DELAY: los minutos y el motivo que ha indicado, la nueva hora estimada de salida del bloque (EOBT) y el retraso total del vuelo. No es necesario responder."
+cmd_divert:
+  title: "Comando del piloto: DIVERT"
+  description: "Comando DIVERT: confirma el desvío."
+  hint: OPS ha confirmado su desvío (DIVERT) y ha informado al servicio de handling en tierra del aeropuerto de desvío. Solicita el motivo para organizar lo necesario allí.
+  steps:
+    reply:
+      reply_hints:
+        WX: Meteorología en el destino.
+        TECH: Un problema técnico con la aeronave.
+        MEDICAL: Un caso médico a bordo.
+        FUEL: No hay combustible suficiente para continuar hasta el destino.
+        OTHER: Cualquier otro motivo.
+    medical:
+      hint: OPS ha solicitado un equipo médico en el aeropuerto de desvío y le pide que facilite los datos de los pasajeros mediante un télex de texto libre tan pronto como le sea posible.
+    tech:
+      hint: El control de mantenimiento está al corriente y un ingeniero le recibirá en el aeropuerto de desvío. Envíe una breve descripción de la avería mediante un télex de texto libre.
+    fuel:
+      hint: OPS ha solicitado combustible para usted en el aeropuerto de desvío. No es necesario responder.
+    wx:
+      hint: OPS ha registrado un desvío por condiciones de meteorología y está gestionando nuevas reservas para los pasajeros. No es necesario responder.
+    msg:
+      hint: Aún se desconoce el puesto de estacionamiento en el aeropuerto de desvío. Envíe su hora prevista de llegada (ETA) a dicho aeropuerto mediante un télex de texto libre tan pronto como le sea posible.
+cmd_divert_eta:
+  title: "Comando del piloto: «DIVERT», distancia y ETA"
+  description: "Tras un «DIVERT» a un aeropuerto del plan de vuelo: distancia desde la posición actual y ETA a la velocidad respecto al suelo actual."
+  hint: Distancia desde su posición actual hasta el aeropuerto de desvío que ha indicado y la ETA en dicho aeropuerto a su velocidad respecto al suelo actual. No es necesaria respuesta.
+cmd_eta:
+  title: "Comando del piloto: ETA"
+  description: Comando ETA» en vuelo, basado en los tiempos previstos.
+  hint: "Respuesta a ETA: la hora de llegada estimada según el horario (STA), su puerta de embarque o puesto de estacionamiento y los pasajeros en tránsito que OPS ha comunicado a los vuelos de conexión. No es necesaria respuesta."
+cmd_eta_ground:
+  title: "Comando del piloto: «ETA», antes del despegue"
+  description: Comando ETA antes del despegue.
+  hint: "Respuesta a la ETA antes de la salida: las horas estimadas de salida del bloque (EOBT) y de llegada al bloque (EST IN) en relación con el horario (STA) y los pasajeros en tránsito. No es necesaria respuesta."
+cmd_eta_gs:
+  title: "Comando del piloto: ETA, según la velocidad respecto al suelo"
+  description: Orden de ETA, basada en la velocidad respecto al suelo y la distancia restante.
+  hint: "Respuesta a la ETA en vuelo: la hora de llegada calculada a partir de su velocidad respecto al suelo y la distancia restante, comparada con el horario previsto (STA), indicando su puerta de embarque o puesto de estacionamiento y los pasajeros en tránsito que OPS ha comunicado a los vuelos de conexión. No es necesaria respuesta."
+cmd_gate_change:
+  title: "Comando del piloto: «REQ GATE CHANGE»"
+  description: "REQ GATE CHANGE [puerta] [motivo] antes del bloqueo: OPS lo aprueba (70 %, la puerta solicitada si se trata de una plaza libre conocida) o indica que todas las puertas están ocupadas. A continuación, la información de llegada indica la nueva puerta."
+  hint: "OPS responde a su REQ GATE CHANGE: indica la nueva puerta de embarque cuando se aprueba el cambio, o explica por qué no es posible y qué puerta debe conservar. No es necesario responder."
+cmd_gate_change_none:
+  title: "Comando del piloto: «REQ GATE CHANGE», sin datos de la puerta de embarque"
+  description: "REQ GATE CHANGE: cuando aún no se conoce la puerta de embarque, no hay otra puerta disponible o el vuelo se desvía."
+  hint: "OPS no puede cambiar la puerta de embarque en este momento: aún no se conoce ninguna puerta, no hay otra puerta disponible o se está desviando el vuelo. El mensaje repite lo que OPS sabe sobre su puerta de embarque. No es necesario responder."
+cmd_help:
+  title: "Comando del piloto: «HELP»"
+  description: "Comando HELP: la lista de comandos del piloto."
+  hint: El texto libre se envía a OPS como un télex; HELP devuelve la lista de comandos que OPS entiende. Envíe un comando como un télex a la estación de la aerolínea; ATC LOGON y la autorización de salida (DCL) se envían a las estaciones XATC (X + FIR, X + aeropuerto de salida).
+cmd_medical:
+  title: "Comando del piloto: «MEDICAL»"
+  description: "MEDICAL <TEXTO> en vuelo: la tripulación informa de un caso médico. OPS pregunta si se CONTINUE o DIVERT (por defecto, CONTINUE tras 10 minutos); en caso de DIVERT, se dirige al más cercano de entre el de origen y los aeropuertos alternativos; los paramédicos reciben al avión."
+  hint: OPS ha recibido su informe médico y se lo ha comunicado a MedLink, los médicos de tierra que asesoran a las tripulaciones durante el vuelo. Le pregunta si continúa hacia el destino o si realiza un desvío.
+  steps:
+    reply:
+      reply_hints:
+        CONTINUE: Continúe hacia el destino.
+        DIVERT: Desvío; puede añadir el código ICAO del aeropuerto después de la palabra (DIVERT EDDM).
+    divert:
+      hint: OPS confirma el aeropuerto de desvío y ha solicitado una ambulancia y los servicios de handling en dicho aeropuerto. Envíe su nueva ETA mediante télex de texto libre tan pronto como le sea posible.
+    divert_2:
+      hint: Los paramédicos están esperando en la puerta de la aeronave; el paciente abandona la aeronave antes que el resto de pasajeros. No es necesario responder.
+    continue:
+      hint: OPS indica que continúe hacia el destino y le pide que solicite prioridad al ATC. No es necesario responder.
+    continue_2:
+      hint: Los paramédicos están esperando en la puerta de la aeronave; el paciente abandona la aeronave antes que el resto de pasajeros. No es necesario responder.
+cmd_rdy:
+  title: "Comando del piloto: «RDY»"
+  description: "RDY con un CTOT asignado, antes de salir de la plaza de estacionamiento: READY MSG SENT; a continuación (40 %), un CTOT más temprano o NO IMPROVEMENT."
+  hint: "OPS ha enviado su mensaje de «listo» (RDY: la tripulación puede partir antes de la franja horaria asignada) a la gestión de flujos de ATC. Siga planificando según el CTOT actual hasta que se reciba la actualización. No es necesario responder."
+  steps:
+    met:
+      hint: "Respuesta a su mensaje de «listo»: la gestión de flujos ha asignado una franja horaria anterior. Planifique el despegue según el nuevo CTOT. No es necesario responder."
+    timeout:
+      hint: "Respuesta a su mensaje de «listo»: no hay ninguna franja horaria anterior disponible, el CTOT se mantiene. No es necesario responder."
+cmd_rdy_none:
+  title: "Comando del piloto: «RDY», sin franja horaria"
+  description: RDY sin CTOT, o demasiado pronto o tarde para un mensaje de «listo» (desde EOBT-15 min hasta CTOT menos el tiempo de rodaje).
+  hint: "OPS no puede enviar un mensaje de «listo» en este momento: el vuelo no tiene franja horaria (CTOT), o es demasiado pronto o demasiado tarde para ello. Envíe RDY cuando esté listo, cerca del EOBT. No es necesaria respuesta."
+cmd_req_atis:
+  title: "Comando del piloto: «REQ ATIS»"
+  description: "REQ ATIS [ICAO]: el texto del VATSIM ATIS en línea del aeropuerto (destino sin ICAO). Si no hay ATIS en línea: NO ATIS AVBL y el METAR."
+  hint: "REQ ATIS <ICAO> solicita el ATIS de un aeropuerto (si se deja en blanco: el destino). La respuesta es el texto del ATIS en línea en VATSIM junto con su carta informativa. No es necesario responder."
+cmd_req_atis_none:
+  title: "Comando del piloto: REQ ATIS, no hay ATIS"
+  description: "REQ ATIS cuando no hay ATIS disponible: NO ATIS AVBL y el último METAR."
+  hint: "Respuesta a «REQ ATIS»: no hay ningún ATIS de ese aeropuerto disponible en VATSIM, por lo que OPS envía en su lugar el último METAR. No es necesaria ninguna respuesta."
+cmd_req_gate:
+  title: "Comando del piloto: «REQ GATE»"
+  description: "Comando REQ GATE: la puerta de llegada."
+  hint: REQ GATE solicita a OPS su puerta de llegada. La respuesta incluye la puerta o el puesto de estacionamiento previsto en el destino, la cinta de equipajes y el STA. No es necesario responder.
+cmd_req_gate_divert:
+  title: "Comando del piloto: «REQ GATE», desviación"
+  description: Comando REQ GATE durante el desvío.
+  hint: "Respuesta a «REQ GATE» durante el desvío: aún se desconoce el puesto de estacionamiento en el aeropuerto de desvío; el servicio de handling local lo facilitará. No es necesaria ninguna respuesta."
+cmd_req_loadsheet:
+  title: "Comando del piloto: «REQ LOADSHEET»"
+  description: "Comando REQ LOADSHEET: repite la hoja de carga."
+  hint: "REQ LOADSHEET: solicita a OPS que envíe de nuevo la hoja de carga. La respuesta repite la última hoja de carga de este vuelo, ya sea preliminar o definitiva. No es necesaria ninguna respuesta."
+cmd_req_loadsheet_none:
+  title: "Comando del piloto: «REQ LOADSHEET», aún no hay ninguna"
+  description: Comando REQ LOADSHEET antes de que exista ninguna hoja de carga.
+  hint: "Respuesta a «REQ LOADSHEET»: aún no se ha emitido ninguna hoja de carga para este vuelo; el mensaje indicará cuándo estará disponible la preliminar. No es necesario responder."
+cmd_req_wx:
+  title: "Comando del piloto: «REQ WX»"
+  description: "Comando REQ WX: información de meteorología del OFP METAR."
+  hint: REQ WX <ICAO> solicita a OPS la información de meteorología de un aeropuerto (si se omite, se entiende que es el de destino). Esta respuesta incluye el METAR del plan de vuelo. No es necesaria ninguna respuesta.
+cmd_req_wx_live:
+  title: "Comando del piloto: «REQ WX» (en tiempo real)"
+  description: Comando REQ WX con datos de meteorología en tiempo real.
+  hint: REQ WX <ICAO> solicita a OPS la información meteorológica de un aeropuerto (si se deja en blanco, se entiende que es el de destino). La respuesta incluye el METAR y el TAF actuales. No es necesario responder.
+cmd_req_wx_no_data:
+  title: "Comando del piloto: «REQ WX», sin datos"
+  description: Comando REQ WX cuando no hay datos de meteorología para el aeropuerto.
+  hint: "Respuesta a «REQ WX»: OPS no dispone de datos de meteorología para ese aeropuerto. Compruebe el código ICAO o vuelva a preguntar más tarde. No es necesario responder."
+connection_held:
+  title: Conexión en espera
+  description: "En espera tras una conexión corta con un margen de entre 15 y 40 minutos: el vuelo de conexión se retiene para los pasajeros."
+  hint: "Conexiones: el vuelo de conexión de sus pasajeros en tránsito está esperando y saldrá más tarde. Hay un autobús de traslado esperando en su puerta de embarque; deje que los pasajeros en tránsito desembarquen primero. No es necesaria ninguna respuesta."
+connection_made:
+  title: Conexión realizada
+  description: "En espera tras una conexión corta con 40 minutos o más restantes: el vuelo de continuación espera."
+  hint: "Conexiones: el vuelo de conexión de sus pasajeros en tránsito les esperará; hay un autobús de traslado en su puerta de embarque. No es necesario responder."
+connection_missed:
+  title: Conexión perdida
+  description: "En espera tras una conexión corta con menos de 15 minutos restantes: se ha cambiado la reserva de los pasajeros."
+  hint: "Conexiones: el vuelo de conexión está cerrado, se ha cambiado la reserva de sus pasajeros en tránsito y el mostrador de traslados se hará cargo de ellos. No es necesaria ninguna respuesta."
+connex_list:
+  title: Conexiones de continuación en el destino
+  description: "Antes de la TOD: hasta 4 salidas de la aerolínea desde el destino con destino, STD y puerta de embarque (AeroDataBox, su clave de RapidAPI)."
+  hint: "Conexiones (CONNEX): salidas de su aerolínea desde el destino con número de vuelo, destino, STD y puerta de embarque, procedentes de AeroDataBox, para anuncios a los pasajeros sobre vuelos de conexión. No es necesaria respuesta."
+crew_duty_limit:
+  title: Tiempo de servicio de la tripulación al límite
+  description: "En la puerta de embarque tras un retraso de 30 minutos o más: hora límite de salida de la pista. «EXTEND» (a discreción del comandante) deja una nota para el siguiente vuelo; «NO» (por defecto): tripulación de reserva."
+  hint: "Control de tripulaciones: el retraso invade el período de servicio de vuelo (FDP), es decir, el tiempo que la tripulación puede permanecer de servicio. El mensaje indica la hora límite de salida; más allá de ella, el comandante tendría que prolongar el servicio bajo su discreción. Responda si tiene intención de hacerlo."
+  steps:
+    reply:
+      reply_hints:
+        EXTEND: El comandante ejercerá su discrecionalidad y prolongará el turno si fuera necesario.
+        NO: El turno no se prolongará.
+    extend:
+      hint: El control de tripulaciones ha registrado la decisión discrecional del comandante. Presente un informe de decisión discrecional; la tripulación disfrutará de un descanso prolongado antes del próximo turno. No es necesaria ninguna respuesta.
+    no:
+      hint: "El control de tripulaciones ha alertado a una tripulación de reserva: si no han abandonado el bloque antes de la hora límite, se cambiará la tripulación. No es necesario responder."
+    met:
+      hint: "Ha vencido la hora límite de salida: se ordena un cambio de tripulación, indicando la hora a la que se presentará la nueva tripulación y el retraso previsto. No es necesaria ninguna respuesta."
+crew_info:
+  title: Información sobre la tripulación de la nave
+  description: Nombres de la tripulación y recuento del personal de cabina.
+  hint: "Lista de la tripulación del vuelo procedente del control de tripulación: comandante (CPT), primer oficial (FO), miembro sénior de la tripulación de cabina (SCCM) y el número de tripulantes de cabina. No es necesaria respuesta."
+curfew_dest:
+  title: Toque de queda en el destino
+  description: "En crucero, cuando la hora estimada de aterrizaje se aproxima al toque de queda nocturno del destino (solo en aeropuertos con uno real, normalmente tras un retraso). «ABLE»: se ha solicitado prioridad; «UNABLE»: desviarse al aeropuerto alternativo."
+  hint: "El destino tiene un toque de queda nocturno por ruido: la hora límite de aterrizaje (UTC y hora local) y su margen respecto a ella. Acelere el vuelo si puede y comunique a OPS si puede aterrizar antes del toque de queda."
+  steps:
+    reply:
+      reply_hints:
+        ABLE: Prevé aterrizar antes del toque de queda.
+        UNABLE: No puede aterrizar antes del toque de queda.
+    able:
+      hint: OPS ha solicitado prioridad para usted y el handling está en espera; si, a pesar de todo, se retrasa, planifique el aeropuerto alternativo. No es necesario responder.
+    unable:
+      hint: "OPS planifica su desvío al aeropuerto alternativo: se han organizado un hotel y autobuses, y los pasajeros continuarán hacia el destino por carretera. No es necesario responder."
+deicing_holdover:
+  title: Descongelación y tiempo de protección
+  description: "En la puerta de embarque, cuando la temperatura en el aeropuerto de origen es de 3 °C o inferior: tipo de líquido y plataforma. Tras indicar «READY»: el camión de deshielo y el tiempo de protección."
+  hint: "Es necesario realizar el deshielo en el aeropuerto de origen debido a las bajas temperaturas: el tipo de líquido, la plataforma de deshielo y el tiempo previsto en ella. Responda «READY» cuando se hayan cerrado las puertas."
+  steps:
+    reply:
+      reply_hints:
+        READY: Puertas cerradas, está listo para el deshielo.
+    deicing:
+      hint: El camión de deshielo está asignado a su plataforma, con la mezcla de líquido y el tiempo de protección (el tiempo que el líquido protege a la aeronave contra la formación de nuevo hielo). Consulte la tabla de tiempos de protección antes del despegue. No es necesario responder.
+dep_fire:
+  title: Incendio en el aeropuerto de salida
+  description: "Desde 30 minutos antes de la salida prevista hasta el inicio del despegue: incendio en el aeropuerto de salida o en sus inmediaciones (punto aleatorio junto a la pista prevista); las salidas quedan suspendidas durante 20-90 minutos, con una actualización cada 20 minutos."
+  hint: "OPS del aeropuerto de salida: se ha producido un incendio en el aeropuerto o en sus inmediaciones; los servicios de rescate se encuentran en el lugar y se han suspendido las salidas. Prevea un retraso y siga las instrucciones del ATC; el mensaje indica la hora de la próxima actualización. No es necesario responder."
+  steps:
+    met:
+      hint: "OPS del aeropuerto de salida: el incendio está bajo control y se han reanudado las salidas. Ponga en marcha la aeronave cuando el ATC le dé autorización. No es necesario responder."
+departure_report:
+  title: Informe de salida (OUT/OFF)
+  description: Horas de salida de la plataforma y de despegue con códigos de retraso.
+  hint: "Informe de salida: horas reales de salida de la plataforma (OUT) y de despegue (OFF), así como la hora estimada de llegada (ETA) en comparación con el horario previsto (STA); en caso de retraso, también se indican los códigos de retraso de la IATA. No es necesaria respuesta."
+dest_fire:
+  title: Incendio en el aeropuerto de destino
+  description: "A unas 120 NM de distancia: incendio en el aeropuerto de destino o cerca de él (punto aleatorio junto a la pista prevista), humo desplazándose a favor del viento, bajo control en un plazo de 20 minutos a 2 horas, con una actualización cada 20 minutos. HOLD (por defecto) o DIVERT al aeropuerto alternativo."
+  hint: "OPS del destino: incendio en el aeropuerto o en sus inmediaciones; el humo se desplaza con el viento y provoca mala visibilidad; los servicios de rescate se encuentran en el lugar. Aún no hay una estimación: prepare el desvío a su aeropuerto alternativo e informe a OPS si va a permanecer en espera o si va a desviarse."
+  steps:
+    reply:
+      reply_hints:
+        HOLD: Manténgase en espera y espere instrucciones del aeropuerto; OPS le mantendrá informado a la hora indicada.
+        DIVERT: Desvíese al aeropuerto alternativo o a otro aeropuerto indicado tras la palabra «DIVERT EDDM».
+    hold:
+      hint: OPS toma nota de que se mantiene en espera; la próxima actualización se proporcionará a la hora indicada. Informe a OPS mediante un télex de texto libre si su nivel de combustible llega a ser crítico.
+    reply_2:
+      reply_hints:
+        HOLD: Manténgase en espera y espere la próxima actualización.
+        DIVERT: Desvíese al aeropuerto alternativo o a otro aeropuerto indicado tras la palabra «DIVERT EDDM».
+    hold_2:
+      hint: "Actualización de OPS del destino: el incendio sigue activo. Indique a OPS si va a permanecer en espera o si va a desviarse."
+    divert:
+      hint: OPS ha tomado nota de su desvío y de la distancia a la que se encuentra, y ha solicitado los servicios de handling y el combustible en dicho lugar. Envíe su ETA mediante télex de texto libre tan pronto como le sea posible.
+    met:
+      hint: "El incendio está bajo control y se han reanudado las llegadas al destino: espere una aproximación normal. No es necesaria ninguna respuesta."
+    divert_2:
+      hint: OPS ha tomado nota de su desvío y de la distancia a la que se encuentra, y ha solicitado los servicios de handling y el combustible en dicho lugar. Envíe su ETA mediante télex de texto libre tan pronto como le sea posible.
+dest_weather:
+  title: Condiciones meteorológicas del destino antes de la hora de llegada prevista (TOD)
+  description: Condiciones meteorológicas del destino y del aeropuerto alternativo según el METAR del OFP antes del TOD.
+  hint: Condiciones de meteorología en el destino y en el aeropuerto alternativo (del METAR del plan de vuelo) antes del inicio del descenso, para la sesión informativa de aproximación. No es necesaria respuesta.
+dest_weather_live:
+  title: Meteorología del destino antes de la hora de inicio del descenso (TOD, en tiempo real)
+  description: Condiciones meteorológicas del destino y del aeropuerto alternativo a partir de datos METAR/TAF en tiempo real antes del TOD.
+  hint: Condiciones de meteorología actuales en el destino (METAR y TAF) y en el aeropuerto alternativo (METAR) antes del inicio del descenso, para la sesión informativa de aproximación. No es necesario responder.
+dg_notoc:
+  title: Mercancías peligrosas (NOTOC)
+  description: "Antes de la salida: mercancías peligrosas a bordo, número de UN, clase y ubicación. Responda con «ACK» como firma del comandante."
+  hint: "NOTOC (notificación al comandante): se han cargado mercancías peligrosas, con el número de la UN, la clase, la ubicación en la bodega y el número de bultos; «CAO NO» significa que están permitidas en aviones de pasajeros. Confirme con «ACK», lo que equivale a la firma del comandante."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Ha leído el «NOTOC»; esto equivale a su firma.
+    notoc:
+      hint: "El control de carga ha recibido su acuse de recibo: se incluye una copia en el expediente de vuelo y el supervisor de carga está al corriente. No es necesario responder."
+discretion_followup:
+  title: Descanso de la tripulación según criterio del comandante (próximo vuelo)
+  description: "Antes del siguiente vuelo, a discreción del comandante: descanso prolongado; se incorpora un copiloto de reserva."
+  hint: "Control de la tripulación: tras la decisión del comandante (servicio prolongado más allá del límite) en un vuelo anterior, la tripulación disfruta de un descanso prolongado y se incorpora un copiloto de reserva. La hora de la sesión informativa figura en el mensaje. No es necesario responder."
+divert_arrival:
+  title: Llegada al aeropuerto de desvío
+  description: "En espera tras un desvío: se organizan la asistencia en tierra, el combustible y los pasajeros, y se solicita el nuevo plan de vuelo. Se deja una nota para el siguiente vuelo desde ese aeropuerto."
+  hint: "OPS tras su desvío: se solicitan los servicios de asistencia en tierra y el combustible, se atiende a los pasajeros y se vuelve a reservar a los pasajeros con destino a ese aeropuerto. OPS solicita su petición de combustible y la nueva hora de salida (ETD) mediante un télex de texto libre."
+drone_activity:
+  title: Actividad de drones en el destino
+  description: "A unos 90 NM de distancia: las llegadas quedan suspendidas debido a un dron durante un periodo de entre 30 minutos y 3 horas, con una actualización cada 20 minutos. HOLD (por defecto) o DIVERT al aeropuerto alternativo."
+  hint: "OPS del destino: se ha informado de la presencia de un dron cerca del aeropuerto y se han suspendido las llegadas, sin que haya aún una estimación. Indique a OPS si va a permanecer en espera o si va a desviarse al aeropuerto alternativo."
+  steps:
+    reply:
+      reply_hints:
+        HOLD: Manténgase en espera y espere instrucciones del aeropuerto; el OPS le informará en el momento indicado.
+        DIVERT: Desvíese al aeropuerto alternativo o a otro aeropuerto cuyo nombre comience por la palabra «DIVERT EDDM».
+    hold:
+      hint: OPS toma nota de que se mantiene en espera; la próxima actualización se producirá a la hora indicada. Informe a OPS mediante un télex de texto libre si su nivel de combustible se vuelve crítico.
+    reply_2:
+      reply_hints:
+        HOLD: Manténgase en espera y espere la próxima actualización.
+        DIVERT: Desvíese al aeropuerto alternativo o a otro aeropuerto cuyo nombre comience por la palabra «DIVERT EDDM».
+    hold_2:
+      hint: "Actualización de OPS del destino: las llegadas siguen suspendidas. Indique a OPS si va a permanecer en espera o si va a desviarse."
+    divert:
+      hint: OPS registra el desvío y la distancia correspondiente; se ordena la handling en ese lugar y se envía la información de los pasajeros. No es necesario responder.
+    met:
+      hint: "La actividad de los drones ha finalizado y se han reanudado las llegadas al destino: espere una aproximación normal. No es necesario responder."
+    divert_2:
+      hint: OPS registra su desvío y la distancia correspondiente; se ordena la handling en ese lugar y se envía la información de los pasajeros. No es necesario responder.
+earthquake_dest:
+  title: Terremoto cerca del destino
+  description: Un terremoto de magnitud M5.0 a menos de 100 km del destino en las últimas 24 horas (USGS).
+  hint: "Información OPS: un terremoto reciente cerca del destino, con magnitud, lugar, distancia al aeropuerto y profundidad (USGS). Consulte los NOTAM para conocer el estado del aeropuerto. No es necesario responder."
+emergency_mayday:
+  title: Se ha declarado MAYDAY
+  description: La tripulación ha declarado «MAYDAY» al ATC a través de la estación XATC. El centro de emergencias de la aerolínea propone un desvío (DIVERT) al aeropuerto adecuado más cercano (desvío automático tras 5 minutos) y alerta a los servicios de rescate y médicos de dicho lugar. El proceso solo se inicia tras un «MAYDAY» a XATC.
+  hint: La central de emergencias de la aerolínea ha recibido su llamada de MAYDAY a través del ATC y le indica el aeropuerto adecuado más cercano junto con su distancia. Indique a OPS si se desvía o continúa.
+  steps:
+    reply:
+      reply_hints:
+        DIVERT: Desvíese al aeropuerto adecuado más cercano, o a otro aeropuerto designado con la palabra «DIVERT EDDM».
+        CONTINUE: Continúe hacia el destino.
+    divert:
+      hint: "OPS confirma su aeropuerto de desvío y la distancia a este: se avisa a los servicios de rescate y bomberos, y se solicita asistencia médica y servicios de handling. Envíe su nueva ETA mediante télex de texto libre tan pronto como le sea posible."
+    continue:
+      hint: OPS toma nota de que continúa hacia el destino; se avisa a los servicios de rescate y bomberos de dicho lugar. Informe a OPS si su plan cambia. No es necesario responder.
+emergency_pan:
+  title: Se ha declarado PAN PAN
+  description: La tripulación declaró «PAN PAN» a ATC a través de la estación XATC. La central de la aerolínea ofrece las opciones «DIVERT» o «CONTINUE» (por defecto, «CONTINUE» tras 5 minutos) y pone en estado de alerta a los servicios de rescate y médicos en el destino. Solo se inicia tras un «PAN PAN» a XATC.
+  hint: "La central de emergencias de la aerolínea ha recibido su llamada «PAN PAN» a través del ATC: se ha informado al destino y los servicios de rescate y médicos de allí están en espera. Le indica el aeropuerto adecuado más cercano y le pregunta si desea desviarse o continuar."
+  steps:
+    reply:
+      reply_hints:
+        DIVERT: Desvíese al aeropuerto adecuado más cercano, o a otro aeropuerto indicado tras la palabra «DIVERT EDDM».
+        CONTINUE: Continúe hacia el destino.
+    divert:
+      hint: OPS confirma su aeropuerto de desvío y la distancia a este; allí se ordenan los servicios de rescate y la handling. Envíe su nueva ETA mediante un télex de texto libre tan pronto como le sea posible.
+    continue:
+      hint: OPS toma nota de que continúa hacia el destino. Informe a OPS si la situación cambia. No es necesario responder.
+f1_result:
+  title: Resultado de Fórmula 1
+  description: "Un Gran Premio que ha concluido durante el vuelo: el podio (Jolpica)."
+  hint: "Información OPS: el resultado de un Gran Premio de Fórmula 1 que ha concluido durante su vuelo. No es necesario responder."
+final_loadsheet:
+  title: Hoja de carga definitiva
+  description: Hoja de carga definitiva con el cambio de última hora respecto a la preliminar.
+  hint: "Hoja de carga definitiva procedente del control de carga: pesos reales frente a los límites (ZFW: sin combustible; TOW: despegue; LAW: aterrizaje), combustible de despegue y de vuelo (TOF, TIF), pasajeros y carga; LMC es el cambio de última hora respecto a la hoja de carga preliminar. Compruebe las cifras y utilícelas en el FMS; no es necesario responder."
+fuel_monitoring:
+  title: Nivel de combustible inferior al previsto
+  description: "En crucero, si el combustible a bordo está por debajo del plan OFP en ese punto en más de un 5 % (al menos 500 kg), la central de operaciones solicita el motivo: WX, ATC, LEAK o NORMAL."
+  hint: La torre de control observa que su combustible a bordo está por debajo de la cifra indicada en el plan de vuelo para este punto, en la cantidad indicada. Le solicita el motivo.
+  steps:
+    reply:
+      reply_hints:
+        WX: "Meteorología: desviaciones, viento, formación de hielo."
+        ATC: "ATC: ruta, altitudes o espera distintas de las previstas."
+        LEAK: Usted sospecha que hay una fuga de combustible.
+        NORMAL: No hay nada anómalo; la diferencia es la prevista.
+    wx:
+      hint: El despacho de vuelos indica que el motivo es la meteorología y le pide que vuelva a comprobar el nivel de combustible en el destino y en el aeropuerto alternativo; informe al despacho de vuelos mediante un télex de texto libre si está por debajo del mínimo requerido. No es necesario responder.
+    atc:
+      hint: La central indica que el motivo es el ATC y sugiere solicitar al ATC una ruta directa o una altitud más adecuada; informe a la central mediante un télex de texto libre si el nivel de combustible es inferior al mínimo requerido. No es necesario responder.
+    leak:
+      hint: "El despacho de vuelos sospecha que hay una fuga de combustible: compruebe el sistema de combustible. Indica el aeropuerto alternativo más cercano y su distancia; desvíese si se confirma la fuga. No es necesario responder."
+    normal:
+      hint: El despacho de vuelos toma nota. Mantenga vigilado el nivel de combustible e informe al despacho de vuelos si la diferencia aumenta. No es necesario responder.
+fuel_slip:
+  title: Hoja de combustible de combustible
+  description: "Tras el repostaje: cantidad repostada y desviación respecto al plan."
+  hint: "Hoja de combustible tras el repostaje: combustible previsto en la plataforma, combustible a bordo, el combustible repostado y la desviación respecto al plan, con el desglose del combustible del plan de vuelo (rodaje, trayecto, contingencia, aeropuerto alternativo, reserva final, extra). No es necesaria respuesta."
+gate_assignment:
+  title: Asignación de puerta de embarque
+  description: Asignación de puerta de salida.
+  hint: OPS le indica la puerta o el puesto de estacionamiento previsto en el destino. No es necesario responder.
+gate_reassignment:
+  title: Reasignación de puerta de embarque
+  description: "Al inicio del descenso, la puerta de embarque asignada está ocupada: se le asigna una nueva puerta, que a partir de ese momento se utilizará en la información de llegada y en «REQ GATE»."
+  hint: "Cambio de puerta de embarque: la puerta que se le había asignado está ocupada (el motivo figura en el mensaje) y se le asigna una nueva; la cinta de equipajes no cambia. La información de llegada y «REQ GATE» indican ahora la nueva puerta. No es necesario responder."
+hard_landing_check:
+  title: Comprobación de aterrizaje brusco
+  description: "En el bloque, si la velocidad de aterrizaje fue superior a 350 pies/min (se necesita la lectura de la cabina de mando): el departamento de mantenimiento solicita que se CONFIRME un aterrizaje brusco. La CONFIRMACIÓN implica que se realizará una inspección antes del próximo vuelo de la misma aeronave."
+  hint: "Control de mantenimiento: el sistema de monitorización de datos de vuelo (FDM) ha realizado la grabación de su aterrizaje a la velocidad indicada. Se le pregunta a la tripulación si percibió un aterrizaje brusco."
+  steps:
+    reply:
+      reply_hints:
+        CONFIRM: Sí, la tripulación observó un aterrizaje brusco.
+        NEGATIVE: No, la tripulación no lo percibió.
+    confirm:
+      hint: "Anote el aterrizaje brusco en el registro técnico: la aeronave será sometida a una inspección conforme al manual de mantenimiento (AMM) antes de su próximo vuelo. No es necesario responder."
+    negative:
+      hint: El departamento de mantenimiento toma nota de que la tripulación no ha informado de un aterrizaje brusco; los datos de vuelo se archivan. No es necesario responder.
+hard_landing_followup:
+  title: Inspección tras aterrizaje brusco completada
+  description: "Antes de un vuelo en la misma aeronave tras un aterrizaje brusco confirmado: el departamento de mantenimiento informa de que la inspección se ha completado y la aeronave ha sido autorizada para volar."
+  hint: "Control de mantenimiento: tras el aterrizaje brusco notificado en esta aeronave, se ha realizado la inspección, no se han detectado daños y la aeronave ha sido autorizada para volar. No es necesaria respuesta."
+hold_fuel_watch:
+  title: Combustible mínimo para el desvío en espera
+  description: "Mientras se mantiene en espera debido a un cierre anunciado por la aerolínea, el combustible desciende hasta el mínimo de desvío: se recomienda «DIVERT» (responda «STAY» para permanecer en espera), y si no se recibe respuesta en 5 minutos, el vuelo es enviado al aeropuerto alternativo."
+  hint: "OPS del destino: mientras permanece en espera, su nivel de combustible ha descendido hasta el mínimo necesario para el desvío al aeropuerto alternativo. OPS recomienda desviarse ahora y le pregunta si va a desviarse o permanecer en espera."
+  steps:
+    reply:
+      reply_hints:
+        DIVERT: Desvíese al aeropuerto alternativo ahora mismo.
+        STAY: Permanecer en espera; decisión del comandante.
+    divert:
+      hint: OPS toma nota de su desvío al aeropuerto alternativo y ha ordenado que se preparen los servicios de handling y el combustible en dicho aeropuerto. Envíe su ETA mediante télex de texto libre tan pronto como le sea posible.
+    stay:
+      hint: OPS toma nota de que permanece en espera por decisión del comandante y solicita que le comunique su estado de combustible mediante un télex de texto libre.
+holiday_dest:
+  title: Día festivo en el destino
+  description: Un día festivo nacional en el país de destino el día de llegada, hora local (Nager.Date).
+  hint: "Información OPS: hoy es día festivo en el país de destino. Se prevén horarios festivos en los servicios aeroportuarios. No es necesario responder."
+landing_data:
+  title: Datos de aterrizaje
+  description: "Datos de aterrizaje del OFP: pista, meteorología, flaps y VREF, cuando el OFP disponga de ellos."
+  hint: "Datos de aterrizaje del plan de vuelo: pista y STAR, altitud del aeropuerto, nivel de transición, peso de aterrizaje respecto al límite, combustible de aterrizaje y combustible hasta el aeropuerto alternativo; flaps y VREF cuando el plan de vuelo los incluya. Para el informe de aproximación, no es necesario responder."
+lost_baggage:
+  title: Equipaje olvidado
+  description: "En espera: maletas olvidadas en el punto de origen (cambio de vuelo fallido), mostrador de PIR junto a la cinta transportadora. El caso se da por cerrado con el siguiente vuelo."
+  hint: "Equipaje: algunas maletas no se cargaron en el origen (transferencia fallida). Los pasajeros lo notifican en el mostrador de equipajes (PIR, Property Irregularity Report) junto a la cinta de equipajes; las maletas se enviarán en el siguiente vuelo. No es necesaria ninguna respuesta."
+medical_onboard:
+  title: Caso médico a bordo
+  description: En crucero, la tripulación de cabina informa de que hay un pasajero enfermo. Responda «CONTINUE» o «DIVERT» (por defecto, «CONTINUE» tras 10 minutos). «DIVERT» desvía el vuelo al más cercano de los aeropuertos de origen y alternativos.
+  hint: "OPS: la tripulación de cabina informa de un caso médico a bordo, indicando el asiento, la edad del pasajero, los síntomas y si hay algún médico a bordo. A continuación, MedLink, los médicos en tierra que asesoran a las tripulaciones, ofrecen sus recomendaciones."
+  steps:
+    met:
+      hint: No hay ningún médico a bordo y MedLink recomienda encarecidamente desviarse ahora. Informe a OPS de si continúa o se desvía.
+    timeout:
+      hint: MedLink aconseja desviar el vuelo si el pasajero no mejora. Informe a OPS de si continúa o se desvía.
+    reply:
+      reply_hints:
+        CONTINUE: Continúe hacia el destino; puede añadir una breve nota tras la palabra.
+        DIVERT: Desvío; puede añadir el código ICAO del aeropuerto y una breve nota después de la palabra (DIVERT EDDM PAX STABLE).
+    divert:
+      hint: OPS confirma el aeropuerto de desvío y su distancia, y ha solicitado una ambulancia y los servicios de handling en dicho aeropuerto. Envíe su nueva ETA mediante télex de texto libre tan pronto como le sea posible.
+    divert_2:
+      hint: Los paramédicos le esperan en la puerta de la aeronave; el paciente abandona la aeronave antes que el resto de pasajeros. No es necesario responder.
+    continue:
+      hint: OPS toma nota de que continúa hacia el destino y le solicita que pida prioridad al ATC. No es necesario responder.
+    continue_2:
+      hint: Los paramédicos le esperan en la puerta de la aeronave; el paciente abandona la aeronave antes que el resto de pasajeros. No es necesario responder.
+mel_carry_over:
+  title: Incidencia de la MEL pendiente de un vuelo anterior
+  description: "Antes de un vuelo con la misma aeronave: el punto de la MEL aplazado sigue abierto. Tras la llegada, el servicio de mantenimiento lo cerrará."
+  hint: "Estado de la MEL de esta aeronave: sigue abierto un defecto aplazado según la MEL (Lista de Equipamiento Mínimo) en un vuelo anterior. Vuele siguiendo el procedimiento operativo de la MEL correspondiente y compruebe el rendimiento y la penalización de combustible; el servicio de mantenimiento dispone de una franja horaria para ello en el destino. No es necesaria ninguna respuesta."
+  steps:
+    mel_status:
+      hint: "Estado de la MEL: el servicio de mantenimiento ha subsanado el defecto aplazado en este aeropuerto; el punto de la MEL está cerrado y validado en el registro técnico. No es necesaria ninguna respuesta."
+natural_event:
+  title: Fenómeno natural cerca de la ruta
+  description: Un fenómeno natural (de la NASA EONET) cerca de la ruta que tiene por delante.
+  hint: "Aviso de OPS: un fenómeno natural notificado por NASA EONET más adelante, cerca de su ruta (incendio forestal, tormenta, erupción volcánica y similares), con la distancia a la que se encuentra y su desviación respecto a la ruta. Consulte el radar de meteorología y los SIGMET y desvíese si es necesario. No es necesario responder."
+next_leg:
+  title: Próximo tramo
+  description: Próximo tramo con la misma aeronave.
+  hint: "OPS le indica su próximo sector con la misma aeronave: vuelo, ruta, STD y tiempo de rotación. No es necesaria respuesta."
+nhl_results:
+  title: Resultados de la NHL
+  description: Partidos de la NHL que han finalizado durante el vuelo (temporada regular y eliminatorias).
+  hint: "Información de OPS: resultados finales de los partidos de la NHL que han finalizado durante su vuelo. No es necesario responder."
+ped_fire_cabin:
+  title: Incendio de una batería de litio en la cabina
+  description: En crucero, la tripulación de cabina informa de un incendio en la batería de un dispositivo de un pasajero. Siga las recomendaciones de la FAA SAFO 09013. Responda «CONTINUE» o «DIVERT» (por defecto, «DIVERT» tras 5 minutos).
+  hint: "OPS: la tripulación de cabina informa de un incendio en una batería de litio de un dispositivo electrónico personal (PED) de un pasajero, junto al asiento, y de cómo combatirlo: agua o halón; enfriar las celdas con agua; no utilizar bolsa de contención de incendios. Indique a OPS si continúa el vuelo o realiza un desvío."
+  steps:
+    reply:
+      reply_hints:
+        CONTINUE: El incendio está extinguido; continúe hacia el destino.
+        DIVERT: Desvíese al aeropuerto adecuado más cercano, o a otro aeropuerto designado con la palabra «DIVERT EDDM».
+    divert:
+      hint: OPS confirma el desvío y su distancia, y ha ordenado que el servicio de bomberos acuda al lugar. Envíe su nueva ETA mediante un télex de texto libre tan pronto como le sea posible.
+    divert_2:
+      hint: El servicio de bomberos le recibirá en la puerta de la aeronave y se hará cargo del dispositivo. No es necesario responder.
+    continue:
+      hint: OPS toma nota de que continúa hacia el destino. Mantenga la cabina bajo vigilancia e informe a OPS si el fuego se reaviva. No es necesario responder.
+    continue_2:
+      hint: El servicio de bomberos le recibirá en la puerta de la aeronave y se hará cargo del dispositivo. No es necesario responder.
+prelim_loadsheet:
+  title: Hoja de carga preliminar
+  description: Hoja de carga preliminar con las cifras previstas del OFP.
+  hint: "Hoja de carga preliminar: los pesos y el combustible previstos según el plan de vuelo (ZFW, TOF, TOW, TIF, LAW en relación con los valores máximos), pasajeros y carga. Utilícela para preparar el FMS; las cifras definitivas se incluirán en la hoja de carga definitiva. No es necesario que responda."
+recovery_followup:
+  title: Recuperación tras un desvío
+  description: "Antes del vuelo desde un aeropuerto de desvío anterior: la aeronave fue desviada del vuelo anterior; se comprueban los turnos de la tripulación y el nuevo plan de vuelo."
+  hint: "OPS antes del vuelo de recuperación desde el aeropuerto de un desvío anterior: se comprueba el tiempo de servicio de la tripulación, se solicita un nuevo plan de vuelo y combustible; se prevé la llegada tardía de pasajeros y equipaje. No es necesaria respuesta."
+runway_closure_dest:
+  title: Pista de destino cerrada
+  description: Al inicio del descenso, la pista prevista está cerrada (de 30 minutos a 3 horas; en raras ocasiones, hasta nuevo aviso), con una actualización cada 20 minutos. HOLD (por defecto) o DIVERT al aeropuerto alternativo.
+  hint: "OPS del destino: su pista prevista está cerrada (el motivo figura en el mensaje), sin que haya aún una estimación. Compruebe su combustible e informe a OPS si va a permanecer en espera o si se desvía al aeropuerto alternativo."
+  steps:
+    reply:
+      reply_hints:
+        HOLD: Permanezca en espera y espere a que se libere la pista; OPS le mantendrá informado a la hora indicada.
+        DIVERT: Desvíese al aeropuerto alternativo o a otro aeropuerto indicado tras la palabra «DIVERT EDDM».
+    hold:
+      hint: OPS toma nota de que se mantiene en espera; su puesto de estacionamiento y los servicios de handling se mantienen según lo previsto y la próxima actualización se proporcionará a la hora indicada.
+    reply_2:
+      reply_hints:
+        HOLD: Manténgase en espera y espere la próxima actualización.
+        DIVERT: Desvíese al aeropuerto alternativo o a otro aeropuerto indicado tras la palabra «DIVERT EDDM».
+    hold_2:
+      hint: "OPS: el aeródromo de destino permanece cerrado hasta nuevo aviso (UFN), por lo que deberá desviarse al aeropuerto alternativo; allí se han solicitado los servicios de handling y el combustible. No es necesario responder."
+    hold_3:
+      hint: "Actualización de OPS del destino: la pista sigue cerrada y las llegadas suspendidas. Indique a OPS si va a permanecer en espera o si va a desviarse."
+    divert:
+      hint: OPS toma nota de su desvío y de la distancia a la que se encuentra, y ha solicitado los servicios de handling y el suministro de combustible en dicho lugar. Envíe su ETA mediante télex de texto libre tan pronto como le sea posible.
+    met:
+      hint: "La pista ha reabierto y se han reanudado las llegadas al destino: espere una aproximación normal. No es necesario responder."
+    divert_2:
+      hint: OPS toma nota de su desvío y de la distancia a la que se encuentra, y ha solicitado los servicios de handling y el combustible en dicho lugar. Envíe su ETA mediante télex de texto libre tan pronto como le sea posible.
+rush_bags_followup:
+  title: Equipaje urgente entregado (próximo vuelo)
+  description: "Antes del próximo vuelo: las maletas olvidadas han llegado a sus propietarios; caso cerrado."
+  hint: "Equipaje: las maletas olvidadas en un vuelo anterior se han entregado a sus propietarios y el expediente de equipaje (PIR) PIR se ha cerrado. No es necesaria ninguna respuesta."
+short_connection:
+  title: Conexión corta de pasajeros
+  description: "Antes del descenso, cuando la conexión posterior está prevista en menos de una hora: número de pasajeros, vuelo, STD; por favor, agilice el proceso."
+  hint: "Conexiones: los pasajeros de su vuelo tienen una conexión corta con un vuelo posterior; el mensaje indica el vuelo, su STD y el margen de tiempo. OPS le solicita que agilice la llegada si es posible; el personal de traslado les recibirá en su puerta de embarque. No es necesaria ninguna respuesta."
+slot_ctot:
+  title: Slot / CTOT
+  description: Franja de flujo del ATC con un CTOT que provoca un retraso en la salida.
+  hint: "Restricción de flujo del ATC: el vuelo dispone de una franja horaria, una hora de despegue calculada (CTOT) y el retraso que ello provoca. Planifique el embarque y el remolque hacia atrás para despegar a la hora CTOT; el comando RDY indica a OPS que está listo antes de lo previsto. No es necesario responder."
+slot_missed:
+  title: Franja horaria no respetada
+  description: "Despegue posterior a CTOT + 10 min (tolerancia de la franja horaria -5/+10 min): se notifica que se ha incumplido la franja horaria."
+  hint: Ha despegado fuera de la ventana de la franja horaria en torno al CTOT (-5/+10 min), por lo que la aerolínea notifica una franja horaria no respetada a la gestión del flujo de tráfico aéreo (ATFM). No es necesario responder.
+solar_eclipse:
+  title: Eclipse solar en la ruta
+  description: Un punto de la ruta que se encuentra más adelante está dentro de la franja del eclipse (magnitud 0,5 o superior) en el momento del sobrevuelo, con el sol por encima del horizonte (NASA).
+  hint: "Información de OPS: se puede observar un eclipse solar desde su ruta, con indicación de su tipo, magnitud, hora, lugar y la altura del sol. No mire al sol sin protección ocular. No es necesario responder."
+space_launch:
+  title: Lanzamiento espacial cerca de la ruta
+  description: Un lanzamiento confirmado (TheSpaceDevs, estado «Go») a menos de 300 NM de la ruta que tiene por delante, antes de la llegada.
+  hint: "Aviso de OPS: está previsto un lanzamiento de cohete cerca de su ruta, con su hora mínima de lanzamiento (NET), ventana de lanzamiento y distancia. Prevea restricciones del espacio aéreo en los alrededores y consulte los NOTAM. No es necesario responder."
+space_launch_done:
+  title: Lanzamiento espacial cerca de la ruta (lanzado)
+  description: Un lanzamiento tras el despegue (TheSpaceDevs) a menos de 300 NM de la ruta que tiene por delante.
+  hint: "Aviso de OPS: se ha lanzado un cohete cerca de su ruta tras su despegue, con indicación de la hora y el estado. Es posible que haya zonas cerradas por la caída de restos; consulte los NOTAM. No es necesario responder."
+space_weather:
+  title: Aviso de meteorología espacial
+  description: "Escala de la NOAA: R3+, S2+ (ruta por encima de los 60 grados de latitud) o G3+ (situación actual o prevista en las próximas 24 horas)."
+  hint: "Aviso OPS: La NOAA informa de condiciones meteorológicas espaciales intensas (apagón de radio solar, tormenta de radiación o tormenta geomagnética). Esto puede afectar a la radio HF, a las comunicaciones por satélite (SATCOM) y al GNSS; compruebe su funcionamiento. No es necesario responder."
+takeoff_data:
+  title: Datos de despegue
+  description: "Datos de salida del OFP: pista, meteorología, flaps, empuje y velocidades V, siempre que el OFP disponga de ellos."
+  hint: "Datos de despegue del plan de vuelo: pista y SID, altitud, altitud de transición, peso de despegue respecto al límite, combustible de despegue, nivel de crucero e índice de coste, así como la meteorología de salida; flaps, empuje y velocidades V, cuando el plan de vuelo los incluya. Compárelos con sus propios cálculos; no es necesario que responda."
+tankering:
+  title: Oferta de repostaje
+  description: "Antes de la salida: el combustible es caro en el destino; se ofrece combustible adicional si el peso al aterrizaje lo permite. ACCEPT o DECLINE (opción predeterminada)."
+  hint: "Despacho de combustible: el combustible es caro en el destino, por lo que se recomienda el «tankering»: transportar combustible adicional desde aquí para el siguiente tramo. El mensaje indica el combustible adicional, el nuevo nivel de combustible para el tramo y el peso estimado al aterrizaje en relación con el máximo. Indique al despacho si lo acepta."
+  steps:
+    reply:
+      reply_hints:
+        ACCEPT: Lleve el combustible adicional.
+        DECLINE: Mantenga el combustible previsto.
+    accept:
+      hint: "Se acepta el reabastecimiento: se comunica al encargado del repostaje la nueva cantidad de combustible para el tramo y se le envía una hoja de carga con los datos. No es necesaria ninguna respuesta."
+    decline:
+      hint: "El despacho de vuelos lo toma en cuenta: el combustible previsto se mantiene tal y como figura en el plan de vuelo. No es necesaria ninguna respuesta."
+tech_defect_mel:
+  title: Defecto técnico y MEL
+  description: Durante el vuelo de crucero, el sistema de mantenimiento informa de un fallo. «CONFIRM» lo aplaza según la MEL y lo mantiene abierto en esta aeronave; «NEGATIVE» (por defecto) lo cierra como un mensaje espurio.
+  hint: "Control de mantenimiento: el sistema de mantenimiento de la aeronave (CMS) notifica un fallo, indicando su partida de la MEL. Pregunta si la tripulación observa la misma indicación en el sistema de alerta de la tripulación."
+  steps:
+    reply:
+      reply_hints:
+        CONFIRM: Sí, la tripulación observa el fallo indicado.
+        NEGATIVE: No, no hay tal indicación en la cabina de mando.
+    confirm:
+      hint: "Anote el defecto en el registro técnico: se aplaza según la MEL (Lista de Equipo Mínimo), categoría de reparación C, y la aeronave realiza el siguiente tramo de vuelo de acuerdo con la MEL. El servicio de mantenimiento se encargará de la aeronave en el destino. No es necesaria ninguna respuesta."
+    negative:
+      hint: "El equipo de mantenimiento lo considera un mensaje erróneo del sistema de mantenimiento: no se requiere ninguna acción. No es necesario responder."
+unruly_followup:
+  title: Seguimiento de un pasajero conflictivo (próximo vuelo)
+  description: "Antes del siguiente vuelo: el pasajero del vuelo anterior figura en la lista de pasajeros no admitidos de la compañía."
+  hint: "Información de seguridad: el pasajero conflictivo de un vuelo anterior figura ahora en la lista de exclusión de vuelos de la compañía y se ha presentado una denuncia policial. No es necesario responder."
+unruly_passenger:
+  title: Pasajero conflictivo
+  description: "En crucero, la tripulación informa de un pasajero conflictivo. RESTRAIN: policía a la llegada; DIVERT: aeropuerto más cercano; CONTINUE (por defecto): vigilar. Las opciones RESTRAIN y DIVERT deben ir acompañadas de una nota para el siguiente vuelo."
+  hint: "Seguridad de OPS: la tripulación de cabina informa de un pasajero conflictivo, indicando su asiento y lo ocurrido; la tripulación le ha dado una advertencia formal. Informe a OPS de lo que haga: inmovilizar al pasajero, desviar el vuelo o continuar."
+  steps:
+    reply:
+      reply_hints:
+        RESTRAIN: La tripulación inmoviliza al pasajero y usted continúa el vuelo.
+        DIVERT: Desvíese al aeropuerto adecuado más cercano, o a otro aeropuerto indicado tras la palabra «DIVERT EDDM».
+        CONTINUE: Continúe; la tripulación seguirá vigilando al pasajero.
+    restrain:
+      hint: "OPS toma nota de la medida de inmovilización: la policía se encontrará con la aeronave en el destino. No abra las puertas antes de que llegue la policía y presente un informe de incidente de cabina. No es necesario responder."
+    restrain_2:
+      hint: La policía se encuentra en la puerta de la aeronave para el pasajero del asiento indicado. Mantenga a los demás pasajeros sentados hasta que la policía haya subido a bordo. No es necesario responder.
+    divert:
+      hint: OPS toma nota de su desvío; se ha ordenado el desplazamiento de la policía y del personal de asistencia al lugar. Redacte un informe de incidente de cabina. No es necesario responder.
+    continue:
+      hint: OPS toma nota de que continúa el vuelo y de que la tripulación sigue vigilando al pasajero. Informe a OPS si la situación cambia. No es necesario responder.
+vatsim_atc:
+  title: "VATSIM: ATC en línea en el destino"
+  description: VATSIM ATC en línea en el destino antes de TOD.
+  hint: ¿Qué controladores de VATSIM están conectados en el destino en este momento y la carta ATIS, para planificar sus frecuencias de llegada? No es necesario responder.
+vatsim_atc_none:
+  title: No hay VATSIM ATC en el destino
+  description: No hay ATC de VATSIM en línea en el destino antes de TOD.
+  hint: "No hay ningún controlador de VATSIM en línea en el destino en este momento: utilice UNICOM 122.800 y comunique usted mismo su posición. Compruébelo de nuevo antes de la aproximación. No es necesario responder."
+vdgs_arrival:
+  title: Pantalla de atraque (GSX)
+  description: Vuelo, origen y puerta de llegada en el GSX VDGS en el puesto de destino.
+  hint: "No es un mensaje: su vuelo, origen y puerta de llegada en la pantalla de atraque del GSX, en el puesto de estacionamiento."
+vdgs_divert:
+  title: Pantalla de acoplamiento, desvío (GSX)
+  description: "Vuelo: una línea roja «DIVERTED» y el origen en el VDGS del GSX en el aeropuerto de desvío."
+  hint: "No es un mensaje: su vuelo, una línea roja «DIVERTED» y el origen en la pantalla de acoplamiento del GSX en el aeropuerto de desvío."
+vip_onboard:
+  title: VIP a bordo
+  description: "Antes de la salida: un VIP, que ocupa el asiento asignado; en espera: desembarca en primer lugar, el vehículo de protocolo le espera en la puerta de embarque."
+  hint: "OPS: hay un VIP a bordo, con asiento asignado. El VIP embarca en último lugar y desembarca en primer lugar; no se haga ningún anuncio al respecto a bordo. No es necesario responder."
+  steps:
+    ops_msg:
+      hint: "OPS a la llegada: el VIP sale primero, un vehículo de protocolo espera en su puerta de embarque; mantenga a los demás pasajeros a bordo durante el tiempo indicado. No es necesaria respuesta."
+volcanic_ash:
+  title: Ceniza volcánica cerca de la ruta
+  description: Un SIGMET VA válido cerca de la ruta que tiene por delante.
+  hint: "Aviso de OPS: hay un SIGMET sobre cenizas volcánicas vigente cerca de su ruta más adelante, con indicación del volcán, los niveles de la nube de cenizas, las distancias y la validez. Manténgase alejado de la zona de cenizas y consulte el SIGMET. No es necesario responder."
+welcome_turnaround:
+  title: Bienvenida y rotación
+  description: Mensaje de bienvenida con el plan de rotación.
+  hint: "Mensaje de bienvenida de la estación de destino con el plan de rotación: hora de rotación, próximo vuelo y STD, limpieza y catering en ruta. No es necesaria respuesta."

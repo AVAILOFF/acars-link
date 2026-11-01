@@ -2,7 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import type { ReactNode } from 'react';
-import { inLanguage, type Language, LEGAL_DOCS, type LegalDoc } from '../../shared/api.js';
+import { LEGAL_DOCS, type LegalDoc } from '../../shared/api.js';
 import { type DataSource, sourceById, sourcesFor } from '../../shared/sources.js';
 import type { MessageKey } from './messages-en.js';
 import { Row } from './SettingsControls.js';
@@ -15,7 +15,6 @@ import { useT } from './ui.js';
  */
 export function AboutSection() {
   const t = useT();
-  const lang = useStore((s) => s.settings?.language ?? 'en');
   const about = useStore((s) => s.about);
   const bridge = useStore((s) => s.app?.bridge.version ?? null);
   const openLegal = useStore((s) => s.openLegal);
@@ -74,7 +73,7 @@ export function AboutSection() {
           {sources
             .filter((s) => s.kind === kind)
             .map((s) => (
-              <SourceRow key={s.id} source={s} lang={lang} />
+              <SourceRow key={s.id} source={s} />
             ))}
         </section>
       ))}
@@ -88,14 +87,14 @@ const OPEN_KEYS = {
   licenses: 'about.open.licenses',
 } as const satisfies Record<LegalDoc, string>;
 
-function SourceRow({ source, lang }: { source: DataSource; lang: Language }) {
+function SourceRow({ source }: { source: DataSource }) {
   const t = useT();
   return (
     <Row
       title={source.name}
       hint={
         <>
-          {inLanguage(source.what, lang)} · {inLanguage(source.license, lang)}
+          {t(source.what)} · {t(source.license)}
           {source.credit !== null && (
             <span className="row-credit">
               {t('about.credit')}: <CreditText source={source} />
