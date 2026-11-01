@@ -9,6 +9,7 @@ import { legalFile } from '../src/main/legal.js';
 import { BASE_SCENARIOS } from '../src/main/scenario-sources.js';
 import { SecretStore } from '../src/main/secrets.js';
 import { defaultSettings, SettingsStore } from '../src/main/settings.js';
+import { MESSAGES } from '../src/renderer/src/i18n.js';
 import { LEGAL_DOCS, type LegalDoc } from '../src/shared/api.js';
 import { SOURCES, sourceById, sourcesFor } from '../src/shared/sources.js';
 import { FakeCipher, FakeTimers, simbriefOk, socketFactory, tempDir } from './support.js';
@@ -61,8 +62,8 @@ describe('the list of sources and THIRD-PARTY-NOTICES.md', () => {
     expect(new Set(SOURCES.map((s) => s.id)).size).toBe(SOURCES.length);
     for (const s of SOURCES) {
       for (const text of [s.what, s.license]) {
-        expect(text.en, s.id).not.toBe('');
-        expect(text.ru, s.id).not.toBe('');
+        expect(MESSAGES.en[text], s.id).not.toBe('');
+        expect(MESSAGES.ru[text], s.id).not.toBe('');
       }
     }
   });

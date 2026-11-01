@@ -2,8 +2,19 @@
 // Copyright (c) 2026 AVAILOFF
 
 import type { FlightPhase } from '@acars/core';
-import type { AppError, ErrorCode, ErrorReason, Language, SystemCode } from '../../shared/api.js';
+import {
+  type AppError,
+  type ErrorCode,
+  type ErrorReason,
+  LANGUAGE_IDS,
+  type Language,
+  type SystemCode,
+  type UiText,
+} from '../../shared/api.js';
+import { de } from './messages-de.js';
 import { en, type MessageKey } from './messages-en.js';
+import { es } from './messages-es.js';
+import { fr } from './messages-fr.js';
 import { ru } from './messages-ru.js';
 
 /**
@@ -23,6 +34,9 @@ export const MESSAGES: { readonly en: Complete; readonly ru: Complete } & Readon
 > = {
   en,
   ru,
+  de,
+  fr,
+  es,
 };
 
 export type Translate = (
@@ -50,6 +64,18 @@ export function translator(
       params !== undefined && name in params ? String(params[name]) : m,
     );
   };
+}
+
+/** A UI string in every language that has it (T86): for texts the main process hands to the UI. */
+export function catalogText(
+  key: MessageKey,
+  params?: Readonly<Record<string, string | number>>,
+): UiText {
+  const out: { -readonly [L in Language]?: string } = {};
+  for (const l of LANGUAGE_IDS) {
+    if (l === 'en' || MESSAGES[l]?.[key] !== undefined) out[l] = translator(l)(key, params);
+  }
+  return { ...out, en: translator('en')(key, params) };
 }
 
 export const phaseKey = (p: FlightPhase): MessageKey => `phase.${p}`;

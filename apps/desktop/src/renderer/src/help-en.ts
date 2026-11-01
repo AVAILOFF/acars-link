@@ -30,7 +30,7 @@ export const en: readonly HelpSection[] = [
         q: 'What does ACARS Link do?',
         a: [
           'It plays your airline’s operations centre. While you fly, it reads the simulator and your SimBrief flight plan, follows the phase of flight and sends ACARS messages to the cockpit over Hoppie ACARS: loadsheets, slot and gate information, delays, irregular situations, the next leg. You can reply and send requests from the aircraft FMS.',
-          'ACARS messages are always in English, as in real operations. The app interface is in English or Russian (Settings → Language).',
+          'ACARS messages are always in English, as in real operations. The app interface is available in several languages (Settings → Language).',
         ],
       },
       {

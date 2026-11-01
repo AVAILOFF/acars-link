@@ -2,7 +2,10 @@
 // Copyright (c) 2026 AVAILOFF
 
 import type { Language } from '../../shared/api.js';
+import { de } from './help-de.js';
 import { en } from './help-en.js';
+import { es } from './help-es.js';
+import { fr } from './help-fr.js';
 import { ru } from './help-ru.js';
 
 /**
@@ -31,7 +34,7 @@ export interface HelpSection {
 
 export const HELP: { readonly en: readonly HelpSection[] } & Readonly<
   Partial<Record<Language, readonly HelpSection[]>>
-> = { en, ru };
+> = { en, ru, de, fr, es };
 
 /** The help in `lang`, English when there is none (T85). */
 export const helpFor = (lang: Language): readonly HelpSection[] => HELP[lang] ?? HELP.en;

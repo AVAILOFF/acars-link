@@ -27,6 +27,7 @@
     "bridge:test": "dotnet test bridge/msfs",
     "bridge:smoke": "node tools/release/smoke-bridge.mjs bridge/msfs/publish",
     "replay": "pnpm -F @acars/core -F @acars/scenarios -F @acars/replay build && node tools/replay/dist/cli.js",
+    "i18n": "node --experimental-transform-types --disable-warning=ExperimentalWarning --conditions=source --import ./tools/i18n/ts-hooks.mjs tools/i18n/translate.mjs",
     "hoppie:telex": "pnpm -F @acars/core -F @acars/transport build && pnpm -F @acars/transport telex"
   },
   "devDependencies": {

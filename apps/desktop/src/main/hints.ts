@@ -9,6 +9,7 @@ import {
   OCL_ID,
   type OutboundMessage,
 } from '@acars/core';
+import { catalogText } from '../renderer/src/i18n.js';
 import { LANGUAGE_IDS, type Language, type UiText } from '../shared/api.js';
 
 /**
@@ -17,26 +18,12 @@ import { LANGUAGE_IDS, type Language, type UiText } from '../shared/api.js';
  * XATC departure and oceanic clearances, below. UI only: nothing here goes to the network.
  */
 
-/** How to confirm the clearances of the XATC station (T24, T27; facts of `dcl.ts`, `oceanic.ts`). */
-const ATC_HINTS: Readonly<Record<'dcl' | 'pdc' | 'ocl', UiText>> = {
-  dcl: {
-    en: 'Departure clearance (CLD) from {station} over CPDLC. Check it and reply WILCO on the FMS ATC (CPDLC) page, or UNABLE if you cannot accept it.',
-    ru: 'Разрешение на вылет (CLD) от {station} по CPDLC. Проверьте его и ответьте WILCO на странице ATC (CPDLC) в FMS или UNABLE, если принять не можете.',
-  },
-  pdc: {
-    en: 'Pre-departure clearance (PDC) from {station}, delivered through the airline as in the US; no answer is expected.',
-    ru: 'Разрешение на вылет (PDC) от {station} через систему авиакомпании, как в США. Ответ не требуется.',
-  },
-  ocl: {
-    en: 'Oceanic clearance (CLX) from Shanwick via {station}. Reply ROGER on the FMS ATC (CPDLC) page; without a reply within 10 minutes the clearance is cancelled.',
-    ru: 'Океаническое разрешение (CLX) от Shanwick через {station}. Ответьте ROGER на странице ATC (CPDLC) в FMS; без ответа за 10 минут разрешение отменяется.',
-  },
-};
-
-const fill = (t: UiText, station: string): UiText =>
-  Object.fromEntries(
-    Object.entries(t).map(([lang, text]) => [lang, text?.replace('{station}', station)]),
-  ) as UiText;
+/**
+ * How to confirm the clearances of the XATC station (T24, T27; facts of `dcl.ts`, `oceanic.ts`): UI
+ * strings `hint.atc.*` (T86) in every language that has them.
+ */
+const atcHint = (key: 'hint.atc.dcl' | 'hint.atc.pdc' | 'hint.atc.ocl', station: string): UiText =>
+  catalogText(key, { station });
 
 /** A scenario text in the app languages: only the languages of the app are passed on. */
 export const uiText = (h: LocalText): UiText => {
@@ -55,11 +42,11 @@ export class MessageHints {
   /** The hint of a message: its `send` step's, else its scenario's; ATC clearances; else null. */
   forMessage(m: OutboundMessage): UiText | null {
     if (m.scenarioId === DCL_ID) {
-      if (m.kind === 'cpdlc') return m.cpdlc?.ra === 'WU' ? fill(ATC_HINTS.dcl, m.from) : null;
-      return /^UNABLE\b/.test(m.message.text) ? null : fill(ATC_HINTS.pdc, m.from);
+      if (m.kind === 'cpdlc') return m.cpdlc?.ra === 'WU' ? atcHint('hint.atc.dcl', m.from) : null;
+      return /^UNABLE\b/.test(m.message.text) ? null : atcHint('hint.atc.pdc', m.from);
     }
     if (m.scenarioId === OCL_ID) {
-      return /^CLX\b/.test(m.message.text) ? fill(ATC_HINTS.ocl, m.from) : null;
+      return /^CLX\b/.test(m.message.text) ? atcHint('hint.atc.ocl', m.from) : null;
     }
     const c = this.byId.get(m.scenarioId);
     if (c === undefined) return null;

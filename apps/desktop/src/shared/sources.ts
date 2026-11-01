@@ -8,7 +8,7 @@
  * one place cannot be missing from the other.
  */
 
-import type { UiText } from './api.js';
+import type { MessageKey } from '../renderer/src/messages-en.js';
 
 /** The two installers (T72): the personal build holds data without a licence for redistribution. */
 export type BuildVariant = 'public' | 'personal';
@@ -22,15 +22,13 @@ export interface DataSource {
   readonly kind: 'bundled' | 'service';
   /** `personal`: not in the public build. */
   readonly build: 'both' | 'personal';
-  readonly what: UiText;
-  readonly license: UiText;
+  /** What it is and its licence: UI strings (`messages-<lang>.ts`, `src.<id>.*`, T86). */
+  readonly what: MessageKey;
+  readonly license: MessageKey;
   /** The credit line the source's terms ask for or require; null = none asked. Shown as written. */
   readonly credit: string | null;
   readonly url?: string;
 }
-
-/** T85: a language missing here is shown in English. */
-const t = (en: string, ru: string): UiText => ({ en, ru });
 
 export const SOURCES: readonly DataSource[] = [
   {
@@ -39,8 +37,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'Electron, Chromium',
     kind: 'bundled',
     build: 'both',
-    what: t('Application shell', 'Оболочка приложения'),
-    license: t('MIT and the Chromium licences', 'MIT и лицензии Chromium'),
+    what: 'src.electron.what',
+    license: 'src.electron.license',
     credit: null,
   },
   {
@@ -49,8 +47,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'React, Zustand, Vite runtime parts',
     kind: 'bundled',
     build: 'both',
-    what: t('Interface libraries', 'Библиотеки интерфейса'),
-    license: t('MIT', 'MIT'),
+    what: 'src.react.what',
+    license: 'src.react.license',
     credit: null,
   },
   {
@@ -59,8 +57,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: '.NET 10 runtime and ASP.NET Core',
     kind: 'bundled',
     build: 'both',
-    what: t('Runtime of the simulator bridge', 'Среда выполнения моста к симулятору'),
-    license: t('MIT (Microsoft)', 'MIT (Microsoft)'),
+    what: 'src.dotnet.what',
+    license: 'src.dotnet.license',
     credit: null,
   },
   {
@@ -69,11 +67,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'SimConnect client, linked statically',
     kind: 'bundled',
     build: 'both',
-    what: t(
-      'Link to Microsoft Flight Simulator, built into the bridge',
-      'Связь с Microsoft Flight Simulator, встроена в мост',
-    ),
-    license: t('Microsoft MSFS SDK licence', 'Лицензия Microsoft MSFS SDK'),
+    what: 'src.simconnect.what',
+    license: 'src.simconnect.license',
     credit: null,
   },
   {
@@ -82,11 +77,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'OpenFlights `airlines.dat`',
     kind: 'bundled',
     build: 'both',
-    what: t(
-      'Airlines, airports, routes and aircraft types (the next leg, hubs)',
-      'Авиакомпании, аэропорты, маршруты и типы самолётов (следующий рейс, хабы)',
-    ),
-    license: t('ODbL 1.0, Database Contents License', 'ODbL 1.0, Database Contents License'),
+    what: 'src.openflights.what',
+    license: 'src.openflights.license',
     credit: 'OpenFlights.org, ODbL',
     url: 'https://openflights.org/data',
   },
@@ -96,8 +88,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'EUROCONTROL SSR Code Allocation List',
     kind: 'bundled',
     build: 'personal',
-    what: t('Squawk codes in Europe', 'Коды транспондера в Европе'),
-    license: t('© EUROCONTROL', '© EUROCONTROL'),
+    what: 'src.eur-cal.what',
+    license: 'src.eur-cal.license',
     credit: null,
   },
   {
@@ -106,8 +98,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'ICAO APAC eANP Vol II Part IV',
     kind: 'bundled',
     build: 'personal',
-    what: t('Squawk codes in Asia and the Pacific', 'Коды транспондера в Азии и Тихом океане'),
-    license: t('© ICAO, all rights reserved', '© ICAO, все права защищены'),
+    what: 'src.icao-apac.what',
+    license: 'src.icao-apac.license',
     credit: null,
   },
   {
@@ -116,8 +108,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'FAA JO 7110.66H NBCAP tables',
     kind: 'bundled',
     build: 'both',
-    what: t('Squawk codes in the USA', 'Коды транспондера в США'),
-    license: t('Public domain', 'Общественное достояние'),
+    what: 'src.faa.what',
+    license: 'src.faa.license',
     credit: null,
   },
   {
@@ -126,8 +118,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'SERA Appendix 3',
     kind: 'bundled',
     build: 'both',
-    what: t('Table of flight levels', 'Таблица эшелонов'),
-    license: t('Regulation (EU) 923/2012, EUR-Lex', 'Регламент (ЕС) 923/2012, EUR-Lex'),
+    what: 'src.sera.what',
+    license: 'src.sera.license',
     credit: null,
   },
   {
@@ -136,8 +128,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'NASA Five Millennium Canon of Solar Eclipses',
     kind: 'bundled',
     build: 'both',
-    what: t('Solar eclipses', 'Солнечные затмения'),
-    license: t('NASA, reproduction with credit', 'NASA, воспроизведение с указанием источника'),
+    what: 'src.eclipses.what',
+    license: 'src.eclipses.license',
     credit: 'F. Espenak and J. Meeus, NASA',
   },
   {
@@ -146,11 +138,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'Air show and aviation history tables',
     kind: 'bundled',
     build: 'both',
-    what: t('Air shows and aviation history facts', 'Авиашоу и факты из истории авиации'),
-    license: t(
-      'Source and date of verification in each entry',
-      'Источник и дата сверки у каждой записи',
-    ),
+    what: 'src.tables.what',
+    license: 'src.tables.license',
     credit: null,
   },
   {
@@ -159,14 +148,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: "Hoppie's ACARS (hoppie.nl)",
     kind: 'service',
     build: 'both',
-    what: t(
-      'The ACARS network the messages go through',
-      'Сеть ACARS, через которую идут сообщения',
-    ),
-    license: t(
-      'No published terms for third-party clients',
-      'Условия для сторонних программ не опубликованы',
-    ),
+    what: 'src.hoppie.what',
+    license: 'src.hoppie.license',
     credit: null,
   },
   {
@@ -175,8 +158,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'VATSpy Data Project',
     kind: 'service',
     build: 'both',
-    what: t('FIR boundaries and VATSIM centres', 'Границы FIR и центры VATSIM'),
-    license: t('CC BY-SA 4.0', 'CC BY-SA 4.0'),
+    what: 'src.vatspy.what',
+    license: 'src.vatspy.license',
     credit: 'VATSpy Data Project, CC BY-SA 4.0',
     url: 'https://github.com/vatsimnetwork/vatspy-data-project',
   },
@@ -186,11 +169,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'VATSIM data',
     kind: 'service',
     build: 'both',
-    what: t('Controllers online on VATSIM', 'Диспетчеры на VATSIM'),
-    license: t(
-      'Free non-commercial use (VATSIM Commercial Use Policy v2.0)',
-      'Бесплатное некоммерческое использование (VATSIM Commercial Use Policy v2.0)',
-    ),
+    what: 'src.vatsim.what',
+    license: 'src.vatsim.license',
     credit: null,
     url: 'https://vatsim.net/docs/policy/commercial-use',
   },
@@ -200,8 +180,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'natTrak (NAT tracks)',
     kind: 'service',
     build: 'personal',
-    what: t('North Atlantic tracks', 'Североатлантические треки'),
-    license: t('No published terms', 'Условия не опубликованы'),
+    what: 'src.nattrak.what',
+    license: 'src.nattrak.license',
     credit: null,
   },
   {
@@ -210,8 +190,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'OurAirports',
     kind: 'service',
     build: 'both',
-    what: t('Airports, runways and frequencies', 'Аэропорты, ВПП и частоты'),
-    license: t('Public domain', 'Общественное достояние'),
+    what: 'src.ourairports.what',
+    license: 'src.ourairports.license',
     credit: null,
   },
   {
@@ -220,8 +200,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'OpenStreetMap via Overpass API',
     kind: 'service',
     build: 'both',
-    what: t('Gates and stands at airports', 'Гейты и стоянки в аэропортах'),
-    license: t('ODbL', 'ODbL'),
+    what: 'src.osm.what',
+    license: 'src.osm.license',
     credit: '© OpenStreetMap contributors',
     url: 'https://www.openstreetmap.org/copyright',
   },
@@ -231,8 +211,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'aviationweather.gov',
     kind: 'service',
     build: 'both',
-    what: t('METAR, TAF and SIGMET', 'METAR, TAF и SIGMET'),
-    license: t('US government data', 'Данные правительства США'),
+    what: 'src.awc.what',
+    license: 'src.awc.license',
     credit: null,
   },
   {
@@ -241,11 +221,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'NASA EONET',
     kind: 'service',
     build: 'both',
-    what: t('Natural events near the route', 'Природные события у маршрута'),
-    license: t(
-      'NASA open data (CC0); for general information only',
-      'Открытые данные NASA (CC0); только для общей информации',
-    ),
+    what: 'src.eonet.what',
+    license: 'src.eonet.license',
     credit: 'NASA EONET',
     url: 'https://eonet.gsfc.nasa.gov/',
   },
@@ -255,11 +232,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'NOAA SWPC',
     kind: 'service',
     build: 'both',
-    what: t('Space weather', 'Космическая погода'),
-    license: t(
-      'US government data, public domain; not endorsed by NOAA',
-      'Данные правительства США, общественное достояние; NOAA их не одобряет',
-    ),
+    what: 'src.swpc.what',
+    license: 'src.swpc.license',
     credit: null,
   },
   {
@@ -268,11 +242,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'USGS earthquake feed',
     kind: 'service',
     build: 'both',
-    what: t('Earthquakes at the destination', 'Землетрясения в пункте назначения'),
-    license: t(
-      'Public domain; credit requested',
-      'Общественное достояние; просят указывать источник',
-    ),
+    what: 'src.usgs.what',
+    license: 'src.usgs.license',
     credit: 'U.S. Geological Survey',
   },
   {
@@ -281,11 +252,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'TheSpaceDevs Launch Library 2',
     kind: 'service',
     build: 'both',
-    what: t('Rocket launches', 'Пуски ракет'),
-    license: t(
-      'Free to use; credit optional',
-      'Свободное использование; указание источника по желанию',
-    ),
+    what: 'src.spacedevs.what',
+    license: 'src.spacedevs.license',
     credit: 'TheSpaceDevs Launch Library 2',
   },
   {
@@ -294,8 +262,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'Nager.Date public holidays',
     kind: 'service',
     build: 'both',
-    what: t('Public holidays', 'Государственные праздники'),
-    license: t('Non-commercial use', 'Только некоммерческое использование'),
+    what: 'src.nager.what',
+    license: 'src.nager.license',
     credit: null,
   },
   {
@@ -304,8 +272,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'Jolpica F1',
     kind: 'service',
     build: 'both',
-    what: t('Formula 1 results', 'Результаты Формулы-1'),
-    license: t('CC BY-NC-SA 4.0', 'CC BY-NC-SA 4.0'),
+    what: 'src.jolpica.what',
+    license: 'src.jolpica.license',
     credit: null,
   },
   {
@@ -314,11 +282,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'AeroDataBox via RapidAPI',
     kind: 'service',
     build: 'both',
-    what: t(
-      'Connecting flights and routes, with your key',
-      'Стыковочные рейсы и маршруты, по вашему ключу',
-    ),
-    license: t('Terms of your RapidAPI plan', 'Условия вашего тарифа RapidAPI'),
+    what: 'src.aerodatabox.what',
+    license: 'src.aerodatabox.license',
     credit: null,
   },
   {
@@ -327,8 +292,8 @@ export const SOURCES: readonly DataSource[] = [
     notice: 'SimBrief',
     kind: 'service',
     build: 'both',
-    what: t('Your flight plans (OFP)', 'Ваши планы полёта (OFP)'),
-    license: t('Terms of SimBrief', 'Условия SimBrief'),
+    what: 'src.simbrief.what',
+    license: 'src.simbrief.license',
     credit: null,
   },
 ];
