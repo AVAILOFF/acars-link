@@ -5,11 +5,8 @@ id: hard_landing_followup
 version: 1
 category: irregular
 title: Hard landing inspection done
-title_ru: "Осмотр после грубой посадки выполнен"
 description: "Before a flight on the same aircraft after a confirmed hard landing: maintenance reports the inspection done and the aircraft released."
-description_ru: "Перед рейсом на том же борту после подтверждённой грубой посадки: техслужба сообщает, что осмотр выполнен и борт выпущен."
 hint: "Maintenance control: after the hard landing reported on this aircraft, the inspection is done, no damage was found and the aircraft is released for flight. No reply needed."
-hint_ru: "Техслужба: после грубой посадки, о которой сообщили на этом самолёте, осмотр выполнен, повреждений нет, самолёт допущен к полётам. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time

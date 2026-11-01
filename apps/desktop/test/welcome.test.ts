@@ -2,7 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import { describe, expect, it } from 'vitest';
-import { HELP } from '../src/renderer/src/help.js';
+import { helpFor } from '../src/renderer/src/help.js';
 import { MESSAGES } from '../src/renderer/src/i18n.js';
 import {
   type Box,
@@ -132,7 +132,7 @@ describe('welcome and tour texts', () => {
 
   it('Help explains the interface in both languages', () => {
     for (const lang of ['en', 'ru'] as const) {
-      const start = HELP[lang].find((s) => s.id === 'start');
+      const start = helpFor(lang).find((s) => s.id === 'start');
       expect(start?.items.map((i) => i.id)).toContain('ui');
     }
   });

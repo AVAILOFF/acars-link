@@ -4,11 +4,8 @@ id: cmd_req_atis
 version: 1
 category: ops
 title: "Pilot command: REQ ATIS"
-title_ru: "Команда пилота: REQ ATIS"
 description: "REQ ATIS [ICAO]: the text of the online VATSIM ATIS of the airport (destination without ICAO). Without an online ATIS: NO ATIS AVBL and the METAR."
-description_ru: "REQ ATIS [ICAO]: текст ATIS онлайн-станции VATSIM аэропорта (без ICAO — назначение). Если ATIS нет в эфире: NO ATIS AVBL и METAR."
 hint: "REQ ATIS <ICAO> asks for the ATIS of an airport (empty: the destination). The answer is the text of the ATIS online on VATSIM with its information letter. No reply needed."
-hint_ru: "REQ ATIS <ICAO> запрашивает ATIS аэропорта (пусто — назначения). Ответ — текст ATIS, который сейчас в эфире на VATSIM, с буквой информации. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

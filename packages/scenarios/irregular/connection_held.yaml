@@ -3,11 +3,8 @@ id: connection_held
 version: 1
 category: irregular
 title: Connection held
-title_ru: "Стыковка: рейс задержан"
 description: "On block after a short connection with 15 to 40 min left: the onward flight is held for the passengers."
-description_ru: "На стоянке после короткой стыковки, если осталось от 15 до 40 мин: стыковочный рейс задержан до прибытия пассажиров."
 hint: "Connections: the onward flight of your transfer passengers is held for them and will leave late. A transfer bus waits at your gate; let the transfer passengers deplane first. No reply needed."
-hint_ru: "Стыковки: дальнейший рейс ваших пассажиров на пересадку задержан ради них и вылетит позже. У гейта ждёт трансферный автобус; выпустите пассажиров на пересадку первыми. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase_enter

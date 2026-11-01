@@ -2,17 +2,29 @@
 // Copyright (c) 2026 AVAILOFF
 
 import { describe, expect, it } from 'vitest';
-import { HELP, searchHelp } from '../src/renderer/src/help.js';
+import { HELP, type HelpSection, helpFor, searchHelp } from '../src/renderer/src/help.js';
+import type { Language } from '../src/shared/api.js';
+
+/** T85: every language that has a help file (`help-<lang>.ts`). */
+const LANGS = Object.entries(HELP).flatMap(([lang, sections]) =>
+  sections === undefined ? [] : [{ lang, sections }],
+);
 
 describe('Help tab', () => {
-  it('has the same sections and questions in both languages', () => {
-    const shape = (lang: 'en' | 'ru') =>
-      HELP[lang].map((s) => [s.id, s.items.map((i) => [i.id, i.a.length])]);
-    expect(shape('ru')).toEqual(shape('en'));
+  it('has the same sections, questions and blocks in every language (T85)', () => {
+    const shape = (sections: readonly HelpSection[]) =>
+      sections.map((s) => [s.id, s.items.map((i) => [i.id, i.a.length])]);
+    expect(LANGS.map((l) => l.lang)).toEqual(expect.arrayContaining(['en', 'ru']));
+    for (const l of LANGS) expect(shape(l.sections), l.lang).toEqual(shape(HELP.en));
+  });
+
+  it('a language without a help file shows English (T85)', () => {
+    expect(helpFor('ru')).toBe(HELP.ru);
+    expect(helpFor('xx' as Language)).toBe(HELP.en);
   });
 
   it('links only to https', () => {
-    for (const s of [...HELP.en, ...HELP.ru]) {
+    for (const s of LANGS.flatMap((l) => l.sections)) {
       for (const i of s.items) {
         for (const b of i.a) {
           if (typeof b !== 'string' && 'link' in b) expect(b.href).toMatch(/^https:\/\//);
@@ -26,7 +38,7 @@ describe('Help tab', () => {
     expect(found.length).toBeGreaterThan(0);
     for (const s of found) expect(s.items.length).toBeGreaterThan(0);
     expect(found.flatMap((s) => s.items.map((i) => i.id))).toContain('inibuilds');
-    expect(searchHelp(HELP.ru, 'zzzz')).toEqual([]);
-    expect(searchHelp(HELP.ru, '  ')).toHaveLength(HELP.ru.length);
+    expect(searchHelp(helpFor('ru'), 'zzzz')).toEqual([]);
+    expect(searchHelp(helpFor('ru'), '  ')).toHaveLength(helpFor('ru').length);
   });
 });

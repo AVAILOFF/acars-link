@@ -6,11 +6,8 @@ id: runway_closure_dest
 version: 1
 category: irregular
 title: Destination runway closed
-title_ru: "Закрыта ВПП назначения"
 description: "At the start of the descent the planned runway is closed (30 min to 3 h, rarely until further notice), with an update every 20 min. HOLD (default) or DIVERT to the alternate."
-description_ru: "В начале снижения плановая ВПП закрыта (от 30 мин до 3 ч, изредка — на неопределённый срок), обновления каждые 20 мин. HOLD (по умолчанию) — ожидание или DIVERT — на запасной."
 hint: "OPS of the destination: your planned runway is closed (the reason is in the message), with no estimate yet. Check your fuel and tell OPS whether you hold or divert to the alternate."
-hint_ru: "OPS аэропорта назначения: ваша плановая ВПП закрыта (причина — в сообщении), оценки пока нет. Проверьте топливо и сообщите OPS, будете ли вы ждать в зоне ожидания или уходите на запасной."
 enabled_by_default: true
 trigger:
   on: phase_enter
@@ -40,27 +37,25 @@ steps:
         CHECK FUEL, REPLY HOLD OR DIVERT
   - wait:
       reply:
+        id: reply
         options: [HOLD, DIVERT]
         timeout_min: 8
         default: HOLD
         reply_hints:
           HOLD: "Hold and wait for the runway; OPS updates you at the time given."
           DIVERT: "Divert to the alternate, or to another airport named after the word (DIVERT EDDM)."
-        reply_hints_ru:
-          HOLD: "Ждать в зоне ожидания открытия ВПП; OPS сообщит новости к указанному времени."
-          DIVERT: "Уйти на запасной или на другой аэропорт, названный после слова (DIVERT EDDM)."
   - branch:
       HOLD:
         # The XATC station gives the holding clearance and a new time at every update (T48, T50);
         # null below ends it.
         - set: { flight.hold: 20 }
         - send:
+            id: hold
             header: OPS MSG {ofp.dest}
             body: |
               NOTED, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
               STAND AND HANDLING UNCHANGED
             hint: "OPS notes that you hold; your stand and handling stay as planned and the next update comes at the time given."
-            hint_ru: "OPS принял, что вы ждёте; стоянка и обслуживание без изменений, следующее обновление — к указанному времени."
         - loop:
             until: "loop.min >= run.hold_min"
             stop: "flight.divert != null or phase in ['LANDED','TAXI_IN','ON_BLOCK']"
@@ -68,15 +63,13 @@ steps:
             steps:
               - wait:
                   reply:
+                    id: reply_2
                     options: [HOLD, DIVERT]
                     timeout_round: true
                     default: HOLD
                     reply_hints:
                       HOLD: "Keep holding and wait for the next update."
                       DIVERT: "Divert to the alternate, or to another airport named after the word (DIVERT EDDM)."
-                    reply_hints_ru:
-                      HOLD: "Продолжать ожидание до следующего обновления."
-                      DIVERT: "Уйти на запасной или на другой аэропорт, названный после слова (DIVERT EDDM)."
               - branch:
                   # The update comes when the round ends; the pilot's own HOLD only confirms.
                   HOLD:
@@ -85,28 +78,29 @@ steps:
                       steps:
                         - set: { flight.divert: "{ofp.altn}" }
                         - send:
+                            id: hold_2
                             header: OPS MSG {ofp.dest}
                             body: |
                               {ofp.dest} AD CLSD UFN
                               DIVERT {ofp.altn}
                               HANDLING AND FUEL ORDERED
                             hint: "OPS: the destination aerodrome is closed until further notice (UFN), so you divert to the alternate; handling and fuel are ordered there. No reply needed."
-                            hint_ru: "OPS: аэродром назначения закрыт до особого распоряжения (UFN), поэтому вы уходите на запасной; хендлинг и топливо там заказаны. Ответ не нужен."
                         - break: true
                     - if: "reply.timeout"
                       steps:
                         - set: { flight.hold: 20 }
                         - send:
+                            id: hold_3
                             header: OPS MSG {ofp.dest}
                             body: |
                               RWY {ofp.dest_rwy} STILL CLOSED
                               ARRIVALS STILL SUSPENDED, NEXT UPDATE {flight.now|plusmin:20|hhmm}Z
                               REPLY HOLD OR DIVERT
                             hint: "Update from OPS of the destination: the runway is still closed and arrivals suspended. Tell OPS whether you keep holding or divert."
-                            hint_ru: "Обновление от OPS аэропорта назначения: ВПП всё ещё закрыта, приём рейсов приостановлен. Сообщите OPS, продолжаете ли вы ожидание или уходите на запасной."
                   DIVERT:
                     - set: { flight.divert: "{reply.icao|else:ofp.altn}" }
                     - send:
+                        id: divert
                         header: OPS MSG {ofp.dest}
                         body: |
                           ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
@@ -115,22 +109,22 @@ steps:
                           HANDLING AND FUEL ORDERED
                           SEND ETA WHEN ABLE
                         hint: "OPS notes your diversion and its distance and has ordered handling and fuel there. Send your ETA by free-text telex when you can."
-                        hint_ru: "OPS принял вашу диверсию и расстояние до аэропорта, заказал туда хендлинг и топливо. Сообщите ETA telex свободным текстом, когда сможете."
                     - break: true
         - set: { flight.hold: null }
         - branch:
             MET:
               - send:
+                  id: met
                   header: OPS MSG {ofp.dest}
                   body: |
                     RWY {ofp.dest_rwy} REOPENED
                     ARRIVALS RESUMED AT {ofp.dest}
                     EXPECT NORMAL APPROACH
                   hint: "The runway has reopened and arrivals at the destination have resumed: expect a normal approach. No reply needed."
-                  hint_ru: "ВПП снова открыта, приём рейсов в аэропорту назначения возобновлён: ожидайте обычного захода. Ответ не нужен."
       DIVERT:
         - set: { flight.divert: "{reply.icao|else:ofp.altn}" }
         - send:
+            id: divert_2
             header: OPS MSG {ofp.dest}
             body: |
               ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
@@ -139,4 +133,3 @@ steps:
               HANDLING AND FUEL ORDERED
               SEND ETA WHEN ABLE
             hint: "OPS notes your diversion and its distance and has ordered handling and fuel there. Send your ETA by free-text telex when you can."
-            hint_ru: "OPS принял вашу диверсию и расстояние до аэропорта, заказал туда хендлинг и топливо. Сообщите ETA telex свободным текстом, когда сможете."

@@ -6,11 +6,8 @@ id: earthquake_dest
 version: 1
 category: external
 title: Earthquake near the destination
-title_ru: Землетрясение у аэропорта назначения
 description: "An M5.0+ earthquake within 100 km of the destination in the last 24 h (USGS)."
-description_ru: "Землетрясение M ≥ 5,0 в пределах 100 км от аэропорта назначения за последние сутки (USGS)."
 hint: "OPS information: a recent earthquake near the destination, with magnitude, place, distance from the airport and depth (USGS). Check the NOTAMs for the airport status. No reply needed."
-hint_ru: "Информация OPS: недавнее землетрясение рядом с аэропортом назначения — магнитуда, место, расстояние от аэропорта и глубина (USGS). Проверьте в NOTAM состояние аэропорта. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase

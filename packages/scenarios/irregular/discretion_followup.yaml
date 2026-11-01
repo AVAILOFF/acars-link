@@ -3,11 +3,8 @@ id: discretion_followup
 version: 1
 category: irregular
 title: Crew rest after discretion (next flight)
-title_ru: "Отдых после продления (следующий рейс)"
 description: "Before the next flight after commander discretion: extended rest, a reserve first officer joins."
-description_ru: "Перед следующим рейсом после продления смены: увеличенный отдых, в экипаж вводится резервный второй пилот."
 hint: "Crew control: after the commander's discretion (duty extended beyond the limit) on an earlier flight, the crew gets extended rest and a reserve first officer joins the crew. The briefing time is in the message. No reply needed."
-hint_ru: "Служба планирования экипажей: после решения командира продлить рабочее время сверх лимита (commander's discretion) на прошлом рейсе экипаж получает увеличенный отдых, к нему присоединяется резервный второй пилот. Время брифинга — в сообщении. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time

@@ -5,11 +5,8 @@ id: curfew_dest
 version: 1
 category: irregular
 title: Destination curfew
-title_ru: "Ночной запрет в аэропорту назначения"
 description: "In cruise when the estimated landing is close to the night curfew of the destination (only airports with a real one, usually after a delay). ABLE: priority requested; UNABLE: divert to the alternate."
-description_ru: "В крейсере, если расчётная посадка близка к ночному запрету аэропорта назначения (только аэропорты с настоящим запретом, обычно после задержки). ABLE — запрошен приоритет, UNABLE — диверсия на запасной."
 hint: "The destination has a night noise curfew: the latest landing time (UTC and local) and your margin to it. Expedite if you can and tell OPS whether you can land before the curfew."
-hint_ru: "В аэропорту назначения ночной запрет на полёты по шуму (curfew): самое позднее время посадки (UTC и местное) и ваш запас до него. По возможности ускорьтесь и сообщите OPS, успеваете ли вы сесть до запрета."
 enabled_by_default: true
 trigger:
   on: phase
@@ -31,32 +28,30 @@ steps:
         REPLY ABLE OR UNABLE
   - wait:
       reply:
+        id: reply
         options: [ABLE, UNABLE]
         timeout_min: 10
         default: ABLE
         reply_hints:
           ABLE: "You expect to land before the curfew."
           UNABLE: "You cannot land before the curfew."
-        reply_hints_ru:
-          ABLE: "Вы рассчитываете сесть до запрета."
-          UNABLE: "Сесть до запрета вы не успеваете."
   - branch:
       ABLE:
         - send:
+            id: able
             header: CURFEW {ofp.dest}
             body: |
               NOTED, PRIORITY REQUESTED
               HANDLING ON STANDBY
               IF LATE PLAN {ofp.altn}
             hint: "OPS has requested priority for you and the handling is on standby; if you are late after all, plan the alternate. No reply needed."
-            hint_ru: "OPS запросил для вас приоритет, хендлинг наготове; если всё же опоздаете — планируйте запасной. Ответ не нужен."
       UNABLE:
         - set: { flight.divert: "{ofp.altn}" }
         - send:
+            id: unable
             header: CURFEW {ofp.dest}
             body: |
               PLAN DIVERT {ofp.altn}
               HOTEL AND BUSES ARRANGED
               PAX TRANSFER BY ROAD
             hint: "OPS plans your diversion to the alternate: a hotel and buses are arranged and the passengers go on to the destination by road. No reply needed."
-            hint_ru: "OPS планирует вашу диверсию на запасной: гостиница и автобусы заказаны, пассажиров доставят до назначения наземным транспортом. Ответ не нужен."

@@ -5,11 +5,8 @@ id: vdgs_divert
 version: 1
 category: ops
 title: Docking display, diversion (GSX)
-title_ru: Табло стоянки при диверсии (GSX)
 description: "Flight, a red DIVERTED line and the origin on the GSX VDGS at the diversion airport."
-description_ru: "Номер рейса, красная строка DIVERTED и аэропорт вылета на табло VDGS от GSX в аэропорту диверсии."
 hint: "Not a message: your flight, a red DIVERTED line and the origin on the GSX docking display at the diversion airport."
-hint_ru: "Не сообщение: ваш рейс, красная строка DIVERTED и аэропорт вылета на табло стыковки GSX (VDGS) в аэропорту диверсии."
 enabled_by_default: true
 trigger:
   on: phase_enter

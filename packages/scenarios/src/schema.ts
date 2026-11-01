@@ -13,7 +13,7 @@ import {
  * JSON Schema (2020-12) of a scenario file (docs/05-scenario-engine.md; T06, T12: `wait: reply`,
  * `branch`, `resend`, `on: command`). Structure only; semantics (expressions, templates,
  * variables, branch keys, `set` targets) are checked by `compileScenario` in `@acars/core`.
- * `set` — T14. `vdgs` — T22 (line widths are checked by `compileScenario`). `wait: until`, `group` — T39. `draw`, `loop`, `break`, `if` — T50. `hint`, `reply_hints` — T57.
+ * `set` — T14. `vdgs` — T22 (line widths are checked by `compileScenario`). `wait: until`, `group` — T39. `draw`, `loop`, `break`, `if` — T50. `hint`, `reply_hints` — T57. Step `id` — T85.
  */
 
 const phase = { enum: [...FLIGHT_PHASES] } as const;
@@ -53,13 +53,10 @@ export const SCENARIO_SCHEMA = {
     version: { const: 1 },
     category: { enum: ['docs', 'ops', 'irregular', 'external', 'fun'] },
     title: text,
-    // UI only (T14): the app shows them in its language; telexes stay English.
-    title_ru: text,
+    // UI only (T14): the app shows them in its language (translations: `locales/`, T85); telexes stay English.
     description: text,
-    description_ru: text,
     // T57: hint in the app to the scenario's messages (UI only).
     hint: text,
-    hint_ru: text,
     enabled_by_default: { type: 'boolean' },
     trigger: {
       type: 'object',
@@ -160,11 +157,12 @@ export const SCENARIO_SCHEMA = {
                 additionalProperties: false,
                 required: ['body'],
                 properties: {
+                  // T85: address of the step in the translation files.
+                  id,
                   header: text,
                   body: text,
                   footer: text,
                   hint: text,
-                  hint_ru: text,
                 },
               },
             },
@@ -207,12 +205,12 @@ export const SCENARIO_SCHEMA = {
                         additionalProperties: false,
                         required: ['options', 'default'],
                         properties: {
+                          id,
                           options: { type: 'array', minItems: 1, uniqueItems: true, items: option },
                           timeout_min: { type: 'number', exclusiveMinimum: 0 },
                           timeout_round: { const: true },
                           default: option,
                           reply_hints: replyHints,
-                          reply_hints_ru: replyHints,
                         },
                       },
                     },

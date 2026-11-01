@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
+import type { LocaleSource } from '@acars/scenarios';
 import type { ScenarioSource } from './controller.js';
 
 /**
@@ -42,3 +43,17 @@ const files = {
 export const BASE_SCENARIOS: readonly ScenarioSource[] = Object.entries(files)
   .map(([path, source]) => ({ file: path.slice(path.lastIndexOf('/') + 1), source }))
   .sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0));
+
+/** Translations of the scenarios' UI texts (T85): `packages/scenarios/locales/<lang>.yaml`. */
+const locales = import.meta.glob<string>('../../../../packages/scenarios/locales/*.yaml', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+
+export const SCENARIO_LOCALES: readonly LocaleSource[] = Object.entries(locales)
+  .map(([path, source]) => {
+    const file = path.slice(path.lastIndexOf('/') + 1);
+    return { lang: file.slice(0, -'.yaml'.length), file: `locales/${file}`, source };
+  })
+  .sort((a, b) => (a.lang < b.lang ? -1 : a.lang > b.lang ? 1 : 0));

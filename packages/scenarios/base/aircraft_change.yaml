@@ -3,11 +3,8 @@ id: aircraft_change
 version: 1
 category: ops
 title: Aircraft change
-title_ru: "Смена самолёта"
 description: "Aircraft change for the next leg."
-description_ru: "Смена самолёта на следующий рейс."
 hint: "Operations control (OPS) says the next sector will be flown on another aircraft: this one goes to maintenance after arrival and the crew changes aircraft. No reply needed."
-hint_ru: "Центр управления полётами (OPS) сообщает, что следующий рейс выполняется на другом самолёте: этот после прилёта уходит в техобслуживание, экипаж пересаживается. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time

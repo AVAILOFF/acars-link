@@ -15,17 +15,17 @@ import {
 import { compareOutbound, parseJsonl, type Recording, replay } from '@acars/replay';
 import { loadScenarios } from '@acars/scenarios';
 import { MockTransport } from '@acars/transport';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { AppController, type TransportFactory } from '../src/main/controller.js';
 import { guard } from '../src/main/errors.js';
 import type { FlagsStore } from '../src/main/flags.js';
 import { fileRecordings, type OpenRecording } from '../src/main/recording.js';
-import { BASE_SCENARIOS } from '../src/main/scenario-sources.js';
+import { BASE_SCENARIOS, SCENARIO_LOCALES } from '../src/main/scenario-sources.js';
 import { SecretStore } from '../src/main/secrets.js';
 import { defaultSettings, SettingsStore } from '../src/main/settings.js';
 import { SPECIAL_SCENARIOS } from '../src/main/special.js';
 import { VDGS_FILE } from '../src/main/vdgs.js';
-import { MESSAGES } from '../src/renderer/src/i18n.js';
+import { MESSAGES, translator } from '../src/renderer/src/i18n.js';
 import type { AboutInfo, FeedEntry, SimChoice } from '../src/shared/api.js';
 import {
   FakeCipher,
@@ -37,7 +37,7 @@ import {
   tempDir,
 } from './support.js';
 
-const BASE_SCENARIOS_COMPILED = loadScenarios(BASE_SCENARIOS);
+const BASE_SCENARIOS_COMPILED = loadScenarios(BASE_SCENARIOS, SCENARIO_LOCALES);
 const ofp = parseSimbriefOfp(JSON.parse(await readFile(OFP_FIXTURE, 'utf8')));
 // 65 min at the gate: the whole pre-departure sequence fits, nothing is fitted to the time left.
 const flight = generateSyntheticFlight({ ofp, boardingSec: 65 * 60 });
@@ -64,6 +64,7 @@ async function setup(
     secrets: new SecretStore(secretsFile, new FakeCipher()),
     settings: new SettingsStore(join(dir, 'settings.json'), defaultSettings('en')),
     scenarioSources: BASE_SCENARIOS,
+    scenarioLocales: SCENARIO_LOCALES,
     http: o.http ?? (await simbriefOk()),
     // The mock stands in for Hoppie too; the test checks which logon it was given.
     createTransport: (choice) => {
@@ -642,6 +643,27 @@ describe('i18n', () => {
     for (const k of Object.keys(en) as (keyof typeof en)[]) {
       expect(holes(ru[k]), k).toEqual(holes(en[k]));
     }
+  });
+
+  it('every language: only keys of EN, the same placeholders (T85)', () => {
+    const holes = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
+    for (const [lang, dict] of Object.entries(MESSAGES)) {
+      for (const [k, v] of Object.entries(dict ?? {})) {
+        const original = (MESSAGES.en as Readonly<Record<string, string>>)[k];
+        expect(original, `${lang} ${k}`).toBeDefined();
+        expect(holes(v as string), `${lang} ${k}`).toEqual(holes(original ?? ''));
+      }
+    }
+  });
+
+  it('a key missing in a language shows in English, without an error (T85)', () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const t = translator('ru', { ru: { 'tab.flight': 'Рейс' } });
+    expect(t('tab.flight')).toBe('Рейс');
+    expect(t('tab.help')).toBe(MESSAGES.en['tab.help']);
+    expect(t('zz.unknown' as never)).toBe('zz.unknown');
+    expect(errors).toHaveBeenCalledTimes(1);
+    errors.mockRestore();
   });
 });
 

@@ -5,11 +5,11 @@ import {
   type AwaitedReply,
   type CompiledScenario,
   DCL_ID,
-  type HintText,
+  type LocalText,
   OCL_ID,
   type OutboundMessage,
 } from '@acars/core';
-import type { UiText } from '../shared/api.js';
+import { LANGUAGE_IDS, type Language, type UiText } from '../shared/api.js';
 
 /**
  * Hints to messages in the app (T57): what a message means and what each answer of a waiting
@@ -18,7 +18,7 @@ import type { UiText } from '../shared/api.js';
  */
 
 /** How to confirm the clearances of the XATC station (T24, T27; facts of `dcl.ts`, `oceanic.ts`). */
-const ATC_HINTS = {
+const ATC_HINTS: Readonly<Record<'dcl' | 'pdc' | 'ocl', UiText>> = {
   dcl: {
     en: 'Departure clearance (CLD) from {station} over CPDLC. Check it and reply WILCO on the FMS ATC (CPDLC) page, or UNABLE if you cannot accept it.',
     ru: 'Разрешение на вылет (CLD) от {station} по CPDLC. Проверьте его и ответьте WILCO на странице ATC (CPDLC) в FMS или UNABLE, если принять не можете.',
@@ -31,14 +31,19 @@ const ATC_HINTS = {
     en: 'Oceanic clearance (CLX) from Shanwick via {station}. Reply ROGER on the FMS ATC (CPDLC) page; without a reply within 10 minutes the clearance is cancelled.',
     ru: 'Океаническое разрешение (CLX) от Shanwick через {station}. Ответьте ROGER на странице ATC (CPDLC) в FMS; без ответа за 10 минут разрешение отменяется.',
   },
-} as const;
+};
 
-const fill = (t: { en: string; ru: string }, station: string): UiText => ({
-  en: t.en.replace('{station}', station),
-  ru: t.ru.replace('{station}', station),
-});
+const fill = (t: UiText, station: string): UiText =>
+  Object.fromEntries(
+    Object.entries(t).map(([lang, text]) => [lang, text?.replace('{station}', station)]),
+  ) as UiText;
 
-const ui = (h: HintText): UiText => ({ en: h.en, ru: h.ru });
+/** A scenario text in the app languages: only the languages of the app are passed on. */
+export const uiText = (h: LocalText): UiText => {
+  const out: { -readonly [L in Language]?: string } = {};
+  for (const l of LANGUAGE_IDS) if (h[l] !== undefined) out[l] = h[l];
+  return { ...out, en: h.en };
+};
 
 export class MessageHints {
   private readonly byId: ReadonlyMap<string, CompiledScenario>;
@@ -59,8 +64,8 @@ export class MessageHints {
     const c = this.byId.get(m.scenarioId);
     if (c === undefined) return null;
     const step = m.step === undefined ? undefined : c.steps[m.step];
-    if (step?.kind === 'send' && step.hint !== null) return ui(step.hint);
-    return c.def.hint === undefined ? null : { en: c.def.hint, ru: c.def.hint_ru ?? null };
+    if (step?.kind === 'send' && step.hint !== null) return uiText(step.hint);
+    return c.texts.hint === null ? null : uiText(c.texts.hint);
   }
 
   /** What each option of a waiting answer means; null = the scenario has no `reply_hints`. */
@@ -68,7 +73,7 @@ export class MessageHints {
     const step = r.step === null ? undefined : this.byId.get(r.scenarioId)?.steps[r.step];
     if (step?.kind !== 'wait_reply' || step.hints === null) return null;
     const out: Record<string, UiText> = {};
-    for (const [o, h] of Object.entries(step.hints)) out[o] = ui(h);
+    for (const [o, h] of Object.entries(step.hints)) out[o] = uiText(h);
     return out;
   }
 }

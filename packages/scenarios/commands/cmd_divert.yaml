@@ -4,11 +4,8 @@ id: cmd_divert
 version: 1
 category: irregular
 title: "Pilot command: DIVERT"
-title_ru: "Команда пилота: DIVERT"
 description: "DIVERT command: acknowledges the diversion."
-description_ru: "Команда DIVERT: подтверждение ухода на запасной."
 hint: "OPS acknowledges your DIVERT and has told the handling at the diversion airport. It asks for the reason to arrange what is needed there."
-hint_ru: "OPS подтверждает ваш DIVERT и уже предупредил хендлинг в аэропорту диверсии. Он спрашивает причину, чтобы подготовить там всё необходимое."
 enabled_by_default: true
 trigger:
   on: command
@@ -23,6 +20,7 @@ steps:
         WX TECH MEDICAL FUEL OTHER
   - wait:
       reply:
+        id: reply
         options: [WX, TECH, MEDICAL, FUEL, OTHER]
         timeout_min: 10
         default: OTHER
@@ -32,44 +30,38 @@ steps:
           MEDICAL: "A medical case on board."
           FUEL: "Not enough fuel to go on to the destination."
           OTHER: "Any other reason."
-        reply_hints_ru:
-          WX: "Погода в аэропорту назначения."
-          TECH: "Техническая неисправность самолёта."
-          MEDICAL: "Медицинский случай на борту."
-          FUEL: "Топлива не хватает, чтобы лететь дальше до назначения."
-          OTHER: "Любая другая причина."
   - branch:
       MEDICAL:
         - send:
+            id: medical
             body: |
               MEDICAL TEAM ORDERED AT {cmd.icao}
               ADVISE PAX DETAILS WHEN ABLE
             hint: "OPS has ordered a medical team at the diversion airport and asks for passenger details by free-text telex when you can."
-            hint_ru: "OPS заказал медицинскую бригаду в аэропорт диверсии и просит прислать данные о пассажире telex свободным текстом, когда сможете."
       TECH:
         - send:
+            id: tech
             body: |
               MAINT CONTROL ADVISED
               ENGINEER ORDERED AT {cmd.icao}
               SEND DEFECT DETAILS
             hint: "Maintenance control knows and an engineer will meet you at the diversion airport. Send a short description of the fault by free-text telex."
-            hint_ru: "Техслужба в курсе, в аэропорту диверсии вас встретит инженер. Пришлите короткое описание неисправности telex свободным текстом."
       FUEL:
         - send:
+            id: fuel
             body: |
               REFUEL ORDERED AT {cmd.icao}
             hint: "OPS has ordered fuel for you at the diversion airport. No reply needed."
-            hint_ru: "OPS заказал для вас заправку в аэропорту диверсии. Ответ не нужен."
       WX:
         - send:
+            id: wx
             body: |
               WX DIVERSION NOTED
               PAX REBOOKING IN PROGRESS
             hint: "OPS notes a weather diversion and is rebooking the passengers. No reply needed."
-            hint_ru: "OPS принял диверсию по погоде и переоформляет пассажиров на другие рейсы. Ответ не нужен."
   - send:
+      id: msg
       body: |
         STAND AT {cmd.icao} TBA
         SEND ETA WHEN ABLE
       hint: "The stand at the diversion airport is not known yet. Send your ETA there by free-text telex when you can."
-      hint_ru: "Стоянка в аэропорту диверсии пока не известна. Сообщите ETA туда telex свободным текстом, когда сможете."

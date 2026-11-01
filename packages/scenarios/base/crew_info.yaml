@@ -3,11 +3,8 @@ id: crew_info
 version: 1
 category: docs
 title: Crew information
-title_ru: "Информация об экипаже"
 description: "Crew names and cabin crew head count."
-description_ru: "Имена экипажа и численность бортпроводников."
 hint: "Crew list of the flight from crew control: captain (CPT), first officer (FO), senior cabin crew member (SCCM) and the number of cabin crew. No reply needed."
-hint_ru: "Состав экипажа рейса от службы планирования экипажей: командир (CPT), второй пилот (FO), старший бортпроводник (SCCM) и число бортпроводников. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time

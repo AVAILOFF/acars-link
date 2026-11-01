@@ -4,11 +4,8 @@ id: tech_defect_mel
 version: 1
 category: irregular
 title: Technical defect and MEL
-title_ru: "Технический отказ и MEL"
 description: "In cruise maintenance reports a system fault. CONFIRM defers it under the MEL and keeps it open on this aircraft; NEGATIVE (default) closes it as a spurious message."
-description_ru: "В крейсере техслужба сообщает об отказе системы. CONFIRM — пункт откладывается по MEL и остаётся открытым на этом борту; NEGATIVE (по умолчанию) — ложное сообщение."
 hint: "Maintenance control: the aircraft's maintenance system (CMS) reports a fault, with its MEL item. It asks whether the crew sees the same indication on the crew alerting system."
-hint_ru: "Техслужба: бортовая система технического обслуживания (CMS) сообщает об отказе, указан пункт MEL. Она спрашивает, видит ли экипаж ту же индикацию в системе предупреждений."
 enabled_by_default: true
 trigger:
   on: phase
@@ -46,21 +43,20 @@ steps:
         REPLY CONFIRM OR NEGATIVE
   - wait:
       reply:
+        id: reply
         options: [CONFIRM, NEGATIVE]
         timeout_min: 15
         default: NEGATIVE
         reply_hints:
           CONFIRM: "Yes, the crew sees the fault indicated."
           NEGATIVE: "No, there is no such indication in the cockpit."
-        reply_hints_ru:
-          CONFIRM: "Да, экипаж видит индикацию этого отказа."
-          NEGATIVE: "Нет, в кабине такой индикации нет."
   - branch:
       CONFIRM:
         - set:
             flags.mel_reg: "{ofp.ac_reg}"
             flags.mel_date: "{flight.date}"
         - send:
+            id: confirm
             header: MAINT CONTROL
             body: |
               ENTER DEFECT IN TECH LOG
@@ -69,13 +65,12 @@ steps:
               MX WILL MEET ACFT AT {ofp.dest}
               DISPATCH NEXT SECTOR PER MEL
             hint: "Enter the defect in the technical log: it is deferred under the MEL (Minimum Equipment List), repair category C, and the aircraft flies the next sector by the MEL. Maintenance will meet the aircraft at the destination. No reply needed."
-            hint_ru: "Запишите неисправность в бортовой журнал: она отложена по MEL (перечню минимального оборудования), категория устранения C, следующий рейс самолёт выполняет по MEL. Техслужба встретит самолёт в аэропорту назначения. Ответ не нужен."
       NEGATIVE:
         - set: { flags.mel_item: null }
         - send:
+            id: negative
             header: MAINT CONTROL
             body: |
               NOTED, SPURIOUS CMS MSG
               NO ACTION REQUIRED
             hint: "Maintenance takes it as a spurious maintenance-system message: no action required. No reply needed."
-            hint_ru: "Техслужба считает это ложным сообщением системы ТО: никаких действий не требуется. Ответ не нужен."

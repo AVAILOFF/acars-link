@@ -5,11 +5,8 @@ id: crew_duty_limit
 version: 1
 category: irregular
 title: Crew duty time at the limit
-title_ru: "Рабочее время экипажа на пределе"
 description: "At the gate after a delay of 30 min or more: latest off-block time. EXTEND (commander discretion) leaves a note for the next flight; NO (default): standby crew."
-description_ru: "На стоянке при задержке 30 мин и больше: последнее допустимое время отхода. EXTEND (продление по решению КВС) оставляет запись для следующего рейса; NO (по умолчанию) — резервный экипаж."
 hint: "Crew control: the delay cuts into the flight duty period (FDP), the time the crew may be on duty. The message gives the latest off-block time; beyond it the commander would have to extend the duty under commander's discretion. Reply whether you will."
-hint_ru: "Служба планирования экипажей: задержка сокращает запас рабочего времени экипажа (FDP — сколько экипажу можно быть на работе). В сообщении — самое позднее время отхода от стоянки; позже него командиру пришлось бы продлить рабочее время своим решением (commander's discretion). Ответьте, готовы ли вы."
 enabled_by_default: true
 trigger:
   on: phase
@@ -28,41 +25,40 @@ steps:
         REPLY EXTEND OR NO
   - wait:
       reply:
+        id: reply
         options: [EXTEND, NO]
         timeout_min: 10
         default: NO
         reply_hints:
           EXTEND: "The commander will use discretion and extend the duty if needed."
           NO: "The duty will not be extended."
-        reply_hints_ru:
-          EXTEND: "Командир при необходимости продлит рабочее время своим решением."
-          NO: "Рабочее время продлеваться не будет."
   - branch:
       EXTEND:
         - set: { flags.crew_discretion: "{ofp.callsign}", flags.crew_discretion_date: "{flight.date}" }
         - send:
+            id: extend
             header: CREW CONTROL
             body: |
               COMMANDER DISCRETION LOGGED
               FILE DISCRETION REPORT
               EXTENDED REST BEFORE NEXT DUTY
             hint: "Crew control has logged the commander's discretion. File a discretion report; the crew gets extended rest before the next duty. No reply needed."
-            hint_ru: "Служба экипажей зафиксировала решение командира. Оформите отчёт о продлении (discretion report); перед следующей сменой экипаж получит увеличенный отдых. Ответ не нужен."
       NO:
         - send:
+            id: no
             header: CREW CONTROL
             body: |
               NOTED, STANDBY CREW ALERTED
               IF NOT OFF BLOCK BY {irr.latest_out|hhmm}Z
               CREW CHANGE WILL APPLY
             hint: "Crew control has alerted a standby crew: if you are not off block by the latest time, the crew will be changed. No reply needed."
-            hint_ru: "Служба экипажей подняла резервный экипаж: если вы не отойдёте от стоянки к крайнему сроку, экипаж заменят. Ответ не нужен."
         - wait: { until: "flight.out != null or flight.now >= irr.latest_out", timeout_min: 240 }
         # "if": still no OUT (false for a second of flight time = TIMEOUT).
         - wait: { until: "flight.out == null", timeout_min: 0.02 }
         - branch:
             MET:
               - send:
+                  id: met
                   header: CREW CONTROL
                   body: |
                     LATEST OFF BLOCK {irr.latest_out|hhmm}Z PASSED
@@ -70,4 +66,3 @@ steps:
                     NEW CREW REPORTS {irr.crew_ready|hhmm}Z
                     EXPECT DELAY {irr.crew_change_min} MIN
                   hint: "The latest off-block time has passed: a crew change is ordered, with the time the new crew reports and the delay to expect. No reply needed."
-                  hint_ru: "Крайний срок отхода от стоянки прошёл: заказана смена экипажа — когда прибудет новый экипаж и какую задержку ожидать. Ответ не нужен."

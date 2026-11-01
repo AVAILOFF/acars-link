@@ -3,11 +3,8 @@ id: slot_ctot
 version: 1
 category: ops
 title: Slot / CTOT
-title_ru: "Слот / CTOT"
 description: "ATC flow slot with a CTOT that delays the departure."
-description_ru: "Слот управления потоками с CTOT, задерживающий вылет."
 hint: "ATC flow restriction: the flight has a slot, a calculated takeoff time (CTOT), and the delay it causes. Plan boarding and pushback to take off at the CTOT; the command RDY tells OPS you are ready earlier. No reply needed."
-hint_ru: "Ограничение потока УВД: рейсу выдан слот — расчётное время взлёта (CTOT) — и задержка из-за него. Планируйте посадку пассажиров и буксировку так, чтобы взлететь к CTOT; командой RDY можно сообщить OPS, что вы готовы раньше. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: time

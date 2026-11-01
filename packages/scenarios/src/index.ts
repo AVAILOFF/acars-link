@@ -9,4 +9,5 @@ export const SCENARIOS_PACKAGE = '@acars/scenarios';
 export * from './drone-risk.js';
 export * from './groups.js';
 export * from './load.js';
+export * from './locales.js';
 export * from './schema.js';

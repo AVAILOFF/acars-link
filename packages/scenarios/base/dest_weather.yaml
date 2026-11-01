@@ -4,11 +4,8 @@ id: dest_weather
 version: 1
 category: ops
 title: Destination weather before TOD
-title_ru: "Погода назначения до TOD"
 description: "Destination and alternate weather from the OFP METAR before TOD."
-description_ru: "Погода назначения и запасного по METAR из OFP перед TOD."
 hint: "Weather at the destination and the alternate (METAR from the flight plan) before the top of descent, for the approach briefing. No reply needed."
-hint_ru: "Погода в аэропорту назначения и на запасном (METAR из плана полёта) перед началом снижения — для брифинга на заход. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: distance

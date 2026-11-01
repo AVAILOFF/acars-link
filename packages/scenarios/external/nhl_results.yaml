@@ -5,11 +5,8 @@ id: nhl_results
 version: 1
 category: external
 title: NHL results
-title_ru: Результаты NHL
 description: "NHL games that finished during the flight (regular season and playoffs)."
-description_ru: "Матчи NHL, завершившиеся во время полёта (регулярный сезон и плей-офф)."
 hint: "OPS information: final scores of NHL games that finished during your flight. No reply needed."
-hint_ru: "Информация OPS: итоговые счета матчей NHL, завершившихся во время рейса. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase

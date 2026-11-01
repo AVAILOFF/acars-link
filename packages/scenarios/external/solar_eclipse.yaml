@@ -6,11 +6,8 @@ id: solar_eclipse
 version: 1
 category: external
 title: Solar eclipse on the route
-title_ru: Солнечное затмение на маршруте
 description: "A route point ahead is in the eclipse path (magnitude 0.5 or more) at the time of overflight, with the sun above the horizon (NASA)."
-description_ru: "Точка маршрута впереди в полосе затмения (фаза ≥ 0,5) в момент пролёта, солнце над горизонтом (NASA)."
 hint: "OPS information: a solar eclipse can be seen from your route, with its kind, magnitude, time, place and the height of the sun. Do not look at the sun without eye protection. No reply needed."
-hint_ru: "Информация OPS: с вашего маршрута будет видно солнечное затмение — вид, фаза, время, место и высота солнца. Не смотрите на солнце без защиты глаз. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase

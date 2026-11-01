@@ -4,11 +4,8 @@ id: cmd_req_wx
 version: 1
 category: ops
 title: "Pilot command: REQ WX"
-title_ru: "Команда пилота: REQ WX"
 description: "REQ WX command: weather from the OFP METAR."
-description_ru: "Команда REQ WX: погода по METAR из OFP."
 hint: "REQ WX <ICAO> asks OPS for the weather of an airport (empty: the destination). This answer has the METAR from the flight plan. No reply needed."
-hint_ru: "REQ WX <ICAO> запрашивает у OPS погоду аэропорта (пусто — назначения). В этом ответе — METAR из плана полёта. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: command

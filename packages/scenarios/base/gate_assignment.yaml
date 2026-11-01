@@ -4,11 +4,8 @@ id: gate_assignment
 version: 1
 category: ops
 title: Gate assignment
-title_ru: "Назначение гейта"
 description: "Departure gate assignment."
-description_ru: "Назначение гейта вылета."
 hint: "OPS gives your expected gate or stand at the destination. No reply needed."
-hint_ru: "OPS сообщает ожидаемый гейт или стоянку в аэропорту назначения. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: distance

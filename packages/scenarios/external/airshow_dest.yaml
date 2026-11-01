@@ -5,11 +5,8 @@ id: airshow_dest
 version: 1
 category: external
 title: Air show at the destination
-title_ru: Авиашоу в пункте назначения
 description: "An air show within 50 km of the destination on the arrival day (reference list from official websites)."
-description_ru: "Авиашоу в пределах 50 км от аэропорта назначения в день прилёта (справочник с официальных сайтов)."
 hint: "OPS information: an air show at or near the destination on the day of your flight. Expect display restrictions and busy traffic and check the NOTAMs. No reply needed."
-hint_ru: "Информация OPS: в день рейса у аэропорта назначения или рядом проходит авиашоу. Ожидайте ограничений на время показа и плотного движения, проверьте NOTAM. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase

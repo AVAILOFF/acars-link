@@ -2,14 +2,14 @@
 // Copyright (c) 2026 AVAILOFF
 
 import { useEffect, useMemo, useState } from 'react';
-import type { UiText } from '../../shared/api.js';
+import { inLanguage, type UiText } from '../../shared/api.js';
 import { type Translate, translator } from './i18n.js';
 import { useStore } from './store.js';
 
 /** Picks a scenario text (title, description) in the UI language; English when not translated. */
 export function useUiText(): (text: UiText) => string {
   const lang = useStore((s) => s.settings?.language ?? 'en');
-  return (text) => (lang === 'ru' ? (text.ru ?? text.en) : text.en);
+  return (text) => inLanguage(text, lang);
 }
 
 export function useT(): Translate {

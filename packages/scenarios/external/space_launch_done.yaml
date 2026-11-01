@@ -6,11 +6,8 @@ id: space_launch_done
 version: 1
 category: external
 title: Space launch near the route (launched)
-title_ru: Пуск ракеты рядом с маршрутом (состоялся)
 description: "A launch after takeoff (TheSpaceDevs) within 300 NM of the route ahead."
-description_ru: Пуск, состоявшийся после взлёта (TheSpaceDevs), в пределах 300 NM от маршрута впереди.
 hint: "OPS advisory: a rocket was launched near your route after your takeoff, with its time and status. Areas closed for falling debris may be active; check the NOTAMs. No reply needed."
-hint_ru: "Предупреждение OPS: после вашего взлёта рядом с маршрутом состоялся пуск ракеты — время и результат. Могут действовать зоны, закрытые из-за падающих обломков; проверьте NOTAM. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase

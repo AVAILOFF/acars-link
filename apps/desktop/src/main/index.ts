@@ -43,7 +43,7 @@ import {
 import { FileLogbook } from './logbook.js';
 import { migrateOldUserData, OLD_APP_DIR } from './migrate.js';
 import { fileRecordings, fileResume, latestRecording, purgeOldConnex } from './recording.js';
-import { BASE_SCENARIOS } from './scenario-sources.js';
+import { BASE_SCENARIOS, SCENARIO_LOCALES } from './scenario-sources.js';
 import { type Cipher, SecretStore } from './secrets.js';
 import { defaultSettings, SettingsStore } from './settings.js';
 import { holdSingleInstance } from './single-instance.js';
@@ -264,6 +264,7 @@ async function main(): Promise<void> {
     secrets,
     settings: settingsStore,
     scenarioSources: BASE_SCENARIOS,
+    scenarioLocales: SCENARIO_LOCALES,
     http,
     createTransport: (choice) =>
       choice.kind === 'hoppie'

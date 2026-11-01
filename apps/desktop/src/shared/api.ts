@@ -11,7 +11,44 @@ import type { BuildVariant } from './sources.js';
  * whether one is stored.
  */
 
-export type Language = 'en' | 'ru';
+/** A UI language (T85): its own name in the list of languages; `machine` = machine translation, not yet checked by a native speaker. */
+export interface LanguageInfo {
+  readonly name: string;
+  /** Shown in the list of languages and chosen by the OS locale; false = translation not finished. */
+  readonly ready: boolean;
+  readonly machine: boolean;
+}
+
+/**
+ * The UI languages (docs/08 decision 7, T85), one list for main and renderer. ACARS messages are always
+ * English. A text missing in a language is shown in English.
+ */
+export const LANGUAGES = {
+  en: { name: 'English', ready: true, machine: false },
+  ru: { name: 'Русский', ready: true, machine: false },
+} as const satisfies Readonly<Record<string, LanguageInfo>>;
+
+export type Language = keyof typeof LANGUAGES;
+
+export const LANGUAGE_IDS = Object.keys(LANGUAGES) as readonly Language[];
+
+export const isLanguage = (v: unknown): v is Language =>
+  typeof v === 'string' && Object.hasOwn(LANGUAGES, v);
+
+/** The languages offered in the settings and the welcome (T85): the ready ones. */
+export const LANGUAGE_CHOICES: readonly Language[] = LANGUAGE_IDS.filter((l) => LANGUAGES[l].ready);
+
+/** The language for an OS locale (`de-DE` → `de`): a ready language with that prefix, else English. */
+export function languageForLocale(locale: string): Language {
+  const prefix = locale.toLowerCase().slice(0, 2);
+  return LANGUAGE_CHOICES.find((l) => l === prefix) ?? 'en';
+}
+
+/** A UI text in the app languages (T85): English always, the others when translated. */
+export type UiText = { readonly en: string } & Readonly<Partial<Record<Language, string>>>;
+
+/** `text` in `lang`, English when not translated. */
+export const inLanguage = (text: UiText, lang: Language): string => text[lang] ?? text.en;
 
 /** `offline`: messages only appear in the feed, nothing goes to the network (MockTransport). */
 export type TransportChoice = 'hoppie' | 'offline';
@@ -145,12 +182,6 @@ export interface CredentialsView {
   readonly aerodataboxKeySet: boolean;
   /** False when the OS store (DPAPI / Keychain / libsecret) is not available. */
   readonly secureStorage: boolean;
-}
-
-/** A UI text in the app languages; `ru` null = use `en`. */
-export interface UiText {
-  readonly en: string;
-  readonly ru: string | null;
 }
 
 export interface ScenarioInfo {

@@ -4,11 +4,8 @@ id: block_report
 version: 1
 category: ops
 title: Block times (OOOI)
-title_ru: "Время блоков (OOOI)"
 description: "Block times and delay codes after on-block."
-description_ru: "Время блоков и коды задержки после постановки на стоянку."
 hint: "Block report after parking: OUT, OFF, ON and IN times (off-block, takeoff, landing, on-block), block and flight time and fuel on board; after a delay also the IATA delay codes of its causes. For the airline records; no reply needed."
-hint_ru: "Отчёт о рейсе после постановки на стоянку: время OUT, OFF, ON, IN (отход от стоянки, взлёт, посадка, постановка на стоянку), время в блоке и в полёте, остаток топлива; при задержке — коды причин IATA. Для учёта авиакомпании; ответ не нужен."
 enabled_by_default: true
 trigger:
   on: event

@@ -4,11 +4,8 @@ id: lost_baggage
 version: 1
 category: irregular
 title: Bags left behind
-title_ru: "Багаж не долетел"
 description: "On block: bags left at the origin (missed transfer), PIR desk at the belt. The next flight gets the case closure."
-description_ru: "На стоянке: часть багажа осталась в аэропорту вылета (не успели при трансфере), стойка розыска у ленты. Следующий рейс получит закрытие дела."
 hint: "Baggage: some bags were not loaded at the origin (missed transfer). The passengers report them at the baggage desk (PIR, Property Irregularity Report) at the belt; the bags follow on the next service. No reply needed."
-hint_ru: "Багаж: часть багажа не погрузили в аэропорту вылета (не успели при пересадке). Пассажиры оформляют заявку на стойке розыска (PIR, Property Irregularity Report) у ленты; багаж доставят следующим рейсом. Ответ не нужен."
 enabled_by_default: true
 trigger:
   on: phase_enter

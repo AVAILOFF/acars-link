@@ -37,7 +37,7 @@ import type {
   TransportView,
 } from '../shared/api.js';
 import type { Feed } from './feed.js';
-import { MessageHints } from './hints.js';
+import { MessageHints, uiText } from './hints.js';
 import { type Log, NO_LOG } from './log.js';
 import type { RecordingSink } from './recording.js';
 
@@ -228,7 +228,7 @@ export class FlightSession {
     this.simCommands = o.simCommands ?? (() => {});
     this.irregular = o.scenarios
       .filter((c) => c.def.category === 'irregular' && c.def.trigger.on !== 'command')
-      .map((c) => ({ id: c.id, title: { en: c.def.title, ru: c.def.title_ru ?? null } }))
+      .map((c) => ({ id: c.id, title: uiText(c.texts.title) }))
       .sort((a, b) => a.title.en.localeCompare(b.title.en));
     this.callsign = o.ofp.callsign;
     this.station = stationCallsign(o.stationTemplate, o.ofp);

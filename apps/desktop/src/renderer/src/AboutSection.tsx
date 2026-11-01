@@ -2,7 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import type { ReactNode } from 'react';
-import { LEGAL_DOCS, type LegalDoc } from '../../shared/api.js';
+import { inLanguage, type Language, LEGAL_DOCS, type LegalDoc } from '../../shared/api.js';
 import { type DataSource, sourceById, sourcesFor } from '../../shared/sources.js';
 import type { MessageKey } from './messages-en.js';
 import { Row } from './SettingsControls.js';
@@ -88,14 +88,14 @@ const OPEN_KEYS = {
   licenses: 'about.open.licenses',
 } as const satisfies Record<LegalDoc, string>;
 
-function SourceRow({ source, lang }: { source: DataSource; lang: 'en' | 'ru' }) {
+function SourceRow({ source, lang }: { source: DataSource; lang: Language }) {
   const t = useT();
   return (
     <Row
       title={source.name}
       hint={
         <>
-          {source.what[lang]} · {source.license[lang]}
+          {inLanguage(source.what, lang)} · {inLanguage(source.license, lang)}
           {source.credit !== null && (
             <span className="row-credit">
               {t('about.credit')}: <CreditText source={source} />

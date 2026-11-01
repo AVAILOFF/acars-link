@@ -12,6 +12,7 @@ import {
 import { Ajv2020, type ErrorObject } from 'ajv/dist/2020.js';
 import { parseDocument } from 'yaml';
 import { SCENARIO_GROUPS } from './groups.js';
+import { type LocaleSource, localize } from './locales.js';
 import { SCENARIO_SCHEMA } from './schema.js';
 
 /**
@@ -84,9 +85,13 @@ export function loadScenario(source: string, file = '<scenario>'): CompiledScena
   }
 }
 
-/** Loads several files; ids must be unique across them. Collects all errors. */
+/**
+ * Loads several files; ids must be unique across them. Collects all errors. `locales` — translations of
+ * the UI texts (T85, `locales/<lang>.yaml`), checked against the loaded scenarios.
+ */
 export function loadScenarios(
   files: readonly { readonly file: string; readonly source: string }[],
+  locales: readonly LocaleSource[] = [],
 ): CompiledScenario[] {
   const out: CompiledScenario[] = [];
   const problems: string[] = [];
@@ -116,5 +121,5 @@ export function loadScenarios(
     }
   }
   if (problems.length > 0) throw new ScenarioLoadError('scenarios', problems);
-  return out;
+  return locales.length === 0 ? out : localize(out, locales);
 }

@@ -16,6 +16,7 @@
     "commands",
     "external",
     "irregular",
+    "locales",
     "sim"
   ],
   "scripts": {

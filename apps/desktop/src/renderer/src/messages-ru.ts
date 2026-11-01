@@ -513,6 +513,7 @@ export const ru: Record<MessageKey, string> = {
     '{flight} — номер рейса, {airline} — код ICAO авиакомпании. По умолчанию: OPS{flight}.',
   'set.bridgePort': 'Порт моста симулятора (127.0.0.1)',
   'set.language': 'Язык',
+  'set.language.machine': 'машинный перевод',
   'set.nextFlight': 'со след. рейса',
   'set.nextFlightTitle': 'Действует со следующего рейса',
   'set.more': 'Подробнее',

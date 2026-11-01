@@ -1,6 +1,6 @@
 # 03 — Архитектура
 
-> Решения этапа 0 (см. `08`): оболочка — **Electron**, мост — **C# / .NET 10 LTS** (T79; раньше .NET 8), бэкенд на старте не нужен, UI — EN + RU.
+> Решения этапа 0 (см. `08`): оболочка — **Electron**, мост — **C# / .NET 10 LTS** (T79; раньше .NET 8), бэкенд на старте не нужен, UI — EN + RU, с T85 — список языков (`LANGUAGES`, docs/08 реш. 7).
 
 ## Компоненты
 
@@ -26,7 +26,7 @@
 ## Монорепо (предложение)
 
 ```
-apps/desktop            оболочка Electron + UI React (EN/RU)
+apps/desktop            оболочка Electron + UI React (языки — `LANGUAGES`, T85)
 apps/backend            (опц.) LLM-прокси, кэш внешних данных
 bridge/msfs             C# консольный мост SimConnect → WebSocket
 packages/core           FSM, планировщик, сценарии, форматтер — чистый TS

@@ -10,13 +10,15 @@ import {
   type RescueTitles,
 } from '@acars/core';
 import { DRONE_RISK_MAX, isDroneRiskKey, isDroneRiskValue } from '@acars/scenarios';
-import type {
-  ErrorReason,
-  Language,
-  Settings,
-  SettingsPatch,
-  SimChoice,
-  TransportChoice,
+import {
+  type ErrorReason,
+  isLanguage,
+  LANGUAGE_IDS,
+  languageForLocale,
+  type Settings,
+  type SettingsPatch,
+  type SimChoice,
+  type TransportChoice,
 } from '../shared/api.js';
 import { AppFailure } from './errors.js';
 import { readTextFile, writeTextFileAtomic } from './files.js';
@@ -28,7 +30,6 @@ import { readTextFile, writeTextFileAtomic } from './files.js';
 
 export const DEFAULT_BRIDGE_PORT = 47830;
 
-const LANGUAGES: readonly Language[] = ['en', 'ru'];
 const TRANSPORTS: readonly TransportChoice[] = ['hoppie', 'offline'];
 const SIM_CHOICES: readonly SimChoice[] = ['auto', 'msfs', 'xplane'];
 /** Letters/digits and `{flight}` / `{airline}` placeholders. */
@@ -37,7 +38,7 @@ export const SCENARIO_ID_RE = /^[a-z0-9_]{1,64}$/;
 
 export function defaultSettings(locale: string): Settings {
   return {
-    language: locale.toLowerCase().startsWith('ru') ? 'ru' : 'en',
+    language: languageForLocale(locale),
     transport: 'hoppie',
     stationTemplate: DEFAULT_STATION,
     bridgePort: DEFAULT_BRIDGE_PORT,
@@ -84,8 +85,8 @@ export function validatePatch(patch: unknown): SettingsPatch {
   for (const [key, value] of Object.entries(p)) {
     switch (key) {
       case 'language':
-        if (!LANGUAGES.includes(value as Language)) throw bad(key, 'en or ru');
-        out.language = value as Language;
+        if (!isLanguage(value)) throw bad(key, `one of ${LANGUAGE_IDS.join(', ')}`);
+        out.language = value;
         break;
       case 'transport':
         if (!TRANSPORTS.includes(value as TransportChoice)) throw bad(key, 'hoppie or offline');

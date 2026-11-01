@@ -17,6 +17,7 @@ import { encodeLine, type Recording } from '@acars/replay';
 import {
   DRONE_RISK_DEFAULT,
   droneProbability,
+  type LocaleSource,
   loadScenarios,
   ScenarioLoadError,
 } from '@acars/scenarios';
@@ -38,6 +39,7 @@ import type {
   SimbriefCheck,
   SimChoice,
   Simulator,
+  UiText,
 } from '../shared/api.js';
 import { activeSim, LEGAL_DOCS } from '../shared/api.js';
 import { BridgeClient, type SocketLike, type Timers } from './bridge.js';
@@ -46,6 +48,7 @@ import { type DiagnosticsSource, diagnosticsEntries, diagnosticsFileName } from 
 import { AppFailure, toAppError } from './errors.js';
 import { Feed } from './feed.js';
 import type { Flags, FlagsStore } from './flags.js';
+import { uiText } from './hints.js';
 import { type Log, NO_LOG } from './log.js';
 import type { LogbookStore } from './logbook.js';
 import type { FlightResume, OpenRecording, RecordingSink, UnfinishedFlight } from './recording.js';
@@ -76,6 +79,8 @@ export interface AppControllerOptions {
   readonly secrets: SecretStore;
   readonly settings: SettingsStore;
   readonly scenarioSources: readonly ScenarioSource[];
+  /** Translations of the scenarios' UI texts (T85, `packages/scenarios/locales/<lang>.yaml`); absent = English only. */
+  readonly scenarioLocales?: readonly LocaleSource[];
   readonly http: HttpClient;
   readonly createTransport: TransportFactory;
   readonly createSocket: (url: string, headers: Readonly<Record<string, string>>) => SocketLike;
@@ -118,7 +123,7 @@ export interface AppControllerOptions {
 }
 
 /** Title of a scenario in the UI languages. */
-export const titleText = (c: CompiledScenario) => ({ en: c.def.title, ru: c.def.title_ru ?? null });
+export const titleText = (c: CompiledScenario): UiText => uiText(c.texts.title);
 
 /** Irregular events: category `irregular`, not a pilot-command handler (`cmd_divert`). */
 export const isIrregularEvent = (c: CompiledScenario): boolean =>
@@ -228,7 +233,7 @@ export class AppController {
       vdgsDir: o.vdgsDir ?? null,
     });
     try {
-      this.scenarios = loadScenarios(o.scenarioSources);
+      this.scenarios = loadScenarios(o.scenarioSources, o.scenarioLocales ?? []);
     } catch (e) {
       if (!(e instanceof ScenarioLoadError)) throw e;
       this.scenarioError = e.message;
@@ -351,11 +356,8 @@ export class AppController {
         id: c.id,
         title: c.def.title,
         titleText: titleText(c),
-        description:
-          c.def.description === undefined
-            ? null
-            : { en: c.def.description, ru: c.def.description_ru ?? null },
-        hint: c.def.hint === undefined ? null : { en: c.def.hint, ru: c.def.hint_ru ?? null },
+        description: c.texts.description === null ? null : uiText(c.texts.description),
+        hint: c.texts.hint === null ? null : uiText(c.texts.hint),
         category: c.def.category,
         command: isCommand(c),
         enabledByDefault: c.def.enabled_by_default,
@@ -794,7 +796,7 @@ export class AppController {
       report,
       irregular: report.irregular.map((id) => {
         const c = this.scenarios.find((x) => x.id === id);
-        return { id, title: c === undefined ? { en: id, ru: null } : titleText(c) };
+        return { id, title: c === undefined ? { en: id } : titleText(c) };
       }),
     };
   }
