@@ -307,12 +307,13 @@ function deepl(key) {
     async dropGlossary(id) {
       if (id !== null) await call(`/v2/glossaries/${id}`, { method: 'DELETE' });
     },
-    async translate(texts, lang, glossaryId, context) {
+    /** `plain`: buttons and menu items — in Japanese the dictionary form, not the polite request (T87). */
+    async translate(texts, lang, glossaryId, context, plain = false) {
       const body = {
         text: texts,
         source_lang: 'EN',
         target_lang: TARGETS[lang].deepl,
-        formality: 'prefer_more',
+        formality: plain && lang === 'ja' ? 'prefer_less' : 'prefer_more',
         tag_handling: 'xml',
         ignore_tags: ['x'],
         split_sentences: 'nonewlines',
@@ -629,6 +630,7 @@ async function run() {
                 lang,
                 glossaryId,
                 context,
+                label,
               );
               stats.chars += chunk.reduce((n, t) => n + t.prepared.text.length, 0);
             } catch (e) {
@@ -644,7 +646,7 @@ async function run() {
             if (text === null && primary.name === 'deepl') {
               // Alone, without context; then sentence by sentence (DeepL sometimes drops a part).
               const one = async (x) =>
-                (await primary.translate([x], lang, glossaryId, undefined))[0];
+                (await primary.translate([x], lang, glossaryId, undefined, label))[0];
               text = restore(await one(t.prepared.text), t.prepared.spans);
               if (text === null && /<\/x>\s+<x>/.test(t.prepared.text)) {
                 // Neighbouring spans as one ("Hoppie logon code"): DeepL sometimes moves into them.

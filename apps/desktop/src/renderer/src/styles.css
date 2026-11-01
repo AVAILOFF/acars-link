@@ -29,6 +29,17 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * Japanese (T87): lines break between phrases, not inside a word (Chromium `auto-phrase`, keyed to
+ * <html lang="ja">), with the strict rules for small kana and punctuation; a little more leading for kanji.
+ * The FMS screen (fms.css) shows English ACARS text only and keeps its own rules.
+ */
+:root:lang(ja) body {
+  line-height: 22px;
+  word-break: auto-phrase;
+  line-break: strict;
+}
+
 button,
 input,
 select {

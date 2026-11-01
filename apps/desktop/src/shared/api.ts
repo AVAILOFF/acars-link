@@ -30,6 +30,8 @@ export const LANGUAGES = {
   de: { name: 'Deutsch', ready: true, machine: true },
   fr: { name: 'Français', ready: true, machine: true },
   es: { name: 'Español', ready: true, machine: true },
+  // T87: machine translation as T86; the Windows Japanese fonts (tokens.css --font-ui).
+  ja: { name: '日本語', ready: true, machine: true },
 } as const satisfies Readonly<Record<string, LanguageInfo>>;
 
 export type Language = keyof typeof LANGUAGES;
