@@ -523,7 +523,7 @@ export const en = {
   'set.simulatorHint':
     'Automatic: the sim bridge connects to whichever of MSFS and X-Plane 12 is running (if both are, the first to answer) and looks again when it closes. X-Plane 12.1.1 or later, through its built-in web API on port 8086 (Settings > Network must allow incoming traffic). With X-Plane there is no sim time, smoke or rescue vehicles. The installed app restarts the sim bridge when this changes.',
   'set.simulator.auto': 'Automatic',
-  'set.simulator.msfs': 'MSFS 2020 / 2024',
+  'set.simulator.msfs': 'MSFS 2024',
   'set.simulator.xplane': 'X-Plane 12',
   'set.badPort': 'Integer 1024–65535.',
   'set.badHub': 'Four letters (ICAO) or empty.',

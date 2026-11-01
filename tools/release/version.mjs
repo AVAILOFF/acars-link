@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
-// Versions and the changelog of a release (T77). Pure functions; the CLI is release.mjs.
+// Versions, the changelog and the installer checksum of a release (T77, T84). Pure functions; the
+// CLI is release.mjs.
 
-/** Release version: SemVer `X.Y.Z`, no pre-release or build part (0.x until the public release). */
+/** Release version: SemVer `X.Y.Z`, no pre-release or build part (1.0.0 — the public release, T84). */
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 /** `[major, minor, patch]`, or null when `v` is not `X.Y.Z`. */
@@ -71,4 +72,15 @@ export function withSection(changelog, section) {
   const at = changelog.search(/^## /m);
   if (at < 0) return `${changelog.trimEnd()}\n\n${section}`;
   return `${changelog.slice(0, at)}${section}\n${changelog.slice(at)}`;
+}
+
+/**
+ * The `<file>.sha256` text next to the installer (T84): one line in `sha256sum` format — the hash
+ * in lower-case hex, two spaces, the file name — so `sha256sum -c` and a look at `Get-FileHash`
+ * both work.
+ */
+export function sha256Line(hex, fileName) {
+  if (!/^[0-9a-fA-F]{64}$/.test(hex)) throw new Error(`not a SHA-256: ${hex}`);
+  if (fileName === '' || /[\\/\n]/.test(fileName)) throw new Error(`not a file name: ${fileName}`);
+  return `${hex.toLowerCase()}  ${fileName}\n`;
 }

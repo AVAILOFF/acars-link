@@ -529,7 +529,7 @@ export const ru: Record<MessageKey, string> = {
   'set.simulatorHint':
     'Автоматически: мост подключается к тому из MSFS и X-Plane 12, который запущен (если оба — к первому ответившему), и ищет снова, когда тот закрыт. X-Plane 12.1.1 или новее, через встроенный веб-API на порту 8086 (в Settings > Network должен быть разрешён входящий трафик). С X-Plane нет времени из симулятора, дыма и аварийных машин. Установленное приложение перезапускает мост симулятора при смене.',
   'set.simulator.auto': 'Автоматически',
-  'set.simulator.msfs': 'MSFS 2020 / 2024',
+  'set.simulator.msfs': 'MSFS 2024',
   'set.simulator.xplane': 'X-Plane 12',
   'set.badPort': 'Целое число от 1024 до 65535.',
   'set.badHub': 'Четыре буквы (ICAO) или пусто.',

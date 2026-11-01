@@ -11,6 +11,7 @@ import {
   parseVersion,
   readVersions,
   setVersions,
+  sha256Line,
   withSection,
 } from '../version.mjs';
 
@@ -102,5 +103,23 @@ describe('CHANGELOG.md section', () => {
     const text = readFileSync(join(root, 'CHANGELOG.md'), 'utf8');
     expect(text.startsWith('# Changelog\n')).toBe(true);
     expect(text).toMatch(/^## 0\.1\.0 — \d{4}-\d{2}-\d{2}$/m);
+  });
+});
+
+describe('installer checksum (T84)', () => {
+  const hex = 'E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855';
+
+  it('one sha256sum line: lower-case hash, two spaces, the file name', () => {
+    expect(sha256Line(hex, 'ACARS-Link-Setup-1.0.0.exe')).toBe(
+      `${hex.toLowerCase()}  ACARS-Link-Setup-1.0.0.exe\n`,
+    );
+  });
+
+  it('not a SHA-256 or not a bare file name is an error', () => {
+    expect(() => sha256Line(hex.slice(1), 'a.exe')).toThrow();
+    expect(() => sha256Line(`${hex.slice(1)}G`, 'a.exe')).toThrow();
+    expect(() => sha256Line(hex, '')).toThrow();
+    expect(() => sha256Line(hex, 'release/a.exe')).toThrow();
+    expect(() => sha256Line(hex, 'release\\a.exe')).toThrow();
   });
 });
