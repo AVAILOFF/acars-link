@@ -15,6 +15,7 @@ import { de } from './messages-de.js';
 import { en, type MessageKey } from './messages-en.js';
 import { es } from './messages-es.js';
 import { fr } from './messages-fr.js';
+import { ja } from './messages-ja.js';
 import { ru } from './messages-ru.js';
 
 /**
@@ -37,6 +38,7 @@ export const MESSAGES: { readonly en: Complete; readonly ru: Complete } & Readon
   de,
   fr,
   es,
+  ja,
 };
 
 export type Translate = (

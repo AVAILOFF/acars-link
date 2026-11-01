@@ -76,3 +76,18 @@ describe('Help quotes the UI (T86)', () => {
     expect(checked).toBeGreaterThan(0);
   });
 });
+
+describe('Help search in Japanese (T87)', () => {
+  const ids = (q: string) => searchHelp(helpFor('ja'), q).flatMap((s) => s.items.map((i) => i.id));
+
+  it('finds a word inside text without spaces', () => {
+    expect(ids('初飛行')).toContain('first');
+    expect(ids('返信')).toContain('reply');
+  });
+
+  it('full-width Latin and half-width kana match the help text (NFKC)', () => {
+    expect(ids('ＯＦＰ')).toEqual(ids('OFP'));
+    expect(ids('ＯＦＰ').length).toBeGreaterThan(0);
+    expect(ids('ﾒｯｾｰｼﾞ')).toEqual(ids('メッセージ'));
+  });
+});

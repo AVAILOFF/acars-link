@@ -6,6 +6,7 @@ import { de } from './help-de.js';
 import { en } from './help-en.js';
 import { es } from './help-es.js';
 import { fr } from './help-fr.js';
+import { ja } from './help-ja.js';
 import { ru } from './help-ru.js';
 
 /**
@@ -34,7 +35,7 @@ export interface HelpSection {
 
 export const HELP: { readonly en: readonly HelpSection[] } & Readonly<
   Partial<Record<Language, readonly HelpSection[]>>
-> = { en, ru, de, fr, es };
+> = { en, ru, de, fr, es, ja };
 
 /** The help in `lang`, English when there is none (T85). */
 export const helpFor = (lang: Language): readonly HelpSection[] => HELP[lang] ?? HELP.en;
@@ -45,16 +46,22 @@ function blockText(b: HelpBlock): string {
   return 'list' in b ? b.list.join(' ') : b.link;
 }
 
+/**
+ * Text as the search compares it: NFKC (full-width ＯＦＰ and half-width ｶﾅ as the help writes them, T87) and
+ * lower case. Matching is by substring, so Japanese without spaces between words is found too.
+ */
+const fold = (s: string): string => s.normalize('NFKC').toLowerCase();
+
 /** Sections with only the items whose question or answer contains the query; empty sections go. */
 export function searchHelp(sections: readonly HelpSection[], query: string): HelpSection[] {
-  const q = query.trim().toLowerCase();
+  const q = fold(query.trim());
   return sections
     .map((s) => ({
       ...s,
       items:
         q === ''
           ? s.items
-          : s.items.filter((i) => [i.q, ...i.a.map(blockText)].join(' ').toLowerCase().includes(q)),
+          : s.items.filter((i) => fold([i.q, ...i.a.map(blockText)].join(' ')).includes(q)),
     }))
     .filter((s) => s.items.length > 0);
 }
