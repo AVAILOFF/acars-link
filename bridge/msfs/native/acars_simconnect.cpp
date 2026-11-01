@@ -3,6 +3,8 @@
 
 #include <windows.h>
 
+#include <deque>
+#include <new>
 #include <vector>
 
 // The SDK header compares signed constants with DWORD (C4245) and the like.
@@ -17,12 +19,21 @@ static_assert(sizeof(AcarsScMessage) == 40, "message layout (C# SimConnectNative
 
 namespace
 {
-// One session: the SimConnect handle and the message last taken (its data copied, so it outlives the callback).
+// A message from the callback, its data copied, so it outlives the callback.
+struct Pending
+{
+    AcarsScMessage message{};
+    std::vector<uint8_t> data;
+};
+
+// One session: the SimConnect handle, the messages one SimConnect_CallDispatch handed over and not yet taken, and
+// the one taken last (its data stays valid until the next acars_sc_next_message).
 struct Session
 {
     HANDLE handle = nullptr;
-    AcarsScMessage message{};
-    std::vector<uint8_t> data;
+    std::deque<Pending> queue;
+    Pending current;
+    bool outOfMemory = false;
 };
 
 Session* sessionOf(void* p)
@@ -44,17 +55,17 @@ SIMCONNECT_DATA_INITPOSITION toSdk(const AcarsScPosition& p)
     return s;
 }
 
-// Called by SimConnect_CallDispatch with the next message; fills session->message.
+// Called by SimConnect_CallDispatch for each waiting message (one call may bring several: OPEN comes together with
+// the first events); appends it to session->queue.
 void CALLBACK onDispatch(SIMCONNECT_RECV* recv, DWORD, void* context)
 {
     Session* s = sessionOf(context);
-    AcarsScMessage& m = s->message;
-    if (recv == nullptr) return;
+    if (recv == nullptr || recv->dwID == SIMCONNECT_RECV_ID_NULL) return;
+    Pending p;
+    AcarsScMessage& m = p.message;
 
     switch (recv->dwID)
     {
-    case SIMCONNECT_RECV_ID_NULL:
-        break;
     case SIMCONNECT_RECV_ID_OPEN:
         m.kind = ACARS_SC_OPEN;
         break;
@@ -93,12 +104,19 @@ void CALLBACK onDispatch(SIMCONNECT_RECV* recv, DWORD, void* context)
         const auto* first = reinterpret_cast<const uint8_t*>(&d->dwData);
         const auto offset = static_cast<uint32_t>(first - reinterpret_cast<const uint8_t*>(d));
         const uint32_t length = d->dwSize > offset ? d->dwSize - offset : 0;
-        s->data.assign(first, first + length);
+        try
+        {
+            p.data.assign(first, first + length);
+        }
+        catch (const std::bad_alloc&)
+        {
+            s->outOfMemory = true;
+            return;
+        }
         m.kind = ACARS_SC_SIMOBJECT_DATA;
         m.request_id = d->dwRequestID;
         m.object_id = d->dwObjectID;
         m.data_len = length;
-        m.data = s->data.data();
         break;
     }
     case SIMCONNECT_RECV_ID_ASSIGNED_OBJECT_ID:
@@ -112,6 +130,14 @@ void CALLBACK onDispatch(SIMCONNECT_RECV* recv, DWORD, void* context)
     default:
         m.kind = ACARS_SC_OTHER;
         break;
+    }
+    try
+    {
+        s->queue.push_back(std::move(p));
+    }
+    catch (const std::bad_alloc&)
+    {
+        s->outOfMemory = true;
     }
 }
 } // namespace
@@ -208,14 +234,29 @@ ACARS_SC_API int32_t acars_sc_remove_object(void* session, uint32_t object_id, u
     return SimConnect_AIRemoveObject(sessionOf(session)->handle, object_id, request);
 }
 
-// SimConnect_CallDispatch hands over the next message to the callback (one per call; none = S_OK, no callback), as
-// the managed wrapper's ReceiveMessage did. A broken connection is a failure here.
+// One message per call, as the managed wrapper's ReceiveMessage gave. SimConnect_CallDispatch hands over every waiting
+// message to the callback in one call (none = S_OK, no callback), so they are queued and given out one by one; the
+// queue is refilled only when empty. A broken connection is a failure here.
 ACARS_SC_API int32_t acars_sc_next_message(void* session, AcarsScMessage* message)
 {
     Session* s = sessionOf(session);
     if (s == nullptr || message == nullptr) return E_POINTER;
-    s->message = AcarsScMessage{};
-    const HRESULT hr = SimConnect_CallDispatch(s->handle, onDispatch, s);
-    *message = s->message;
-    return hr;
+    *message = AcarsScMessage{};
+    s->current = Pending{};
+    if (s->queue.empty())
+    {
+        const HRESULT hr = SimConnect_CallDispatch(s->handle, onDispatch, s);
+        if (FAILED(hr)) return hr;
+    }
+    if (s->outOfMemory)
+    {
+        s->outOfMemory = false;
+        return E_OUTOFMEMORY;
+    }
+    if (s->queue.empty()) return S_OK;
+    s->current = std::move(s->queue.front());
+    s->queue.pop_front();
+    *message = s->current.message;
+    if (!s->current.data.empty()) message->data = s->current.data.data();
+    return S_OK;
 }
