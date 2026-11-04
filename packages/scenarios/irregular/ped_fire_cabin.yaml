@@ -11,6 +11,8 @@ title: Lithium battery fire in the cabin
 description: "In cruise the cabin crew report a battery fire in a passenger device. Advice per FAA SAFO 09013. Reply CONTINUE or DIVERT (default DIVERT after 5 min)."
 hint: "OPS: the cabin crew report a lithium battery fire in a passenger's personal electronic device (PED), with the seat, and how to fight it: water or halon, cool the cells with water, no fire-containment bag. Tell OPS whether you continue or divert."
 enabled_by_default: true
+# T89: passengers in the cabin; not on cargo, ferry, business or air ambulance flights.
+operations: [sched_pax, charter_pax]
 trigger:
   on: phase
   phase: CRUISE

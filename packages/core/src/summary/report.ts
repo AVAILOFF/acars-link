@@ -7,6 +7,7 @@ import type { Ofp } from '../ofp/types.js';
 import type { OooiKind, OooiSample } from '../phase/fsm.js';
 import type { DelayPart } from '../scenario/delay-codes.js';
 import { airportPlace, ofpCandidates, type Place } from '../scenario/divert.js';
+import type { FlightKind } from '../scenario/flight-kind.js';
 import type { ScenarioCategory } from '../scenario/types.js';
 
 /**
@@ -46,6 +47,11 @@ export interface FlightReport {
   readonly destination: string;
   readonly aircraftIcao: string;
   readonly aircraftReg: string | null;
+  /**
+   * Kind of flight in force at the end (T89); absent without the kind filter and in reports made
+   * before T89.
+   */
+  readonly flightKind?: FlightKind;
   /** OOOI times, epoch ms UTC, against the OFP schedule (`sched_out` … `sched_in`). */
   readonly times: Readonly<Record<OooiKind, PlanFigure>>;
   /** IN − OUT against `sched_block`, ms. */
@@ -110,6 +116,8 @@ export interface ReportInput {
   readonly divertApts?: readonly DivertAirport[];
   readonly places?: Readonly<Record<string, Place | null>>;
   readonly counts: ReportCounts;
+  /** Kind of flight (T89); absent = no kind filter. */
+  readonly flightKind?: FlightKind;
   readonly started: readonly { readonly id: string; readonly category: ScenarioCategory }[];
 }
 
@@ -150,6 +158,7 @@ export function flightReport(i: ReportInput): FlightReport {
     destination: ofp.destination.icao,
     aircraftIcao: ofp.aircraft.icao,
     aircraftReg: ofp.aircraft.reg,
+    ...(i.flightKind === undefined ? {} : { flightKind: i.flightKind }),
     times: byKind((k) => fig(oooi[k], sched[k])),
     blockMs: fig(sub(oooi.IN, oooi.OUT), t.schedBlockSec === null ? null : t.schedBlockSec * 1000),
     airMs: fig(sub(oooi.ON, oooi.OFF), t.estTimeEnrouteSec * 1000),

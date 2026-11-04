@@ -43,6 +43,7 @@ const api: AcarsApi = {
   openLegal: (doc) => ipcRenderer.invoke(IPC.openLegal, doc),
   setScenarioChance: (id, percent) => ipcRenderer.invoke(IPC.setScenarioChance, id, percent),
   forceScenario: (id) => ipcRenderer.invoke(IPC.forceScenario, id),
+  setFlightKind: (kind) => ipcRenderer.invoke(IPC.setFlightKind, kind),
 };
 
 contextBridge.exposeInMainWorld('acars', api);

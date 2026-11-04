@@ -7,6 +7,8 @@ title: Disruptive passenger
 description: "In cruise the crew reports a disruptive passenger. RESTRAIN: police at arrival; DIVERT: nearest airport; CONTINUE (default): monitor. RESTRAIN and DIVERT leave a note for the next flight."
 hint: "OPS security: the cabin crew report a disruptive passenger, with the seat and what happened; the crew has given a formal warning. Tell OPS what you do: restrain the passenger, divert or continue."
 enabled_by_default: true
+# T89: passengers in the cabin; not on cargo, ferry, business or air ambulance flights.
+operations: [sched_pax, charter_pax]
 trigger:
   on: phase
   phase: CRUISE

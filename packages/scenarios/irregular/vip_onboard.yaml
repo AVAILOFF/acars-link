@@ -6,6 +6,8 @@ title: VIP on board
 description: "Before departure: a VIP and the seat; on block: disembarks first, protocol car at the gate."
 hint: "OPS: a VIP is on board, with the seat. The VIP boards last and leaves first; make no announcement about it on board. No reply needed."
 enabled_by_default: true
+# T89: passengers in the cabin; not on cargo, ferry, business or air ambulance flights.
+operations: [sched_pax, charter_pax]
 trigger:
   on: time
   at: { rel: sched_out, offset_min: -35 }

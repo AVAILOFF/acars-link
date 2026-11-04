@@ -96,6 +96,12 @@ export function ReportPanel({ view }: { view: FlightReportView }) {
         </dd>
         <dt>{t('report.landed')}</dt>
         <dd>{landed(r, t)}</dd>
+        {r.flightKind !== undefined && (
+          <>
+            <dt>{t('report.kind')}</dt>
+            <dd>{t(`kind.${r.flightKind}`)}</dd>
+          </>
+        )}
         {r.divert !== null && (
           <>
             <dt>{t('report.divertSet')}</dt>

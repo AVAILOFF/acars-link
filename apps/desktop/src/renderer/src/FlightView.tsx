@@ -1,9 +1,16 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
+import { FLIGHT_KINDS, type FlightKind } from '@acars/core';
 import type { CSSProperties } from 'react';
-import { type FormEvent, useState } from 'react';
-import type { AppState, EndingView, FeedEntry, FlightSummary } from '../../shared/api.js';
+import { type FormEvent, useRef, useState } from 'react';
+import type {
+  AppState,
+  EndingView,
+  FeedEntry,
+  FlightKindView,
+  FlightSummary,
+} from '../../shared/api.js';
 import { atcHints } from '../../shared/atc-hints.js';
 import { openActions } from './actions.js';
 import { type Filter, MessageTable } from './FeedList.js';
@@ -186,6 +193,7 @@ function FlightCard({ app }: { app: AppState }) {
       ) : (
         <Summary f={f} phase={running && app.phase !== null ? t(phaseKey(app.phase)) : null} />
       )}
+      {f !== null && app.flightKind !== null && <KindBlock k={app.flightKind} />}
       {running && (
         <dl className="params">
           <Param k="ALT" v={tm === null ? '—' : num(tm.altFt)} unit="FT" />
@@ -353,6 +361,100 @@ function Ending({ ending }: { ending: EndingView }) {
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+/** `freight` kg as tonnes with one decimal, in the UI language (`42,5`). */
+function tonnes(kg: number, lang: string): string {
+  return (kg / 1000).toLocaleString(lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+/** What the recognized kind of flight is based on (T89), one line. */
+function kindBasis(t: ReturnType<typeof useT>, k: FlightKindView, lang: string): string {
+  switch (k.rule) {
+    case 'sts':
+      return t('kind.basis.sts', { sts: k.sts ?? '' });
+    case 'cargo':
+      return t('kind.basis.cargo', { t: tonnes(k.freightKg, lang) });
+    case 'ferry':
+      return t('kind.basis.ferry');
+    case 'flight_type':
+      return t('kind.basis.flight_type', { type: k.flightType ?? '' });
+    default:
+      return t('kind.basis.default', { pax: k.paxCount });
+  }
+}
+
+/**
+ * Kind of flight (T89): what is in force and a choice for this flight until OUT; after an OFP is
+ * loaded, the question whether the recognized kind is right (it applies without an answer too).
+ */
+function KindBlock({ k }: { k: FlightKindView }) {
+  const t = useT();
+  const busy = useStore((s) => s.busy);
+  const lang = useStore((s) => s.settings?.language ?? 'en');
+  const { setFlightKind } = useStore.getState();
+  const select = useRef<HTMLSelectElement>(null);
+  const name = (kind: FlightKind) => t(`kind.${kind}`);
+  // A charter is never recognized (decision of 2026-11-04), so it has no question of its own.
+  const ask = k.ask && !k.locked && k.kind !== 'charter_pax' ? k.kind : null;
+  const other = () => {
+    const el = select.current;
+    if (el === null) return;
+    el.focus();
+    try {
+      el.showPicker();
+    } catch {
+      // Not every engine opens a select by script; the focus is enough then.
+    }
+  };
+  return (
+    <div className="kind-block">
+      <label className="kind-row">
+        <span className="kind-label">{t('kind.title')}</span>
+        <select
+          ref={select}
+          value={k.override ?? 'auto'}
+          disabled={k.locked || busy !== null}
+          title={k.locked ? t('kind.locked') : t('kind.hint')}
+          onChange={(e) => {
+            const v = e.currentTarget.value;
+            void setFlightKind(v === 'auto' ? null : (v as FlightKind));
+          }}
+        >
+          <option value="auto">{t('kind.auto', { kind: name(k.auto) })}</option>
+          {FLIGHT_KINDS.map((kind) => (
+            <option key={kind} value={kind}>
+              {name(kind)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="hint">
+        {k.override === null ? kindBasis(t, k, lang) : t('kind.manual', { kind: name(k.auto) })}
+      </p>
+      {k.locked && <p className="hint">{t('kind.locked')}</p>}
+      {ask !== null && (
+        <fieldset className="kind-ask">
+          <legend className="sr-only">{t('kind.title')}</legend>
+          <p>{t(`kind.ask.${ask}`, { sts: k.sts ?? '' })}</p>
+          <p className="hint">{kindBasis(t, k, lang)}</p>
+          <div className="row">
+            <button
+              type="button"
+              className="btn primary"
+              disabled={busy !== null}
+              onClick={() => void setFlightKind(k.kind)}
+            >
+              {t('kind.yes')}
+            </button>
+            <button type="button" className="btn" disabled={busy !== null} onClick={other}>
+              {t('kind.other')}
+            </button>
+          </div>
+        </fieldset>
+      )}
     </div>
   );
 }

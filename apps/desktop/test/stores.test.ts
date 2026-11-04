@@ -84,6 +84,7 @@ describe('settings', () => {
       liveData: true,
       soundOnMessage: false,
       messageHints: true,
+      askFlightKind: true,
       messageGapSec: 60,
       xatc: true,
       datalink: false,

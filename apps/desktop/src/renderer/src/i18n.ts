@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
-import type { FlightPhase } from '@acars/core';
+import { type FlightPhase, isFlightKind } from '@acars/core';
 import {
   type AppError,
   type ErrorCode,
@@ -110,6 +110,12 @@ const PHASE_PARAMS: Readonly<Partial<Record<SystemCode, readonly string[]>>> = {
   flight_stopped: ['phase'],
 };
 
+/** Params of a system entry that hold a kind of flight (T89). */
+const KIND_PARAMS: Readonly<Partial<Record<SystemCode, readonly string[]>>> = {
+  flight_kind: ['kind'],
+  forced_operation: ['detail'],
+};
+
 /** Text of a system feed entry in the UI language. */
 export function systemText(
   t: Translate,
@@ -130,6 +136,11 @@ export function systemText(
   for (const k of PHASE_PARAMS[code] ?? []) {
     const p = out[k];
     if (p !== undefined) out[k] = t(phaseKey(p as FlightPhase));
+  }
+  // T89: a kind of flight is shown in the UI language.
+  for (const k of KIND_PARAMS[code] ?? []) {
+    const p = out[k];
+    if (p !== undefined && isFlightKind(p)) out[k] = t(`kind.${p}`);
   }
   return t(systemKey(code), out);
 }

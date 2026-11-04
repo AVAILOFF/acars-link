@@ -5,7 +5,10 @@ import { writeFile } from 'node:fs/promises';
 import {
   alignOfpDay,
   type CompiledScenario,
+  classifyFlight,
+  type FlightKind,
   type FlightReport,
+  isFlightKind,
   type Ofp,
   type SimCommand,
   selectProfile,
@@ -28,6 +31,7 @@ import type {
   BridgeProcessView,
   CredentialsView,
   EndingView,
+  FlightKindView,
   FlightReportView,
   FlightSummary,
   Language,
@@ -191,6 +195,10 @@ export class AppController {
   private bridgeLogged = '';
   /** The report of the flight closed at the gate (T69), until the next OFP is loaded. */
   private report: FlightReportView | null = null;
+  /** T89: the user's kind of flight for the loaded OFP; null = automatic. */
+  private kindOverride: FlightKind | null = null;
+  /** T89: the question after loading the OFP waits for an answer. */
+  private kindAsk = false;
 
   constructor(private readonly o: AppControllerOptions) {
     this.log = o.log ?? NO_LOG;
@@ -323,7 +331,48 @@ export class AppController {
       irregular: s?.irregular ?? [],
       resume: s === null ? resumeOffer(this.unfinished) : null,
       report: this.report,
+      flightKind: this.kindView(),
     };
+  }
+
+  /** T89: the kind of the running flight (the core's), else of the loaded OFP. */
+  private kindView(): FlightKindView | null {
+    const s = this.session;
+    if (s !== null) {
+      const k = s.flightKind;
+      return k === null ? null : { ...k, ask: this.kindAsk && !k.locked };
+    }
+    if (this.ofp === null) return null;
+    return { ...classifyFlight(this.ofp, this.kindOverride), locked: false, ask: this.kindAsk };
+  }
+
+  /**
+   * T89: the kind of flight for this flight (null = automatic); answers the question after loading
+   * the OFP. Before the start it is kept for the core's options; in flight it goes to the core,
+   * which fixes it at OUT.
+   */
+  async setFlightKind(kind: unknown): Promise<null> {
+    if (kind !== null && !isFlightKind(kind)) {
+      throw new AppFailure(
+        'invalid_input',
+        `unknown kind of flight: ${String(kind)}`,
+        'flight_kind',
+      );
+    }
+    if (this.ofp === null)
+      throw new AppFailure('bad_state', 'load the OFP first', 'load_ofp_first');
+    const s = this.session;
+    if (s !== null) {
+      const k = s.flightKind;
+      if (k === null || k.locked) {
+        throw new AppFailure('bad_state', 'the kind of flight is fixed after OUT', 'kind_locked');
+      }
+      s.setFlightKind(kind);
+    }
+    this.kindOverride = kind;
+    this.kindAsk = false;
+    this.o.onChange();
+    return null;
   }
 
   // --- settings & scenarios ---
@@ -501,7 +550,20 @@ export class AppController {
     const username = await this.o.secrets.get('simbriefUsername');
     if (username === null || username === '') throw new AppFailure('no_username', 'not set');
     const ofp = await fetchOfp(this.o.http, username);
-    const summary = this.summary(ofp, await this.o.settings.get());
+    const settings = await this.o.settings.get();
+    const summary = this.summary(ofp, settings);
+    // T89: the same flight loaded again keeps the answer unless the recognized kind changed.
+    const before = this.ofp;
+    const same =
+      before !== null &&
+      before.callsign === ofp.callsign &&
+      before.origin.icao === ofp.origin.icao &&
+      before.destination.icao === ofp.destination.icao &&
+      classifyFlight(before).auto === classifyFlight(ofp).auto;
+    if (!same) {
+      this.kindOverride = null;
+      this.kindAsk = settings.askFlightKind;
+    }
     this.ofp = ofp;
     this.flight = summary;
     this.report = null;
@@ -595,6 +657,7 @@ export class AppController {
       minGapMs: settings.messageGapSec * 1000,
       ...(settings.hubIcao === '' ? {} : { hub: settings.hubIcao }),
       ...(simTime ? { simTime: true } : {}),
+      flightKind: { override: this.kindOverride },
       simCommands: (c) => this.sendSimCommand(c),
       ...(settings.datalink
         ? {
@@ -723,6 +786,9 @@ export class AppController {
     const closed = this.session.report;
     this.report = closed === null ? null : this.reportView(closed);
     this.ofp = h.ofp;
+    // T89: the kind as recorded; the question was answered (or not) before the restart.
+    this.kindOverride = this.session.flightKind?.override ?? null;
+    this.kindAsk = false;
     this.flight = this.summary(h.ofp, settings, h.station);
     this.log.info(`flight resumed (${settings.transport})`);
     this.o.onChange();

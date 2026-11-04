@@ -6,8 +6,11 @@ import {
   AcarsCore,
   type CompiledScenario,
   type CoreOutput,
+  classifyFlight,
   cpdlcPacket,
   type DisplayProfile,
+  type FlightKind,
+  type FlightKindInfo,
   type FlightPhase,
   type FlightReport,
   type Ofp,
@@ -101,6 +104,8 @@ export interface FlightSessionOptions {
   readonly log?: Log;
   /** Version of the app for the recording header (T77); absent = not recorded. */
   readonly appVersion?: string;
+  /** Kind of flight (T89): the user's choice at the start (null = automatic); the filter is on. */
+  readonly flightKind?: { readonly override: FlightKind | null };
 }
 
 /** The recorded flight does not run the same way again (other scenarios, another app version). */
@@ -161,10 +166,14 @@ export class FlightSession {
   private inbound: PilotMessage[] = [];
   /** Scenarios started by hand, for the next core tick. */
   private forced: string[] = [];
+  /** The user's choice of the kind of flight (T89), for the next core tick; null = none. */
+  private kindChoice: { override: FlightKind | null } | null = null;
   /** Irregular scenarios of this flight, for "run now". */
   readonly irregular: readonly ForceableScenario[];
   private readonly callsign: string;
   private readonly station: string;
+  /** The OFP of the flight (T89: the kind a choice gives). */
+  private readonly ofp: Ofp;
   /** Transport telex id → feed entry id. */
   private readonly outbound = new Map<string, string>();
   /** Hints to messages and answers (T57). */
@@ -221,6 +230,7 @@ export class FlightSession {
             nextLegVersion: NEXT_LEG_VERSION,
             lateStartVersion: LATE_START_VERSION,
             ...(o.hub === undefined ? {} : { hub: o.hub }),
+            ...(o.flightKind === undefined ? {} : { flightKind: o.flightKind }),
           },
     );
     this.data = o.data ?? null;
@@ -228,8 +238,13 @@ export class FlightSession {
     this.simCommands = o.simCommands ?? (() => {});
     this.irregular = o.scenarios
       .filter((c) => c.def.category === 'irregular' && c.def.trigger.on !== 'command')
-      .map((c) => ({ id: c.id, title: uiText(c.texts.title) }))
+      .map((c) => ({
+        id: c.id,
+        title: uiText(c.texts.title),
+        ...(c.def.operations === undefined ? {} : { operations: c.def.operations }),
+      }))
       .sort((a, b) => a.title.en.localeCompare(b.title.en));
+    this.ofp = o.resume?.header.ofp ?? o.ofp;
     this.callsign = o.ofp.callsign;
     this.station = stationCallsign(o.stationTemplate, o.ofp);
     this.transport = o.transport;
@@ -265,6 +280,14 @@ export class FlightSession {
         lateStartVersion: LATE_START_VERSION,
         ...(o.hub === undefined ? {} : { hub: o.hub }),
         simTime: this.simTime,
+        ...(o.flightKind === undefined
+          ? {}
+          : {
+              flightKind: {
+                override: o.flightKind.override,
+                kind: classifyFlight(o.ofp, o.flightKind.override).kind,
+              },
+            }),
       }),
     );
     this.core.startFlight();
@@ -411,6 +434,20 @@ export class FlightSession {
   }
 
   /** Starts a scenario by hand with the next tick (the core checks its conditions). */
+  /** Kind of flight now (T89); null without the filter (a flight recorded before T89). */
+  get flightKind(): (FlightKindInfo & { readonly locked: boolean }) | null {
+    const k = this.core.flightKind;
+    // A choice waiting for the next tick shows at once (the core takes it unless OUT came first).
+    return k === null || this.kindChoice === null || k.locked
+      ? k
+      : { ...classifyFlight(this.ofp, this.kindChoice.override), locked: false };
+  }
+
+  /** The user's choice of the kind (T89): goes to the core with the next tick. */
+  setFlightKind(override: FlightKind | null): void {
+    if (!this.stopped) this.kindChoice = { override };
+  }
+
   force(id: string): void {
     if (!this.stopped) this.forced.push(id);
   }
@@ -465,10 +502,13 @@ export class FlightSession {
       const inbound = i === 0 ? this.inbound.splice(0) : [];
       const data = i === 0 ? fetched.update : null;
       const force = i === 0 ? this.forced.splice(0) : [];
+      const flightKind = i === 0 ? this.kindChoice : null;
+      if (i === 0) this.kindChoice = null;
       const more = {
         ...(inbound.length > 0 ? { inbound } : {}),
         ...(data === null ? {} : { data }),
         ...(force.length > 0 ? { force } : {}),
+        ...(flightKind === null ? {} : { flightKind }),
       };
       this.record({ type: 'tick', now, telemetry: s, ...more });
       this.apply(this.core.tick({ now, telemetry: s, ...more }), now);
@@ -574,6 +614,7 @@ export class FlightSession {
                 ...(e.inbound === undefined ? {} : { inbound: e.inbound }),
                 ...(e.data === undefined ? {} : { data: e.data }),
                 ...(e.force === undefined ? {} : { force: e.force }),
+                ...(e.flightKind === undefined ? {} : { flightKind: e.flightKind }),
               }),
               e.now,
             );
@@ -675,6 +716,9 @@ export class FlightSession {
           break;
         case 'FORCED':
           this.feed.system(e.t, `forced_${e.result}`, { id: e.id, detail: e.detail ?? '' });
+          break;
+        case 'FLIGHT_KIND':
+          if (e.applied) this.feed.system(e.t, 'flight_kind', { kind: e.kind });
           break;
         case 'DATA_REQUEST':
           if (this.replaying) break;

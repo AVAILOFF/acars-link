@@ -38,6 +38,7 @@ import { airportPlace, type RunwayNeed } from './divert.js';
 
 import type { Lookup, Value } from './expr.js';
 import { pruneExpiredFlags } from './flags-expiry.js';
+import { classifyFlight, type FlightKind, type FlightKindInfo } from './flight-kind.js';
 import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
 import { buildFlightData, type FlightData, type NextLegOptions } from './ops-data.js';
 import {
@@ -95,6 +96,10 @@ import type { PilotCommand, ScenarioCategory, StartWindow, TimeRef } from './typ
  * its trigger, probability, cooldown and excludes, but only when its conditions hold (they
  * keep its messages meaningful) and it is not running. The outcome is a `FORCED` event.
  * While telemetry is lost the request waits in the state like a pilot message.
+ *
+ * Kind of flight (T89, option `flightKind`): a scenario with `operations` starts only on those
+ * kinds, by hand too (`SCENARIO_SKIPPED` / `FORCED` with `operation`). The user may change the kind
+ * until OUT (`input.flightKind`, event `FLIGHT_KIND`); running scenarios go on.
  */
 
 export interface OutboundMessage {
@@ -188,8 +193,19 @@ export type ScenarioEvent =
       readonly type: 'FORCED';
       readonly id: string;
       readonly t: number;
-      readonly result: 'started' | 'conditions' | 'running' | 'unknown';
+      readonly result: 'started' | 'conditions' | 'running' | 'unknown' | 'operation';
       readonly detail: string | null;
+    }
+  | {
+      /**
+       * The user's choice of the kind of flight (T89, `input.flightKind`): `applied: false` after
+       * OUT (the kind is fixed then) or without the filter (`flightKind` option absent).
+       */
+      readonly type: 'FLIGHT_KIND';
+      readonly t: number;
+      readonly kind: FlightKind;
+      readonly override: FlightKind | null;
+      readonly applied: boolean;
     }
   | {
       /** A `wait: until` ended (T39): the condition held, or its time ran out. */
@@ -209,7 +225,8 @@ export type ScenarioEvent =
         | 'excluded'
         | 'running'
         | 'window'
-        | 'conditions';
+        | 'conditions'
+        | 'operation';
     }
   | { readonly type: 'SCENARIO_DONE'; readonly id: string; readonly t: number }
   | {
@@ -234,6 +251,8 @@ export interface EngineTickInput {
   readonly data?: ExtDataUpdate;
   /** Scenario ids the user starts by hand. */
   readonly force?: readonly string[];
+  /** The user's choice of the kind of flight (T89): null = automatic. Ignored after OUT. */
+  readonly flightKind?: { readonly override: FlightKind | null };
 }
 
 export interface EngineTickOutput {
@@ -295,6 +314,12 @@ export interface ScenarioEngineOptions {
   readonly runwayNeeds?: Readonly<Partial<Record<AircraftFamily, RunwayNeed>>>;
   /** `flags.*` left by earlier flights (T14). */
   readonly flags?: Readonly<Record<string, Value>>;
+  /**
+   * Kind of flight (T89, `flight-kind.ts`): present = scenarios start only on the kinds of their
+   * `operations`; `override` is the user's choice (null = recognized from the OFP). Absent = no
+   * filter, as in recordings made before T89.
+   */
+  readonly flightKind?: { readonly override: FlightKind | null };
 }
 
 interface ScenarioState {
@@ -366,6 +391,8 @@ export interface ScenarioEngineState {
   readonly delayParts?: readonly DelayPart[];
   /** Factor of the pre-departure offsets (`sched_out` − N) fitted to the time left; absent = 1. */
   readonly preScale?: number;
+  /** The user's choice of the kind of flight (T89); absent in older states = the option's. */
+  readonly kindOverride?: FlightKind | null;
 }
 
 interface PendingWx {
@@ -471,7 +498,12 @@ export class ScenarioEngine {
     delayRaisedMs: number;
     delayParts: DelayPart[];
     preScale: number;
+    kindOverride: FlightKind | null;
   };
+  /** The kind filter is on (T89, option `flightKind`). */
+  private readonly kindFilter: boolean;
+  /** Kind of flight now (T89), from the OFP and `st.kindOverride`. */
+  private kindInfo: FlightKindInfo;
   /** Longest `sched_out − N` offset among the scenarios, ms (0 = none). */
   private readonly preSpanMs: number;
   private readonly fitPre: boolean;
@@ -541,7 +573,10 @@ export class ScenarioEngine {
       delayRaisedMs: 0,
       delayParts: [],
       preScale: 1,
+      kindOverride: options.flightKind?.override ?? null,
     };
+    this.kindFilter = options.flightKind !== undefined;
+    this.kindInfo = classifyFlight(options.ofp, this.st.kindOverride);
     let span = 0;
     for (const s of this.ordered) {
       const tr = s.def.trigger;
@@ -592,6 +627,9 @@ export class ScenarioEngine {
     e.st.delayRaisedMs = copy.delayRaisedMs ?? 0;
     e.st.delayParts = [...(copy.delayParts ?? [])];
     e.st.preScale = copy.preScale ?? 1;
+    // T89.
+    if (copy.kindOverride !== undefined) e.st.kindOverride = copy.kindOverride;
+    e.kindInfo = classifyFlight(options.ofp, e.st.kindOverride);
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
     e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
@@ -611,6 +649,35 @@ export class ScenarioEngine {
   /** Diversion airport (a scenario's or the pilot's), null = none (T48: the XATC station reads it). */
   get divert(): string | null {
     return this.st.divert;
+  }
+
+  /** Kind of flight now (T89); null without the filter (option `flightKind` absent). */
+  get flightKind(): FlightKindInfo | null {
+    return this.kindFilter ? this.kindInfo : null;
+  }
+
+  /** The user's choice of the kind (T89): applied before OUT, with the filter; an event either way. */
+  private chooseKind(input: EngineTickInput, events: ScenarioEvent[]): void {
+    const choice = input.flightKind;
+    if (choice === undefined) return;
+    const applied = this.kindFilter && input.oooi.OUT === null;
+    if (applied) {
+      this.st.kindOverride = choice.override;
+      this.kindInfo = classifyFlight(this.ofp, choice.override);
+    }
+    events.push({
+      type: 'FLIGHT_KIND',
+      t: input.now,
+      kind: this.kindInfo.kind,
+      override: choice.override,
+      applied,
+    });
+  }
+
+  /** The scenario is not for the kind of this flight (T89; never without the filter). */
+  private wrongKind(sc: CompiledScenario): boolean {
+    const ops = sc.def.operations;
+    return this.kindFilter && ops !== undefined && !ops.includes(this.kindInfo.kind);
   }
 
   /** Holding the airline announced (`flight.hold`, T48), null = none. */
@@ -780,6 +847,7 @@ export class ScenarioEngine {
       )
         this.rebuildData();
     }
+    this.chooseKind(input, events);
     this.trackFuel(input);
     this.trackTouchdown(input);
     const inbox = [...this.st.inbox, ...(input.inbound ?? [])];
@@ -926,6 +994,7 @@ export class ScenarioEngine {
       oooi: input.oooi,
       data: this.data,
       divert: this.st.divert,
+      flightKind: this.kindInfo.kind,
       hold: this.st.hold,
       sent: Object.keys(this.st.sent),
       ext: this.st.ext,
@@ -951,8 +1020,9 @@ export class ScenarioEngine {
     const s = this.st.scenarios[sc.id] as ScenarioState;
     const w = (sc.def.trigger as { window: StartWindow }).window;
     if (s.pending != null) return;
-    const skip = (reason: 'probability' | 'cooldown' | 'excluded' | 'running' | 'window') =>
-      events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason });
+    const skip = (
+      reason: 'probability' | 'cooldown' | 'excluded' | 'running' | 'window' | 'operation',
+    ) => events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason });
     const blocked = this.blocker(sc, s, input.now);
     if (blocked !== null) return void skip(blocked);
     const rng = this.rngs.get(sc.id) as Rng;
@@ -1001,11 +1071,13 @@ export class ScenarioEngine {
     events: ScenarioEvent[],
   ): void {
     const note = (
-      result: 'started' | 'conditions' | 'running' | 'unknown',
+      result: 'started' | 'conditions' | 'running' | 'unknown' | 'operation',
       detail = null as string | null,
     ) => events.push({ type: 'FORCED', id, t: input.now, result, detail });
     const sc = this.byId.get(id);
     if (sc === undefined) return void note('unknown');
+    // T89: "run now" does not get round the kind of flight.
+    if (this.wrongKind(sc)) return void note('operation', this.kindInfo.kind);
     if (this.st.runs.some((r) => r.id === id)) return void note('running');
     const failed = sc.conditions.findIndex((c) => !c.test(this.look));
     if (failed >= 0) return void note('conditions', sc.def.conditions?.[failed] ?? null);
@@ -1457,7 +1529,8 @@ export class ScenarioEngine {
     sc: CompiledScenario,
     s: ScenarioState,
     now: number,
-  ): 'cooldown' | 'excluded' | 'running' | null {
+  ): 'cooldown' | 'excluded' | 'running' | 'operation' | null {
+    if (this.wrongKind(sc)) return 'operation';
     if (this.st.runs.some((r) => r.id === sc.id)) return 'running';
     const cd = sc.def.cooldown ?? (sc.def.trigger.on === 'command' ? 'none' : 'per_flight');
     if (cd === 'per_flight' && s.starts > 0) return 'cooldown';

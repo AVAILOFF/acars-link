@@ -6,6 +6,8 @@ title: Disruptive passenger follow-up (next flight)
 description: "Before the next flight: the passenger from the earlier flight is on the company no-fly list."
 hint: "Security information: the disruptive passenger of an earlier flight is now on the company no-fly list and a police report is filed. No reply needed."
 enabled_by_default: true
+# T89: passengers in the cabin; not on cargo, ferry, business or air ambulance flights.
+operations: [sched_pax, charter_pax]
 trigger:
   on: time
   at: { rel: sched_out, offset_min: -50 }

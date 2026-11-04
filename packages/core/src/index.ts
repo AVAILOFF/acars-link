@@ -45,6 +45,7 @@ export * from './scenario/divert.js';
 export * from './scenario/engine.js';
 export * from './scenario/expr.js';
 export * from './scenario/flags-expiry.js';
+export * from './scenario/flight-kind.js';
 export * from './scenario/irregular-data.js';
 export * from './scenario/names.js';
 export * from './scenario/ops-data.js';

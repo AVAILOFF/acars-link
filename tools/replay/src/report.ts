@@ -77,6 +77,11 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
             'SET',
             `${ev.id}: ${ev.name} = ${JSON.stringify(ev.value)}${ev.applied ? '' : ' (not applied)'}`,
           ];
+        case 'FLIGHT_KIND':
+          return [
+            'KIND',
+            `${ev.override ?? 'auto'} -> ${ev.kind}${ev.applied ? '' : ' (not applied: fixed after OUT)'}`,
+          ];
         case 'FORCED':
           return ['FORCED', `${ev.id}: ${ev.result}${ev.detail === null ? '' : ` (${ev.detail})`}`];
         case 'DATA_REQUEST':

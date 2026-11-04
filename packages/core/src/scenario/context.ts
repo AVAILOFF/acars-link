@@ -25,6 +25,7 @@ import { type AircraftFamily, aircraftInfo, aircraftVariables } from './aircraft
 import { type DelayPart, delayLine } from './delay-codes.js';
 import { airportPlace, pickDivert, type RunwayNeed } from './divert.js';
 import type { Value } from './expr.js';
+import { classifyFlight, type FlightKind } from './flight-kind.js';
 import type { IrregularData } from './irregular-data.js';
 import { countryRegion, MULTINATIONAL_AIRLINES } from './names.js';
 import type { FlightData } from './ops-data.js';
@@ -152,6 +153,8 @@ export const CONTEXT_VARIABLES = [
   'flight.block_min',
   'flight.air_min',
   'flight.divert',
+  // kind of flight (T89, flight-kind.ts): `sched_pax`, `cargo` …
+  'flight.kind',
   'flight.sent',
   // distance to the diversion airport when its position is known (T51), NM
   'flight.divert_nm',
@@ -377,6 +380,8 @@ export interface ContextInput {
   readonly delayParts?: readonly DelayPart[];
   /** Diversion airport the pilot declared (`DIVERT`), engine. */
   readonly divert?: string | null;
+  /** Kind of flight in force (T89), engine; absent = recognized from the OFP. */
+  readonly flightKind?: FlightKind;
   /** Runway needs by family instead of the table of `divert.ts` (tests, T50). */
   readonly runwayNeeds?: Readonly<Partial<Record<AircraftFamily, RunwayNeed>>>;
   /** Holding announced by a scenario (T48), engine. */
@@ -585,6 +590,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'flight.block_min': span(oooi.OUT, oooi.IN),
       'flight.air_min': span(oooi.OFF, oooi.ON),
       'flight.divert': input.divert ?? null,
+      'flight.kind': input.flightKind ?? classifyFlight(ofp).kind,
       'flight.holding': input.hold != null,
       'flight.hold_fuel_low': holdFuelLow(ofp, tm, input.hold ?? null, now),
       'flight.sent': [...(input.sent ?? [])],

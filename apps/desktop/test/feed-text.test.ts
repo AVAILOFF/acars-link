@@ -27,6 +27,8 @@ const SENT: Readonly<Record<SystemCode, Readonly<Record<string, string>>>> = {
   forced_conditions: { id: 's', detail: 'c' },
   forced_running: { id: 's', detail: '' },
   forced_unknown: { id: 's', detail: '' },
+  forced_operation: { id: 's', detail: 'cargo' },
+  flight_kind: { kind: 'ferry' },
   data_restored: { source: 'metar' },
   transport_status: { status: 'ok', reason: '' },
   sim_command_failed: { command: 'x', error: 'e', detail: 'd' },

@@ -1199,6 +1199,126 @@
     "out": "ヒント",
     "engine": "deepl"
   },
+  "msg:kind.ask.bizav": {
+    "src": "A business jet — the messages will come from flight support, not from an airline. Right?",
+    "out": "ビジネスジェットの場合、メッセージは航空会社ではなく、フライトサポートから送信されます。そうですよね？",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.cargo": {
+    "src": "No passengers, freight on board — are we flying cargo?",
+    "out": "乗客はおらず、貨物が搭載されています — 貨物便として運航するのでしょうか？",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.ferry": {
+    "src": "No passengers and no freight — is this a ferry or positioning flight?",
+    "out": "乗客も貨物もない場合、これはフェリー便またはポジショニング便でしょうか？",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.medevac": {
+    "src": "The plan has <x>STS</x>/<x>{sts}</x> — is this an air ambulance flight?",
+    "out": "計画にSTS/{sts}が含まれています — これは航空救急便でしょうか？",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.sched_pax": {
+    "src": "A normal scheduled passenger flight — is that right?",
+    "out": "通常の定期乗客便――それでよろしいでしょうか？",
+    "engine": "deepl"
+  },
+  "msg:kind.auto": {
+    "src": "Auto: <x>{kind}</x>",
+    "out": "自動：{kind}",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.cargo": {
+    "src": "From the <x>OFP</x>: 0 <x>PAX</x>, freight <x>{t}</x> t",
+    "out": "OFPからの情報：0 PAX、貨物 {t} t",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.default": {
+    "src": "From the <x>OFP</x>: <x>{pax}</x> <x>PAX</x>",
+    "out": "OFPからの情報：{pax} PAX",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.ferry": {
+    "src": "From the <x>OFP</x>: 0 <x>PAX</x>, no freight",
+    "out": "OFPからの情報：0 PAX、貨物なし",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.flight_type": {
+    "src": "Type of flight in the plan: <x>{type}</x>",
+    "out": "飛行計画におけるフライトの種類：{type}",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.sts": {
+    "src": "Item 18 of the plan: <x>STS</x>/<x>{sts}</x>",
+    "out": "計画の項目18：STS/{sts}",
+    "engine": "deepl"
+  },
+  "msg:kind.bizav": {
+    "src": "Business aviation",
+    "out": "ビジネス航空",
+    "engine": "deepl"
+  },
+  "msg:kind.cargo": {
+    "src": "Cargo",
+    "out": "貨物便",
+    "engine": "deepl"
+  },
+  "msg:kind.charter_pax": {
+    "src": "Charter",
+    "out": "チャーター便",
+    "engine": "deepl"
+  },
+  "msg:kind.ferry": {
+    "src": "Ferry / positioning",
+    "out": "フェリー／ポジショニング",
+    "engine": "deepl"
+  },
+  "msg:kind.hint": {
+    "src": "Scenarios for passengers (unruly passenger, connections, lost bags…) do not run on cargo, ferry, business and air ambulance flights. You can change the kind until pushback.",
+    "out": "乗客に関するシナリオ（問題行動を起こす乗客、乗り継ぎ便、手荷物の紛失など）は、貨物便、フェリー便、ビジネス便、および航空救急便では発生しません。プッシュバックまでは種類を変更できます。",
+    "engine": "deepl"
+  },
+  "msg:kind.locked": {
+    "src": "Fixed after pushback (<x>OUT</x>): the scenarios already follow it.",
+    "out": "プッシュバック後（OUT）に固定されます：シナリオはすでにこの設定に従っています。",
+    "engine": "deepl"
+  },
+  "msg:kind.manual": {
+    "src": "Chosen by you; recognized: <x>{kind}</x>",
+    "out": "お客様が選択；認識済み：{kind}",
+    "engine": "deepl"
+  },
+  "msg:kind.medevac": {
+    "src": "Air ambulance",
+    "out": "航空救急便",
+    "engine": "deepl"
+  },
+  "msg:kind.notFor": {
+    "src": "<x>{title}</x> — not for this kind of flight",
+    "out": "{title} — この種類のフライトには適用されない",
+    "engine": "deepl"
+  },
+  "msg:kind.other": {
+    "src": "Another kind…",
+    "out": "別の種類…",
+    "engine": "deepl"
+  },
+  "msg:kind.sched_pax": {
+    "src": "Scheduled passenger",
+    "out": "定期乗客便",
+    "engine": "deepl"
+  },
+  "msg:kind.title": {
+    "src": "Kind of flight",
+    "out": "フライトの種類",
+    "engine": "deepl"
+  },
+  "msg:kind.yes": {
+    "src": "Yes",
+    "out": "はい",
+    "engine": "deepl"
+  },
   "msg:link.held": {
     "src": "held: <x>{n}</x>",
     "out": "待機中：{n}",
@@ -1589,6 +1709,11 @@
     "out": "不測の事態",
     "engine": "deepl"
   },
+  "msg:report.kind": {
+    "src": "Kind of flight",
+    "out": "フライトの種類",
+    "engine": "deepl"
+  },
   "msg:report.landed": {
     "src": "Landed at",
     "out": "着陸先",
@@ -1907,6 +2032,16 @@
   "msg:set.aircraftIcaoHexHint": {
     "src": "For the <x>SATCOM AES/GES</x> header (decoder format, not a cockpit display). No address, no header. Enter the address of your airframe: open databases are not used.",
     "out": "SATCOM AES/GESヘッダー用（デコーダー形式、コックピットディスプレイではありません）。アドレスがないとヘッダーも表示されません。機体のアドレスを入力してください：公開データベースは使用されません。",
+    "engine": "deepl"
+  },
+  "msg:set.askKind": {
+    "src": "Ask the kind of flight after loading the <x>OFP</x>",
+    "out": "OFPの読み込み後に、フライトの種類を指定してください",
+    "engine": "deepl"
+  },
+  "msg:set.askKindHint": {
+    "src": "A card on the flight panel shows the recognized kind (scheduled, cargo, ferry…) and what it is based on. Off: the recognized kind applies without a question; you can still change it on the panel until pushback.",
+    "out": "フライトパネル上のカードには、認識された種類（定期便、貨物便、フェリー便など）と、その根拠が表示されます。「オフ」の場合、認識された種類が疑いなく適用されますが、プッシュバックまではパネル上で変更することが可能です。",
     "engine": "deepl"
   },
   "msg:set.badHex": {
@@ -2984,6 +3119,11 @@
     "out": "{nm}NMの位置ジャンプ（スルー／テレポート）",
     "engine": "deepl"
   },
+  "msg:sys.flight_kind": {
+    "src": "Kind of flight: <x>{kind}</x>",
+    "out": "飛行の種類：{kind}",
+    "engine": "deepl"
+  },
   "msg:sys.flight_resumed": {
     "src": "Flight <x>{callsign}</x> continued after a restart of the app",
     "out": "アプリの再起動後、フライト{callsign}が再開されました",
@@ -3007,6 +3147,11 @@
   "msg:sys.forced_conditions": {
     "src": "Cannot start <x>{id}</x> now: condition <x>{detail}</x> not met",
     "out": "現在、{id}を開始できません：条件{detail}が満たされていません",
+    "engine": "deepl"
+  },
+  "msg:sys.forced_operation": {
+    "src": "<x>{id}</x> is not for this kind of flight (<x>{detail}</x>)",
+    "out": "{id}はこの種の飛行には使用できません（{detail}）",
     "engine": "deepl"
   },
   "msg:sys.forced_running": {
@@ -3359,6 +3504,11 @@
     "out": "不明なオプション",
     "engine": "deepl"
   },
+  "msg:why.flight_kind": {
+    "src": "unknown kind of flight",
+    "out": "フライトの種類が不明だ",
+    "engine": "deepl"
+  },
   "msg:why.flight_running": {
     "src": "a flight is in progress",
     "out": "フライトが進行中だ",
@@ -3372,6 +3522,11 @@
   "msg:why.icao_hex": {
     "src": "the <x>ICAO</x> address must be six hex digits or empty",
     "out": "ICAOアドレスは6桁の16進数、または空欄である必要があります",
+    "engine": "deepl"
+  },
+  "msg:why.kind_locked": {
+    "src": "the kind of flight is fixed after pushback (<x>OUT</x>)",
+    "out": "フライトの種類はプッシュバック後に確定します（OUT）",
     "engine": "deepl"
   },
   "msg:why.load_ofp_first": {

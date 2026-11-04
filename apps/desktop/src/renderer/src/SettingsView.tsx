@@ -117,6 +117,12 @@ function BasicSettings({ s }: { s: Settings }) {
           <SavedMark field="soundOnMessage" />
         </Row>
         <SettingSwitch s={s} k="messageHints" title={t('set.hints')} hint={t('set.hintsHint')} />
+        <SettingSwitch
+          s={s}
+          k="askFlightKind"
+          title={t('set.askKind')}
+          hint={t('set.askKindHint')}
+        />
       </Group>
 
       <Group id="messages" title={t('set.group.messages')}>

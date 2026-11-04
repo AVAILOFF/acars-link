@@ -7,7 +7,9 @@ import {
   ExtDataError,
   type ExtDataUpdate,
   FLIGHT_REPORT_VERSION,
+  type FlightKind,
   type FlightReport,
+  isFlightKind,
   isTelemetrySnapshot,
   type Ofp,
   type PilotMessage,
@@ -25,7 +27,9 @@ import {
  * {"type":"tick","now":…,"telemetry":{…}|null[,"inbound":[…]][,"data":{…}]}
  *                                                                      one core tick (+ pilot telexes, T12;
  *                                                                      + external data fetched, T13;
- *                                                                      + "force": [id] started by hand)
+ *                                                                      + "force": [id] started by hand;
+ *                                                                      + "flightKind": {override} the user's
+ *                                                                      choice of the kind of flight, T89)
  * {"type":"end","now":…,"to":"DONE"}                                   user closed the flight
  * {"type":"out","t":…,"scenarioId":…,"from":…,"to":…,"text":…[,"packet":…]}
  *                                                                      telex the core produced live
@@ -103,6 +107,12 @@ export interface RecordingHeader {
   };
   /** "Time from the sim" (U-16): the times are the sim's UTC (T64); absent = unknown (before T64). */
   readonly simTime?: boolean;
+  /**
+   * Core `flightKind` (T89): the kind filter is on; `override` = the user's choice at the start
+   * (null = automatic), `kind` = the kind in force then (for reading; the core works it out
+   * again). Absent = no filter, as in recordings made before T89.
+   */
+  readonly flightKind?: { readonly override: FlightKind | null; readonly kind?: FlightKind };
 }
 
 export type RecordingEvent =
@@ -117,6 +127,8 @@ export type RecordingEvent =
       readonly data?: ExtDataUpdate;
       /** Scenarios the user started by hand with this tick; absent = none. */
       readonly force?: readonly string[];
+      /** The user's choice of the kind of flight with this tick (T89); absent = none. */
+      readonly flightKind?: { readonly override: FlightKind | null };
     }
   | { readonly type: 'end'; readonly now: number; readonly to: 'TURNAROUND' | 'DONE' }
   | {
@@ -254,6 +266,12 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
   if (x['dataWaitMs'] !== undefined && !(isNum(x['dataWaitMs']) && x['dataWaitMs'] >= 0))
     throw bad('dataWaitMs');
   if (x['simTime'] !== undefined && typeof x['simTime'] !== 'boolean') throw bad('simTime');
+  const fk = x['flightKind'];
+  if (
+    fk !== undefined &&
+    !(isKindChoice(fk) && (fk['kind'] === undefined || isFlightKind(fk['kind'])))
+  )
+    throw bad('flightKind');
   // Recordings made before T58 call the XATC station `rops`.
   const r = x['xatc'] ?? x['rops'];
   if (
@@ -285,6 +303,11 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     return (r === undefined ? rest : { ...rest, xatc: r }) as unknown as RecordingHeader;
   }
   return x as unknown as RecordingHeader;
+}
+
+/** `{ override: FlightKind | null }` (T89). */
+function isKindChoice(x: unknown): x is Record<string, unknown> {
+  return isObj(x) && (x['override'] === null || isFlightKind(x['override']));
 }
 
 /** Spot check: the OFP was normalized by the app that wrote the file. */
@@ -347,6 +370,8 @@ function checkEvent(x: unknown, no: number): RecordingEvent {
         if (!ok) throw bad('inbound must be [{from, type, text, to?}]');
       }
       if (x['force'] !== undefined && !isStrArr(x['force'])) throw bad('force must be [id]');
+      if (x['flightKind'] !== undefined && !isKindChoice(x['flightKind']))
+        throw bad('flightKind must be {override: kind | null}');
       if (x['data'] !== undefined) {
         try {
           checkExtDataUpdate(x['data']);

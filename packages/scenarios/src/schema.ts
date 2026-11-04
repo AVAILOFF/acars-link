@@ -3,6 +3,7 @@
 
 import {
   DISTANCE_TARGETS,
+  FLIGHT_KINDS,
   FLIGHT_PHASES,
   PILOT_COMMANDS,
   TIME_REFS,
@@ -13,7 +14,7 @@ import {
  * JSON Schema (2020-12) of a scenario file (docs/05-scenario-engine.md; T06, T12: `wait: reply`,
  * `branch`, `resend`, `on: command`). Structure only; semantics (expressions, templates,
  * variables, branch keys, `set` targets) are checked by `compileScenario` in `@acars/core`.
- * `set` — T14. `vdgs` — T22 (line widths are checked by `compileScenario`). `wait: until`, `group` — T39. `draw`, `loop`, `break`, `if` — T50. `hint`, `reply_hints` — T57. Step `id` — T85.
+ * `set` — T14. `vdgs` — T22 (line widths are checked by `compileScenario`). `wait: until`, `group` — T39. `draw`, `loop`, `break`, `if` — T50. `hint`, `reply_hints` — T57. Step `id` — T85. `operations` — T89.
  */
 
 const phase = { enum: [...FLIGHT_PHASES] } as const;
@@ -136,6 +137,13 @@ export const SCENARIO_SCHEMA = {
       ],
     },
     excludes: { type: 'array', items: id },
+    // T89: kinds of flight the scenario is for; an unknown kind fails the load.
+    operations: {
+      type: 'array',
+      minItems: 1,
+      uniqueItems: true,
+      items: { enum: [...FLIGHT_KINDS] },
+    },
     // T39: limit per flight is described in `groups.ts`.
     group: id,
     priority: { type: 'integer' },

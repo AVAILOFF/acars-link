@@ -12,6 +12,7 @@ import type {
   OfpEtopsAirport,
   OfpFix,
   OfpFuel,
+  OfpItem18,
   OfpLandingPerf,
   OfpMassUnit,
   OfpStage,
@@ -421,6 +422,64 @@ function levels(r: Reader, key: string): number[] | null {
   return out.map(Number);
 }
 
+/** One-letter FPL code (items 8a / 8b), upper case; anything else is null. */
+function flightCode(s: string | null): string | null {
+  const c = s?.toUpperCase() ?? null;
+  return c !== null && /^[A-Z]$/.test(c) ? c : null;
+}
+
+/**
+ * Indicators of FPL item 18 (ICAO Doc 4444, appendix 2, item 18): a token `XXX/` starts one when
+ * `XXX` is one of these, so a `/` inside a value (`RMK/ACAS II`, `DAT/1FANSE2PDC`) does not.
+ */
+const ITEM18_INDICATORS: ReadonlySet<string> = new Set([
+  'STS',
+  'PBN',
+  'NAV',
+  'COM',
+  'DAT',
+  'SUR',
+  'DEP',
+  'DEST',
+  'DOF',
+  'REG',
+  'EET',
+  'SEL',
+  'TYP',
+  'CODE',
+  'DLE',
+  'OPR',
+  'ORGN',
+  'PER',
+  'ALTN',
+  'RALT',
+  'TALT',
+  'RIF',
+  'RMK',
+  'RVR',
+  'EUR',
+  'IFP',
+]);
+
+/** Item 18 of the FPL (T89): `STS/` (several reasons, space-separated) and `RMK/`. */
+function parseItem18(s: string | null): OfpItem18 | null {
+  if (s === null) return null;
+  const raw = s.replace(/\s+/g, ' ').trim().toUpperCase();
+  if (raw === '' || raw === '0') return null;
+  const fields = new Map<string, string[]>();
+  let current: string[] | null = null;
+  for (const token of raw.split(' ')) {
+    const m = /^([A-Z]{3,4})\/(.*)$/.exec(token);
+    if (m !== null && ITEM18_INDICATORS.has(m[1] as string)) {
+      current = fields.get(m[1] as string) ?? [];
+      fields.set(m[1] as string, current);
+      if (m[2] !== '') current.push(m[2] as string);
+    } else current?.push(token);
+  }
+  const rmk = fields.get('RMK')?.join(' ') ?? '';
+  return { raw, sts: fields.get('STS') ?? [], rmk: rmk === '' ? null : rmk };
+}
+
 function parseAircraft(r: Reader): OfpAircraft {
   return {
     icao: r.str('icao_code').toUpperCase(),
@@ -446,6 +505,7 @@ function parseWeights(r: Reader, kg: (n: number) => number): OfpWeights {
     paxWeightKg: opt('pax_weight'),
     bagWeightKg: opt('bag_weight'),
     cargoKg: req('cargo'),
+    freightKg: opt('freight_added'),
     payloadKg: req('payload'),
     estZfwKg: req('est_zfw'),
     maxZfwKg: req('max_zfw'),
@@ -586,6 +646,9 @@ export function parseSimbriefOfp(json: unknown): Ofp {
     callsign: atc.str('callsign').toUpperCase(),
     airlineIcao: general.optStr('icao_airline'),
     flightNumber: general.optStr('flight_number'),
+    flightType: flightCode(atc.optStr('flight_type')),
+    flightRules: flightCode(atc.optStr('flight_rules')),
+    item18: parseItem18(atc.optStr('section18')),
     costIndex: general.optInt('costindex'),
     initialAltitudeFt: general.int('initial_altitude'),
     stepClimbs: stepClimbs(general.optStr('stepclimb_string')),

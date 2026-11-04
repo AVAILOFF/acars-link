@@ -47,6 +47,7 @@ export function defaultSettings(locale: string): Settings {
     liveData: true,
     soundOnMessage: false,
     messageHints: true,
+    askFlightKind: true,
     messageGapSec: 60,
     xatc: true,
     datalink: false,
@@ -161,6 +162,7 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'liveData':
       case 'soundOnMessage':
       case 'messageHints':
+      case 'askFlightKind':
       case 'xatc':
       case 'datalink':
       case 'datalinkSatcom':
@@ -253,6 +255,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'liveData',
     'soundOnMessage',
     'messageHints',
+    'askFlightKind',
     'messageGapSec',
     'xatc',
     'datalink',

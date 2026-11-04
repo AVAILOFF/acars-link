@@ -1,7 +1,14 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
-import type { FlightPhase, FlightReport, RescueTitles, ScenarioCategory } from '@acars/core';
+import type {
+  FlightKind,
+  FlightKindInfo,
+  FlightPhase,
+  FlightReport,
+  RescueTitles,
+  ScenarioCategory,
+} from '@acars/core';
 import type { TransportStatus } from '@acars/transport';
 import type { BuildVariant } from './sources.js';
 
@@ -173,6 +180,11 @@ export interface Settings {
    */
   readonly droneRisk: Readonly<Record<string, number>>;
   /**
+   * Ask about the kind of flight after an OFP is loaded (T89): a card on the OFP panel with the
+   * recognized kind. Off: the recognized kind applies without a question. Default on.
+   */
+  readonly askFlightKind: boolean;
+  /**
    * The welcome (T70) was finished or skipped. False on a new profile; settings saved before T70
    * read as true, so users who already set the app up do not see it (decision of 2026-10-28).
    */
@@ -218,6 +230,19 @@ export interface ScenarioInfo {
 export interface ForceableScenario {
   readonly id: string;
   readonly title: UiText;
+  /** Kinds of flight it is for (T89); absent = every kind. */
+  readonly operations?: readonly FlightKind[];
+}
+
+/**
+ * Kind of flight of the loaded OFP or the running flight (T89, core `classifyFlight`): what is in
+ * force, what was recognized and why. Absent for a flight recorded before T89 (no filter).
+ */
+export interface FlightKindView extends FlightKindInfo {
+  /** OUT is past: the kind is fixed. */
+  readonly locked: boolean;
+  /** The question after loading the OFP waits for an answer. */
+  readonly ask: boolean;
 }
 
 /**
@@ -352,6 +377,10 @@ export type SystemCode =
   | 'forced_conditions'
   | 'forced_running'
   | 'forced_unknown'
+  /** T89: "run now" of a scenario that is not for this kind of flight: `id`, `detail` = the kind. */
+  | 'forced_operation'
+  /** T89: the user changed the kind of flight: `kind`. */
+  | 'flight_kind'
   | 'data_restored'
   | 'transport_status'
   | 'sim_command_failed'
@@ -489,6 +518,8 @@ export interface AppState {
   readonly resume: ResumeOffer | null;
   /** The report of the flight closed at the gate (T69); null = none, or the next OFP was loaded. */
   readonly report: FlightReportView | null;
+  /** Kind of flight (T89) of the loaded OFP or the running flight; null = no OFP, or no filter. */
+  readonly flightKind: FlightKindView | null;
 }
 
 /** The unfinished flight offered at the start (T64): from its recording. */
@@ -550,6 +581,8 @@ export const ERROR_REASONS = [
   'resume_mismatch',
   'resume_invalid',
   'no_report',
+  'kind_locked',
+  'flight_kind',
 ] as const;
 
 export type ErrorReason = (typeof ERROR_REASONS)[number];
@@ -634,6 +667,11 @@ export interface AcarsApi {
   sendPilotMessage(text: string): Promise<Result<null>>;
   /** Starts an irregular scenario of the running flight now (its conditions must hold). */
   forceScenario(id: string): Promise<Result<null>>;
+  /**
+   * The kind of flight (T89) for this flight, `null` = automatic; answers the question after loading
+   * the OFP. Refused after OUT (`kind_locked`).
+   */
+  setFlightKind(kind: FlightKind | null): Promise<Result<null>>;
   /** Goes on with the flight the app lost (T64, `AppState.resume`). */
   resumeFlight(): Promise<Result<null>>;
   /** Gives that flight up: it is not offered again, its recording stays (unless temporary). */
@@ -666,6 +704,7 @@ export const IPC = {
   setScenariosEnabled: 'acars:set-scenarios-enabled',
   setScenarioChance: 'acars:set-scenario-chance',
   forceScenario: 'acars:force-scenario',
+  setFlightKind: 'acars:set-flight-kind',
   getCredentials: 'acars:get-credentials',
   setSimbriefUsername: 'acars:set-simbrief-username',
   setHoppieCode: 'acars:set-hoppie-code',

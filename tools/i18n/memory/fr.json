@@ -1199,6 +1199,126 @@
     "out": "Astuce",
     "engine": "deepl"
   },
+  "msg:kind.ask.bizav": {
+    "src": "A business jet — the messages will come from flight support, not from an airline. Right?",
+    "out": "Un jet d’affaires — les messages proviendront du service d’assistance au vol, et non d’une compagnie aérienne. N’est-ce pas ?",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.cargo": {
+    "src": "No passengers, freight on board — are we flying cargo?",
+    "out": "Pas de passagers, du fret à bord — s’agit-il d’un vol de fret ?",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.ferry": {
+    "src": "No passengers and no freight — is this a ferry or positioning flight?",
+    "out": "Ni passagers ni fret — s’agit-il d’un vol de navette ou de positionnement ?",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.medevac": {
+    "src": "The plan has <x>STS</x>/<x>{sts}</x> — is this an air ambulance flight?",
+    "out": "Le plan comporte STS/{sts} — s’agit-il d’un vol d’ambulance aérienne ?",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.sched_pax": {
+    "src": "A normal scheduled passenger flight — is that right?",
+    "out": "Un vol régulier de passagers normal — est-ce bien cela ?",
+    "engine": "deepl"
+  },
+  "msg:kind.auto": {
+    "src": "Auto: <x>{kind}</x>",
+    "out": "Automatique : {kind}",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.cargo": {
+    "src": "From the <x>OFP</x>: 0 <x>PAX</x>, freight <x>{t}</x> t",
+    "out": "Issu de l’OFP : 0 PAX, fret {t} t",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.default": {
+    "src": "From the <x>OFP</x>: <x>{pax}</x> <x>PAX</x>",
+    "out": "Issu de l’OFP : {pax} PAX",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.ferry": {
+    "src": "From the <x>OFP</x>: 0 <x>PAX</x>, no freight",
+    "out": "Issu de l’OFP : 0 PAX, pas de fret",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.flight_type": {
+    "src": "Type of flight in the plan: <x>{type}</x>",
+    "out": "Type de vol dans le plan de vol : {type}",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.sts": {
+    "src": "Item 18 of the plan: <x>STS</x>/<x>{sts}</x>",
+    "out": "Point 18 du plan : STS/{sts}",
+    "engine": "deepl"
+  },
+  "msg:kind.bizav": {
+    "src": "Business aviation",
+    "out": "Aviation d’affaires",
+    "engine": "deepl"
+  },
+  "msg:kind.cargo": {
+    "src": "Cargo",
+    "out": "Fret",
+    "engine": "deepl"
+  },
+  "msg:kind.charter_pax": {
+    "src": "Charter",
+    "out": "Charter",
+    "engine": "deepl"
+  },
+  "msg:kind.ferry": {
+    "src": "Ferry / positioning",
+    "out": "Ferry / positionnement",
+    "engine": "deepl"
+  },
+  "msg:kind.hint": {
+    "src": "Scenarios for passengers (unruly passenger, connections, lost bags…) do not run on cargo, ferry, business and air ambulance flights. You can change the kind until pushback.",
+    "out": "Les scénarios concernant les passagers (passager indiscipliné, vols en correspondance, bagages perdus…) ne s’appliquent pas aux vols cargo, de navette, d’affaires et d’ambulance aérienne. Vous pouvez modifier le type jusqu’au repoussage.",
+    "engine": "deepl"
+  },
+  "msg:kind.locked": {
+    "src": "Fixed after pushback (<x>OUT</x>): the scenarios already follow it.",
+    "out": "Fixé après le repoussage (OUT) : les scénarios s’y conforment déjà.",
+    "engine": "deepl"
+  },
+  "msg:kind.manual": {
+    "src": "Chosen by you; recognized: <x>{kind}</x>",
+    "out": "Choisi par vous ; reconnu : {kind}",
+    "engine": "deepl"
+  },
+  "msg:kind.medevac": {
+    "src": "Air ambulance",
+    "out": "Avion sanitaire",
+    "engine": "deepl"
+  },
+  "msg:kind.notFor": {
+    "src": "<x>{title}</x> — not for this kind of flight",
+    "out": "{title} — ne s'applique pas à ce type de vol",
+    "engine": "deepl"
+  },
+  "msg:kind.other": {
+    "src": "Another kind…",
+    "out": "Un autre type…",
+    "engine": "deepl"
+  },
+  "msg:kind.sched_pax": {
+    "src": "Scheduled passenger",
+    "out": "Vol de ligne",
+    "engine": "deepl"
+  },
+  "msg:kind.title": {
+    "src": "Kind of flight",
+    "out": "Type de vol",
+    "engine": "deepl"
+  },
+  "msg:kind.yes": {
+    "src": "Yes",
+    "out": "Oui",
+    "engine": "deepl"
+  },
   "msg:link.held": {
     "src": "held: <x>{n}</x>",
     "out": "en attente : {n}",
@@ -1589,6 +1709,11 @@
     "out": "Événements exceptionnels",
     "engine": "deepl"
   },
+  "msg:report.kind": {
+    "src": "Kind of flight",
+    "out": "Type de vol",
+    "engine": "deepl"
+  },
   "msg:report.landed": {
     "src": "Landed at",
     "out": "Atterrissage à",
@@ -1907,6 +2032,16 @@
   "msg:set.aircraftIcaoHexHint": {
     "src": "For the <x>SATCOM AES/GES</x> header (decoder format, not a cockpit display). No address, no header. Enter the address of your airframe: open databases are not used.",
     "out": "Pour l’en-tête SATCOM AES/GES (format de décodage, et non affichage en cockpit). Pas d’adresse, pas d’en-tête. Saisissez l’adresse de votre cellule : les bases de données ouvertes ne sont pas utilisées.",
+    "engine": "deepl"
+  },
+  "msg:set.askKind": {
+    "src": "Ask the kind of flight after loading the <x>OFP</x>",
+    "out": "Demandez le type de vol après le chargement de l’OFP",
+    "engine": "deepl"
+  },
+  "msg:set.askKindHint": {
+    "src": "A card on the flight panel shows the recognized kind (scheduled, cargo, ferry…) and what it is based on. Off: the recognized kind applies without a question; you can still change it on the panel until pushback.",
+    "out": "Une fiche sur le panneau de vol indique le type de vol reconnu (régulier, cargo, ferry…) et sur quoi ce choix se fonde. Désactivé : le type de vol reconnu s’applique sans discussion ; vous pouvez toutefois le modifier sur le panneau jusqu’au repoussage.",
     "engine": "deepl"
   },
   "msg:set.badHex": {
@@ -2984,6 +3119,11 @@
     "out": "Saut de position de {nm} NM (déplacement / téléportation)",
     "engine": "deepl"
   },
+  "msg:sys.flight_kind": {
+    "src": "Kind of flight: <x>{kind}</x>",
+    "out": "Type de vol : {kind}",
+    "engine": "deepl"
+  },
   "msg:sys.flight_resumed": {
     "src": "Flight <x>{callsign}</x> continued after a restart of the app",
     "out": "Le vol {callsign} s'est poursuivi après un redémarrage de l'application",
@@ -3007,6 +3147,11 @@
   "msg:sys.forced_conditions": {
     "src": "Cannot start <x>{id}</x> now: condition <x>{detail}</x> not met",
     "out": "Impossible de démarrer {id} pour le moment : condition {detail} non remplie",
+    "engine": "deepl"
+  },
+  "msg:sys.forced_operation": {
+    "src": "<x>{id}</x> is not for this kind of flight (<x>{detail}</x>)",
+    "out": "{id} ne correspond pas à ce type de vol ({detail})",
     "engine": "deepl"
   },
   "msg:sys.forced_running": {
@@ -3359,6 +3504,11 @@
     "out": "option inconnue",
     "engine": "deepl"
   },
+  "msg:why.flight_kind": {
+    "src": "unknown kind of flight",
+    "out": "type de vol inconnu",
+    "engine": "deepl"
+  },
   "msg:why.flight_running": {
     "src": "a flight is in progress",
     "out": "un vol est en cours",
@@ -3372,6 +3522,11 @@
   "msg:why.icao_hex": {
     "src": "the <x>ICAO</x> address must be six hex digits or empty",
     "out": "l’adresse ICAO doit comporter six chiffres hexadécimaux ou être vide",
+    "engine": "deepl"
+  },
+  "msg:why.kind_locked": {
+    "src": "the kind of flight is fixed after pushback (<x>OUT</x>)",
+    "out": "le type de vol est défini après le repoussage (OUT)",
     "engine": "deepl"
   },
   "msg:why.load_ofp_first": {

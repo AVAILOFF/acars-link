@@ -8,6 +8,8 @@ title: Onward connections at destination
 description: "Before TOD: up to 4 departures of the airline from the destination with destination, STD and gate (AeroDataBox, your RapidAPI key)."
 hint: "Connections (CONNEX): departures of your airline from the destination with flight, destination, STD and gate, from AeroDataBox, for passenger announcements about onward flights. No reply needed."
 enabled_by_default: true
+# T89: passengers in the cabin; not on cargo, ferry, business or air ambulance flights.
+operations: [sched_pax, charter_pax]
 trigger:
   on: distance
   dist: { to: tod, lte_nm: 120 }

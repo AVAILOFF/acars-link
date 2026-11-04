@@ -6,6 +6,8 @@ title: Rush bags delivered (next flight)
 description: "Before the next flight: the left-behind bags reached their owners, case closed."
 hint: "Baggage: the bags left behind on an earlier flight have been delivered to their owners and the baggage case (PIR) is closed. No reply needed."
 enabled_by_default: true
+# T89: passengers in the cabin; not on cargo, ferry, business or air ambulance flights.
+operations: [sched_pax, charter_pax]
 trigger:
   on: time
   at: { rel: sched_out, offset_min: -40 }

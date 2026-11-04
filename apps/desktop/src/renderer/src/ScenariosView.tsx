@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
-import type { ScenarioCategory } from '@acars/core';
+import type { FlightKind, ScenarioCategory } from '@acars/core';
 import { useEffect, useState } from 'react';
 import type { AppState, ScenarioInfo } from '../../shared/api.js';
 import { SwitchInput } from './Switch.js';
@@ -23,6 +23,7 @@ export function ScenariosView() {
   const running = useStore((s) => s.app?.session === 'running');
   const text = useUiText();
   const irregular = useStore((s) => s.app?.irregular) ?? [];
+  const kind = useStore((s) => s.app?.flightKind?.kind) ?? null;
   const [query, setQuery] = useState('');
 
   const q = query.trim().toLowerCase();
@@ -43,7 +44,7 @@ export function ScenariosView() {
         {t('scen.title')}
       </h2>
       <p className={running ? 'hint warn' : 'hint'}>{t(running ? 'scen.running' : 'scen.hint')}</p>
-      {running && irregular.length > 0 && <ForceForm list={irregular} />}
+      {running && irregular.length > 0 && <ForceForm list={irregular} kind={kind} />}
       <label className="search page-search">
         <svg
           aria-hidden="true"
@@ -367,7 +368,7 @@ function DroneRiskTable({ defaults }: { defaults: Readonly<Record<string, number
 }
 
 /** "Run now" for an irregular scenario of the running flight; the result goes to the feed. */
-function ForceForm({ list }: { list: AppState['irregular'] }) {
+function ForceForm({ list, kind }: { list: AppState['irregular']; kind: FlightKind | null }) {
   const t = useT();
   const busy = useStore((s) => s.busy);
   const text = useUiText();
@@ -388,7 +389,10 @@ function ForceForm({ list }: { list: AppState['irregular'] }) {
       <select id="force-id" value={current} onChange={(e) => setId(e.currentTarget.value)}>
         {list.map((s) => (
           <option key={s.id} value={s.id}>
-            {text(s.title)}
+            {/* T89: "run now" does not get round the kind of flight; the core refuses it too. */}
+            {kind !== null && s.operations !== undefined && !s.operations.includes(kind)
+              ? t('kind.notFor', { title: text(s.title) })
+              : text(s.title)}
           </option>
         ))}
       </select>

@@ -11,6 +11,7 @@ import {
 } from '../sim/vdgs.js';
 import { isContextVariable, isFlagVariable, isRunVariable } from './context.js';
 import { type CompiledExpr, compileExpr, ExprError } from './expr.js';
+import { isFlightKind } from './flight-kind.js';
 import { type CompiledTemplate, compileTemplate, TemplateError } from './template.js';
 import {
   DISTANCE_TARGETS,
@@ -252,6 +253,13 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
   }
 
   if (def.group !== undefined && !ID.test(def.group)) fail('group', 'must be snake_case');
+  // T89: kinds of flight.
+  if (def.operations !== undefined) {
+    if (def.operations.length === 0) fail('operations', 'must name at least one kind of flight');
+    for (const k of def.operations) {
+      if (!isFlightKind(k)) fail('operations', `unknown kind of flight ${String(k)}`);
+    }
+  }
 
   const text = (en: string | undefined): LocalText | null => (en === undefined ? null : { en });
   /** T85: ids of the steps for the translation files, unique among sends and among replies. */

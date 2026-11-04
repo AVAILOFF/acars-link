@@ -83,6 +83,8 @@ pnpm bridge:smoke     # дымовая проверка ОПУБЛИКОВАНН
 
 Сводка рейса (T69): расчёт — `packages/core/src/summary/report.ts` (`AcarsCore.report()`, только цифры данных, без оценок; аэропорт посадки — ближайший в пределах 5 NM), снимается при закрытии рейса у гейта (`FlightSession.endFlight`), пишется строкой `summary` после `end` в запись и в журнал рейсов `<userData>/logbook.json` (`main/logbook.ts`, без ограничения); в UI — `ReportPanel.tsx` до загрузки следующего OFP, «Сохранить в JSON» — `AppController.exportReport`.
 
+Вид рейса (T89): `classifyFlight` — `packages/core/src/scenario/flight-kind.ts` (поля 8b и 18 FPL, `freight_added` — `ofp/parse.ts`), поле сценария `operations`, переменная `flight.kind`, опция и вход ядра `flightKind` (до OUT; в заголовке записи и строке `tick`), вопрос после загрузки OFP и выбор — `controller.ts` (`setFlightKind`, `AppState.flightKind`, настройка `askFlightKind`), в UI — `KindBlock` в `FlightView.tsx`.
+
 Пакеты воркспейса импортируют друг друга из исходников: условие экспорта `source` (`customConditions` в `tsconfig.base.json`, `resolve.conditions` в `vitest.config.ts`), сборка для тестов не нужна. `pnpm -F <pkg> test` запускает корневой конфиг Vitest с `--project`.
 
 Чистота `packages/core` (инварианты 3–4) проверяется трижды: tsconfig без Node/DOM типов, правила Biome в `biome.json` (overrides), тест `packages/core/test/purity.test.ts`.

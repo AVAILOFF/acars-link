@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import {
+  classifyFlight,
   DEFAULT_STATION,
   type DisplayProfile,
   generateSyntheticFlight,
@@ -43,6 +44,8 @@ export function recordingFromSnapshots(
       namesVersion: 2,
       nextLegVersion: 3,
       lateStartVersion: 3,
+      // T89: the kind filter, as the app runs a flight.
+      flightKind: { override: null, kind: classifyFlight(meta.ofp).kind },
     }),
     events: eventsFromSnapshots(snapshots),
   };

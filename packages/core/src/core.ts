@@ -32,6 +32,7 @@ import {
   stationCallsign,
 } from './scenario/engine.js';
 import type { Value } from './scenario/expr.js';
+import type { FlightKind, FlightKindInfo } from './scenario/flight-kind.js';
 import type { PilotMessage } from './scenario/pilot.js';
 import type { SimCommand } from './sim/commands.js';
 import { type FlightReport, flightReport, type ReportCounts } from './summary/report.js';
@@ -54,6 +55,8 @@ export interface CoreInput {
   readonly data?: ExtDataUpdate;
   /** Scenario ids the user starts by hand ("run now"): see `ScenarioEngine`. */
   readonly force?: readonly string[];
+  /** The user's choice of the kind of flight (T89, null = automatic); ignored after OUT. */
+  readonly flightKind?: { readonly override: FlightKind | null };
 }
 
 /** Everything a tick reports: phase, scenario and ATC (T23) events. */
@@ -108,6 +111,11 @@ export interface CoreOptions {
   readonly minGapMs?: number;
   /** XATC station (T23); absent = off. */
   readonly xatc?: XatcOptions;
+  /**
+   * Kind of flight (T89), see `ScenarioEngineOptions.flightKind`: present = scenarios filtered by
+   * their `operations`, `override` = the user's choice. Absent = no filter (recordings before T89).
+   */
+  readonly flightKind?: { readonly override: FlightKind | null };
   /**
    * Simulation of the data link (T31, `datalink/link.ts`): each outgoing message waits for the
    * delay of the VHF station or satellite in reach, or for any link at all. `satcom`: the
@@ -255,6 +263,12 @@ export class AcarsCore {
     }));
   }
 
+  /** Kind of flight now (T89); null without the kind filter. Fixed from OUT on. */
+  get flightKind(): (FlightKindInfo & { readonly locked: boolean }) | null {
+    const k = this.engine.flightKind;
+    return k === null ? null : { ...k, locked: this.fsm.oooi.OUT !== null };
+  }
+
   /** External data the core holds (T13). */
   get ext(): ExtState {
     return this.engine.ext;
@@ -292,6 +306,7 @@ export class AcarsCore {
       ...(ext.divertApts === undefined ? {} : { divertApts: ext.divertApts }),
       ...(ext.places === undefined ? {} : { places: ext.places }),
       counts: this.counts,
+      ...(this.engine.flightKind === null ? {} : { flightKind: this.engine.flightKind.kind }),
       started: data.started,
     });
   }
@@ -324,6 +339,7 @@ export class AcarsCore {
       input.inbound ?? [],
       input.data,
       input.force,
+      input.flightKind,
     );
   }
 
@@ -333,6 +349,7 @@ export class AcarsCore {
     inbound: readonly PilotMessage[] = [],
     data?: ExtDataUpdate,
     force?: readonly string[],
+    flightKind?: CoreInput['flightKind'],
   ): CoreOutput {
     // Messages to a XATC station go to it, the rest to the airline (T23).
     const toAtc = (m: PilotMessage) =>
@@ -350,6 +367,7 @@ export class AcarsCore {
       inbound: inbound.filter((m) => !toAtc(m)),
       ...(data === undefined ? {} : { data }),
       ...(forceAll.length === 0 ? {} : { force: forceAll }),
+      ...(flightKind === undefined ? {} : { flightKind }),
     });
     // ATC uplinks are not airline telexes: they skip the outbox gap.
     const atc = this.xatc?.tick({
@@ -468,5 +486,6 @@ function engineOptions(o: CoreOptions) {
     ...(o.nextLegVersion === undefined ? {} : { nextLegVersion: o.nextLegVersion }),
     ...(o.hub === undefined ? {} : { hub: o.hub }),
     ...(o.lateStartVersion === undefined ? {} : { lateStartVersion: o.lateStartVersion }),
+    ...(o.flightKind === undefined ? {} : { flightKind: o.flightKind }),
   };
 }

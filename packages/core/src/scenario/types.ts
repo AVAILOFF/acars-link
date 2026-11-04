@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import type { FlightPhase, PhaseEvent } from '../phase/fsm.js';
+import type { FlightKind } from './flight-kind.js';
 
 /**
  * A scenario as the engine runs it (docs/05-scenario-engine.md). `@acars/scenarios`
@@ -308,6 +309,11 @@ export interface ScenarioDef {
   /** Default `per_flight`; `none` for `on: command`. */
   readonly cooldown?: Cooldown;
   readonly excludes?: readonly string[];
+  /**
+   * Kinds of flight the scenario is for (T89, `flight-kind.ts`); absent = every kind. A start on
+   * another kind is skipped, a start by hand ("run now") too.
+   */
+  readonly operations?: readonly FlightKind[];
   /**
    * Scenario group (T39): the group's `max_per_flight` (described in `@acars/scenarios`)
    * limits how many of its members start in one flight.

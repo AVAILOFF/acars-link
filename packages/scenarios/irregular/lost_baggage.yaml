@@ -7,6 +7,8 @@ title: Bags left behind
 description: "On block: bags left at the origin (missed transfer), PIR desk at the belt. The next flight gets the case closure."
 hint: "Baggage: some bags were not loaded at the origin (missed transfer). The passengers report them at the baggage desk (PIR, Property Irregularity Report) at the belt; the bags follow on the next service. No reply needed."
 enabled_by_default: true
+# T89: passengers in the cabin; not on cargo, ferry, business or air ambulance flights.
+operations: [sched_pax, charter_pax]
 trigger:
   on: phase_enter
   phase: ON_BLOCK
