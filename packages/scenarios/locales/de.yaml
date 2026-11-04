@@ -316,9 +316,11 @@ earthquake_dest:
   hint: "OPS-Informationen: Ein kürzlich aufgetretenes Erdbeben in der Nähe des Zielflughafens, mit Angabe von Stärke, Ort, Entfernung zum Flughafen und Tiefe (USGS). Überprüfen Sie die NOTAMs bezüglich des Flughafenstatus. Keine Antwort erforderlich."
 emergency_mayday:
   title: MAYDAY-Ruf ausgerufen
-  description: Die Besatzung hat über die XATC-Station einen MAYDAY an die ATC gemeldet. Die Notfallzentrale der Airline bietet eine Umleitung (DIVERT) zum nächstgelegenen geeigneten Flughafen an (standardmäßige Umleitung nach 5 Minuten) und alarmiert dort die Rettungs- und medizinischen Dienste. Der Vorgang beginnt erst nach einem MAYDAY an XATC.
+  description: Die Besatzung hat über die XATC-Station einen MAYDAY-Ruf an die ATC abgesetzt. Die Notfallzentrale der Airline schlägt eine Umleitung (DIVERT) zum nächstgelegenen geeigneten Flughafen vor (standardmäßige Umleitung nach 5 Minuten) und alarmiert dort die Rettungs- und medizinischen Dienste; am Boden alarmiert sie die Dienste des Flughafens, auf dem sich das Flugzeug befindet. Der Vorgang beginnt erst nach einem MAYDAY-Ruf an XATC.
   hint: Die Notrufzentrale der Airline hat Ihren MAYDAY-Ruf über die ATC empfangen und teilt Ihnen den nächstgelegenen geeigneten Flughafen mit dessen Entfernung mit. Teilen Sie OPS mit, ob Sie umleiten oder den Flug fortsetzen.
   steps:
+    ground:
+      hint: "Die Notfallzentrale der Airline hat Ihren MAYDAY-Ruf über die ATC empfangen, während Sie sich am Boden befinden: Rettungs- und Feuerwehrdienste am Flughafen werden alarmiert. Teilen Sie OPS per Freitext-Telex mit, was Sie zu tun beabsichtigen."
     reply:
       reply_hints:
         DIVERT: Leiten Sie den Flug zum nächstgelegenen geeigneten Flughafen oder zu einem anderen Flughafen um, der mit dem Wort (DIVERT EDDM) gekennzeichnet ist.
@@ -329,9 +331,11 @@ emergency_mayday:
       hint: OPS nimmt zur Kenntnis, dass Sie zum Zielflughafen weiterfliegen; Rettungs- und Feuerwehrdienste dort werden alarmiert. Informieren Sie OPS, falls sich Ihr Plan ändert. Eine Antwort ist nicht erforderlich.
 emergency_pan:
   title: PAN PAN-Meldung
-  description: "Die Besatzung hat über die XATC-Station einen „PAN PAN“-Notruf an die Flugsicherung (ATC) abgesetzt. Die Airline bietet die Optionen „DIVERT“ oder „CONTINUE“ an (Standard: „CONTINUE“ nach 5 Minuten) und versetzt Rettungs- und medizinische Dienste am Zielflughafen in Bereitschaft. Der Vorgang beginnt erst nach einem „PAN PAN“-Notruf an XATC."
+  description: "Die Besatzung hat über die XATC-Station einen „PAN PAN“-Notruf an die Flugsicherung (ATC) abgesetzt. Die Airline bietet die Optionen „DIVERT“ oder „CONTINUE“ an (Standard: „CONTINUE“ nach 5 Minuten) und versetzt Rettungs- und medizinische Dienste am Zielflughafen in Bereitschaft; am Boden sind dies die Dienste des Flughafens, auf dem sich das Flugzeug befindet. Der Vorgang beginnt erst nach einem „PAN PAN“-Notruf an XATC."
   hint: "Die Notfallzentrale der Airline hat Ihren „PAN PAN“-Notruf über die Flugsicherung (ATC) erhalten: Der Zielflughafen wurde mitgeteilt, und Rettungs- sowie medizinische Dienste stehen dort bereit. Sie nennt den nächstgelegenen geeigneten Flughafen und fragt, ob Sie umleiten oder weiterfliegen."
   steps:
+    ground:
+      hint: "Die Notfallzentrale der Airline hat Ihren „PAN PAN“-Notruf über die Flugsicherung (ATC) erhalten, während Sie sich am Boden befinden: Rettungs- und medizinische Dienste am Flughafen stehen bereit. Teilen Sie OPS per Freitext-Telex mit, was Sie zu tun beabsichtigen."
     reply:
       reply_hints:
         DIVERT: Leiten Sie den Flug zum nächstgelegenen geeigneten Flughafen oder zu einem anderen, nach dem Stichwort (DIVERT EDDM) benannten Flughafen um.

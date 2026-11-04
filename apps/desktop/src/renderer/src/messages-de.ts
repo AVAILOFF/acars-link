@@ -329,6 +329,8 @@ export const de: Readonly<Partial<Record<MessageKey, string>>> = {
   'sys.telemetry_restored': 'Telemetrie nach {gapSec} s wiederhergestellt',
   'sys.discontinuity': 'Positionssprung von {nm} NM (Slew / Teleport)',
   'sys.scenario_error': 'Szenario {id} fehlgeschlagen: {error}',
+  'sys.rescue_no_airport':
+    'Szenario {id}: keine Rettungsdienste in der Simulation, das Flugzeug befindet sich nicht innerhalb von 5 NM eines Flughafens der Flugstrecke',
   'sys.reply_timeout': 'Keine Antwort auf {id}: {option} angenommen',
   'sys.transport_status': 'Netzwerk: {status} {reason}',
   'sys.sim_command_failed': 'Sim-Befehl {command} fehlgeschlagen: {error} {detail}',

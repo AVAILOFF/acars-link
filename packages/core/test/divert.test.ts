@@ -5,10 +5,13 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  airportHere,
   airportPlace,
   DIVERT_RESERVE_NM,
   type DivertAirport,
+  destinationPoint,
   distanceNm,
+  HERE_WITHIN_NM,
   ofpCandidates,
   parseSimbriefOfp,
   pickDivert,
@@ -217,5 +220,24 @@ describe('airportPlace', () => {
     expect(airportPlace(ofp, r, 'RSRV')).toMatchObject({ lat: 1, lon: 2 });
     expect(airportPlace(ofp, r, 'EGLL')).toBeNull();
     expect(airportPlace(ofp, undefined, 'RSRV')).toBeNull();
+  });
+});
+
+describe('the airport where the aircraft is (T69, T88)', () => {
+  const north = (p: { lat: number; lon: number }, nm: number) => destinationPoint(p, 0, nm);
+
+  it('the nearest airport of the flight within 5 NM, else none', () => {
+    expect(HERE_WITHIN_NM).toBe(5);
+    expect(airportHere(ofp, ofp.origin, null)).toEqual({ icao: ofp.origin.icao, nm: 0 });
+    expect(airportHere(ofp, north(ofp.destination, 4.9), null)?.icao).toBe(ofp.destination.icao);
+    expect(airportHere(ofp, north(ofp.destination, 5.1), null)).toBeNull();
+  });
+
+  it('a diversion airport counts when its position is known', () => {
+    const r: DivertAirport[] = [
+      { icao: 'RSRV', lat: 10, lon: 120, rwyM: 3000, widthM: 45, large: true },
+    ];
+    expect(airportHere(ofp, { lat: 10.01, lon: 120 }, 'RSRV', r)?.icao).toBe('RSRV');
+    expect(airportHere(ofp, { lat: 10.01, lon: 120 }, null, r)).toBeNull();
   });
 });

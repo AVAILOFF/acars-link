@@ -217,6 +217,15 @@ export type ScenarioEvent =
       readonly id: string;
       readonly t: number;
       readonly error: string;
+    }
+  | {
+      /**
+       * A `rescue` step on the ground found no airport of the flight within 5 NM (T88,
+       * `rescueVersion` 2): no command is given.
+       */
+      readonly type: 'RESCUE_NO_AIRPORT';
+      readonly id: string;
+      readonly t: number;
     };
 
 export interface EngineTickInput {
@@ -267,6 +276,13 @@ export interface ScenarioEngineOptions {
    * Default 1; the app asks for 3 and records it in the header.
    */
   readonly lateStartVersion?: 1 | 2 | 3;
+  /**
+   * Airport of the `rescue` step (T54, T88): 1 = `flight.divert`, else the destination (as recorded
+   * before T88); 2 = the same in the air, but on the ground (before OFF, after ON) the airport of the
+   * flight within 5 NM (`flight.here`) with its planned runway, a `ground` call, and none when no
+   * airport is that close (`RESCUE_NO_AIRPORT`). Default 1; the app asks for 2 and records it.
+   */
+  readonly rescueVersion?: 1 | 2;
   /**
    * Generator of `{name:…}` (T43, `names.ts`): 1 = surnames by the origin's ICAO prefix (as
    * recorded before T43), 2 = by the airline's country (default).
@@ -477,6 +493,8 @@ export class ScenarioEngine {
   private readonly fitPre: boolean;
   /** Late start version 3: the span counts only scenarios that can start ({@link liveSpanMs}). */
   private readonly fitLive: boolean;
+  /** `rescueVersion` 2 (T88): rescue on the ground goes to the airport where the aircraft stands. */
+  private readonly groundRescue: boolean;
   /** Context of the current tick; rebuilt when a command or a send changes it. */
   private ctx: ScenarioContext | null = null;
   /** Inside `receive`: messages are answers to the pilot. */
@@ -499,6 +517,7 @@ export class ScenarioEngine {
     this.namesVersion = options.namesVersion ?? 2;
     this.fitPre = options.lateStartVersion === 2 || options.lateStartVersion === 3;
     this.fitLive = options.lateStartVersion === 3;
+    this.groundRescue = options.rescueVersion === 2;
     this.leadMs =
       (options.lateStartLeadMin ??
         (this.fitPre ? FIT_LATE_START_LEAD_MIN : DEFAULT_LATE_START_LEAD_MIN)) * 60_000;
@@ -1718,7 +1737,17 @@ export class ScenarioEngine {
         continue;
       }
       if (step.kind === 'rescue') {
-        const airport = this.st.divert ?? this.ofp.destination.icao;
+        // T88: on the ground (before OFF, after ON) the services come where the aircraft stands.
+        const ground =
+          this.groundRescue &&
+          step.level !== null &&
+          (input.oooi.OFF === null || input.oooi.ON !== null);
+        const here = ground ? (this.look('flight.here') as string | null) : null;
+        if (ground && here === null) {
+          events.push({ type: 'RESCUE_NO_AIRPORT', id: sc.id, t: input.now });
+          continue;
+        }
+        const airport = here ?? this.st.divert ?? this.ofp.destination.icao;
         const atDest = airport === this.ofp.destination.icao;
         // Wind at the landing airport: live METAR (T13), else the OFP's; for the runway end.
         const o = this.ofp;
@@ -1733,8 +1762,13 @@ export class ScenarioEngine {
           action: step.level === null ? 'stop' : 'start',
           level: step.level,
           airport,
-          runway: atDest ? (this.ofp.destination.planRwy ?? null) : null,
+          runway: ground
+            ? (known?.planRwy ?? null)
+            : atDest
+              ? (this.ofp.destination.planRwy ?? null)
+              : null,
           windFromDeg: step.level === null ? null : (wind?.from ?? null),
+          ...(ground ? { ground: true } : {}),
         });
         continue;
       }

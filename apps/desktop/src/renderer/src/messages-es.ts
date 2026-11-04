@@ -325,6 +325,8 @@ export const es: Readonly<Partial<Record<MessageKey, string>>> = {
   'sys.telemetry_restored': 'Telemetría restablecida tras {gapSec} s',
   'sys.discontinuity': 'Salto de posición de {nm} NM (desplazamiento / teletransporte)',
   'sys.scenario_error': 'El escenario {id} ha fallado: {error}',
+  'sys.rescue_no_airport':
+    'Escenario {id}: no hay servicios de rescate en el simulador; la aeronave no se encuentra a menos de 5 NM de un aeropuerto de la ruta',
   'sys.reply_timeout': 'No hay respuesta a {id}: se asume {option}',
   'sys.transport_status': 'Red: {status} {reason}',
   'sys.sim_command_failed': 'El comando de simulación {command} ha fallado: {error} {detail}',

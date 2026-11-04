@@ -89,6 +89,11 @@ export interface RescueCommand extends CommandBase {
    * that faces it (user decision 2026-10-17).
    */
   readonly windFromDeg: number | null;
+  /**
+   * T88: called on the ground (before OFF or after ON) to the airport where the aircraft stands:
+   * the vehicles come to it at once, not after a landing. Absent in the air.
+   */
+  readonly ground?: boolean;
 }
 
 export type SimCommand = BridgeCommand | VdgsCommand | SmokeCommand | RescueCommand;
@@ -133,13 +138,16 @@ const RESCUE_ARGS = [
  * `thrLon`, the runway's true course `hdg` and `lengthM`, the `side` of the runway the trucks wait on
  * (`left` | `right` of the landing direction), the SimObject titles `fire`, `medic` and `fireFlip` — `0` | `1`
  * per fire truck, joined by `|` like `fire` (`1`: the model is drawn nose to tail with its heading, turn it 180°):
- * one per vehicle, joined by `|` (empty = none). Fire trucks only with `full` / `standby`.
+ * one per vehicle, joined by `|` (empty = none). Fire trucks only with `full` / `standby`. Optional
+ * `ground: true` (T88): called on the ground, the vehicles come to the aircraft at once.
  */
 function checkRescueStart(args: SimCommandArgs): string | null {
   const keys = Object.keys(args);
-  if (keys.length !== RESCUE_ARGS.length || !RESCUE_ARGS.every((k) => k in args)) {
-    return `needs ${RESCUE_ARGS.join(', ')} only`;
+  const ground = 'ground' in args ? 1 : 0;
+  if (keys.length !== RESCUE_ARGS.length + ground || !RESCUE_ARGS.every((k) => k in args)) {
+    return `needs ${RESCUE_ARGS.join(', ')} only, and ground`;
   }
+  if (ground === 1 && args['ground'] !== true) return 'ground must be true';
   const { level, thrLat, thrLon, hdg, lengthM, fire, medic } = args;
   if (level !== 'full' && level !== 'standby' && level !== 'medical') {
     return 'level must be full, standby or medical';

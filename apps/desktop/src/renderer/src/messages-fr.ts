@@ -328,6 +328,8 @@ export const fr: Readonly<Partial<Record<MessageKey, string>>> = {
   'sys.telemetry_restored': 'Télémétrie rétablie après {gapSec} s',
   'sys.discontinuity': 'Saut de position de {nm} NM (déplacement / téléportation)',
   'sys.scenario_error': 'Échec du scénario {id} : {error}',
+  'sys.rescue_no_airport':
+    'Scénario {id} : aucun service de secours n’est présent dans la simulation, l’aéronef ne se trouve pas à moins de 5 NM d’un aéroport de la liaison',
   'sys.reply_timeout': 'Aucune réponse à {id} : {option} présumée',
   'sys.transport_status': 'Réseau : {status} {reason}',
   'sys.sim_command_failed': 'Échec de la commande de simulation {command} : {error} {detail}',

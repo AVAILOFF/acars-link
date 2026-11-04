@@ -96,6 +96,7 @@ export function recordedCoreOptions(
     namesVersion: h.namesVersion ?? 1,
     nextLegVersion: h.nextLegVersion ?? 1,
     lateStartVersion: h.lateStartVersion ?? 1,
+    rescueVersion: h.rescueVersion ?? 1,
     ...(h.hub === undefined ? {} : { hub: h.hub }),
     ...(h.xatc === undefined ? {} : { xatc: h.xatc }),
     ...(h.datalink === undefined ? {} : { datalink: h.datalink }),

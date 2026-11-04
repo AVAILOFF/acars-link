@@ -320,6 +320,8 @@ export const ja: Readonly<Partial<Record<MessageKey, string>>> = {
   'sys.telemetry_restored': '{gapSec}秒後にテレメトリが復旧した',
   'sys.discontinuity': '{nm}NMの位置ジャンプ（スルー／テレポート）',
   'sys.scenario_error': 'シナリオ {id} が失敗しました：{error}',
+  'sys.rescue_no_airport':
+    'シナリオ{id}：シミュレーション内に救助サービスは存在せず、航空機は当該フライトの空港から5NM圏内にありません',
   'sys.reply_timeout': '{id} への応答なし：{option} とみなされます',
   'sys.transport_status': 'ネットワーク：{status} {reason}',
   'sys.sim_command_failed': 'Simコマンド {command} が失敗しました：{error} {detail}',

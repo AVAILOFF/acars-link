@@ -2,11 +2,13 @@
 # the airline's emergency desk follows. It starts by hand only (the core forces it after the
 # MAYDAY); probability 0 keeps it from starting on its own. DIVERT (default after 5 min) goes
 # to the nearest suitable airport (T50: the OFP's, or a reserve one), and so reaches the XATC station (T48).
+# On the ground (T88, approved 2026-11-04): no DIVERT / CONTINUE; rescue and fire services come to the airport
+# where the aircraft stands (flight.here, the airport of the flight within 5 NM), none when there is no such airport.
 id: emergency_mayday
 version: 1
 category: irregular
 title: MAYDAY declared
-description: "The crew declared MAYDAY to ATC through the XATC station. The airline emergency desk offers DIVERT to the nearest suitable airport (default DIVERT after 5 min) and alerts rescue and medical services there. Starts only after a MAYDAY to XATC."
+description: "The crew declared MAYDAY to ATC through the XATC station. The airline emergency desk offers DIVERT to the nearest suitable airport (default DIVERT after 5 min) and alerts rescue and medical services there; on the ground it alerts the services of the airport where the aircraft stands. Starts only after a MAYDAY to XATC."
 hint: "The airline's emergency desk got your MAYDAY through ATC and gives the nearest suitable airport with its distance. Tell OPS whether you divert or continue."
 enabled_by_default: true
 trigger:
@@ -14,45 +16,61 @@ trigger:
   phase: CRUISE
 probability: 0
 steps:
-  - send:
-      header: OPS MSG EMERGENCY
-      body: |
-        MAYDAY RCVD VIA ATC
-        EMERGENCY DESK ACTIVATED
-        NEAREST SUITABLE {flight.nearest_any|or:AIRPORT}
-        {flight.nearest_any_nm} NM FROM PRESENT POS
-        REPLY DIVERT OR CONTINUE
-  - wait:
-      reply:
-        id: reply
-        options: [DIVERT, CONTINUE]
-        timeout_min: 5
-        default: DIVERT
-        reply_hints:
-          DIVERT: "Divert to the nearest suitable airport, or to another airport named after the word (DIVERT EDDM)."
-          CONTINUE: "Continue to the destination."
-  - branch:
-      DIVERT:
-        - set: { flight.divert: "{reply.icao|else:flight.nearest_any}" }
-        - send:
-            id: divert
-            header: OPS MSG EMERGENCY
-            body: |
-              ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
-              ROGER DIVERT {flight.divert|or:NEAREST SUITABLE}
-              ~{flight.divert_nm} NM FROM PRESENT POS
-              RESCUE AND FIRE SERVICES ALERTED
-              MEDICAL AND HANDLING ORDERED
-              SEND NEW ETA WHEN ABLE
-            hint: "OPS confirms your diversion airport and its distance: rescue and fire services are alerted, medical help and handling ordered. Send your new ETA by free-text telex when you can."
-        - rescue: { level: full }
-      CONTINUE:
-        - send:
-            id: continue
-            header: OPS MSG EMERGENCY
-            body: |
-              ROGER CONTINUE TO {ofp.dest}
-              RESCUE AND FIRE SERVICES ALERTED
-              ADVISE IF PLAN CHANGES
-            hint: "OPS notes that you continue to the destination; rescue and fire services there are alerted. Tell OPS if your plan changes. No reply needed."
-        - rescue: { level: full }
+  # T88: on the ground (before OFF or after ON) the aircraft is already at an airport: no DIVERT question.
+  - if: "flight.off == null or flight.on != null"
+    steps:
+      - send:
+          id: ground
+          header: OPS MSG EMERGENCY
+          body: |
+            MAYDAY RCVD VIA ATC
+            EMERGENCY DESK ACTIVATED
+            RESCUE AND FIRE SERVICES ALERTED
+            ~AT {flight.here}
+            ADVISE INTENTIONS
+          hint: "The airline's emergency desk got your MAYDAY through ATC while you are on the ground: rescue and fire services at the airport are alerted. Tell OPS by free-text telex what you intend to do."
+      - rescue: { level: full }
+  - if: "flight.off != null and flight.on == null"
+    steps:
+      - send:
+          header: OPS MSG EMERGENCY
+          body: |
+            MAYDAY RCVD VIA ATC
+            EMERGENCY DESK ACTIVATED
+            NEAREST SUITABLE {flight.nearest_any|or:AIRPORT}
+            {flight.nearest_any_nm} NM FROM PRESENT POS
+            REPLY DIVERT OR CONTINUE
+      - wait:
+          reply:
+            id: reply
+            options: [DIVERT, CONTINUE]
+            timeout_min: 5
+            default: DIVERT
+            reply_hints:
+              DIVERT: "Divert to the nearest suitable airport, or to another airport named after the word (DIVERT EDDM)."
+              CONTINUE: "Continue to the destination."
+      - branch:
+          DIVERT:
+            - set: { flight.divert: "{reply.icao|else:flight.nearest_any}" }
+            - send:
+                id: divert
+                header: OPS MSG EMERGENCY
+                body: |
+                  ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
+                  ROGER DIVERT {flight.divert|or:NEAREST SUITABLE}
+                  ~{flight.divert_nm} NM FROM PRESENT POS
+                  RESCUE AND FIRE SERVICES ALERTED
+                  MEDICAL AND HANDLING ORDERED
+                  SEND NEW ETA WHEN ABLE
+                hint: "OPS confirms your diversion airport and its distance: rescue and fire services are alerted, medical help and handling ordered. Send your new ETA by free-text telex when you can."
+            - rescue: { level: full }
+          CONTINUE:
+            - send:
+                id: continue
+                header: OPS MSG EMERGENCY
+                body: |
+                  ROGER CONTINUE TO {ofp.dest}
+                  RESCUE AND FIRE SERVICES ALERTED
+                  ADVISE IF PLAN CHANGES
+                hint: "OPS notes that you continue to the destination; rescue and fire services there are alerted. Tell OPS if your plan changes. No reply needed."
+            - rescue: { level: full }

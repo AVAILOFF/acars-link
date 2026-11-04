@@ -3074,6 +3074,11 @@
     "out": "Aucune réponse à {id} : {option} présumée",
     "engine": "deepl"
   },
+  "msg:sys.rescue_no_airport": {
+    "src": "Scenario <x>{id}</x>: no rescue services in the sim, the aircraft is not within 5 <x>NM</x> of an airport of the flight",
+    "out": "Scénario {id} : aucun service de secours n’est présent dans la simulation, l’aéronef ne se trouve pas à moins de 5 NM d’un aéroport de la liaison",
+    "engine": "deepl"
+  },
   "msg:sys.scenario_error": {
     "src": "Scenario <x>{id}</x> failed: <x>{error}</x>",
     "out": "Échec du scénario {id} : {error}",
@@ -4480,8 +4485,8 @@
     "engine": "deepl"
   },
   "scn:emergency_mayday.description": {
-    "src": "The crew declared <x>MAYDAY</x> to <x>ATC</x> through the <x>XATC</x> station. The airline emergency desk offers <x>DIVERT</x> to the nearest suitable airport (default <x>DIVERT</x> after 5 min) and alerts rescue and medical services there. Starts only after a <x>MAYDAY</x> to <x>XATC</x>.",
-    "out": "L'équipage a lancé un appel « MAYDAY » à ATC via la station XATC. Le centre d'urgence de la compagnie aérienne propose un DIVERT vers l'aéroport approprié le plus proche (DIVERT par défaut après 5 minutes) et alerte les services de secours et médicaux sur place. Cette procédure ne démarre qu'après un appel « MAYDAY » adressé à XATC.",
+    "src": "The crew declared <x>MAYDAY</x> to <x>ATC</x> through the <x>XATC</x> station. The airline emergency desk offers <x>DIVERT</x> to the nearest suitable airport (default <x>DIVERT</x> after 5 min) and alerts rescue and medical services there; on the ground it alerts the services of the airport where the aircraft stands. Starts only after a <x>MAYDAY</x> to <x>XATC</x>.",
+    "out": "L’équipage a déclaré « MAYDAY » à ATC via la station XATC. Le centre d’urgence de la compagnie aérienne propose un « DIVERT » vers l’aéroport approprié le plus proche (DIVERT par défaut après 5 minutes) et alerte les services de secours et médicaux sur place ; au sol, il alerte les services de l’aéroport où se trouve l’avion. Ne se déclenche qu’après un « MAYDAY » adressé à XATC.",
     "engine": "deepl"
   },
   "scn:emergency_mayday.hint": {
@@ -4497,6 +4502,11 @@
   "scn:emergency_mayday.steps.divert.hint": {
     "src": "<x>OPS</x> confirms your diversion airport and its distance: rescue and fire services are alerted, medical help and handling ordered. Send your new <x>ETA</x> by free-text telex when you can.",
     "out": "OPS confirme votre aéroport de déroutement et la distance qui vous en sépare : les services de secours et de lutte contre l’incendie sont alertés, l’assistance médicale et l’assistance à la prise en charge sont organisées. Envoyez votre nouvelle ETA par télex en texte libre dès que vous le pouvez.",
+    "engine": "deepl"
+  },
+  "scn:emergency_mayday.steps.ground.hint": {
+    "src": "The airline's emergency desk got your <x>MAYDAY</x> through <x>ATC</x> while you are on the ground: rescue and fire services at the airport are alerted. Tell <x>OPS</x> by free-text telex what you intend to do.",
+    "out": "Le centre d’urgence de la compagnie aérienne a reçu votre appel « MAYDAY » par l’intermédiaire de l’ATC alors que vous êtes au sol : les services de secours et de lutte contre l’incendie de l’aéroport sont alertés. Indiquez à lOPS, par télex en texte libre, ce que vous comptez faire.",
     "engine": "deepl"
   },
   "scn:emergency_mayday.steps.reply.reply_hints.CONTINUE": {
@@ -4515,8 +4525,8 @@
     "engine": "deepl"
   },
   "scn:emergency_pan.description": {
-    "src": "The crew declared <x>PAN PAN</x> to <x>ATC</x> through the <x>XATC</x> station. The airline desk offers <x>DIVERT</x> or <x>CONTINUE</x> (default <x>CONTINUE</x> after 5 min) and puts rescue and medical services at the destination on standby. Starts only after a <x>PAN PAN</x> to <x>XATC</x>.",
-    "out": "L’équipage a déclaré « PAN PAN » à l’ATC via la station XATC. Le poste de contrôle de la compagnie aérienne propose les options « DIVERT » ou « CONTINUE » (option par défaut « CONTINUE » après 5 minutes) et met en alerte les services de secours et médicaux à la destination. Le processus ne démarre qu’après un « PAN PAN » adressé à XATC.",
+    "src": "The crew declared <x>PAN PAN</x> to <x>ATC</x> through the <x>XATC</x> station. The airline desk offers <x>DIVERT</x> or <x>CONTINUE</x> (default <x>CONTINUE</x> after 5 min) and puts rescue and medical services at the destination on standby; on the ground, those of the airport where the aircraft stands. Starts only after a <x>PAN PAN</x> to <x>XATC</x>.",
+    "out": "L’équipage a déclaré « PAN PAN » à l’ATC via la station XATC. Le poste de contrôle de la compagnie aérienne propose les options « DIVERT » ou « CONTINUE » (par défaut « CONTINUE » après 5 minutes) et met en attente les services de secours et médicaux à destination ; au sol, ce sont ceux de l’aéroport où se trouve l’avion. La procédure ne démarre qu’après un « PAN PAN » adressé à XATC.",
     "engine": "deepl"
   },
   "scn:emergency_pan.hint": {
@@ -4532,6 +4542,11 @@
   "scn:emergency_pan.steps.divert.hint": {
     "src": "<x>OPS</x> confirms your diversion airport and its distance; rescue services and handling are ordered there. Send your new <x>ETA</x> by free-text telex when you can.",
     "out": "OPS confirme votre aéroport de déroutement et la distance qui vous en sépare ; les services de secours et l’assistance au sol y sont mobilisés. Envoyez votre nouvelle ETA par télex en texte libre dès que vous le pouvez.",
+    "engine": "deepl"
+  },
+  "scn:emergency_pan.steps.ground.hint": {
+    "src": "The airline's emergency desk got your <x>PAN PAN</x> through <x>ATC</x> while you are on the ground: rescue and medical services at the airport stand by. Tell <x>OPS</x> by free-text telex what you intend to do.",
+    "out": "Le centre d’urgence de la compagnie aérienne a reçu votre appel « PAN PAN » par l’intermédiaire de lATC alors que vous êtes au sol : les services de secours et les services médicaux de l’aéroport se tiennent prêts. Indiquez à lOPS, par télex en texte libre, ce que vous comptez faire.",
     "engine": "deepl"
   },
   "scn:emergency_pan.steps.reply.reply_hints.CONTINUE": {

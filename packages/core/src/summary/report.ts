@@ -2,11 +2,10 @@
 // Copyright (c) 2026 AVAILOFF
 
 import type { DivertAirport } from '../ext/data.js';
-import { distanceNm } from '../geo/geo.js';
 import type { Ofp } from '../ofp/types.js';
 import type { OooiKind, OooiSample } from '../phase/fsm.js';
 import type { DelayPart } from '../scenario/delay-codes.js';
-import { airportPlace, ofpCandidates, type Place } from '../scenario/divert.js';
+import { airportHere, HERE_WITHIN_NM, type Place } from '../scenario/divert.js';
 import type { ScenarioCategory } from '../scenario/types.js';
 
 /**
@@ -26,7 +25,7 @@ import type { ScenarioCategory } from '../scenario/types.js';
  */
 
 /** A touchdown farther than this from every known airport is at an unknown one, NM (2026-10-30). */
-export const LANDED_WITHIN_NM = 5;
+export const LANDED_WITHIN_NM = HERE_WITHIN_NM;
 
 export const FLIGHT_REPORT_VERSION = 1;
 
@@ -180,15 +179,7 @@ function byKind<T>(f: (k: OooiKind) => T): Record<OooiKind, T> {
 /** The nearest known airport within {@link LANDED_WITHIN_NM} of the touchdown. */
 function landedAt(i: ReportInput, on: OooiSample): NonNullable<FlightReport['landed']> {
   const { ofp } = i;
-  const known: (Place & { readonly icao: string })[] = [ofp.destination, ...ofpCandidates(ofp)];
-  const d = i.divert === null ? null : airportPlace(ofp, i.divertApts, i.divert, i.places);
-  if (d !== null && !known.some((a) => a.icao === d.icao)) known.push(d);
-  let best: { icao: string; nm: number } | null = null;
-  for (const a of known) {
-    const nm = distanceNm(on, a);
-    if (nm <= LANDED_WITHIN_NM && (best === null || nm < best.nm)) best = { icao: a.icao, nm };
-  }
-  const icao = best?.icao ?? null;
+  const icao = airportHere(ofp, on, i.divert, i.divertApts, i.places)?.icao ?? null;
   return {
     icao,
     lat: on.lat,

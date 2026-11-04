@@ -192,6 +192,32 @@ export function airportPlace(
   return p == null ? null : { icao, lat: p.lat, lon: p.lon };
 }
 
+/** An airport of the flight is "here" within this distance of the aircraft, NM (T69 2026-10-30, T88). */
+export const HERE_WITHIN_NM = 5;
+
+/**
+ * The airport of the flight at a position (T69 landing airport, T88 rescue on the ground): the
+ * nearest of the OFP's airports (destination, origin, alternates, ETOPS) and the diversion airport
+ * within {@link HERE_WITHIN_NM}; null when none is that close.
+ */
+export function airportHere(
+  ofp: Ofp,
+  pos: Place,
+  divert: string | null,
+  reserve?: readonly DivertAirport[],
+  places?: Readonly<Record<string, Place | null>>,
+): { readonly icao: string; readonly nm: number } | null {
+  const known: (Place & { readonly icao: string })[] = [ofp.destination, ...ofpCandidates(ofp)];
+  const d = divert === null ? null : airportPlace(ofp, reserve, divert, places);
+  if (d !== null && !known.some((a) => a.icao === d.icao)) known.push(d);
+  let best: { icao: string; nm: number } | null = null;
+  for (const a of known) {
+    const nm = distanceNm(pos, a);
+    if (nm <= HERE_WITHIN_NM && (best === null || nm < best.nm)) best = { icao: a.icao, nm };
+  }
+  return best;
+}
+
 /** The runway need of an aircraft type (ICAO designator), undefined when the table has none. */
 export function runwayNeedFor(aircraftIcao: string | null | undefined): RunwayNeed | undefined {
   const family = aircraftInfo(aircraftIcao)?.family;

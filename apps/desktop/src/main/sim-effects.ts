@@ -57,6 +57,8 @@ export class SimEffects {
     windFromDeg: number | null;
     fire: 'full' | 'standby' | null;
     medic: boolean;
+    /** T88: called on the ground, the vehicles come to the aircraft at once. */
+    ground: boolean;
   } | null = null;
   /** A `rescue_start` was sent and not yet taken down. */
   private rescueOn = false;
@@ -174,12 +176,14 @@ export class SimEffects {
       windFromDeg: c.windFromDeg,
       fire: rank(asked) >= rank(prev?.fire ?? null) ? asked : (prev?.fire ?? null),
       medic: c.level === 'medical' || (prev?.medic ?? false),
+      ground: c.ground === true,
     };
     if (
       prev !== null &&
       prev.airport === next.airport &&
       prev.fire === next.fire &&
-      prev.medic === next.medic
+      prev.medic === next.medic &&
+      prev.ground === next.ground
     ) {
       return; // a lower level after a higher one, or the same again
     }
@@ -219,6 +223,7 @@ export class SimEffects {
       fire: fireTitles.join('|'),
       fireFlip: fireFlips(fireTitles, settings.rescueFlipped),
       medic: medicTitles.join('|'),
+      ...(next.ground ? { ground: true } : {}),
     });
   }
 

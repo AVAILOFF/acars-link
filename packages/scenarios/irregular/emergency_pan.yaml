@@ -1,11 +1,13 @@
 # PAN PAN sent to the XATC station (DM55, T47): ROGER PAN at once, then the airline's desk.
 # Starts by hand only (the core forces it after the PAN); CONTINUE is the default after 5 min,
 # the destination is told to stand by.
+# On the ground (T88, approved 2026-11-04): no DIVERT / CONTINUE; rescue services stand by at the airport where
+# the aircraft stands (flight.here), none when there is no such airport.
 id: emergency_pan
 version: 1
 category: irregular
 title: PAN PAN declared
-description: "The crew declared PAN PAN to ATC through the XATC station. The airline desk offers DIVERT or CONTINUE (default CONTINUE after 5 min) and puts rescue and medical services at the destination on standby. Starts only after a PAN PAN to XATC."
+description: "The crew declared PAN PAN to ATC through the XATC station. The airline desk offers DIVERT or CONTINUE (default CONTINUE after 5 min) and puts rescue and medical services at the destination on standby; on the ground, those of the airport where the aircraft stands. Starts only after a PAN PAN to XATC."
 hint: "The airline's emergency desk got your PAN PAN through ATC: the destination is advised and rescue and medical services there are on standby. It gives the nearest suitable airport and asks whether you divert or continue."
 enabled_by_default: true
 trigger:
@@ -13,43 +15,59 @@ trigger:
   phase: CRUISE
 probability: 0
 steps:
-  - send:
-      header: OPS MSG EMERGENCY
-      body: |
-        PAN PAN RCVD VIA ATC
-        EMERGENCY DESK ACTIVATED
-        {ofp.dest} ADVISED, RESCUE AND MEDICAL STANDBY
-        NEAREST SUITABLE {flight.nearest_altn|or:AIRPORT} {flight.nearest_altn_nm} NM
-        REPLY DIVERT OR CONTINUE
-  - wait:
-      reply:
-        id: reply
-        options: [DIVERT, CONTINUE]
-        timeout_min: 5
-        default: CONTINUE
-        reply_hints:
-          DIVERT: "Divert to the nearest suitable airport, or to another airport named after the word (DIVERT EDDM)."
-          CONTINUE: "Continue to the destination."
-  - branch:
-      DIVERT:
-        - set: { flight.divert: "{reply.icao|else:flight.nearest_altn}" }
-        - send:
-            id: divert
-            header: OPS MSG EMERGENCY
-            body: |
-              ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
-              ROGER DIVERT {flight.divert|or:NEAREST SUITABLE}
-              ~{flight.divert_nm} NM FROM PRESENT POS
-              RESCUE AND HANDLING ORDERED
-              SEND NEW ETA WHEN ABLE
-            hint: "OPS confirms your diversion airport and its distance; rescue services and handling are ordered there. Send your new ETA by free-text telex when you can."
-        - rescue: { level: standby }
-      CONTINUE:
-        - send:
-            id: continue
-            header: OPS MSG EMERGENCY
-            body: |
-              ROGER CONTINUE TO {ofp.dest}
-              ADVISE IF SITUATION CHANGES
-            hint: "OPS notes that you continue to the destination. Tell OPS if the situation changes. No reply needed."
-        - rescue: { level: standby }
+  # T88: on the ground (before OFF or after ON) the aircraft is already at an airport: no DIVERT question.
+  - if: "flight.off == null or flight.on != null"
+    steps:
+      - send:
+          id: ground
+          header: OPS MSG EMERGENCY
+          body: |
+            PAN PAN RCVD VIA ATC
+            EMERGENCY DESK ACTIVATED
+            RESCUE AND MEDICAL STANDBY
+            ~AT {flight.here}
+            ADVISE INTENTIONS
+          hint: "The airline's emergency desk got your PAN PAN through ATC while you are on the ground: rescue and medical services at the airport stand by. Tell OPS by free-text telex what you intend to do."
+      - rescue: { level: standby }
+  - if: "flight.off != null and flight.on == null"
+    steps:
+      - send:
+          header: OPS MSG EMERGENCY
+          body: |
+            PAN PAN RCVD VIA ATC
+            EMERGENCY DESK ACTIVATED
+            {ofp.dest} ADVISED, RESCUE AND MEDICAL STANDBY
+            NEAREST SUITABLE {flight.nearest_altn|or:AIRPORT} {flight.nearest_altn_nm} NM
+            REPLY DIVERT OR CONTINUE
+      - wait:
+          reply:
+            id: reply
+            options: [DIVERT, CONTINUE]
+            timeout_min: 5
+            default: CONTINUE
+            reply_hints:
+              DIVERT: "Divert to the nearest suitable airport, or to another airport named after the word (DIVERT EDDM)."
+              CONTINUE: "Continue to the destination."
+      - branch:
+          DIVERT:
+            - set: { flight.divert: "{reply.icao|else:flight.nearest_altn}" }
+            - send:
+                id: divert
+                header: OPS MSG EMERGENCY
+                body: |
+                  ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
+                  ROGER DIVERT {flight.divert|or:NEAREST SUITABLE}
+                  ~{flight.divert_nm} NM FROM PRESENT POS
+                  RESCUE AND HANDLING ORDERED
+                  SEND NEW ETA WHEN ABLE
+                hint: "OPS confirms your diversion airport and its distance; rescue services and handling are ordered there. Send your new ETA by free-text telex when you can."
+            - rescue: { level: standby }
+          CONTINUE:
+            - send:
+                id: continue
+                header: OPS MSG EMERGENCY
+                body: |
+                  ROGER CONTINUE TO {ofp.dest}
+                  ADVISE IF SITUATION CHANGES
+                hint: "OPS notes that you continue to the destination. Tell OPS if the situation changes. No reply needed."
+            - rescue: { level: standby }

@@ -18,8 +18,8 @@ public class RescueControllerTests
     /// <summary>A runway of 810 m puts four trucks at 400, 470, 540 and 610 m.</summary>
     private const double Spaced = 810;
 
-    private static RescueRequest Req(bool full = true, string[]? fire = null, string[]? medic = null, double thrLat = ThrLat, double lengthM = 3000, bool left = false, bool[]? flip = null) =>
-        new(full, thrLat, ThrLon, Hdg, lengthM, fire ?? FourTrucks, medic ?? [], left, flip);
+    private static RescueRequest Req(bool full = true, string[]? fire = null, string[]? medic = null, double thrLat = ThrLat, double lengthM = 3000, bool left = false, bool[]? flip = null, bool ground = false) =>
+        new(full, thrLat, ThrLon, Hdg, lengthM, fire ?? FourTrucks, medic ?? [], left, flip, ground);
 
     private static (RescueController C, ManualClock Clock) New()
     {
@@ -454,6 +454,140 @@ public class RescueControllerTests
         Assert.Empty(Run(c, far));
     }
 
+    /// <summary>T88: an aircraft at a stand 1.5 km from the threshold, 800 m off the axis; <c>SIM ON GROUND</c> as the sim says.</summary>
+    private static RescueAircraft AtStand(double gs = 0, bool onGround = true, bool brake = true, double hdg = 340)
+    {
+        var (lat, lon) = RescueController.Offset(ThrLat, ThrLon, Hdg, 1500);
+        var (sLat, sLon) = RescueController.Offset(lat, lon, Hdg - 90, 800);
+        return new(sLat, sLon, hdg, gs, onGround, brake);
+    }
+
+    /// <summary>Steps the trucks until they stand (at most 3 min), with a position every 0.4 s.</summary>
+    private static void DriveUntilStill(RescueController c, ManualClock clock, RescueAircraft a)
+    {
+        for (var k = 0; k < 1800 && c.Moving; k++)
+        {
+            Step(c, clock);
+            if (k % 4 == 0) Run(c, a);
+        }
+        Assert.False(c.Moving);
+    }
+
+    [Fact]
+    public void Ground_call_full_trucks_come_from_the_runway_and_surround_the_standing_aircraft()
+    {
+        var (c, clock) = New();
+        c.Start(Req(ground: true));
+        // SIM ON GROUND = 0 at the stand (BlueBird 757, 2026-11-01): a call on the ground goes by the ground speed only.
+        var a = AtStand(onGround: false);
+        var spawn = Run(c, a);
+        Assert.Equal(4, spawn.Count);
+        Assert.All(spawn, x => Assert.Equal(RescueActionKind.Spawn, x.Kind));
+        var staged = RescueController.StagePoint(Req(ground: true), 0, 4);
+        Assert.InRange(Meters(staged.Lat, staged.Lon, spawn[0].Lat, spawn[0].Lon), 0, 0.1); // beside the runway, as on arrival
+
+        clock.Advance(RescueController.StopAfter);
+        Run(c, a);
+        Assert.Equal(RescueStage.Encircle, c.Stage);
+        Assert.True(c.Moving);
+        DriveUntilStill(c, clock, a);
+        for (var i = 0; i < 4; i++)
+        {
+            var at = c.PositionOf(i)!.Value;
+            var point = RescueController.CirclePoint(a, i, 4);
+            Assert.InRange(Meters(point.Lat, point.Lon, at.Lat, at.Lon), 0, RescueController.ArrivedM);
+        }
+
+        clock.Advance(RescueController.StayAfterStop);
+        Assert.All(Run(c, a), x => Assert.Equal(RescueActionKind.Remove, x.Kind));
+        Assert.Equal(RescueStage.Done, c.Stage);
+    }
+
+    [Fact]
+    public void Ground_call_standby_trucks_stand_aside_ahead_of_the_aircraft_not_round_it()
+    {
+        var (c, clock) = New();
+        c.Start(Req(full: false, ground: true));
+        var a = AtStand();
+        Run(c, a);
+        clock.Advance(RescueController.StopAfter);
+        Run(c, a);
+        Assert.Equal(RescueStage.Encircle, c.Stage);
+        DriveUntilStill(c, clock, a);
+        for (var i = 0; i < 4; i++)
+        {
+            var at = c.PositionOf(i)!.Value;
+            var point = RescueController.StandbyPoint(a, i, 4);
+            Assert.InRange(Meters(point.Lat, point.Lon, at.Lat, at.Lon), 0, RescueController.ArrivedM);
+            Assert.InRange(Meters(a.Lat, a.Lon, at.Lat, at.Lon), RescueController.StandbyM - RescueController.ArrivedM, RescueController.StandbyM + RescueController.ArrivedM);
+            Assert.True(RescueController.AheadM(a, at) > 0, $"truck {i} is not ahead of the nose");
+        }
+    }
+
+    [Fact]
+    public void Ground_call_full_trucks_follow_a_rolling_aircraft_and_surround_it_when_it_stops()
+    {
+        var (c, clock) = New();
+        c.Start(Req(ground: true));
+        var rolling = AtStand(gs: 10, brake: false);
+        Run(c, rolling);
+        clock.Advance(RescueController.StopAfter);
+        Run(c, rolling);
+        Assert.Equal(RescueStage.Trailing, c.Stage);
+        Assert.True(c.Moving);
+
+        // A take-off run: past MaxTrailKt the trucks stop where they are.
+        clock.Advance(RescueController.MoveEvery);
+        Run(c, AtStand(gs: 120, brake: false));
+        Assert.False(c.Moving);
+
+        var stopped = AtStand(gs: 0);
+        Run(c, stopped);
+        clock.Advance(RescueController.StopAfter);
+        Run(c, stopped);
+        Assert.Equal(RescueStage.Encircle, c.Stage);
+        Assert.True(c.Moving);
+
+        // It rolls again: the trucks leave the circle and follow.
+        Run(c, rolling);
+        clock.Advance(RescueController.StopAfter);
+        Run(c, rolling);
+        Assert.Equal(RescueStage.Trailing, c.Stage);
+    }
+
+    [Fact]
+    public void Ground_call_standby_trucks_wait_while_the_aircraft_rolls()
+    {
+        var (c, clock) = New();
+        c.Start(Req(full: false, ground: true));
+        var rolling = AtStand(gs: 10, brake: false);
+        Run(c, rolling);
+        clock.Advance(RescueController.StopAfter);
+        Run(c, rolling);
+        Assert.Equal(RescueStage.Staged, c.Stage);
+        Assert.False(c.Moving);
+    }
+
+    [Fact]
+    public void Ground_call_ambulance_by_the_ground_speed_even_without_sim_on_ground()
+    {
+        var (c, clock) = New();
+        c.Start(Req(full: false, fire: [], medic: ["Truck Utility Europe Medic Box"], ground: true));
+        var a = AtStand(onGround: false);
+        Run(c, a);
+        clock.Advance(RescueController.StopAfter);
+        var x = Assert.Single(Run(c, a));
+        Assert.Equal(RescueActionKind.Spawn, x.Kind);
+        Assert.Equal(RescueController.MedicSlot, x.Slot);
+    }
+
+    [Fact]
+    public void A_ground_call_replaces_an_arrival_one_at_the_same_runway()
+    {
+        Assert.False(Req().SameFire(Req(ground: true)));
+        Assert.True(Req(ground: true).SameFire(Req(ground: true)));
+    }
+
     [Fact]
     public void Reads_the_command_arguments()
     {
@@ -470,6 +604,9 @@ public class RescueControllerTests
         Assert.False(r.Flipped(0));
         Assert.True(r.Flipped(1));
         Assert.Empty(r.Medic);
+        Assert.False(r.Ground);
+        args["ground"] = JsonValue.Create(true);
+        Assert.True(RescueRequest.FromArgs(args).Ground);
     }
 }
 
@@ -504,6 +641,11 @@ public class RescueCommandTests
         Assert.Matches("at most 8", Why(Ok.Replace("\"fire\":\"ASO_Firetruck02|Truck Fire Short\"", "\"fire\":\"a|b|c|d|e|f|g|h|i\""))!);
         Assert.Matches("no fire trucks", Why(Ok.Replace("\"full\"", "\"medical\""))!);
         Assert.Matches("only", Why("""{"level":"full"}""")!);
+        // T88: an optional `ground: true`.
+        Assert.Null(Parse("rescue_start", Ok.Replace("\"medic\":\"\"", "\"medic\":\"\",\"ground\":true")).Error);
+        Assert.Matches("ground", Why(Ok.Replace("\"medic\":\"\"", "\"medic\":\"\",\"ground\":false"))!);
+        Assert.Matches("ground", Why(Ok.Replace("\"medic\":\"\"", "\"medic\":\"\",\"ground\":1"))!);
+        Assert.Matches("only", Why(Ok.Replace("\"medic\":\"\"", "\"medic\":\"\",\"extra\":true"))!);
         Assert.Equal(CommandErrors.BadArgs, Parse("rescue_stop", """{"x":1}""").Error?.Error);
     }
 }

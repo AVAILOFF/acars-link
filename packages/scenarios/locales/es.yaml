@@ -316,9 +316,11 @@ earthquake_dest:
   hint: "Información OPS: un terremoto reciente cerca del destino, con magnitud, lugar, distancia al aeropuerto y profundidad (USGS). Consulte los NOTAM para conocer el estado del aeropuerto. No es necesario responder."
 emergency_mayday:
   title: Se ha declarado MAYDAY
-  description: La tripulación ha declarado «MAYDAY» al ATC a través de la estación XATC. El centro de emergencias de la aerolínea propone un desvío (DIVERT) al aeropuerto adecuado más cercano (desvío automático tras 5 minutos) y alerta a los servicios de rescate y médicos de dicho lugar. El proceso solo se inicia tras un «MAYDAY» a XATC.
+  description: La tripulación ha declarado «MAYDAY» a ATC a través de la estación XATC. El servicio de emergencias de la aerolínea propone un desvío (DIVERT) al aeropuerto adecuado más cercano (desvío por defecto tras 5 minutos) y alerta a los servicios de rescate y médicos de dicho lugar; en tierra, alerta a los servicios del aeropuerto en el que se encuentra la aeronave. Solo se activa tras un «MAYDAY» a XATC.
   hint: La central de emergencias de la aerolínea ha recibido su llamada de MAYDAY a través del ATC y le indica el aeropuerto adecuado más cercano junto con su distancia. Indique a OPS si se desvía o continúa.
   steps:
+    ground:
+      hint: "La central de emergencias de la aerolínea ha recibido su llamada de «MAYDAY» a través del ATC mientras se encuentra en tierra: se ha alertado a los servicios de rescate y bomberos del aeropuerto. Indique a OPS, mediante un télex de texto libre, qué tiene previsto hacer."
     reply:
       reply_hints:
         DIVERT: Desvíese al aeropuerto adecuado más cercano, o a otro aeropuerto designado con la palabra «DIVERT EDDM».
@@ -329,9 +331,11 @@ emergency_mayday:
       hint: OPS toma nota de que continúa hacia el destino; se avisa a los servicios de rescate y bomberos de dicho lugar. Informe a OPS si su plan cambia. No es necesario responder.
 emergency_pan:
   title: Se ha declarado PAN PAN
-  description: La tripulación declaró «PAN PAN» a ATC a través de la estación XATC. La central de la aerolínea ofrece las opciones «DIVERT» o «CONTINUE» (por defecto, «CONTINUE» tras 5 minutos) y pone en estado de alerta a los servicios de rescate y médicos en el destino. Solo se inicia tras un «PAN PAN» a XATC.
+  description: La tripulación declaró «PAN PAN» a ATC a través de la estación XATC. La oficina de la aerolínea ofrece las opciones «DIVERT» o «CONTINUE» (por defecto, «CONTINUE» tras 5 minutos) y pone en estado de alerta a los servicios de rescate y médicos en el destino; en tierra, a los del aeropuerto en el que se encuentra la aeronave. El procedimiento solo se inicia tras un «PAN PAN» a XATC.
   hint: "La central de emergencias de la aerolínea ha recibido su llamada «PAN PAN» a través del ATC: se ha informado al destino y los servicios de rescate y médicos de allí están en espera. Le indica el aeropuerto adecuado más cercano y le pregunta si desea desviarse o continuar."
   steps:
+    ground:
+      hint: "La central de emergencias de la aerolínea ha recibido su llamada «PAN PAN» a través del ATC mientras se encuentra en tierra: los servicios de rescate y médicos del aeropuerto están a la espera. Comunique a OPS, mediante un télex de texto libre, lo que tiene previsto hacer."
     reply:
       reply_hints:
         DIVERT: Desvíese al aeropuerto adecuado más cercano, o a otro aeropuerto indicado tras la palabra «DIVERT EDDM».
