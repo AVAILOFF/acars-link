@@ -45,6 +45,30 @@ aviation_history:
   title: En este día en la historia de la aviación
   description: Un dato de la historia de la aviación correspondiente a la fecha de hoy (lista de referencias con fuentes).
   hint: "Información OPS: un acontecimiento de la historia de la aviación que tuvo lugar en esta fecha. No es necesaria respuesta."
+bizav_arrival:
+  title: Disposiciones de llegada (vuelos de negocios)
+  description: "Antes de la hora de llegada prevista (TOD) en un vuelo de negocios: un vehículo recogerá a los pasajeros en el avión; el alojamiento y el transporte de la tripulación están confirmados."
+  hint: "Asistencia de vuelo en el destino: un vehículo recogerá a sus pasajeros junto al avión, y ya se han reservado el hotel para la tripulación y el transporte de la tripulación desde el FBO. No es necesario responder."
+bizav_catering:
+  title: Catering (negocios)
+  description: "Antes de la salida de un vuelo de negocios: se confirma el pedido de catering y se entrega en la aeronave."
+  hint: "Apoyo al vuelo: el pedido de catering para sus pasajeros está confirmado y se entregará en la aeronave a la hora indicada. No es necesario responder."
+bizav_eapis:
+  title: Manifiesto eAPIS (empresarial, US)
+  description: "Antes de la salida de un vuelo de negocios con destino a los US: se ha enviado el manifiesto de llegada de eAPIS a la CBP."
+  hint: "Asistencia en vuelo: se ha enviado el manifiesto de llegada de la tripulación y los pasajeros a la Oficina de Aduanas y Protección Fronteriza de EE. US (CBP) a través de eAPIS, tal y como se exige al menos 60 minutos antes de la salida de las aeronaves privadas que vuelan a EE. US. No es necesario responder."
+bizav_fuel_release:
+  title: Autorización de combustible (vuelos de negocios)
+  description: "Antes de la salida de un vuelo de negocios: se emite la autorización de repostaje para el aeropuerto de salida."
+  hint: "Apoyo al vuelo: se ha emitido la autorización de repostaje (el acuerdo con el proveedor de combustible) para este aeropuerto en relación con el combustible previsto; el encargado del repostaje la tiene. No es necesario responder."
+bizav_handling:
+  title: Handling confirmado (negocios)
+  description: "Antes de la salida de un vuelo de negocios: el servicio de apoyo al vuelo confirma la asistencia en tierra en ambos aeropuertos."
+  hint: "Servicio de apoyo al vuelo (la empresa que organiza los viajes de aviones de negocios): se confirma la asistencia en tierra tanto en el aeropuerto de salida como en el de destino; el FBO (la terminal de aviación de negocios) conoce sus horarios. No es necesario responder."
+bizav_principal_late:
+  title: El cliente principal llega tarde (vuelo de negocios)
+  description: "Antes de la salida de un vuelo de negocios: el cliente principal llega tarde; hay un retraso de 15 a 45 minutos."
+  hint: "Asistencia de vuelo: el cliente principal (el pasajero principal, el propietario o el cliente) llega tarde; la salida sufre un retraso de los minutos indicados. Planifique en consecuencia. No es necesario responder."
 block_report:
   title: Tiempos de bloque (OOOI)
   description: Tiempos de bloque y códigos de retraso tras la llegada al bloque.
@@ -226,6 +250,10 @@ cmd_req_loadsheet:
   title: "Comando del piloto: «REQ LOADSHEET»"
   description: "Comando REQ LOADSHEET: repite la hoja de carga."
   hint: "REQ LOADSHEET: solicita a OPS que envíe de nuevo la hoja de carga. La respuesta repite la última hoja de carga de este vuelo, ya sea preliminar o definitiva. No es necesaria ninguna respuesta."
+cmd_req_loadsheet_bizav:
+  title: "Comando del piloto: «REQ LOADSHEET» (vuelo de negocios)"
+  description: "Comando REQ LOADSHEET en un vuelo de negocios: no se emite hoja de carga; la tripulación se encarga del cálculo de peso y equilibrio."
+  hint: "Respuesta a «REQ LOADSHEET» en un vuelo de negocios: el servicio de apoyo al vuelo no emite hoja de carga; el cálculo del peso y el equilibrio lo realiza la tripulación. No es necesaria ninguna respuesta."
 cmd_req_loadsheet_cargo:
   title: "Comando del piloto: «REQ LOADSHEET» (carga)"
   description: "Comando REQ LOADSHEET» en un vuelo de carga: repite la hoja de carga."

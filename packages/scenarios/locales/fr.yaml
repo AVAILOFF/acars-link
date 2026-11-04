@@ -45,6 +45,30 @@ aviation_history:
   title: Ce jour-là dans l’histoire de l’aviation
   description: Une anecdote tirée de l’histoire de l’aviation en lien avec la date du jour (liste de références avec sources).
   hint: "Informations OPS : un événement de l’histoire de l’aviation survenu ce jour-là. Aucune réponse requise."
+bizav_arrival:
+  title: Dispositions d’arrivée (affaires)
+  description: "Avant l’heure d’TOD, lors d’un vol d’affaires : une voiture viendra chercher les passagers à la sortie de l’avion ; l’hôtel et le transport de l’équipage sont confirmés."
+  hint: "Assistance au vol à destination : une voiture viendra chercher vos passagers à la sortie de l’avion, et l’hôtel ainsi que le transport de l’équipage depuis le FBO sont réservés. Aucune réponse n’est nécessaire."
+bizav_catering:
+  title: Restauration (affaires)
+  description: "Avant le départ d’un vol d’affaires : la commande de restauration est confirmée et livrée à bord de l’avion."
+  hint: "Assistance en vol : la commande de restauration pour vos passagers est confirmée et sera livrée à bord de l’avion à l’heure indiquée. Aucune réponse n’est nécessaire."
+bizav_eapis:
+  title: Manifeste eAPIS (affaires, US)
+  description: "Avant le départ d’un vol d’affaires à destination des US : le manifeste d’arrivée eAPIS a été transmis au CBP."
+  hint: "Assistance au vol : la liste des passagers et de l'équipage a été transmise au Service des douanes et de la protection des frontières des États-Unis (CBP) via le système eAPIS, conformément aux exigences, au moins 60 minutes avant le départ des avions privés à destination des US. Il n'est pas nécessaire de répondre."
+bizav_fuel_release:
+  title: Autorisation de ravitaillement en carburant (avions d'affaires)
+  description: "Avant le départ d’un vol d’affaires : l’autorisation de ravitaillement pour l’aéroport de départ est émise."
+  hint: "Assistance au vol : l’autorisation de ravitaillement (l’accord avec le fournisseur de carburant) pour cet aéroport est émise pour la quantité de carburant prévue ; le ravitailleur en dispose. Aucune réponse n’est nécessaire."
+bizav_handling:
+  title: Assistance au sol confirmée (d’affaires)
+  description: "Avant le départ d’un vol d’affaires : le service d’assistance au vol confirme l’assistance en escale dans les deux aéroports."
+  hint: "Service d’assistance en vol (la société qui organise les voyages en avion d’affaires) : l’assistance en escale au départ et à la destination est confirmée ; le FBO (le terminal dédié à l’aviation d’affaires) connaît vos horaires. Aucune réponse n’est nécessaire."
+bizav_principal_late:
+  title: Retard du passager principal (vol d’affaires)
+  description: "Avant le départ d’un vol d’affaires : le passager principal est en retard, le départ est retardé de 15 à 45 minutes."
+  hint: "Assistance au vol : le passager principal (passager principal, propriétaire ou client) est en retard ; le départ est retardé du nombre de minutes indiqué. Prévoyez en conséquence. Aucune réponse n’est nécessaire."
 block_report:
   title: Temps de bloc (OOOI)
   description: Temps de stationnement et codes de retard après la mise en place.
@@ -226,6 +250,10 @@ cmd_req_loadsheet:
   title: "Commande pilote : « REQ LOADSHEET »"
   description: "Commande REQ LOADSHEET : répète le devis de masse et centrage."
   hint: "REQ LOADSHEET : demande à OPS de renvoyer le devis de masse et centrage. La réponse reprend le dernier devis de masse et centrage de ce vol, qu’il soit préliminaire ou définitif. Aucune réponse n’est nécessaire."
+cmd_req_loadsheet_bizav:
+  title: "Commande pilote : « REQ LOADSHEET » (vol d’affaires)"
+  description: "Commande REQ LOADSHEET lors d’un vol d’affaires : aucun devis de masse et centrage n’est émis, l’équipage effectue lui-même le calcul de la masse et du centrage."
+  hint: "Réponse à « REQ LOADSHEET » lors d’un vol d’affaires : le service d’assistance au vol n’émet pas de devis de masse et centrage ; le calcul de la masse et du centrage est effectué par l’équipage. Aucune réponse n’est nécessaire."
 cmd_req_loadsheet_cargo:
   title: "Commande pilote : « REQ LOADSHEET » (fret)"
   description: "Commande REQ LOADSHEET sur un vol de fret : répète le devis de masse et centrage du fret."

@@ -8,6 +8,8 @@ title: Docking display (GSX)
 description: Flight, origin and arrival gate on the GSX VDGS at the destination stand.
 hint: "Not a message: your flight, origin and arrival gate on the GSX docking display at the stand."
 enabled_by_default: true
+# T92: airline handling; a business flight has flight support (bizav/), no gate, no VDGS.
+operations: [sched_pax, charter_pax, cargo, ferry, medevac]
 trigger:
   on: phase_enter
   phase: LANDED

@@ -45,6 +45,30 @@ aviation_history:
   title: An diesem Tag in der Geschichte der Luftfahrt
   description: Eine Tatsache aus der Luftfahrtgeschichte mit dem heutigen Datum (Quellenverzeichnis).
   hint: "OPS-Informationen: Ein Ereignis aus der Luftfahrtgeschichte, das an diesem Tag stattfand. Keine Antwort erforderlich."
+bizav_arrival:
+  title: Ankunftsvorbereitungen (Geschäftsflüge)
+  description: "Vor der TOD-Zeit bei einem Geschäftsflug: Ein Fahrzeug holt die Passagiere am Flugzeug ab; das Hotel und der Transport für die Besatzung sind bestätigt."
+  hint: "Flugunterstützung am Zielflughafen: Ein Fahrzeug holt Ihre Passagiere am Flugzeug ab, und das Hotel sowie der Transfer der Besatzung vom FBO sind gebucht. Keine Antwort erforderlich."
+bizav_catering:
+  title: Catering (Geschäftsflüge)
+  description: "Vor dem Abflug eines Geschäftsfluges: Die Catering-Bestellung ist bestätigt und wurde an das Flugzeug geliefert."
+  hint: "Flugunterstützung: Die Catering-Bestellung für Ihre Passagiere ist bestätigt und wird zum angegebenen Zeitpunkt an das Flugzeug geliefert. Eine Antwort ist nicht erforderlich."
+bizav_eapis:
+  title: eAPIS-Manifest (Geschäftsflüge, USA)
+  description: "Vor dem Abflug eines Geschäftsfluges in die US: Das eAPIS-Manifest der Ankunft wurde an die CBP übermittelt."
+  hint: "Flugunterstützung: Das Manifest der Ankunft der Besatzung und der Passagiere wurde über eAPIS an die US-Zoll- und Grenzschutzbehörde (CBP) übermittelt, wie es für Privatflugzeuge, die in die US einfliegen, mindestens 60 Minuten vor dem Abflug vorgeschrieben ist. Eine Antwort ist nicht erforderlich."
+bizav_fuel_release:
+  title: Kraftstofffreigabe (Geschäftsflug)
+  description: "Vor dem Abflug eines Geschäftsfluges: Die Freigabe für den Kraftstoff für den Abflug wird erteilt."
+  hint: "Flugunterstützung: Die Freigabe für den Kraftstoff (die Vereinbarung mit dem Lieferanten von Kraftstoff) für diesen Flughafen wird für die geplante Blockmenge an Kraftstoff erteilt; der Betankungsdienst verfügt darüber. Eine Antwort ist nicht erforderlich."
+bizav_handling:
+  title: Abfertigung bestätigt (Geschäftsflug)
+  description: "Vor dem Abflug eines Geschäftsfluges: Der Flugdienst bestätigt die Bodenabfertigung an beiden Flughäfen."
+  hint: "Flugunterstützung (das Unternehmen, das Flüge mit Geschäftsflugzeugen organisiert): Die Bodenabfertigung am Abflug- und am Zielflughafen ist bestätigt; das FBO (das Terminal für die Geschäftsfliegerei) kennt Ihre Zeiten. Eine Antwort ist nicht erforderlich."
+bizav_principal_late:
+  title: Auftraggeber verspätet (Geschäftsflug)
+  description: "Vor dem Abflug eines Geschäftsfluges: Der Auftraggeber verspätet sich, es entsteht eine Verspätung von 15–45 Minuten."
+  hint: "Flugunterstützung: Der Auftraggeber (der Hauptpassagier, Eigentümer oder Kunde) verspätet sich; der Abflug hat eine Verspätung von den angegebenen Minuten. Planen Sie entsprechend. Eine Antwort ist nicht erforderlich."
 block_report:
   title: Blockzeiten (OOOI)
   description: Blockzeiten und Codes für Verspätungen nach dem Einparken.
@@ -226,6 +250,10 @@ cmd_req_loadsheet:
   title: "Pilotenbefehl: „REQ LOADSHEET“"
   description: "Befehl „REQ LOADSHEET“: Wiederholt das Loadsheet."
   hint: "REQ LOADSHEET: Fordert OPS auf, das Loadsheet erneut zu senden. Die Antwort wiederholt das aktuellste Loadsheet dieses Fluges, sei es vorläufig oder endgültig. Eine Antwort ist nicht erforderlich."
+cmd_req_loadsheet_bizav:
+  title: "Pilotenbefehl: „REQ LOADSHEET“ (Geschäftsflug)"
+  description: "Befehl „REQ LOADSHEET“ bei einem Geschäftsflug: Es wird kein Loadsheet ausgestellt; die Gewichts- und Schwerpunktberechnung wird von der Besatzung durchgeführt."
+  hint: "Antwort auf „REQ LOADSHEET“ bei einem Geschäftsflug: Die Flugunterstützung stellt kein Loadsheet aus; die Gewichts- und Schwerpunktberechnung wird von der Besatzung durchgeführt. Keine Antwort erforderlich."
 cmd_req_loadsheet_cargo:
   title: "Pilotenbefehl: „REQ LOADSHEET“ (Fracht)"
   description: "Befehl „REQ LOADSHEET“ bei einem Frachtflug: Wiederholt das FrachtLoadsheet."

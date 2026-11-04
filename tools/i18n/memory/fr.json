@@ -3784,6 +3784,96 @@
     "out": "Ce jour-là dans l’histoire de l’aviation",
     "engine": "deepl"
   },
+  "scn:bizav_arrival.description": {
+    "src": "Before <x>TOD</x> on a business flight: a car meets the passengers at the aircraft, the crew hotel and transport are confirmed.",
+    "out": "Avant l’heure d’TOD, lors d’un vol d’affaires : une voiture viendra chercher les passagers à la sortie de l’avion ; l’hôtel et le transport de l’équipage sont confirmés.",
+    "engine": "deepl"
+  },
+  "scn:bizav_arrival.hint": {
+    "src": "Flight support at the destination: a car will meet your passengers at the aircraft, and the crew hotel and the crew transport from the <x>FBO</x> are booked. No reply needed.",
+    "out": "Assistance au vol à destination : une voiture viendra chercher vos passagers à la sortie de l’avion, et l’hôtel ainsi que le transport de l’équipage depuis le FBO sont réservés. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:bizav_arrival.title": {
+    "src": "Arrival arrangements (business)",
+    "out": "Dispositions d’arrivée (affaires)",
+    "engine": "deepl"
+  },
+  "scn:bizav_catering.description": {
+    "src": "Before departure of a business flight: the catering order is confirmed and delivered to the aircraft.",
+    "out": "Avant le départ d’un vol d’affaires : la commande de restauration est confirmée et livrée à bord de l’avion.",
+    "engine": "deepl"
+  },
+  "scn:bizav_catering.hint": {
+    "src": "Flight support: the catering order for your passengers is confirmed and will be delivered to the aircraft by the time given. No reply needed.",
+    "out": "Assistance en vol : la commande de restauration pour vos passagers est confirmée et sera livrée à bord de l’avion à l’heure indiquée. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:bizav_catering.title": {
+    "src": "Catering (business)",
+    "out": "Restauration (affaires)",
+    "engine": "deepl"
+  },
+  "scn:bizav_eapis.description": {
+    "src": "Before departure of a business flight into the <x>US</x>: the eAPIS arrival manifest has been sent to <x>CBP</x>.",
+    "out": "Avant le départ d’un vol d’affaires à destination des US : le manifeste d’arrivée eAPIS a été transmis au CBP.",
+    "engine": "deepl"
+  },
+  "scn:bizav_eapis.hint": {
+    "src": "Flight support: the arrival manifest of crew and passengers has been sent to <x>US</x> Customs and Border Protection (<x>CBP</x>) through eAPIS, as required at least 60 minutes before departure for private aircraft flying into the <x>US</x>. No reply needed.",
+    "out": "Assistance au vol : la liste des passagers et de l'équipage a été transmise au Service des douanes et de la protection des frontières des États-Unis (CBP) via le système eAPIS, conformément aux exigences, au moins 60 minutes avant le départ des avions privés à destination des US. Il n'est pas nécessaire de répondre.",
+    "engine": "deepl"
+  },
+  "scn:bizav_eapis.title": {
+    "src": "eAPIS manifest (business, <x>US</x>)",
+    "out": "Manifeste eAPIS (affaires, US)",
+    "engine": "deepl"
+  },
+  "scn:bizav_fuel_release.description": {
+    "src": "Before departure of a business flight: the fuel release for the departure airport is issued.",
+    "out": "Avant le départ d’un vol d’affaires : l’autorisation de ravitaillement pour l’aéroport de départ est émise.",
+    "engine": "deepl"
+  },
+  "scn:bizav_fuel_release.hint": {
+    "src": "Flight support: the fuel release (the arrangement with the fuel supplier) for this airport is issued for the planned block fuel; the fueller has it. No reply needed.",
+    "out": "Assistance au vol : l’autorisation de ravitaillement (l’accord avec le fournisseur de carburant) pour cet aéroport est émise pour la quantité de carburant prévue ; le ravitailleur en dispose. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:bizav_fuel_release.title": {
+    "src": "Fuel release (business)",
+    "out": "Autorisation de ravitaillement en carburant (avions d'affaires)",
+    "engine": "deepl"
+  },
+  "scn:bizav_handling.description": {
+    "src": "Before departure of a business flight: flight support confirms ground handling at both airports.",
+    "out": "Avant le départ d’un vol d’affaires : le service d’assistance au vol confirme l’assistance en escale dans les deux aéroports.",
+    "engine": "deepl"
+  },
+  "scn:bizav_handling.hint": {
+    "src": "Flight support (the company that arranges trips of business aircraft): ground handling at the departure and the destination is confirmed; the <x>FBO</x> (the business aviation terminal) knows your times. No reply needed.",
+    "out": "Service d’assistance en vol (la société qui organise les voyages en avion d’affaires) : l’assistance en escale au départ et à la destination est confirmée ; le FBO (le terminal dédié à l’aviation d’affaires) connaît vos horaires. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:bizav_handling.title": {
+    "src": "Handling confirmed (business)",
+    "out": "Assistance au sol confirmée (d’affaires)",
+    "engine": "deepl"
+  },
+  "scn:bizav_principal_late.description": {
+    "src": "Before departure of a business flight: the principal is running late, the departure is delayed by 15-45 minutes.",
+    "out": "Avant le départ d’un vol d’affaires : le passager principal est en retard, le départ est retardé de 15 à 45 minutes.",
+    "engine": "deepl"
+  },
+  "scn:bizav_principal_late.hint": {
+    "src": "Flight support: the principal (the main passenger, owner or client) is running late; the departure is delayed by the minutes given. Plan accordingly. No reply needed.",
+    "out": "Assistance au vol : le passager principal (passager principal, propriétaire ou client) est en retard ; le départ est retardé du nombre de minutes indiqué. Prévoyez en conséquence. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:bizav_principal_late.title": {
+    "src": "Principal late (business)",
+    "out": "Retard du passager principal (vol d’affaires)",
+    "engine": "deepl"
+  },
   "scn:block_report.description": {
     "src": "Block times and delay codes after on-block.",
     "out": "Temps de stationnement et codes de retard après la mise en place.",
@@ -4382,6 +4472,21 @@
   "scn:cmd_req_loadsheet.title": {
     "src": "Pilot command: <x>REQ LOADSHEET</x>",
     "out": "Commande pilote : « REQ LOADSHEET »",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_bizav.description": {
+    "src": "<x>REQ LOADSHEET</x> command on a business flight: no loadsheet is issued, the crew does the weight and balance.",
+    "out": "Commande REQ LOADSHEET lors d’un vol d’affaires : aucun devis de masse et centrage n’est émis, l’équipage effectue lui-même le calcul de la masse et du centrage.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_bizav.hint": {
+    "src": "Answer to <x>REQ LOADSHEET</x> on a business flight: flight support issues no loadsheet; the weight and balance is done by the crew. No reply needed.",
+    "out": "Réponse à « REQ LOADSHEET » lors d’un vol d’affaires : le service d’assistance au vol n’émet pas de devis de masse et centrage ; le calcul de la masse et du centrage est effectué par l’équipage. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_bizav.title": {
+    "src": "Pilot command: <x>REQ LOADSHEET</x> (business)",
+    "out": "Commande pilote : « REQ LOADSHEET » (vol d’affaires)",
     "engine": "deepl"
   },
   "scn:cmd_req_loadsheet_cargo.description": {

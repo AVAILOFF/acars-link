@@ -156,6 +156,7 @@ async function loadScenarioList() {
     'cargo',
     'charter',
     'ferry',
+    'bizav',
   ].flatMap((d) =>
     readdirSync(join(SCN, d))
       .filter((f) => f.endsWith('.yaml'))

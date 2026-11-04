@@ -283,6 +283,9 @@ export const CONTEXT_VARIABLES = [
   // the next leg is a real departure of the airline (AeroDataBox FIDS, T55 level 1), not a route
   // of the statistics with a made-up number (T91)
   'ops.next_real',
+  // a flight into the US from outside (T92, eAPIS arrival manifest, 19 CFR 122.22): destination
+  // ICAO K, PA (Alaska) or PH (Hawaii), origin not; approved by the user 2026-11-04
+  'ops.us_arrival',
   'flight.fuel_stable',
   'flight.fuel_before_kg',
   'flight.fuel_uplift_kg',
@@ -485,6 +488,9 @@ export function holdFuelLow(
 const r1 = (x: number) => Math.round(x * 10) / 10;
 const minutes = (ms: number) => Math.round(ms / 60_000);
 
+/** US airports for `ops.us_arrival` (T92): ICAO K (contiguous US), PA (Alaska), PH (Hawaii). */
+const US_AIRPORT = /^(K|PA|PH)/;
+
 export function buildContext(input: ContextInput): ScenarioContext {
   const { ofp, route, now, telemetry: tm, oooi } = input;
   const { load, ops } = input.data;
@@ -673,6 +679,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       // C4 (T55): attribution line of a message with the AeroDataBox next leg; empty otherwise.
       'ops.next_src': ops.nextLive === null ? '' : CONNEX_ATTRIBUTION,
       'ops.next_real': ops.nextLive === 'fids',
+      'ops.us_arrival': US_AIRPORT.test(ofp.destination.icao) && !US_AIRPORT.test(ofp.origin.icao),
       'ops.ferry_permit': /^N[0-9]/.test(ofp.aircraft.reg ?? '')
         ? 'SPECIAL FLIGHT PERMIT'
         : 'PERMIT TO FLY',

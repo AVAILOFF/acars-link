@@ -1,0 +1,24 @@
+# Fuel release of a business flight (T92): flight support has arranged the fuel at the departure
+# airport; the quantity is the OFP's block fuel (no supplier names; approved by the user 2026-11-04).
+id: bizav_fuel_release
+version: 1
+category: ops
+title: Fuel release (business)
+description: "Before departure of a business flight: the fuel release for the departure airport is issued."
+hint: "Flight support: the fuel release (the arrangement with the fuel supplier) for this airport is issued for the planned block fuel; the fueller has it. No reply needed."
+enabled_by_default: true
+operations: [bizav]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -45 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+steps:
+  - send:
+      header: FLIGHT SUPPORT
+      body: |
+        {ofp.callsign} {ofp.orig}
+        FUEL RELEASE ISSUED
+        OFP BLOCK FUEL {ofp.fuel_ramp_kg|kg1} T
+        FUELLER ADVISED
+      footer: "{name:ops}"

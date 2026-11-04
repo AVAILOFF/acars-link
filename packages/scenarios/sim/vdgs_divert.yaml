@@ -8,6 +8,8 @@ title: Docking display, diversion (GSX)
 description: "Flight, a red DIVERTED line and the origin on the GSX VDGS at the diversion airport."
 hint: "Not a message: your flight, a red DIVERTED line and the origin on the GSX docking display at the diversion airport."
 enabled_by_default: true
+# T92: airline handling; a business flight has flight support (bizav/), no gate, no VDGS.
+operations: [sched_pax, charter_pax, cargo, ferry, medevac]
 trigger:
   on: phase_enter
   phase: LANDED

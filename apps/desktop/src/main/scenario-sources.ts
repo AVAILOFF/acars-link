@@ -10,7 +10,7 @@ import type { ScenarioSource } from './controller.js';
  * (`packages/scenarios/external/*.yaml`, T13) and the irregular ones
  * (`packages/scenarios/irregular/*.yaml`, T14) and the sim-effect ones
  * (`packages/scenarios/sim/*.yaml`, T22 VDGS) and the packs by kind of flight
- * (`packages/scenarios/cargo/*.yaml`, T90; `charter/`, `ferry/`, T91), embedded into the main bundle
+ * (`packages/scenarios/cargo/*.yaml`, T90; `charter/`, `ferry/`, T91; `bizav/`, T92), embedded into the main bundle
  * at build time, so the app needs no path to the repository at run time.
  */
 const files = {
@@ -50,6 +50,11 @@ const files = {
     eager: true,
   }),
   ...import.meta.glob<string>('../../../../packages/scenarios/ferry/*.yaml', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }),
+  ...import.meta.glob<string>('../../../../packages/scenarios/bizav/*.yaml', {
     query: '?raw',
     import: 'default',
     eager: true,

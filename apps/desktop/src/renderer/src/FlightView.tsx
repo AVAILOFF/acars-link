@@ -381,6 +381,8 @@ function kindBasis(t: ReturnType<typeof useT>, k: FlightKindView, lang: string):
       return t('kind.basis.ferry');
     case 'flight_type':
       return t('kind.basis.flight_type', { type: k.flightType ?? '' });
+    case 'aircraft_type':
+      return t('kind.basis.aircraft_type', { type: k.aircraftType ?? '' });
     default:
       return t('kind.basis.default', { pax: k.paxCount });
   }

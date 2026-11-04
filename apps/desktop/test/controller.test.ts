@@ -287,7 +287,8 @@ describe('AppController', () => {
     // + 1 sim (T22) + 10 special events (T29) + atis_update and vdgs_divert (T45) + emergency_mayday and emergency_pan (T47)
     // + 4 irregular (T46) + connex_list (T30) + hold_fuel_watch (T50) + dep_fire
     // + 10 cargo (T90: 2 loadsheets, REQ LOADSHEET, 7 irregular) + 5 charter and 6 ferry (T91)
-    expect(list).toHaveLength(112);
+    // + 7 business aviation (T92)
+    expect(list).toHaveLength(119);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -1447,8 +1448,8 @@ describe('irregular events by hand', () => {
     });
     await s.app.startFlight();
     const list = s.app.state().irregular;
-    // T90: 7 cargo irregular events; T91: the tour group change of a charter.
-    expect(list.length).toBe(42);
+    // T90: 7 cargo irregular events; T91: the tour group change of a charter; T92: principal late.
+    expect(list.length).toBe(43);
     expect(list.find((x) => x.id === 'vip_onboard')?.title).toMatchObject({
       en: 'VIP on board',
       ru: 'VIP на борту',

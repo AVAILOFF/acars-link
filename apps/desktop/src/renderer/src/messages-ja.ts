@@ -284,6 +284,7 @@ export const ja: Readonly<Partial<Record<MessageKey, string>>> = {
   'kind.basis.ferry': 'OFPからの情報：0 PAX、貨物なし',
   'kind.basis.sts': '計画の項目18：STS/{sts}',
   'kind.basis.flight_type': '飛行計画におけるフライトの種類：{type}',
+  'kind.basis.aircraft_type': '機種：{type}',
   'kind.basis.default': 'OFPからの情報：{pax} PAX',
   'kind.manual': 'お客様が選択；認識済み：{kind}',
   'kind.yes': 'はい',

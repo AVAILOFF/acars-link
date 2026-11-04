@@ -283,6 +283,7 @@ export const ru: Record<MessageKey, string> = {
   'kind.basis.ferry': 'По OFP: 0 PAX, груза нет',
   'kind.basis.sts': 'Раздел 18 плана: STS/{sts}',
   'kind.basis.flight_type': 'Тип рейса в плане: {type}',
+  'kind.basis.aircraft_type': 'Тип самолёта: {type}',
   'kind.basis.default': 'По OFP: {pax} PAX',
   'kind.manual': 'Выбрано вручную; распознано: {kind}',
   'kind.yes': 'Да',

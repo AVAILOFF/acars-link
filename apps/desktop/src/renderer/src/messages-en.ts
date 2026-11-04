@@ -280,6 +280,7 @@ export const en = {
   'kind.basis.ferry': 'From the OFP: 0 PAX, no freight',
   'kind.basis.sts': 'Item 18 of the plan: STS/{sts}',
   'kind.basis.flight_type': 'Type of flight in the plan: {type}',
+  'kind.basis.aircraft_type': 'Aircraft type: {type}',
   'kind.basis.default': 'From the OFP: {pax} PAX',
   'kind.manual': 'Chosen by you; recognized: {kind}',
   'kind.yes': 'Yes',

@@ -7,8 +7,8 @@ title: Welcome and turnaround
 description: "Welcome message with the turnaround plan."
 hint: "Welcome from the destination station with the turnaround plan: turn time, next flight and STD, cleaning and catering en route. No reply needed."
 enabled_by_default: true
-# T91: the next leg may be made up (T53); a ferry flight gets a real one only (ferry/ferry_positioning).
-operations: [sched_pax, charter_pax, cargo, bizav, medevac]
+# T91/T92: the next leg may be made up (T53): not on ferry (ferry/ferry_positioning) and business flights.
+operations: [sched_pax, charter_pax, cargo, medevac]
 trigger:
   on: event
   event: OOOI_IN

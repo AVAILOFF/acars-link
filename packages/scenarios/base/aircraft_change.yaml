@@ -6,8 +6,8 @@ title: Aircraft change
 description: "Aircraft change for the next leg."
 hint: "Operations control (OPS) says the next sector will be flown on another aircraft: this one goes to maintenance after arrival and the crew changes aircraft. No reply needed."
 enabled_by_default: true
-# T91: the next leg may be made up (T53); a ferry flight gets a real one only (ferry/ferry_positioning).
-operations: [sched_pax, charter_pax, cargo, bizav, medevac]
+# T91/T92: the next leg may be made up (T53): not on ferry (ferry/ferry_positioning) and business flights.
+operations: [sched_pax, charter_pax, cargo, medevac]
 trigger:
   on: time
   at: { rel: off, offset_min: 55 }

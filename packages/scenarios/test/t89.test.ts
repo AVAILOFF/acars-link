@@ -26,7 +26,17 @@ const read = (name: string) =>
     .sort()
     .map((file) => ({ file, source: readFileSync(join(dir(name), file), 'utf8') }));
 const everything = loadScenarios(
-  ['base', 'commands', 'irregular', 'external', 'sim', 'cargo', 'charter', 'ferry'].flatMap(read),
+  [
+    'base',
+    'commands',
+    'irregular',
+    'external',
+    'sim',
+    'cargo',
+    'charter',
+    'ferry',
+    'bizav',
+  ].flatMap(read),
 );
 
 /** Passengers in the cabin (docs/07, T89; `cmd_medical` stays for all: a crew member may fall ill). */

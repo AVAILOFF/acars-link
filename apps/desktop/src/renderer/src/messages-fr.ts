@@ -291,6 +291,7 @@ export const fr: Readonly<Partial<Record<MessageKey, string>>> = {
   'kind.basis.ferry': 'Issu de l’OFP : 0 PAX, pas de fret',
   'kind.basis.sts': 'Point 18 du plan : STS/{sts}',
   'kind.basis.flight_type': 'Type de vol dans le plan de vol : {type}',
+  'kind.basis.aircraft_type': 'Type d’avion : {type}',
   'kind.basis.default': 'Issu de l’OFP : {pax} PAX',
   'kind.manual': 'Choisi par vous ; reconnu : {kind}',
   'kind.yes': 'Oui',

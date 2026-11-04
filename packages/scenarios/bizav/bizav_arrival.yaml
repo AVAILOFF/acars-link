@@ -1,0 +1,26 @@
+# Arrival of a business flight (T92): a car for the passengers at the aircraft, the crew hotel and
+# transport; no hotel or company names (approved by the user 2026-11-04).
+id: bizav_arrival
+version: 1
+category: ops
+title: Arrival arrangements (business)
+description: "Before TOD on a business flight: a car meets the passengers at the aircraft, the crew hotel and transport are confirmed."
+hint: "Flight support at the destination: a car will meet your passengers at the aircraft, and the crew hotel and the crew transport from the FBO are booked. No reply needed."
+enabled_by_default: true
+operations: [bizav]
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 100 }
+conditions:
+  - "flight.divert == null"
+  - "phase in ['CLIMB','CRUISE']"
+priority: 0
+steps:
+  - send:
+      header: FLIGHT SUPPORT {ofp.dest}
+      body: |
+        {ofp.callsign} ARR {ofp.dest}
+        CAR FOR PAX AT A/C
+        CREW HOTEL CONFIRMED
+        CREW TRANSPORT FROM FBO
+      footer: "{name:ops}"

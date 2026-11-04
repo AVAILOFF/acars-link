@@ -30,7 +30,17 @@ export const LOCALES: readonly LocaleSource[] = readdirSync(join(root, 'locales'
 
 /** UI texts of every shipped scenario, English and Russian (T45, T85); the telexes stay English. */
 describe('scenario UI texts', () => {
-  const dirs = ['base', 'commands', 'external', 'irregular', 'sim', 'cargo', 'charter', 'ferry'];
+  const dirs = [
+    'base',
+    'commands',
+    'external',
+    'irregular',
+    'sim',
+    'cargo',
+    'charter',
+    'ferry',
+    'bizav',
+  ];
   const files = dirs.flatMap((d) =>
     readdirSync(join(root, d))
       .filter((f) => f.endsWith('.yaml'))

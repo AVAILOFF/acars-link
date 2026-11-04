@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import type { Ofp } from '../ofp/types.js';
+import { isBizAviationType } from './aircraft.js';
 
 /**
  * Kind of flight (T89): what the scenarios are for. Scheduled and charter passenger flights, cargo,
@@ -30,9 +31,16 @@ const MEDEVAC_STS: readonly string[] = ['HOSP', 'MEDEVAC'];
 /**
  * Which rule of {@link classifyFlight} gave the recognized kind: `sts` — `STS/HOSP` or
  * `STS/MEDEVAC` in item 18; `cargo` — no passengers, freight on board; `ferry` — no passengers, no
- * freight; `flight_type` — FPL item 8b `G` (general aviation); `default` — none of these.
+ * freight; `flight_type` — FPL item 8b `G` (general aviation); `aircraft_type` — a business
+ * aviation type (T92, `aircraft.ts`); `default` — none of these.
  */
-export type FlightKindRule = 'sts' | 'cargo' | 'ferry' | 'flight_type' | 'default';
+export type FlightKindRule =
+  | 'sts'
+  | 'cargo'
+  | 'ferry'
+  | 'flight_type'
+  | 'aircraft_type'
+  | 'default';
 
 export interface FlightKindInfo {
   /** The kind in force: the user's choice, else the recognized one. */
@@ -50,13 +58,16 @@ export interface FlightKindInfo {
   readonly flightType: string | null;
   /** The `STS/` reason of rule `sts`, else null. */
   readonly sts: string | null;
+  /** ICAO type designator of the OFP (rule `aircraft_type`, T92); null = not in the OFP. */
+  readonly aircraftType: string | null;
 }
 
 /**
  * The kind of a flight (T89, approved by the user 2026-11-04): the user's choice first; then
  * `STS/HOSP` / `STS/MEDEVAC` → medevac; no passengers and freight → cargo, whatever the type
- * (freight in the cabin, belly-only); no passengers and no freight → ferry; FPL type `G` →
- * business aviation; else a scheduled passenger flight. A charter is never recognized (item 8b `N`
+ * (freight in the cabin, belly-only); no passengers and no freight → ferry; FPL type `G`, then a
+ * business aviation type (T92, `aircraft.ts`) → business aviation; else a scheduled passenger
+ * flight. A charter is never recognized (item 8b `N`
  * is not used, decision of 2026-11-04): only the user's choice makes one. `M` and `X` follow the
  * same rules.
  */
@@ -74,7 +85,9 @@ export function classifyFlight(ofp: Ofp, override: FlightKind | null = null): Fl
           ? ['ferry', 'ferry']
           : flightType === 'G'
             ? ['bizav', 'flight_type']
-            : ['sched_pax', 'default'];
+            : isBizAviationType(ofp.aircraft.icao)
+              ? ['bizav', 'aircraft_type']
+              : ['sched_pax', 'default'];
   return {
     kind: override ?? auto,
     auto,
@@ -84,5 +97,6 @@ export function classifyFlight(ofp: Ofp, override: FlightKind | null = null): Fl
     freightKg,
     flightType,
     sts,
+    aircraftType: ofp.aircraft.icao ?? null,
   };
 }
