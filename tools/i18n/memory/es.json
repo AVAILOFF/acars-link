@@ -3954,6 +3954,91 @@
     "out": "Corrección de peso (carga)",
     "engine": "deepl"
   },
+  "scn:charter_group_lmc.description": {
+    "src": "Before departure of a charter: passengers of the tour group do not show or a late group is added; the final loadsheet shows the same passenger <x>LMC</x>.",
+    "out": "Antes de la salida de un vuelo chárter: los pasajeros del grupo turístico no se presentan o se añade un grupo que llega tarde; la hoja de carga definitiva muestra el mismo LMC de pasajeros.",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.hint": {
+    "src": "Charter handling: the tour operator reports a change in its group, passengers who did not show or late ones added. The number is the last-minute change (<x>LMC</x>) the final loadsheet will show. No reply needed.",
+    "out": "Gestión de vuelos chárter: el operador turístico comunica un cambio en su grupo, ya sea por pasajeros que no se han presentado o por pasajeros que han llegado tarde y se han incorporado. La cifra corresponde al cambio de última hora (LMC) que figurará en la hoja de carga definitiva. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.steps.added.hint": {
+    "src": "Charter handling: a late part of the tour group was accepted; their bags are loaded and the final loadsheet will show the change. No reply needed.",
+    "out": "Gestión de vuelos chárter: se ha admitido a una parte del grupo turístico que ha llegado tarde; su equipaje se ha cargado y la hoja de carga definitiva reflejará el cambio. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.steps.no_show.hint": {
+    "src": "Charter handling: passengers of the tour group did not show; their bags are being taken off and the final loadsheet will show the change. No reply needed.",
+    "out": "Handling de vuelos chárter: los pasajeros del grupo turístico no se han presentado; se están descargando sus equipajes y la hoja de carga definitiva reflejará el cambio. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.title": {
+    "src": "Tour group change (charter)",
+    "out": "Modificación de un grupo turístico (chárter)",
+    "engine": "deepl"
+  },
+  "scn:charter_sports_team.description": {
+    "src": "Before departure of a charter: a sports team on board with oversize sports equipment in the hold and special catering ordered by the charterer.",
+    "out": "Antes de la salida de un vuelo chárter: un equipo deportivo a bordo con equipamiento deportivo de gran tamaño en la bodega y catering especial solicitado por el fletador.",
+    "engine": "deepl"
+  },
+  "scn:charter_sports_team.hint": {
+    "src": "Charter handling: a sports team flies with you. Their oversize equipment is loaded in the hold given and the charterer ordered its own catering. No reply needed.",
+    "out": "Gestión de vuelos chárter: un equipo deportivo viaja con usted. Su equipamiento de gran tamaño se ha cargado en la bodega asignada y el fletador ha solicitado su propio servicio de catering. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_sports_team.title": {
+    "src": "Sports team (charter)",
+    "out": "Equipo deportivo (vuelo chárter)",
+    "engine": "deepl"
+  },
+  "scn:charter_tour_rep.description": {
+    "src": "Before departure of a charter: the tour operator's representative has checked the group in and asks for a short welcome on the <x>PA</x>.",
+    "out": "Antes de la salida de un vuelo chárter: el representante del operador turístico ha realizado el check-in del grupo y solicita un breve mensaje de bienvenida por megafonía (PA).",
+    "engine": "deepl"
+  },
+  "scn:charter_tour_rep.hint": {
+    "src": "Charter handling: the tour operator's representative is at the gate, the group check-in is complete and the representative would like a short welcome on the public address after boarding. No reply needed.",
+    "out": "Handling de vuelos chárter: el representante del operador turístico se encuentra en la puerta de embarque, el registro del grupo ha finalizado y el representante desea que se emita un breve mensaje de bienvenida por megafonía tras el embarque. No es necesaria respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_tour_rep.title": {
+    "src": "Tour operator representative (charter)",
+    "out": "Representante del operador turístico (vuelo chárter)",
+    "engine": "deepl"
+  },
+  "scn:charter_transfer.description": {
+    "src": "Before <x>TOD</x> on a charter: transfer coaches for the passengers wait at the destination, the tour operator's representative meets them.",
+    "out": "Antes de la hora de llegada prevista (TOD) en un vuelo chárter: los autocares de traslado para los pasajeros esperan en el destino y el representante del operador turístico se encarga de recibirlos.",
+    "engine": "deepl"
+  },
+  "scn:charter_transfer.hint": {
+    "src": "Charter handling at the destination: coaches of the tour operator wait for your passengers and a representative meets them in the arrivals hall. Useful for the cabin announcement. No reply needed.",
+    "out": "Handling de vuelos chárter en el destino: los autocares del operador turístico esperan a sus pasajeros y un representante les recibe en la sala de llegadas. Útil para el anuncio a bordo. No es necesaria respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_transfer.title": {
+    "src": "Transfer at destination (charter)",
+    "out": "Traslado en destino (vuelo chárter)",
+    "engine": "deepl"
+  },
+  "scn:charter_vip.description": {
+    "src": "Before departure of a charter: a <x>VIP</x> party arrives by car at the aircraft and boards last; catering to their order.",
+    "out": "Antes de la salida de un vuelo chárter: un grupo de VIP llega en coche al avión y embarca en último lugar; el servicio de catering se adapta a sus peticiones.",
+    "engine": "deepl"
+  },
+  "scn:charter_vip.hint": {
+    "src": "Charter handling: this is a <x>VIP</x> charter. The party comes by car to the aircraft and boards last, and the catering is to their order. No reply needed.",
+    "out": "Handling de vuelos chárter: se trata de un vuelo chárter VIP. El grupo llega en coche hasta la aeronave y embarca en último lugar; el servicio de catering se adapta a sus peticiones. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_vip.title": {
+    "src": "<x>VIP</x> charter",
+    "out": "Vuelo chárter VIP",
+    "engine": "deepl"
+  },
   "scn:cmd_delay.description": {
     "src": "<x>DELAY</x> command: confirms the new off-block time.",
     "out": "Comando DELAY: confirma la nueva hora de salida del bloque.",
@@ -4312,6 +4397,36 @@
   "scn:cmd_req_loadsheet_cargo.title": {
     "src": "Pilot command: <x>REQ LOADSHEET</x> (cargo)",
     "out": "Comando del piloto: «REQ LOADSHEET» (carga)",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry.description": {
+    "src": "<x>REQ LOADSHEET</x> command on a ferry flight: repeats the crew-only loadsheet.",
+    "out": "Comando REQ LOADSHEET» en un vuelo de traslado: repite la hoja de carga exclusiva para la tripulación.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry.hint": {
+    "src": "<x>REQ LOADSHEET</x> asks load control to send the loadsheet again. The answer repeats the crew-only loadsheet of this ferry flight. No reply needed.",
+    "out": "«REQ LOADSHEET» solicita al control de carga que envíe de nuevo la hoja de carga. La respuesta repite la hoja de carga exclusiva para la tripulación de este vuelo de traslado. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry.title": {
+    "src": "Pilot command: <x>REQ LOADSHEET</x> (ferry)",
+    "out": "Comando del piloto: «REQ LOADSHEET» (vuelo de traslado)",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry_none.description": {
+    "src": "<x>REQ LOADSHEET</x> command on a ferry flight before the loadsheet exists.",
+    "out": "Comando REQ LOADSHEET» en un vuelo de traslado antes de que exista la hoja de carga.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry_none.hint": {
+    "src": "Answer to <x>REQ LOADSHEET</x> on a ferry flight: the loadsheet has not been issued yet; the message says when it comes. No reply needed.",
+    "out": "Respuesta a «REQ LOADSHEET» en un vuelo de traslado: la hoja de carga aún no se ha emitido; el mensaje indicará cuándo estará disponible. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry_none.title": {
+    "src": "Pilot command: <x>REQ LOADSHEET</x>, none yet (ferry)",
+    "out": "Comando del piloto: «REQ LOADSHEET», aún no hay ninguna (vuelo de traslado)",
     "engine": "deepl"
   },
   "scn:cmd_req_loadsheet_none.description": {
@@ -4887,6 +5002,76 @@
   "scn:f1_result.title": {
     "src": "Formula 1 result",
     "out": "Resultado de Fórmula 1",
+    "engine": "deepl"
+  },
+  "scn:ferry_after_mx.description": {
+    "src": "Before a ferry flight: the aircraft comes out of maintenance, released to service; check the technical log.",
+    "out": "Antes de un vuelo de traslado: la aeronave sale del mantenimiento y ha sido autorizada para el servicio; compruebe el registro técnico.",
+    "engine": "deepl"
+  },
+  "scn:ferry_after_mx.hint": {
+    "src": "Maintenance control: the aircraft has come out of maintenance and has been released to service. Check the technical log entries before departure. No reply needed.",
+    "out": "Control de mantenimiento: la aeronave ha salido del taller y ha sido autorizada para el servicio. Compruebe las anotaciones del registro técnico antes de la salida. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:ferry_after_mx.title": {
+    "src": "Ferry after maintenance (ferry)",
+    "out": "Vuelo de traslado tras el mantenimiento (ferry)",
+    "engine": "deepl"
+  },
+  "scn:ferry_loadsheet.description": {
+    "src": "Loadsheet of a ferry flight: crew only, no passengers and no cargo.",
+    "out": "Hoja de carga de un vuelo de traslado: solo tripulación, sin pasajeros ni carga.",
+    "engine": "deepl"
+  },
+  "scn:ferry_loadsheet.hint": {
+    "src": "Loadsheet of a ferry or positioning flight: crew only, without passengers and cargo; the weights (<x>ZFW</x>, <x>TOW</x>, <x>LAW</x> against the maximums) and the takeoff and trip fuel. Check the figures and use them in the <x>FMS</x>; no reply needed.",
+    "out": "Hoja de carga de un vuelo de traslado o de posicionamiento: solo tripulación, sin pasajeros ni carga; los pesos (ZFW, TOW, LAW en relación con los máximos) y el combustible de despegue y de travesía. Compruebe las cifras e utilícelas en el FMS; no es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:ferry_loadsheet.title": {
+    "src": "Loadsheet (ferry)",
+    "out": "Hoja de carga (vuelo de traslado)",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.description": {
+    "src": "Before a ferry flight: the aircraft flies to maintenance under a special flight permit (<x>US</x>) or a permit to fly. Reply <x>ACK</x>.",
+    "out": "Antes de un vuelo de traslado: la aeronave se dirige al centro de mantenimiento con un permiso de vuelo especial (US) o un permiso de vuelo. Responda con ACK.",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.hint": {
+    "src": "Maintenance control: the aircraft does not fully meet its airworthiness requirements but may fly to the maintenance base under a ferry permit; the permit and its limitations are in the aircraft documents. Read them and acknowledge with <x>ACK</x>.",
+    "out": "Control de mantenimiento: la aeronave no cumple plenamente los requisitos de aeronavegabilidad, pero puede volar hasta la base de mantenimiento con un permiso de traslado; dicho permiso y sus limitaciones figuran en la documentación de la aeronave. Léalos y acuse recibo con «ACK».",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.steps.ack.hint": {
+    "src": "Maintenance control received your acknowledgement; the maintenance base at the destination expects the aircraft. No reply needed.",
+    "out": "El control de mantenimiento ha recibido su acuse de recibo; la base de mantenimiento en el destino espera la llegada de la aeronave. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.steps.reply.reply_hints.ACK": {
+    "src": "You have read the permit and its limitations.",
+    "out": "Ha leído el permiso y sus limitaciones.",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.title": {
+    "src": "Ferry permit (ferry)",
+    "out": "Permiso de traslado (ferry)",
+    "engine": "deepl"
+  },
+  "scn:ferry_positioning.description": {
+    "src": "In cruise of a ferry flight: the aircraft positions for its next departure (real <x>AeroDataBox</x> data only).",
+    "out": "En crucero de un vuelo de traslado: la aeronave se posiciona para su próxima salida (solo datos reales de AeroDataBox).",
+    "engine": "deepl"
+  },
+  "scn:ferry_positioning.hint": {
+    "src": "Operations: this flight positions the aircraft for its next departure from the destination, with flight, route and <x>STD</x> from <x>AeroDataBox</x>. No reply needed.",
+    "out": "Operaciones: este vuelo posiciona la aeronave para su próxima salida desde el destino, con el vuelo, la ruta y el STD de AeroDataBox. No es necesaria respuesta.",
+    "engine": "deepl"
+  },
+  "scn:ferry_positioning.title": {
+    "src": "Positioning for the next flight (ferry)",
+    "out": "Posicionamiento para el próximo vuelo (vuelo de traslado)",
     "engine": "deepl"
   },
   "scn:final_loadsheet.description": {

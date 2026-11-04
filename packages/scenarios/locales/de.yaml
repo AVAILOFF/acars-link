@@ -97,6 +97,31 @@ cargo_weight_error:
   title: Gewichtskorrektur (Fracht)
   description: "Vor dem Abflug eines Frachtfluges: Ein ULD wird erneut gewogen und ist schwerer als gebucht; das endgültige Loadsheet weist denselben Fracht-LMC aus."
   hint: "Ladungskontrolle: Eine Einheit wurde erneut gewogen und ist schwerer als in der Buchung angegeben. Die Differenz ist eine kurzfristige Änderung (LMC) und wird im endgültigen Loadsheet aufgeführt. Eine Antwort ist nicht erforderlich."
+charter_group_lmc:
+  title: Änderung bei der Reisegruppe (Charter)
+  description: "Vor dem Abflug eines Charterfluges: Passagiere der Reisegruppe erscheinen nicht oder eine verspätete Gruppe wird hinzugefügt; das endgültige Loadsheet weist dieselbe Passagier-LMC aus."
+  hint: "Charterabfertigung: Der Reiseveranstalter meldet eine Änderung in seiner Gruppe, d. h. Passagiere, die nicht erschienen sind, oder verspätet hinzugekommene Passagiere. Die Zahl entspricht der Last-Minute-Änderung (LMC), die im endgültigen Loadsheet ausgewiesen wird. Eine Antwort ist nicht erforderlich."
+  steps:
+    no_show:
+      hint: "Charterabfertigung: Passagiere der Reisegruppe sind nicht erschienen; ihr Gepäck wird ausgeladen, und die Änderung wird in dem endgültigen Loadsheet ausgewiesen. Eine Antwort ist nicht erforderlich."
+    added:
+      hint: "Charter-Abfertigung: Ein verspäteter Teil der Reisegruppe wurde akzeptiert; deren Gepäck wurde verladen, und die Änderung wird im endgültigen Loadsheet ausgewiesen. Keine Antwort erforderlich."
+charter_sports_team:
+  title: Sportmannschaft (Charter)
+  description: "Vor dem Abflug eines Charterfluges: Eine Sportmannschaft an Bord mit übergroßer Sportausrüstung im Frachtraum und vom Charterer bestelltem Spezialcatering."
+  hint: "Charterabfertigung: Eine Sportmannschaft fliegt mit Ihnen. Ihre übergroße Ausrüstung wurde in den zugewiesenen Frachtraum verladen, und der Charterer hat eine eigene Verpflegung bestellt. Keine Antwort erforderlich."
+charter_tour_rep:
+  title: Vertreter des Reiseveranstalters (Charter)
+  description: "Vor dem Abflug eines Charterfluges: Der Vertreter des Reiseveranstalters hat die Gruppe eingecheckt und bittet um eine kurze Begrüßung über die PA-Anlage."
+  hint: "Charter-Abfertigung: Der Vertreter des Reiseveranstalters befindet sich am Gate, der Check-in der Gruppe ist abgeschlossen, und der Vertreter wünscht nach dem Einsteigen eine kurze Begrüßung über die Lautsprecheranlage. Eine Antwort ist nicht erforderlich."
+charter_transfer:
+  title: Transfer am Zielflughafen (Charter)
+  description: "Vor der TOD-Zeit bei einem Charterflug: Die Transferbusse für die Passagiere warten am Zielflughafen, ein Vertreter des Reiseveranstalters empfängt sie."
+  hint: "Charter-Abfertigung am Zielflughafen: Die Reisebusse des Reiseveranstalters warten auf Ihre Passagiere, und ein Vertreter empfängt sie in der Halle der Ankunft. Nützlich für die Durchsage an Bord. Keine Antwort erforderlich."
+charter_vip:
+  title: VIP-Charter
+  description: "Vor dem Abflug eines Charterfluges: Eine VIP-Gruppe erreicht mit dem Auto das Flugzeug und steigt als Letzte ein; das Catering erfolgt nach deren Wunsch."
+  hint: "Charterabfertigung: Es handelt sich um einen VIP-Charter. Die Gruppe kommt mit dem Auto zum Flugzeug und steigt als Letzte ein; das Catering erfolgt nach deren Wunsch. Eine Antwort ist nicht erforderlich."
 cmd_delay:
   title: "Pilotenbefehl: „DELAY“"
   description: "DELAY-Befehl: bestätigt die neue Abfahrtszeit."
@@ -205,6 +230,14 @@ cmd_req_loadsheet_cargo:
   title: "Pilotenbefehl: „REQ LOADSHEET“ (Fracht)"
   description: "Befehl „REQ LOADSHEET“ bei einem Frachtflug: Wiederholt das FrachtLoadsheet."
   hint: „REQ LOADSHEET“ fordert die Ladungskontrolle auf, das Loadsheet erneut zu senden. Die Antwort wiederholt das aktuellste Loadsheet dieses Frachtfluges, sei es vorläufig oder endgültig. Eine Antwort ist nicht erforderlich.
+cmd_req_loadsheet_ferry:
+  title: "Pilotenbefehl: „REQ LOADSHEET“ (Überführungsflug)"
+  description: "Befehl „REQ LOADSHEET“ bei einem Überführungsflug: Wiederholt das ausschließlich für die Besatzung bestimmte Loadsheet."
+  hint: „REQ LOADSHEET“ fordert die Ladungskontrolle auf, das Loadsheet erneut zu senden. Die Antwort wiederholt das ausschließlich für die Besatzung bestimmte Loadsheet dieses Überführungsflugs. Eine Antwort ist nicht erforderlich.
+cmd_req_loadsheet_ferry_none:
+  title: "Pilotenbefehl: „REQ LOADSHEET“, noch keine vorliegend (Überführungsflug)"
+  description: Befehl „REQ LOADSHEET“ bei einem Überführungsflug, bevor das Loadsheet vorliegt.
+  hint: "Antwort auf „REQ LOADSHEET“ bei einem Überführungsflug: Das Loadsheet wurde noch nicht ausgestellt; in der Nachricht wird angegeben, wann es eintrifft. Keine Antwort erforderlich."
 cmd_req_loadsheet_none:
   title: "Pilotenbefehl: „REQ LOADSHEET“, noch keine vorhanden"
   description: Befehl „REQ LOADSHEET“, bevor ein Loadsheet vorliegt.
@@ -396,6 +429,28 @@ f1_result:
   title: Formel-1-Ergebnis
   description: "Ein Grand Prix, der während des Fluges zu Ende ging: das Podium (Jolpica)."
   hint: "OPS-Informationen: das Ergebnis eines Formel-1-Grand-Prix, der während Ihres Fluges zu Ende ging. Keine Antwort erforderlich."
+ferry_after_mx:
+  title: Überführungsflug nach der Wartung (Ferry)
+  description: "Vor einem Überführungsflug: Das Flugzeug kommt aus der Wartung und ist wieder flugtauglich; überprüfen Sie das technische Logbuch."
+  hint: "Wartung: Das Flugzeug wurde gewartet und ist wieder für den Flugbetrieb freigegeben. Überprüfen Sie vor dem Abflug die Einträge im technischen Logbuch. Keine Antwort erforderlich."
+ferry_loadsheet:
+  title: Loadsheet (Überführungsflug)
+  description: "Loadsheet für einen Überführungsflug: nur Besatzung, keine Passagiere und keine Fracht."
+  hint: "Loadsheet eines Überführungs- oder Positionierungsflugs: nur Besatzung, ohne Passagiere und Fracht; die Gewichte (ZFW, TOW, LAW im Vergleich zu den Höchstwerten) sowie der Start- und Flugkraftstoff. Überprüfen Sie die Angaben und übernehmen Sie sie in das FMS; eine Antwort ist nicht erforderlich."
+ferry_permit:
+  title: Überführungsgenehmigung (ferry)
+  description: "Vor einem Überführungsflug: Das Flugzeug fliegt im Rahmen einer Sondergenehmigung (US) oder einer Fluggenehmigung für die Wartung. Antworten Sie mit ACK."
+  hint: "Wartung: Das Flugzeug erfüllt die Anforderungen an die Lufttüchtigkeit nicht vollständig, darf jedoch mit einer Überführungsgenehmigung zur Wartungsbasis fliegen; die Genehmigung und ihre Einschränkungen sind in den Flugzeugunterlagen enthalten. Lesen Sie diese durch und bestätigen Sie mit „ACK“."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Sie haben die Genehmigung und deren Einschränkungen gelesen.
+    ack:
+      hint: Die Leitung der Wartung hat Ihre Bestätigung erhalten; die Wartungsbasis am Zielflughafen erwartet das Flugzeug. Keine Antwort erforderlich.
+ferry_positioning:
+  title: Positionierung für den nächsten Flug (Überführungsflug)
+  description: "Im Reiseflug eines Überführungsflugs: Das Flugzeug positioniert sich für seinen nächsten Abflug (ausschließlich echte AeroDataBox-Daten)."
+  hint: "Betrieb: Bei diesem Flug wird das Flugzeug für seinen nächsten Abflug vom Zielflughafen positioniert, wobei Flug, Route und STD aus der AeroDataBox stammen. Keine Antwort erforderlich."
 final_loadsheet:
   title: Endgültiges Loadsheet
   description: Endgültiges Loadsheet mit der kurzfristigen Änderung gegenüber dem vorläufigen Loadsheet.

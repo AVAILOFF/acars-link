@@ -11,4 +11,6 @@ import type { ScenarioGroups } from '@acars/core';
 export const SCENARIO_GROUPS: ScenarioGroups = {
   /** The "news" of T29 (space weather, aurora, eclipse, air show, history, F1, NHL, holidays, earthquake): one per flight. */
   special_news: { max_per_flight: 1 },
+  /** Charter stories of T91 (tour operator, sports team, VIP): one per flight. */
+  charter_story: { max_per_flight: 1 },
 };

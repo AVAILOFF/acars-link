@@ -97,6 +97,31 @@ cargo_weight_error:
   title: Correction de poids (fret)
   description: "Avant le départ d’un vol cargo : un ULD a été pesé à nouveau et s’avère plus lourd que prévu ; le devis de masse et centrage définitif indique le même LMC de fret."
   hint: "Contrôle du chargement : une unité a été pesée à nouveau et s’avère plus lourde que prévu lors de la réservation. La différence correspond à une modification de dernière minute (LMC) et figurera sur le devis de masse et centrage définitif. Aucune réponse n’est nécessaire."
+charter_group_lmc:
+  title: Modification concernant un groupe de touristes (vol charter)
+  description: "Avant le départ d’un vol charter : des passagers du groupe organisé ne se sont pas présentés ou un groupe en retard a été ajouté ; le devis de masse et centrage définitif indique le même « LMC » (modification de dernière minute) concernant les passagers."
+  hint: "Assistance pour les vols charters : le voyagiste signale une modification au sein de son groupe, concernant des passagers qui ne se sont pas présentés ou des passagers arrivés en retard. Le nombre correspond à la modification de dernière minute (LMC) qui figurera sur le devis de masse et centrage définitif. Aucune réponse n’est nécessaire."
+  steps:
+    no_show:
+      hint: "Assistance pour les vols charters : les passagers du groupe organisé ne se sont pas présentés ; leurs bagages sont déchargés et le devis de masse et centrage final indiquera cette modification. Aucune réponse n’est nécessaire."
+    added:
+      hint: "Assistance pour les vols charters : une partie du groupe organisé, arrivée en retard, a été acceptée ; leurs bagages sont chargés et le devis de masse et centrage final indiquera cette modification. Aucune réponse n’est nécessaire."
+charter_sports_team:
+  title: Équipe sportive (vol charter)
+  description: "Avant le départ d’un vol charter : une équipe sportive est à bord avec du matériel sportif hors gabarit dans la soute et un service de restauration spécial commandé par le client."
+  hint: "Assistance pour un vol charter : une équipe sportive voyage avec vous. Son équipement hors gabarit est chargé dans la soute qui lui a été attribuée et le client a commandé sa propre restauration. Aucune réponse n’est nécessaire."
+charter_tour_rep:
+  title: Représentant du voyagiste (vol charter)
+  description: "Avant le départ d’un vol charter : le représentant du voyagiste a effectué l’enregistrement du groupe et demande qu’un bref message de bienvenue soit diffusé par le système PA."
+  hint: "Assistance pour un vol charter : le représentant du voyagiste se trouve à la porte d’embarquement, l’enregistrement du groupe est terminé et il souhaite qu’un bref message de bienvenue soit diffusé par haut-parleur après l’embarquement. Aucune réponse n’est nécessaire."
+charter_transfer:
+  title: Transfert à la destination (vol charter)
+  description: "Avant l’TOD sur un vol charter : les autocars de transfert destinés aux passagers attendent à la destination, où un représentant du voyagiste vient les accueillir."
+  hint: "Assistance pour un vol charter à destination : les autocars du voyagiste attendent vos passagers et un représentant les accueille dans le hall des arrivées. Utile pour l’annonce en cabine. Aucune réponse n’est nécessaire."
+charter_vip:
+  title: Vol charter VIP
+  description: "Avant le départ d’un vol charter : un groupe de VIP arrive en voiture à l’avion et embarque en dernier ; le service de restauration est adapté à leur demande."
+  hint: "Assistance pour un vol charter : il s’agit d’un vol charter VIP. Le groupe se rend en voiture jusqu’à l’avion et embarque en dernier ; le service de restauration est adapté à leur commande. Aucune réponse n’est nécessaire."
 cmd_delay:
   title: "Commande pilote : DELAY"
   description: "Commande DELAY : confirme la nouvelle heure de départ du bloc."
@@ -205,6 +230,14 @@ cmd_req_loadsheet_cargo:
   title: "Commande pilote : « REQ LOADSHEET » (fret)"
   description: "Commande REQ LOADSHEET sur un vol de fret : répète le devis de masse et centrage du fret."
   hint: « REQ LOADSHEET » demande au contrôle du chargement de renvoyer le devis de masse et centrage. La réponse reprend le dernier devis de masse et centrage de ce vol de fret, qu’il soit préliminaire ou définitif. Aucune réponse n’est requise.
+cmd_req_loadsheet_ferry:
+  title: "Commande pilote : « REQ LOADSHEET » (vol de transfert)"
+  description: "Commande REQ LOADSHEET lors d’un vol de transfert : répète le devis de masse et centrage réservé à l’équipage."
+  hint: « REQ LOADSHEET » demande au contrôle du chargement de renvoyer le devis de masse et centrage. La réponse reprend le devis de masse et centrage réservé à l’équipage de ce vol de transfert. Aucune réponse n’est requise.
+cmd_req_loadsheet_ferry_none:
+  title: "Commande pilote : « REQ LOADSHEET », pas encore disponible (vol de convoyage)"
+  description: Commande « REQ LOADSHEET » lors d’un vol de convoyage avant que le devis de masse et centrage n’existe.
+  hint: "Réponse à « REQ LOADSHEET » lors d’un vol de transfert : le devis de masse et centrage n’a pas encore été émis ; le message indiquera quand il sera disponible. Aucune réponse n’est nécessaire."
 cmd_req_loadsheet_none:
   title: "Commande pilote : « REQ LOADSHEET », aucune pour l’instant"
   description: Commande « REQ LOADSHEET » avant l’existence d’un devis de masse et centrage.
@@ -396,6 +429,28 @@ f1_result:
   title: Résultat de Formule 1
   description: "Un Grand Prix qui s’est terminé pendant le vol : le podium (Jolpica)."
   hint: "Informations OPS : le résultat d’un Grand Prix de Formule 1 qui s’est terminé pendant votre vol. Aucune réponse n’est nécessaire."
+ferry_after_mx:
+  title: Vol de transfert après maintenance (ferry)
+  description: "Avant un vol de transfert : l’aéronef sort de maintenance et est remis en service ; vérifiez le carnet technique."
+  hint: "Contrôle de maintenance : l’appareil est sorti de maintenance et a été remis en service. Vérifiez les inscriptions du carnet technique avant le départ. Aucune réponse n’est nécessaire."
+ferry_loadsheet:
+  title: Devis de masse et centrage (vol de transfert)
+  description: "Devis de masse et centrage d’un vol de transfert : équipage uniquement, sans passagers ni fret."
+  hint: "Devis de masse et centrage d’un vol de transfert ou de positionnement : équipage uniquement, sans passagers ni fret ; les masses (ZFW, TOW, LAW par rapport aux limites maximales) ainsi que le carburant de décollage et de route. Vérifiez les chiffres et utilisez-les dans le FMS ; aucune réponse n’est nécessaire."
+ferry_permit:
+  title: Autorisation de vol de transfert (ferry)
+  description: "Avant un vol de convoyage : l’aéronef se rend au centre de maintenance en vertu d’une autorisation de vol spéciale (US) ou d’une autorisation de vol. Répondez par « ACK »."
+  hint: "Contrôle de maintenance : l’aéronef ne satisfait pas entièrement aux exigences de navigabilité, mais peut se rendre à la base de maintenance au titre d’une autorisation de vol de transfert ; cette autorisation et ses restrictions figurent dans la documentation de l’aéronef. Veuillez les lire et accuser réception par « ACK »."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Vous avez pris connaissance de l’autorisation et de ses restrictions.
+    ack:
+      hint: Le centre de contrôle de maintenance a reçu votre accusé de réception ; la base de maintenance à destination attend l’aéronef. Aucune réponse n’est nécessaire.
+ferry_positioning:
+  title: Positionnement pour le prochain vol (vol de transfert)
+  description: "En croisière lors d’un vol de transfert : l’aéronef se positionne en vue de son prochain départ (données réelles d’AeroDataBox uniquement)."
+  hint: "Opérations : ce vol positionne l’aéronef en vue de son prochain départ de la destination, avec le vol, la route et le STD provenant d’AeroDataBox. Aucune réponse n’est nécessaire."
 final_loadsheet:
   title: Devis de masse et centrage définitif
   description: Devis de masse et centrage définitif avec la modification de dernière minute par rapport à la version préliminaire.

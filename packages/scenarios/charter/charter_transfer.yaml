@@ -1,0 +1,26 @@
+# Transfer at the destination of a charter (T91): coaches of the tour operator for the passengers;
+# an assumption approved by the user 2026-11-04 (60 % of charters). The number is the loadsheet's.
+id: charter_transfer
+version: 1
+category: ops
+title: Transfer at destination (charter)
+description: "Before TOD on a charter: transfer coaches for the passengers wait at the destination, the tour operator's representative meets them."
+hint: "Charter handling at the destination: coaches of the tour operator wait for your passengers and a representative meets them in the arrivals hall. Useful for the cabin announcement. No reply needed."
+enabled_by_default: true
+operations: [charter_pax]
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 100 }
+conditions:
+  - "flight.divert == null"
+  - "phase in ['CLIMB','CRUISE']"
+probability: 0.6
+priority: 0
+steps:
+  - send:
+      header: CHARTER MSG {ofp.dest}
+      body: |
+        {ofp.callsign} ARR {ofp.dest}
+        TRANSFER COACHES FOR {load.pax} PAX
+        TOUR REP MEETS PAX IN ARRIVALS
+      footer: "CHARTER HANDLING {name:ops}"

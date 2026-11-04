@@ -3954,6 +3954,91 @@
     "out": "重量修正（貨物）",
     "engine": "deepl"
   },
+  "scn:charter_group_lmc.description": {
+    "src": "Before departure of a charter: passengers of the tour group do not show or a late group is added; the final loadsheet shows the same passenger <x>LMC</x>.",
+    "out": "チャーター便の出発前：ツアーグループの乗客が欠席した場合、または遅れて到着したグループが追加された場合、最終ロードシートには同じ乗客のLMCが記載されます。",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.hint": {
+    "src": "Charter handling: the tour operator reports a change in its group, passengers who did not show or late ones added. The number is the last-minute change (<x>LMC</x>) the final loadsheet will show. No reply needed.",
+    "out": "チャーター便のハンドリング：ツアーオペレーターから、グループの変更（不参加または遅刻した乗客の追加）が報告されました。この数字は、最終ロードシートに記載される直前の変更（LMC）です。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.steps.added.hint": {
+    "src": "Charter handling: a late part of the tour group was accepted; their bags are loaded and the final loadsheet will show the change. No reply needed.",
+    "out": "チャーター便のハンドリング：ツアーグループの一部が遅れて到着しましたが、受け入れられました。手荷物は積み込まれており、最終ロードシートに変更が反映されます。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.steps.no_show.hint": {
+    "src": "Charter handling: passengers of the tour group did not show; their bags are being taken off and the final loadsheet will show the change. No reply needed.",
+    "out": "チャーター便のハンドリング：ツアーグループの乗客が欠席しました。その手荷物は降ろされており、最終ロードシートに変更が反映されます。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.title": {
+    "src": "Tour group change (charter)",
+    "out": "ツアーグループの変更（チャーター便）",
+    "engine": "deepl"
+  },
+  "scn:charter_sports_team.description": {
+    "src": "Before departure of a charter: a sports team on board with oversize sports equipment in the hold and special catering ordered by the charterer.",
+    "out": "チャーター便の出発前：スポーツチームが搭乗し、貨物室には特大のスポーツ用具が積載されており、チャーター依頼者から特別な機内食が注文されています。",
+    "engine": "deepl"
+  },
+  "scn:charter_sports_team.hint": {
+    "src": "Charter handling: a sports team flies with you. Their oversize equipment is loaded in the hold given and the charterer ordered its own catering. No reply needed.",
+    "out": "チャーター便のハンドリング：スポーツチームが当航空便を利用します。彼らの特大の用具は指定された貨物室に積み込まれており、チャーター依頼者から独自の機内食が注文されています。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:charter_sports_team.title": {
+    "src": "Sports team (charter)",
+    "out": "スポーツチーム（チャーター便）",
+    "engine": "deepl"
+  },
+  "scn:charter_tour_rep.description": {
+    "src": "Before departure of a charter: the tour operator's representative has checked the group in and asks for a short welcome on the <x>PA</x>.",
+    "out": "チャーター便の出発前：ツアーオペレーターの担当者がグループのチェックインを完了し、PAによる簡単な歓迎アナウンスを依頼しています。",
+    "engine": "deepl"
+  },
+  "scn:charter_tour_rep.hint": {
+    "src": "Charter handling: the tour operator's representative is at the gate, the group check-in is complete and the representative would like a short welcome on the public address after boarding. No reply needed.",
+    "out": "チャーター便のハンドリング：ツアーオペレーターの担当者がゲートに待機しており、グループのチェックインが完了しています。担当者は、搭乗完了後にPAで簡単な歓迎の挨拶を行いたいと希望しています。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:charter_tour_rep.title": {
+    "src": "Tour operator representative (charter)",
+    "out": "旅行会社担当者（チャーター便）",
+    "engine": "deepl"
+  },
+  "scn:charter_transfer.description": {
+    "src": "Before <x>TOD</x> on a charter: transfer coaches for the passengers wait at the destination, the tour operator's representative meets them.",
+    "out": "チャーター便のTOD前：乗客用の送迎バスが目的地で待機しており、ツアーオペレーターの担当者が出迎えます。",
+    "engine": "deepl"
+  },
+  "scn:charter_transfer.hint": {
+    "src": "Charter handling at the destination: coaches of the tour operator wait for your passengers and a representative meets them in the arrivals hall. Useful for the cabin announcement. No reply needed.",
+    "out": "目的地でのチャーター便のハンドリング：ツアーオペレーターのバスが乗客をお待ちしており、担当者が到着ロビーでお出迎えいたします。機内アナウンスに役立ちます。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:charter_transfer.title": {
+    "src": "Transfer at destination (charter)",
+    "out": "目的地での送迎（チャーター便）",
+    "engine": "deepl"
+  },
+  "scn:charter_vip.description": {
+    "src": "Before departure of a charter: a <x>VIP</x> party arrives by car at the aircraft and boards last; catering to their order.",
+    "out": "チャーター便の出発前：VIPの一行が車で航空機に到着し、最後に搭乗します。機内食はご要望に応じてご用意いたします。",
+    "engine": "deepl"
+  },
+  "scn:charter_vip.hint": {
+    "src": "Charter handling: this is a <x>VIP</x> charter. The party comes by car to the aircraft and boards last, and the catering is to their order. No reply needed.",
+    "out": "チャーター便のハンドリング：これはVIPチャーター便です。一行は車で機体まで来て最後に搭乗し、機内食は彼らの注文通りとなります。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:charter_vip.title": {
+    "src": "<x>VIP</x> charter",
+    "out": "VIPチャーター",
+    "engine": "deepl"
+  },
   "scn:cmd_delay.description": {
     "src": "<x>DELAY</x> command: confirms the new off-block time.",
     "out": "DELAYコマンド：新しいオフブロック時刻を確認するものです。",
@@ -4312,6 +4397,36 @@
   "scn:cmd_req_loadsheet_cargo.title": {
     "src": "Pilot command: <x>REQ LOADSHEET</x> (cargo)",
     "out": "パイロットコマンド：REQ LOADSHEET（貨物）",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry.description": {
+    "src": "<x>REQ LOADSHEET</x> command on a ferry flight: repeats the crew-only loadsheet.",
+    "out": "フェリーフライトにおける「REQ LOADSHEET」コマンド：乗務員専用のロードシートを再送します。",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry.hint": {
+    "src": "<x>REQ LOADSHEET</x> asks load control to send the loadsheet again. The answer repeats the crew-only loadsheet of this ferry flight. No reply needed.",
+    "out": "REQ LOADSHEETは、積載管理にロードシートの再送を依頼するものです。返信には、当該フェリーフライトの乗務員専用ロードシートが繰り返されます。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry.title": {
+    "src": "Pilot command: <x>REQ LOADSHEET</x> (ferry)",
+    "out": "パイロットコマンド：REQ LOADSHEET（フェリー）",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry_none.description": {
+    "src": "<x>REQ LOADSHEET</x> command on a ferry flight before the loadsheet exists.",
+    "out": "ロードシートがまだ作成されていないフェリー飛行中の「REQ LOADSHEET」指令。",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry_none.hint": {
+    "src": "Answer to <x>REQ LOADSHEET</x> on a ferry flight: the loadsheet has not been issued yet; the message says when it comes. No reply needed.",
+    "out": "フェリー飛行中の「REQ LOADSHEET」への回答：ロードシートはまだ発行されていません。発行され次第、その旨をメッセージで通知します。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry_none.title": {
+    "src": "Pilot command: <x>REQ LOADSHEET</x>, none yet (ferry)",
+    "out": "パイロットコマンド：REQ LOADSHEET、まだなし（フェリー）",
     "engine": "deepl"
   },
   "scn:cmd_req_loadsheet_none.description": {
@@ -4887,6 +5002,76 @@
   "scn:f1_result.title": {
     "src": "Formula 1 result",
     "out": "F1の結果",
+    "engine": "deepl"
+  },
+  "scn:ferry_after_mx.description": {
+    "src": "Before a ferry flight: the aircraft comes out of maintenance, released to service; check the technical log.",
+    "out": "フェリー飛行前：航空機が整備を終え、運航許可が下りています。技術ログを確認してください。",
+    "engine": "deepl"
+  },
+  "scn:ferry_after_mx.hint": {
+    "src": "Maintenance control: the aircraft has come out of maintenance and has been released to service. Check the technical log entries before departure. No reply needed.",
+    "out": "整備管理：航空機は整備を終え、運航許可が下りています。出発前に技術ログの記載内容を確認してください。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:ferry_after_mx.title": {
+    "src": "Ferry after maintenance (ferry)",
+    "out": "整備後のフェリー飛行（フェリー）",
+    "engine": "deepl"
+  },
+  "scn:ferry_loadsheet.description": {
+    "src": "Loadsheet of a ferry flight: crew only, no passengers and no cargo.",
+    "out": "フェリー飛行のロードシート：乗務員のみ、乗客および貨物なし。",
+    "engine": "deepl"
+  },
+  "scn:ferry_loadsheet.hint": {
+    "src": "Loadsheet of a ferry or positioning flight: crew only, without passengers and cargo; the weights (<x>ZFW</x>, <x>TOW</x>, <x>LAW</x> against the maximums) and the takeoff and trip fuel. Check the figures and use them in the <x>FMS</x>; no reply needed.",
+    "out": "フェリーまたはポジショニングフライトのロードシート：乗務員のみ、乗客および貨物はなし。重量（ZFW、TOW、LAWと最大許容値の比較）および離陸燃料と航行燃料が記載されています。数値を確認し、FMSに入力してください。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:ferry_loadsheet.title": {
+    "src": "Loadsheet (ferry)",
+    "out": "ロードシート（フェリー）",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.description": {
+    "src": "Before a ferry flight: the aircraft flies to maintenance under a special flight permit (<x>US</x>) or a permit to fly. Reply <x>ACK</x>.",
+    "out": "フェリー飛行の前：航空機は、特別飛行許可（US）または飛行許可に基づき、整備拠点へ向かいます。ACKと返信してください。",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.hint": {
+    "src": "Maintenance control: the aircraft does not fully meet its airworthiness requirements but may fly to the maintenance base under a ferry permit; the permit and its limitations are in the aircraft documents. Read them and acknowledge with <x>ACK</x>.",
+    "out": "整備管制：当該航空機は耐空性要件を完全に満たしていませんが、フェリー許可証に基づき整備基地へ飛行することが可能です。許可証およびその制限事項は航空機書類に記載されています。内容をご確認の上、ACKで受領確認を行ってください。",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.steps.ack.hint": {
+    "src": "Maintenance control received your acknowledgement; the maintenance base at the destination expects the aircraft. No reply needed.",
+    "out": "整備管制は、あなたの確認応答を受信しました。目的地の整備基地では、航空機の到着を待っています。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.steps.reply.reply_hints.ACK": {
+    "src": "You have read the permit and its limitations.",
+    "out": "許可証およびその制限事項をお読みになりました。",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.title": {
+    "src": "Ferry permit (ferry)",
+    "out": "フェリー許可（ferry）",
+    "engine": "deepl"
+  },
+  "scn:ferry_positioning.description": {
+    "src": "In cruise of a ferry flight: the aircraft positions for its next departure (real <x>AeroDataBox</x> data only).",
+    "out": "フェリー飛行の巡航中：航空機は次の出発に向けて位置を調整します（実際のAeroDataBoxデータのみ）。",
+    "engine": "deepl"
+  },
+  "scn:ferry_positioning.hint": {
+    "src": "Operations: this flight positions the aircraft for its next departure from the destination, with flight, route and <x>STD</x> from <x>AeroDataBox</x>. No reply needed.",
+    "out": "運航：このフライトでは、AeroDataBoxからのフライト番号、ルート、STDに基づき、目的地からの次回の出発に向けた機体の位置調整を行います。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:ferry_positioning.title": {
+    "src": "Positioning for the next flight (ferry)",
+    "out": "次のフライトに向けた位置調整（フェリー）",
     "engine": "deepl"
   },
   "scn:final_loadsheet.description": {

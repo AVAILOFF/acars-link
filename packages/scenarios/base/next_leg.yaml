@@ -8,6 +8,8 @@ title: Next leg
 description: "Next leg with the same aircraft."
 hint: "OPS gives your next sector with the same aircraft: flight, route, STD and the turnaround time. No reply needed."
 enabled_by_default: true
+# T91: the next leg may be made up (T53); a ferry flight gets a real one only (ferry/ferry_positioning).
+operations: [sched_pax, charter_pax, cargo, bizav, medevac]
 trigger:
   on: time
   at: { rel: off, offset_min: 40 }

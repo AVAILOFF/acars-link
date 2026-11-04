@@ -6,8 +6,8 @@ title: Connection held
 description: "On block after a short connection with 15 to 40 min left: the onward flight is held for the passengers."
 hint: "Connections: the onward flight of your transfer passengers is held for them and will leave late. A transfer bus waits at your gate; let the transfer passengers deplane first. No reply needed."
 enabled_by_default: true
-# T89: passengers in the cabin; not on cargo, ferry, business or air ambulance flights.
-operations: [sched_pax, charter_pax]
+# T89/T91: transfer passengers of a scheduled flight; a charter has no connections.
+operations: [sched_pax]
 trigger:
   on: phase_enter
   phase: ON_BLOCK

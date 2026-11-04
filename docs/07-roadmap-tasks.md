@@ -1671,6 +1671,12 @@ Hoppie в самолёте (сверено 2026-10-25): официальный �
 
 **Решения пользователя (нужны до реализации):** 1) Какие чартерные истории включать (туроператор / спорт / разовый VIP). 2) Перегон после дефекта — генерировать ли как «следующий рейс».
 
+**Источники (сверено 2026-11-04):** 14 CFR 21.197(a)(1) — special flight permit для перелёта на базу ТО (FAA); EASA Part 21, 21.A.701 — permit to fly.
+
+**Решено (2026-11-04):** решение 1 — все чартерные истории (туроператор и трансфер, опоздавшая группа / LMC, спортивная команда, разовый VIP); решение 2 — следующую ногу не генерировать. Одобренные допущения: 1) на чартере нет CONNEX, стыковок и строки `TRANSFER PAX`; 2) история группы — только при LMC пассажиров ≠ 0, то же число (50 %); туроператор, спорт, VIP — одна история за рейс (группа `charter_story`, по 30 %); трансфер перед TOD — 60 %; 3) перегон: лоадшит «только экипаж» за 7 мин до STD (LMC нет); разрешение на перегон 15 % — регистрация `N`+цифра → `SPECIAL FLIGHT PERMIT`, иначе `PERMIT TO FLY`, без номеров и ограничений; «после ТО» 30 % — `RELEASE TO SERVICE SIGNED`; позиционирование — только при реальном вылете AeroDataBox FIDS (`ops.next_real`; маршрут статистики с выдуманным номером не считается); 4) синтетические следующий рейс, смена борта и оборот (`next_leg`, `aircraft_change`, `welcome_turnaround`) на перегоне не идут.
+
+**Сделано (2026-11-04):** `packages/scenarios/charter/` — `charter_group_lmc`, `charter_tour_rep`, `charter_sports_team`, `charter_vip` (исключает `vip_onboard`), `charter_transfer`; `packages/scenarios/ferry/` — `ferry_loadsheet`, `cmd_req_loadsheet_ferry`, `cmd_req_loadsheet_ferry_none`, `ferry_permit` (ACK), `ferry_after_mx`, `ferry_positioning`. `connex_list`, `short_connection`, `connection_*` — `operations: [sched_pax]`. Переменные `ops.ferry_permit`, `ops.next_real`. **П. 3 (память авиакомпании):** отдельного сценария нет — открытый MEL этого борта уже приходит на любом виде рейса через `mel_carry_over` («MX SLOT AT <назначение> AFTER ARRIVAL», закрытие после прилёта); синтетический «следующий рейс-перегон» не генерируется (решение 2).
+
 **Зависимость:** T89.
 
 **Готово, когда:** сценарии в `packages/scenarios/charter/` и `ferry/`, тесты фильтра (CONNEX не приходит на чартере), replay синтетических рейсов; `pnpm check` зелёный.

@@ -6,8 +6,8 @@ title: Connection missed
 description: "On block after a short connection with less than 15 min left: passengers rebooked."
 hint: "Connections: the onward flight is closed, your transfer passengers have been rebooked and the transfer desk will meet them. No reply needed."
 enabled_by_default: true
-# T89: passengers in the cabin; not on cargo, ferry, business or air ambulance flights.
-operations: [sched_pax, charter_pax]
+# T89/T91: transfer passengers of a scheduled flight; a charter has no connections.
+operations: [sched_pax]
 trigger:
   on: phase_enter
   phase: ON_BLOCK

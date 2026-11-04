@@ -7,8 +7,8 @@ title: Short passenger connection
 description: "Before the descent when the onward connection is less than an hour away: number of passengers, flight, STD; please expedite."
 hint: "Connections: passengers of your flight have a short connection to an onward flight; the message gives the flight, its STD and the time margin. OPS asks you to expedite the arrival if you can; transfer staff will meet them at your gate. No reply needed."
 enabled_by_default: true
-# T89: passengers in the cabin; not on cargo, ferry, business or air ambulance flights.
-operations: [sched_pax, charter_pax]
+# T89/T91: transfer passengers of a scheduled flight; a charter has no connections.
+operations: [sched_pax]
 trigger:
   on: distance
   dist: { to: tod, lte_nm: 100 }

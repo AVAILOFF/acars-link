@@ -26,7 +26,7 @@ const read = (name: string) =>
     .sort()
     .map((file) => ({ file, source: readFileSync(join(dir(name), file), 'utf8') }));
 const everything = loadScenarios(
-  ['base', 'commands', 'irregular', 'external', 'sim', 'cargo'].flatMap(read),
+  ['base', 'commands', 'irregular', 'external', 'sim', 'cargo', 'charter', 'ferry'].flatMap(read),
 );
 
 /** Passengers in the cabin (docs/07, T89; `cmd_medical` stays for all: a crew member may fall ill). */
@@ -61,10 +61,31 @@ const cargo: Ofp = parseSimbriefOfp(cargoRaw);
 
 describe('operations of the scenario files (T89)', () => {
   it('exactly the passenger scenarios are limited to the passenger kinds', () => {
-    const limited = everything.filter(
-      (s) => JSON.stringify(s.def.operations) === JSON.stringify(PASSENGER_KINDS),
+    // T91: the connections are for scheduled flights only (a charter has none).
+    const connections = PASSENGER_SCENARIOS.filter(
+      (id) => id.startsWith('conn') || id === 'short_connection',
     );
-    expect(limited.map((s) => s.id).sort()).toEqual(PASSENGER_SCENARIOS);
+    const ops = (id: string) => everything.find((s) => s.id === id)?.def.operations;
+    for (const id of PASSENGER_SCENARIOS)
+      expect(ops(id), id).toEqual(connections.includes(id) ? ['sched_pax'] : PASSENGER_KINDS);
+    const limited = everything.filter((s) =>
+      (s.def.operations ?? []).every((k) => PASSENGER_KINDS.includes(k)),
+    );
+    expect(
+      limited
+        .filter((s) => s.def.operations !== undefined)
+        .map((s) => s.id)
+        .sort(),
+    ).toEqual(
+      [
+        ...PASSENGER_SCENARIOS,
+        'charter_group_lmc',
+        'charter_sports_team',
+        'charter_tour_rep',
+        'charter_transfer',
+        'charter_vip',
+      ].sort(),
+    );
   });
 
   it('a cargo flight starts none of them, by hand neither', () => {

@@ -277,6 +277,12 @@ export const CONTEXT_VARIABLES = [
   'ops.next_dest',
   'ops.next_std',
   'ops.next_src',
+  // name of a ferry permit (T91): `SPECIAL FLIGHT PERMIT` for a US registration (N + digit;
+  // 14 CFR 21.197), else `PERMIT TO FLY` (EASA Part 21, 21.A.701); approved by the user 2026-11-04
+  'ops.ferry_permit',
+  // the next leg is a real departure of the airline (AeroDataBox FIDS, T55 level 1), not a route
+  // of the statistics with a made-up number (T91)
+  'ops.next_real',
   'flight.fuel_stable',
   'flight.fuel_before_kg',
   'flight.fuel_uplift_kg',
@@ -666,6 +672,10 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'ops.next_std': ops.nextStd,
       // C4 (T55): attribution line of a message with the AeroDataBox next leg; empty otherwise.
       'ops.next_src': ops.nextLive === null ? '' : CONNEX_ATTRIBUTION,
+      'ops.next_real': ops.nextLive === 'fids',
+      'ops.ferry_permit': /^N[0-9]/.test(ofp.aircraft.reg ?? '')
+        ? 'SPECIAL FLIGHT PERMIT'
+        : 'PERMIT TO FLY',
       'ops.cabin_crew': ops.cabinCrew,
     },
   );

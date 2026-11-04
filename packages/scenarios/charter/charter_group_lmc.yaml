@@ -1,0 +1,45 @@
+# Tour group change on a charter (T91): some passengers of the tour group do not show, or a late
+# group is added. Only when the passenger LMC (ops-data.ts) is not 0, with that same number, so
+# the final loadsheet agrees (approved by the user 2026-11-04).
+id: charter_group_lmc
+version: 1
+category: irregular
+title: Tour group change (charter)
+description: "Before departure of a charter: passengers of the tour group do not show or a late group is added; the final loadsheet shows the same passenger LMC."
+hint: "Charter handling: the tour operator reports a change in its group, passengers who did not show or late ones added. The number is the last-minute change (LMC) the final loadsheet will show. No reply needed."
+enabled_by_default: true
+operations: [charter_pax]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -12 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "load.pax_lmc != 0"
+probability: 0.5
+steps:
+  - wait: { until: "load.pax_lmc < 0", timeout_min: 0.02 }
+  - branch:
+      MET:
+        - send:
+            id: no_show
+            header: CHARTER MSG
+            body: |
+              {ofp.callsign} {ofp.orig}-{ofp.dest}
+              TOUR GROUP PAX NO SHOW
+              LMC PAX {load.pax_lmc|sign}
+              THEIR BAGS BEING OFFLOADED
+              FINAL LOADSHEET TO FOLLOW
+            footer: "CHARTER HANDLING {name:ops}"
+            hint: "Charter handling: passengers of the tour group did not show; their bags are being taken off and the final loadsheet will show the change. No reply needed."
+      TIMEOUT:
+        - send:
+            id: added
+            header: CHARTER MSG
+            body: |
+              {ofp.callsign} {ofp.orig}-{ofp.dest}
+              LATE TOUR GROUP ACCEPTED
+              LMC PAX {load.pax_lmc|sign}
+              BAGS LOADED
+              FINAL LOADSHEET TO FOLLOW
+            footer: "CHARTER HANDLING {name:ops}"
+            hint: "Charter handling: a late part of the tour group was accepted; their bags are loaded and the final loadsheet will show the change. No reply needed."

@@ -1,0 +1,17 @@
+# REQ LOADSHEET on a ferry flight (T91): the ferry loadsheet again.
+id: cmd_req_loadsheet_ferry
+version: 1
+category: docs
+title: "Pilot command: REQ LOADSHEET (ferry)"
+description: "REQ LOADSHEET command on a ferry flight: repeats the crew-only loadsheet."
+hint: "REQ LOADSHEET asks load control to send the loadsheet again. The answer repeats the crew-only loadsheet of this ferry flight. No reply needed."
+enabled_by_default: true
+operations: [ferry]
+trigger:
+  on: command
+  command: REQ_LOADSHEET
+conditions:
+  - "'ferry_loadsheet' in flight.sent"
+steps:
+  - resend:
+      of: [ferry_loadsheet]

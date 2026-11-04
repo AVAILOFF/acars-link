@@ -1,0 +1,20 @@
+# REQ LOADSHEET on a ferry flight before its loadsheet (T91): one loadsheet, 7 min before STD.
+id: cmd_req_loadsheet_ferry_none
+version: 1
+category: docs
+title: "Pilot command: REQ LOADSHEET, none yet (ferry)"
+description: "REQ LOADSHEET command on a ferry flight before the loadsheet exists."
+hint: "Answer to REQ LOADSHEET on a ferry flight: the loadsheet has not been issued yet; the message says when it comes. No reply needed."
+enabled_by_default: true
+operations: [ferry]
+trigger:
+  on: command
+  command: REQ_LOADSHEET
+conditions:
+  - "not ('ferry_loadsheet' in flight.sent)"
+steps:
+  - send:
+      header: LOADSHEET
+      body: |
+        {ofp.callsign} NO LOADSHEET ISSUED YET
+        CREW ONLY LOADSHEET AT STD-7 MIN
