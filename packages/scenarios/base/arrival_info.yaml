@@ -18,6 +18,6 @@ steps:
       body: |
         {ofp.callsign} {ofp.dest}
         {ops.gate_line}
-        BAGGAGE BELT {ops.belt}
-        TRANSFER PAX {ops.transfer_pax}
+        ~BAGGAGE BELT {ops.belt}{flight.if_pax}
+        ~TRANSFER PAX {ops.transfer_pax}
         {ops.ground_support}

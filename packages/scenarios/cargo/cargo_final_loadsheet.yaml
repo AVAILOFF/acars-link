@@ -1,0 +1,54 @@
+# Final loadsheet of a cargo flight (T90): as the passenger one without PAX lines; the LMC is the
+# freight only (no passenger LMC on a cargo flight, ops-data.ts).
+id: cargo_final_loadsheet
+version: 1
+category: docs
+title: Final loadsheet (cargo)
+description: "Final loadsheet of a cargo flight with the last-minute change of the freight."
+hint: "Final loadsheet from load control for a cargo flight: actual weights against the limits (ZFW, TOW, LAW), takeoff and trip fuel (TOF, TIF) and the freight; LMC is the last-minute change of the freight against the preliminary loadsheet. Check the figures and use them in the FMS; no reply needed."
+enabled_by_default: true
+operations: [cargo]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -7 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING','PUSHBACK','TAXI_OUT']"
+priority: 3
+steps:
+  - wait: { until: "ofp.crew_cockpit == null", timeout_min: 0.02 }
+  - branch:
+      MET:
+        - send:
+            header: FINAL LOADSHEET
+            body: |
+              {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
+              A/C {ofp.ac_reg} {ofp.ac_icao}
+              OEW {ofp.oew_kg|kg1}
+              ZFW {load.zfw_kg|kg1} MAX {ofp.max_zfw_kg|kg1}
+              TOF {ofp.fuel_takeoff_kg|kg1}
+              TOW {load.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
+              TIF {ofp.fuel_burn_kg|kg1}
+              LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
+              UNDERLOAD {load.underload_kg|kg1}
+              CGO {load.cargo_kg|kg1}
+              LMC CGO {load.cargo_lmc_kg|sign} KG
+              ALL WEIGHTS IN TONNES
+            footer: "LOAD CONTROL {name:ops}"
+      TIMEOUT:
+        - send:
+            header: FINAL LOADSHEET
+            body: |
+              {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
+              A/C {ofp.ac_reg} {ofp.ac_icao}
+              CREW {ofp.crew_cockpit}/{ofp.crew_cabin}
+              OEW {ofp.oew_kg|kg1}
+              ZFW {load.zfw_kg|kg1} MAX {ofp.max_zfw_kg|kg1}
+              TOF {ofp.fuel_takeoff_kg|kg1}
+              TOW {load.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
+              TIF {ofp.fuel_burn_kg|kg1}
+              LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
+              UNDERLOAD {load.underload_kg|kg1}
+              CGO {load.cargo_kg|kg1}
+              LMC CGO {load.cargo_lmc_kg|sign} KG
+              ALL WEIGHTS IN TONNES
+            footer: "LOAD CONTROL {name:ops}"

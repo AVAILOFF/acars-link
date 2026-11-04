@@ -1,0 +1,32 @@
+# Preliminary loadsheet of a cargo flight (T90): the planned (OFP) figures without a PAX line.
+# Freight is the OFP total (no passengers, so no baggage in it); no ULD count and no split by deck:
+# neither is in the OFP and no airport-planning document of the freighters was read (approved by
+# the user 2026-11-04).
+id: cargo_prelim_loadsheet
+version: 1
+category: docs
+title: Preliminary loadsheet (cargo)
+description: "Preliminary loadsheet of a cargo flight: planned figures from the OFP, freight without passengers."
+hint: "Preliminary loadsheet from load control for a cargo flight: the planned weights and fuel from the flight plan (ZFW, TOF, TOW, TIF, LAW against the maximums) and the freight. Use it to prepare the FMS; the final figures come in the final loadsheet. No reply needed."
+enabled_by_default: true
+operations: [cargo]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -25 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+priority: 3
+steps:
+  - send:
+      header: PRELIMINARY LOADSHEET
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
+        A/C {ofp.ac_reg} {ofp.ac_icao}
+        ZFW {ofp.zfw_kg|kg1} MAX {ofp.max_zfw_kg|kg1}
+        TOF {ofp.fuel_takeoff_kg|kg1}
+        TOW {ofp.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
+        TIF {ofp.fuel_burn_kg|kg1}
+        LAW {ofp.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
+        CGO {ofp.cargo_kg|kg1}
+        ALL WEIGHTS IN TONNES
+      footer: "LOAD CONTROL {name:ops}"

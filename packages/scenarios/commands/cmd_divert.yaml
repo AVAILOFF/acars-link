@@ -36,7 +36,7 @@ steps:
             id: medical
             body: |
               MEDICAL TEAM ORDERED AT {cmd.icao}
-              ADVISE PAX DETAILS WHEN ABLE
+              ~ADVISE PAX DETAILS WHEN ABLE{flight.if_pax}
             hint: "OPS has ordered a medical team at the diversion airport and asks for passenger details by free-text telex when you can."
       TECH:
         - send:
@@ -57,7 +57,7 @@ steps:
             id: wx
             body: |
               WX DIVERSION NOTED
-              PAX REBOOKING IN PROGRESS
+              ~PAX REBOOKING IN PROGRESS{flight.if_pax}
             hint: "OPS notes a weather diversion and is rebooking the passengers. No reply needed."
   - send:
       id: msg

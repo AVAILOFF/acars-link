@@ -23,6 +23,6 @@ steps:
         AURORA FORECAST ON YOUR ROUTE
         PROBABILITY {ext.aurora_prob} PCT NEAR {ext.aurora_pos}
         IN ABOUT {ext.aurora_min} MIN / {ext.aurora_ahead_nm} NM AHEAD
-        CABIN CREW MAY INFORM PASSENGERS
+        ~CABIN CREW MAY INFORM PASSENGERS{flight.if_pax}
         SOURCE NOAA SWPC OVATION
       footer: OPS

@@ -147,7 +147,7 @@ function buildHelp(sections, tr) {
 
 async function loadScenarioList() {
   const { loadScenarios } = await importTs(join(SCN, 'src/index.ts'));
-  const files = ['base', 'commands', 'external', 'irregular', 'sim'].flatMap((d) =>
+  const files = ['base', 'commands', 'external', 'irregular', 'sim', 'cargo'].flatMap((d) =>
     readdirSync(join(SCN, d))
       .filter((f) => f.endsWith('.yaml'))
       .sort()

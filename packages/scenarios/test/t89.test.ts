@@ -26,7 +26,7 @@ const read = (name: string) =>
     .sort()
     .map((file) => ({ file, source: readFileSync(join(dir(name), file), 'utf8') }));
 const everything = loadScenarios(
-  ['base', 'commands', 'irregular', 'external', 'sim'].flatMap(read),
+  ['base', 'commands', 'irregular', 'external', 'sim', 'cargo'].flatMap(read),
 );
 
 /** Passengers in the cabin (docs/07, T89; `cmd_medical` stays for all: a crew member may fall ill). */
@@ -60,10 +60,11 @@ cargoRaw.weights.cargo = '30000';
 const cargo: Ofp = parseSimbriefOfp(cargoRaw);
 
 describe('operations of the scenario files (T89)', () => {
-  it('exactly the passenger scenarios are limited, to the passenger kinds', () => {
-    const limited = everything.filter((s) => s.def.operations !== undefined);
+  it('exactly the passenger scenarios are limited to the passenger kinds', () => {
+    const limited = everything.filter(
+      (s) => JSON.stringify(s.def.operations) === JSON.stringify(PASSENGER_KINDS),
+    );
     expect(limited.map((s) => s.id).sort()).toEqual(PASSENGER_SCENARIOS);
-    for (const s of limited) expect(s.def.operations).toEqual(PASSENGER_KINDS);
   });
 
   it('a cargo flight starts none of them, by hand neither', () => {

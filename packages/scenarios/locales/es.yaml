@@ -49,6 +49,54 @@ block_report:
   title: Tiempos de bloque (OOOI)
   description: Tiempos de bloque y códigos de retraso tras la llegada al bloque.
   hint: "Informe de bloque tras el estacionamiento: tiempos de OUT, OFF, ON e IN (salida del bloque, despegue, aterrizaje, entrada en el bloque), tiempo de bloque y de vuelo, y combustible a bordo; tras un retraso, también los códigos de retraso de la IATA que indican sus causas. Para los registros de la aerolínea; no es necesaria respuesta."
+cargo_act_failure:
+  title: Fallo en un contenedor termorregulado (carga)
+  description: "Antes de la salida de un vuelo de carga: un contenedor activo con control de temperatura que transporta productos farmacéuticos presenta un fallo y se sustituye, lo que provoca un retraso de 15 a 30 minutos."
+  hint: "Control de carga: un contenedor activo con control de temperatura (ACT) que transporta productos farmacéuticos ha notificado un fallo antes de la carga. Se está sustituyendo, lo que provoca un retraso de los minutos indicados. No es necesario responder."
+cargo_final_loadsheet:
+  title: Hoja de carga definitiva (carga)
+  description: Hoja de carga definitiva de un vuelo de carga con un cambio de última hora en la mercancía.
+  hint: "Hoja de carga definitiva procedente del control de carga para un vuelo de carga: pesos reales frente a los límites (ZFW, TOW, LAW), combustible de despegue y de travesía (TOF, TIF) y la carga; LMC es el cambio de última hora en la carga respecto a la hoja de carga preliminar. Compruebe las cifras y utilícelas en el FMS; no es necesario responder."
+cargo_late_truck:
+  title: Camión (carga) con retraso
+  description: "Antes de la salida de un vuelo de carga: un camión con la carga prevista llega con retraso; se amplía el plazo de cierre de carga y la salida sufre un retraso de 10 a 30 minutos."
+  hint: "Control de carga: un camión con carga reservada en su vuelo llega con retraso, por lo que se amplía el plazo de cierre de carga y la salida se retrasa los minutos indicados. Planifique en consecuencia. No es necesario responder."
+cargo_notoc:
+  title: Mercancías peligrosas (NOTOC, carga)
+  description: "Antes de la salida de un vuelo de carga: mercancías peligrosas a bordo, algunas de ellas solo para aviones de carga (CAO YES). Responda con ACK para la firma del comandante."
+  hint: "NOTOC (notificación al comandante) de un vuelo de carga: las mercancías peligrosas cargadas, con el número de la UN, la clase, el código de manipulación, la ubicación en la bodega y el número de bultos; «CAO YES» indica que las mercancías solo están permitidas en aviones de carga. Confirme con «ACK», lo que equivale a la firma del comandante."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Ha leído el NOTOC; esto equivale a su firma.
+    notoc:
+      hint: "El control de carga ha recibido su acuse de recibo: se incluye una copia en el expediente de vuelo y el supervisor de carga está al corriente. No es necesario responder."
+cargo_prelim_loadsheet:
+  title: Hoja de carga preliminar (carga)
+  description: "Hoja de carga preliminar de un vuelo de carga: cifras previstas del OFP; carga sin pasajeros."
+  hint: ZFW, TOF, TOW, TIF, LAW en relación con los valores máximos) y la carga. Utilícela para preparar la FMS; las cifras definitivas figuran en la hoja de carga definitiva. No es necesario responder.
+cargo_sort_shift:
+  title: Cambio en la clasificación en el centro de distribución (carga)
+  description: "Durante el vuelo de crucero de un vuelo de carga: la clasificación en el centro de distribución del destino comienza más tarde, no es necesario acelerar el vuelo."
+  hint: "Control de carga: la clasificación de la mercancía en el centro de distribución de destino comienza más tarde de lo previsto, según los minutos indicados, por lo que no es necesario apresurarse. A título informativo; no es necesario responder."
+cargo_special_load:
+  title: Carga especial (mercancía)
+  description: "Antes de la salida de un vuelo de carga: carga especial a bordo (animales vivos, productos perecederos, productos farmacéuticos, restos humanos u objetos de valor) con su código de handling. Responda con «ACK»."
+  hint: "Notificación de carga especial por parte del control de carga: un envío que requiere atención especial durante el vuelo o a la llegada, con su código de handling de la IATA, su ubicación en la bodega y sus requisitos (temperatura, descarga prioritaria). Confirme con ACK."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Está al corriente de la carga especial.
+    ack:
+      hint: El control de carga ha recibido su acuse de recibo y lo ha comunicado al personal de handling en el destino. No es necesario responder.
+cargo_uld_damaged:
+  title: ULD dañado (carga)
+  description: "Antes de la salida de un vuelo de carga: se sustituye un ULD dañado y se descarga parte de su carga; la hoja de carga definitiva muestra el mismo LMC de la carga."
+  hint: "Control de carga: se ha detectado que un dispositivo de carga unitaria (contenedor o palé) presentaba daños durante la carga. Su mercancía se ha trasladado a otra unidad y la parte que no cabía se ha quedado atrás; la hoja de carga definitiva reflejará este cambio. No es necesaria ninguna respuesta."
+cargo_weight_error:
+  title: Corrección de peso (carga)
+  description: "Antes de la salida de un vuelo de carga: se vuelve a pesar una ULD y resulta más pesada de lo reservado; la hoja de carga definitiva muestra el mismo LMC de la carga."
+  hint: "Control de carga: se ha vuelto a pesar una unidad y pesa más de lo indicado en la reserva. La diferencia se debe a un cambio de última hora (LMC) y figurará en la hoja de carga definitiva. No es necesario responder."
 cmd_delay:
   title: "Comando del piloto: DELAY"
   description: "Comando DELAY: confirma la nueva hora de salida del bloque."
@@ -153,6 +201,10 @@ cmd_req_loadsheet:
   title: "Comando del piloto: «REQ LOADSHEET»"
   description: "Comando REQ LOADSHEET: repite la hoja de carga."
   hint: "REQ LOADSHEET: solicita a OPS que envíe de nuevo la hoja de carga. La respuesta repite la última hoja de carga de este vuelo, ya sea preliminar o definitiva. No es necesaria ninguna respuesta."
+cmd_req_loadsheet_cargo:
+  title: "Comando del piloto: «REQ LOADSHEET» (carga)"
+  description: "Comando REQ LOADSHEET» en un vuelo de carga: repite la hoja de carga."
+  hint: «REQ LOADSHEET» solicita al control de carga que envíe de nuevo la hoja de carga. La respuesta repite la última hoja de carga de este vuelo de carga, ya sea preliminar o definitiva. No es necesaria ninguna respuesta.
 cmd_req_loadsheet_none:
   title: "Comando del piloto: «REQ LOADSHEET», aún no hay ninguna"
   description: Comando REQ LOADSHEET antes de que exista ninguna hoja de carga.

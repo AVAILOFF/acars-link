@@ -62,7 +62,7 @@ const nodeIo: Io = {
 };
 
 /** The scenarios the app ships: the base set and the pilot command handlers (T12) and the live-data scenarios (T13). */
-const BASE_DIRS = ['base', 'commands', 'external', 'irregular', 'sim'].map((d) =>
+const BASE_DIRS = ['base', 'commands', 'external', 'irregular', 'sim', 'cargo'].map((d) =>
   fileURLToPath(new URL(`../../../packages/scenarios/${d}/`, import.meta.url)),
 );
 const readBase = () => BASE_DIRS.flatMap((d) => readScenarioPath(d));

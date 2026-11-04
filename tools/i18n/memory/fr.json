@@ -3799,6 +3799,161 @@
     "out": "Temps de bloc (OOOI)",
     "engine": "deepl"
   },
+  "scn:cargo_act_failure.description": {
+    "src": "Before departure of a cargo flight: an active temperature-controlled container with pharmaceuticals fails and is replaced, delaying the departure by 15-30 minutes.",
+    "out": "Avant le départ d’un vol de fret : un conteneur à température contrôlée actif contenant des produits pharmaceutiques tombe en panne et est remplacé, ce qui entraîne un retard de 15 à 30 minutes.",
+    "engine": "deepl"
+  },
+  "scn:cargo_act_failure.hint": {
+    "src": "Cargo control: an active temperature-controlled container (<x>ACT</x>) with pharmaceuticals reported a fault before loading. It is being replaced, which delays the departure by the minutes given. No reply needed.",
+    "out": "Contrôle du fret : un conteneur à température contrôlée (ACT) contenant des produits pharmaceutiques a signalé une défaillance avant le chargement. Il est en cours de remplacement, ce qui entraîne un retard du temps indiqué en minutes. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:cargo_act_failure.title": {
+    "src": "Temperature container failed (cargo)",
+    "out": "Défaillance d’un conteneur réfrigéré (fret)",
+    "engine": "deepl"
+  },
+  "scn:cargo_final_loadsheet.description": {
+    "src": "Final loadsheet of a cargo flight with the last-minute change of the freight.",
+    "out": "Devis de masse et centrage définitif d’un vol cargo avec modification de dernière minute de la cargaison.",
+    "engine": "deepl"
+  },
+  "scn:cargo_final_loadsheet.hint": {
+    "src": "Final loadsheet from load control for a cargo flight: actual weights against the limits (<x>ZFW</x>, <x>TOW</x>, <x>LAW</x>), takeoff and trip fuel (<x>TOF</x>, <x>TIF</x>) and the freight; <x>LMC</x> is the last-minute change of the freight against the preliminary loadsheet. Check the figures and use them in the <x>FMS</x>; no reply needed.",
+    "out": "Devis de masse et centrage définitif émanant du service de contrôle du chargement pour un vol cargo : poids réels par rapport aux limites (ZFW, TOW, LAW), carburant de décollage et de croisière (TOF, TIF) et fret ; LMC correspond à la modification de dernière minute du fret par rapport au devis de masse et centrage préliminaire. Vérifiez les chiffres et utilisez-les dans le FMS ; aucune réponse n'est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:cargo_final_loadsheet.title": {
+    "src": "Final loadsheet (cargo)",
+    "out": "Devis de masse et centrage définitif (fret)",
+    "engine": "deepl"
+  },
+  "scn:cargo_late_truck.description": {
+    "src": "Before departure of a cargo flight: a truck with planned freight is late, the cargo cut-off is extended and the departure delayed by 10-30 minutes.",
+    "out": "Avant le départ d’un vol cargo : un camion transportant le fret prévu est en retard ; l’heure limite d’acceptation du fret est repoussée et le départ est retardé de 10 à 30 minutes.",
+    "engine": "deepl"
+  },
+  "scn:cargo_late_truck.hint": {
+    "src": "Cargo control: a truck with freight booked on your flight is late, so the cargo cut-off is extended and the departure delayed by the minutes given. Plan accordingly. No reply needed.",
+    "out": "Contrôle du fret : un camion transportant du fret réservé sur votre vol est en retard ; l’heure limite d’acceptation du fret est donc repoussée et le départ retardé du nombre de minutes indiqué. Veuillez vous organiser en conséquence. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:cargo_late_truck.title": {
+    "src": "Late truck (cargo)",
+    "out": "Camion en retard (fret)",
+    "engine": "deepl"
+  },
+  "scn:cargo_notoc.description": {
+    "src": "Before departure of a cargo flight: dangerous goods on board, some for cargo aircraft only (<x>CAO YES</x>). Reply <x>ACK</x> for the captain signature.",
+    "out": "Avant le départ d’un vol cargo : marchandises dangereuses à bord, dont certaines réservées aux avions-cargos (CAO YES). Répondez par ACK pour la signature du commandant de bord.",
+    "engine": "deepl"
+  },
+  "scn:cargo_notoc.hint": {
+    "src": "<x>NOTOC</x> (notification to captain) of a cargo flight: the dangerous goods loaded, with the <x>UN</x> number, class, handling code, hold position and number of packages; <x>CAO YES</x> marks goods allowed on cargo aircraft only. Acknowledge with <x>ACK</x>, which counts as the captain's signature.",
+    "out": "NOTOC (notification au commandant de bord) d’un vol cargo : les marchandises dangereuses chargées, avec le numéro UN, la classe, le code d’assistance, l’emplacement dans la soute et le nombre de colis ; la mention « CAO YES » indique que les marchandises sont autorisées uniquement à bord d’un avion-cargo. Confirmez par « ACK », ce qui vaut signature du commandant de bord.",
+    "engine": "deepl"
+  },
+  "scn:cargo_notoc.steps.notoc.hint": {
+    "src": "Cargo control received your acknowledgement: a copy goes into the flight folder and the loading supervisor knows. No reply needed.",
+    "out": "Le service de contrôle du fret a reçu votre accusé de réception : une copie est versée au dossier de vol et le responsable du chargement en est informé. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:cargo_notoc.steps.reply.reply_hints.ACK": {
+    "src": "You have read the <x>NOTOC</x>; this counts as your signature.",
+    "out": "Vous avez pris connaissance du NOTOC ; cela tient lieu de votre signature.",
+    "engine": "deepl"
+  },
+  "scn:cargo_notoc.title": {
+    "src": "Dangerous goods (<x>NOTOC</x>, cargo)",
+    "out": "Marchandises dangereuses (NOTOC, fret)",
+    "engine": "deepl"
+  },
+  "scn:cargo_prelim_loadsheet.description": {
+    "src": "Preliminary loadsheet of a cargo flight: planned figures from the <x>OFP</x>, freight without passengers.",
+    "out": "Devis de masse et centrage préliminaire d’un vol cargo : chiffres prévus par l’OFP, fret sans passagers.",
+    "engine": "deepl"
+  },
+  "scn:cargo_prelim_loadsheet.hint": {
+    "src": "Preliminary loadsheet from load control for a cargo flight: the planned weights and fuel from the flight plan (<x>ZFW</x>, <x>TOF</x>, <x>TOW</x>, <x>TIF</x>, <x>LAW</x> against the maximums) and the freight. Use it to prepare the <x>FMS</x>; the final figures come in the final loadsheet. No reply needed.",
+    "out": "Fiche de masse et centrage préliminaire provenant du service de contrôle du chargement pour un vol cargo : les poids et le carburant prévus figurant dans le plan de vol (ZFW, TOF, TOW, TIF, LAW par rapport aux limites maximales) ainsi que le fret. Utilisez-la pour préparer le FMS ; les chiffres définitifs figurent dans le devis de masse et centrage définitif. Aucune réponse n'est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:cargo_prelim_loadsheet.title": {
+    "src": "Preliminary loadsheet (cargo)",
+    "out": "Devis de masse et centrage préliminaire (fret)",
+    "engine": "deepl"
+  },
+  "scn:cargo_sort_shift.description": {
+    "src": "In cruise of a cargo flight: the sort at the destination hub starts later, no need to expedite.",
+    "out": "En croisière d’un vol de fret : le tri au hub de destination commence plus tard, pas besoin d’accélérer.",
+    "engine": "deepl"
+  },
+  "scn:cargo_sort_shift.hint": {
+    "src": "Cargo control: the sorting of freight at the destination hub starts later than planned, by the minutes given, so there is no need to hurry for it. For information; no reply needed.",
+    "out": "Contrôle du fret : le tri du fret au hub de destination commence plus tard que prévu, avec le retard indiqué en minutes ; il n’est donc pas nécessaire de se dépêcher. À titre d’information ; aucune réponse requise.",
+    "engine": "deepl"
+  },
+  "scn:cargo_sort_shift.title": {
+    "src": "Hub sort moved (cargo)",
+    "out": "Report du tri au hub (fret)",
+    "engine": "deepl"
+  },
+  "scn:cargo_special_load.description": {
+    "src": "Before departure of a cargo flight: special load on board (live animals, perishables, pharma, human remains or valuables) with its handling code. Reply <x>ACK</x>.",
+    "out": "Avant le départ d’un vol cargo : chargement spécial à bord (animaux vivants, denrées périssables, produits pharmaceutiques, dépouilles humaines ou objets de valeur) avec son code d’assistance. Répondez par « ACK ».",
+    "engine": "deepl"
+  },
+  "scn:cargo_special_load.hint": {
+    "src": "Special load notification from cargo control: a consignment that needs care in flight or on arrival, with its <x>IATA</x> handling code, hold position and what it needs (temperature, priority offload). Acknowledge with <x>ACK</x>.",
+    "out": "Notification de chargement spécial émanant du contrôle du fret : un envoi nécessitant une attention particulière en vol ou à l’arrivée, avec son code d’assistance IATA, son emplacement dans la soute et ses exigences (température, déchargement prioritaire). Confirmez par ACK.",
+    "engine": "deepl"
+  },
+  "scn:cargo_special_load.steps.ack.hint": {
+    "src": "Cargo control received your acknowledgement and has told the handling at the destination. No reply needed.",
+    "out": "Le contrôle du fret a reçu votre accusé de réception et en a informé l’assistance à la destination. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:cargo_special_load.steps.reply.reply_hints.ACK": {
+    "src": "You know about the special load.",
+    "out": "Vous êtes informé de la présence de ce fret spécial.",
+    "engine": "deepl"
+  },
+  "scn:cargo_special_load.title": {
+    "src": "Special load (cargo)",
+    "out": "Cargaison spéciale",
+    "engine": "deepl"
+  },
+  "scn:cargo_uld_damaged.description": {
+    "src": "Before departure of a cargo flight: a damaged <x>ULD</x> is replaced and part of its freight offloaded; the final loadsheet shows the same freight <x>LMC</x>.",
+    "out": "Avant le départ d’un vol cargo : un ULD endommagé est remplacé et une partie de son fret est déchargée ; le devis de masse et centrage final indique le même LMC de fret.",
+    "engine": "deepl"
+  },
+  "scn:cargo_uld_damaged.hint": {
+    "src": "Load control: a unit load device (container or pallet) was found damaged at loading. Its freight was moved to another unit and the part that did not fit stays behind; the final loadsheet will show this change. No reply needed.",
+    "out": "Contrôle du chargement : un dispositif de chargement unitaire (conteneur ou palette) a été constaté endommagé lors du chargement. Sa cargaison a été transférée vers une autre unité et la partie qui ne tenait pas a été laissée à quai ; le devis de masse et centrage final indiquera cette modification. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:cargo_uld_damaged.title": {
+    "src": "Damaged <x>ULD</x> (cargo)",
+    "out": "ULD endommagé (fret)",
+    "engine": "deepl"
+  },
+  "scn:cargo_weight_error.description": {
+    "src": "Before departure of a cargo flight: a <x>ULD</x> is reweighed heavier than booked; the final loadsheet shows the same freight <x>LMC</x>.",
+    "out": "Avant le départ d’un vol cargo : un ULD a été pesé à nouveau et s’avère plus lourd que prévu ; le devis de masse et centrage définitif indique le même LMC de fret.",
+    "engine": "deepl"
+  },
+  "scn:cargo_weight_error.hint": {
+    "src": "Load control: one unit was weighed again and is heavier than its booking. The difference is a last-minute change (<x>LMC</x>) and will be in the final loadsheet. No reply needed.",
+    "out": "Contrôle du chargement : une unité a été pesée à nouveau et s’avère plus lourde que prévu lors de la réservation. La différence correspond à une modification de dernière minute (LMC) et figurera sur le devis de masse et centrage définitif. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:cargo_weight_error.title": {
+    "src": "Weight correction (cargo)",
+    "out": "Correction de poids (fret)",
+    "engine": "deepl"
+  },
   "scn:cmd_delay.description": {
     "src": "<x>DELAY</x> command: confirms the new off-block time.",
     "out": "Commande DELAY : confirme la nouvelle heure de départ du bloc.",
@@ -4142,6 +4297,21 @@
   "scn:cmd_req_loadsheet.title": {
     "src": "Pilot command: <x>REQ LOADSHEET</x>",
     "out": "Commande pilote : « REQ LOADSHEET »",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_cargo.description": {
+    "src": "<x>REQ LOADSHEET</x> command on a cargo flight: repeats the cargo loadsheet.",
+    "out": "Commande REQ LOADSHEET sur un vol de fret : répète le devis de masse et centrage du fret.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_cargo.hint": {
+    "src": "<x>REQ LOADSHEET</x> asks load control to send the loadsheet again. The answer repeats the latest loadsheet of this cargo flight, preliminary or final. No reply needed.",
+    "out": "« REQ LOADSHEET » demande au contrôle du chargement de renvoyer le devis de masse et centrage. La réponse reprend le dernier devis de masse et centrage de ce vol de fret, qu’il soit préliminaire ou définitif. Aucune réponse n’est requise.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_cargo.title": {
+    "src": "Pilot command: <x>REQ LOADSHEET</x> (cargo)",
+    "out": "Commande pilote : « REQ LOADSHEET » (fret)",
     "engine": "deepl"
   },
   "scn:cmd_req_loadsheet_none.description": {

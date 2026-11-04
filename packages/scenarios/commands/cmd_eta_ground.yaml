@@ -18,4 +18,4 @@ steps:
         {ofp.callsign} {ofp.orig}-{ofp.dest}
         EOBT {ofp.est_out|hhmm}Z
         EST IN {ofp.est_in|hhmm}Z STA {ofp.sched_in|hhmm}Z
-        TRANSFER PAX {ops.transfer_pax}
+        ~TRANSFER PAX {ops.transfer_pax}

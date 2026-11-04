@@ -6,6 +6,8 @@ title: Dangerous goods (NOTOC)
 description: "Before departure: dangerous goods on board, UN number, class, position. Reply ACK for the captain signature."
 hint: "NOTOC (notification to captain): dangerous goods are loaded, with the UN number, class, hold position and number of packages; CAO NO means they are allowed on passenger aircraft. Acknowledge with ACK, which counts as the captain's signature."
 enabled_by_default: true
+# T90: CAO NO is for passenger aircraft; a cargo flight has cargo_notoc, ferry and business flights carry no freight.
+operations: [sched_pax, charter_pax, medevac]
 trigger:
   on: time
   at: { rel: sched_out, offset_min: -30 }

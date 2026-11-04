@@ -10,7 +10,7 @@ trigger:
   on: command
   command: REQ_LOADSHEET
 conditions:
-  - "not ('final_loadsheet' in flight.sent or 'prelim_loadsheet' in flight.sent)"
+  - "not ('final_loadsheet' in flight.sent or 'prelim_loadsheet' in flight.sent or 'cargo_final_loadsheet' in flight.sent or 'cargo_prelim_loadsheet' in flight.sent)"
 steps:
   - send:
       header: LOADSHEET

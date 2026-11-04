@@ -1,0 +1,29 @@
+# Night sort at the destination hub moved (T90): for information in cruise, 15-45 min later
+# (assumption approved by the user 2026-11-04). Nothing is asked of the crew.
+id: cargo_sort_shift
+version: 1
+category: irregular
+title: Hub sort moved (cargo)
+description: "In cruise of a cargo flight: the sort at the destination hub starts later, no need to expedite."
+hint: "Cargo control: the sorting of freight at the destination hub starts later than planned, by the minutes given, so there is no need to hurry for it. For information; no reply needed."
+enabled_by_default: true
+operations: [cargo]
+trigger:
+  on: phase
+  phase: CRUISE
+  window: { after_min: 10, before_tod_min: 30 }
+conditions:
+  - "flight.minutes_to_tod != null"
+  - "flight.minutes_to_tod >= 30"
+  - "flight.divert == null"
+probability: 0.04
+steps:
+  - draw:
+      - set: { run.shift: [15, 45] }
+  - send:
+      header: CARGO MSG
+      body: |
+        {ofp.callsign} {ofp.dest} HUB INFO
+        SORT START MOVED {run.shift} MIN LATER
+        NO NEED TO EXPEDITE
+      footer: "CARGO CONTROL {name:ops}"

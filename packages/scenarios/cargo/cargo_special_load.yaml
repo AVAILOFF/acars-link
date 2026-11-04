@@ -1,0 +1,59 @@
+# Special load (not dangerous goods) on a cargo flight (T90): live animals, perishables,
+# pharmaceuticals, human remains, valuables. IATA special handling codes and the temperature ranges
+# as listed by SAS Cargo "Special handling codes", valid as of 2026-03-18 (COL +2 to +8 C, CRT +15
+# to +25 C). No species, no consignment details: only what the codes say (approved by the user
+# 2026-11-04).
+id: cargo_special_load
+version: 1
+category: irregular
+title: Special load (cargo)
+description: "Before departure of a cargo flight: special load on board (live animals, perishables, pharma, human remains or valuables) with its handling code. Reply ACK."
+hint: "Special load notification from cargo control: a consignment that needs care in flight or on arrival, with its IATA handling code, hold position and what it needs (temperature, priority offload). Acknowledge with ACK."
+enabled_by_default: true
+operations: [cargo]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -35 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.15
+steps:
+  - draw:
+      - weight: 2
+        set: { run.shc: AVI, run.what: LIVE ANIMALS, run.note: CHECK HOLD TEMP AND VENTILATION }
+      - weight: 3
+        set: { run.shc: PER, run.what: PERISHABLES, run.note: PRIORITY OFFLOAD ON ARRIVAL }
+      - weight: 3
+        set: { run.shc: PIL COL, run.what: PHARMACEUTICALS +2 TO +8 C, run.note: KEEP COOL CHAIN ON ARRIVAL }
+      - weight: 2
+        set: { run.shc: PIL CRT, run.what: PHARMACEUTICALS +15 TO +25 C, run.note: KEEP TEMP RANGE ON ARRIVAL }
+      - weight: 1
+        set: { run.shc: HUM, run.what: HUMAN REMAINS IN COFFIN, run.note: HANDLE WITH RESPECT }
+      - weight: 1
+        set: { run.shc: VAL, run.what: VALUABLE CARGO, run.note: SECURITY ESCORT ON ARRIVAL }
+  - send:
+      header: SPECIAL LOAD
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        SHC {run.shc}
+        {run.what}
+        POS {hold} PCS {rand:1-6}
+        {run.note}
+        REPLY ACK
+      footer: "CARGO CONTROL {name:ops}"
+  - wait:
+      reply:
+        id: reply
+        options: [ACK]
+        timeout_min: 10
+        default: ACK
+        reply_hints:
+          ACK: "You know about the special load."
+  - send:
+      id: ack
+      header: SPECIAL LOAD
+      body: |
+        ACK RECEIVED
+        {ofp.dest} HANDLING INFORMED
+      footer: "CARGO CONTROL"
+      hint: "Cargo control received your acknowledgement and has told the handling at the destination. No reply needed."

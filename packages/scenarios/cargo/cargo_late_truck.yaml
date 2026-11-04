@@ -1,0 +1,30 @@
+# Late truck at the hub (T90): the trucked freight misses the cut-off, the departure waits.
+# Delay 10-30 min (assumption approved by the user 2026-11-04); the freight is already in the plan,
+# so the loadsheet figures do not change.
+id: cargo_late_truck
+version: 1
+category: irregular
+title: Late truck (cargo)
+description: "Before departure of a cargo flight: a truck with planned freight is late, the cargo cut-off is extended and the departure delayed by 10-30 minutes."
+hint: "Cargo control: a truck with freight booked on your flight is late, so the cargo cut-off is extended and the departure delayed by the minutes given. Plan accordingly. No reply needed."
+enabled_by_default: true
+operations: [cargo]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -50 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.05
+steps:
+  - draw:
+      - set: { run.delay: [10, 30] }
+  - send:
+      header: CARGO MSG
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        TRUCK WITH BOOKED FREIGHT LATE
+        CARGO CUT-OFF EXTENDED
+        EXPECT DELAY {run.delay} MIN
+      footer: "CARGO CONTROL {name:ops}"
+  - set:
+      flight.delay_min: "{run.delay}"

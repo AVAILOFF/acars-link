@@ -1,0 +1,32 @@
+# Active temperature-controlled container failed (T90): found before departure, replaced, the
+# departure waits 15-30 min (assumption approved by the user 2026-11-04). ACT and PIL: IATA codes
+# as listed by SAS Cargo "Special handling codes", valid as of 2026-03-18.
+id: cargo_act_failure
+version: 1
+category: irregular
+title: Temperature container failed (cargo)
+description: "Before departure of a cargo flight: an active temperature-controlled container with pharmaceuticals fails and is replaced, delaying the departure by 15-30 minutes."
+hint: "Cargo control: an active temperature-controlled container (ACT) with pharmaceuticals reported a fault before loading. It is being replaced, which delays the departure by the minutes given. No reply needed."
+enabled_by_default: true
+operations: [cargo]
+excludes: [cargo_uld_damaged]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -40 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.03
+steps:
+  - draw:
+      - set: { run.delay: [15, 30] }
+  - send:
+      header: CARGO MSG
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        SHC ACT PIL
+        TEMP CONTAINER FAULT BEFORE LOADING
+        UNIT BEING REPLACED
+        EXPECT DELAY {run.delay} MIN
+      footer: "CARGO CONTROL {name:ops}"
+  - set:
+      flight.delay_min: "{run.delay}"

@@ -30,7 +30,7 @@ export const LOCALES: readonly LocaleSource[] = readdirSync(join(root, 'locales'
 
 /** UI texts of every shipped scenario, English and Russian (T45, T85); the telexes stay English. */
 describe('scenario UI texts', () => {
-  const dirs = ['base', 'commands', 'external', 'irregular', 'sim'];
+  const dirs = ['base', 'commands', 'external', 'irregular', 'sim', 'cargo'];
   const files = dirs.flatMap((d) =>
     readdirSync(join(root, d))
       .filter((f) => f.endsWith('.yaml'))
@@ -85,8 +85,9 @@ describe('scenario UI texts', () => {
         }
       }
     }
-    // 20 scenarios ask, some of them twice (the question again in a holding loop).
-    expect(replies).toBe(23);
+    // 22 scenarios ask, some of them twice (the question again in a holding loop); T90: cargo
+    // NOTOC and special load.
+    expect(replies).toBe(25);
   });
 
   it('the commands of the request window say what they do in the first sentence (T57)', () => {

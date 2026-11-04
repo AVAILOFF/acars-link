@@ -29,7 +29,7 @@ steps:
               {ofp.callsign} ARR {ofp.dest}
               GATE CHANGE APPROVED
               NEW {ops.gate_place}
-              BAGGAGE BELT {ops.belt} UNCHANGED
+              ~BAGGAGE BELT {ops.belt} UNCHANGED{flight.if_pax}
       TIMEOUT:
         - send:
             header: GATE CHANGE

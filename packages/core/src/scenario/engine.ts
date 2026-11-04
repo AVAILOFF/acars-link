@@ -664,6 +664,8 @@ export class ScenarioEngine {
     if (applied) {
       this.st.kindOverride = choice.override;
       this.kindInfo = classifyFlight(this.ofp, choice.override);
+      // The LMC depends on the kind (T90/T91).
+      this.rebuildData();
     }
     events.push({
       type: 'FLIGHT_KIND',
@@ -756,7 +758,8 @@ export class ScenarioEngine {
     // T55: the next leg from the AeroDataBox data of the flight once they are here.
     const ext = this.st.ext;
     const legs = { ...this.nextLeg, live: { connex: ext.connex, routes: ext.routes } };
-    const built = buildFlightData(at(delay), this.seed, legs);
+    const kind = this.kindFilter ? this.kindInfo.kind : undefined;
+    const built = buildFlightData(at(delay), this.seed, legs, kind);
     const raised = this.st.delayRaisedMs;
     const data =
       raised === 0
@@ -765,7 +768,7 @@ export class ScenarioEngine {
             ...built,
             ops: {
               ...built.ops,
-              ctot: buildFlightData(at(delay - raised), this.seed, legs).ops.ctot,
+              ctot: buildFlightData(at(delay - raised), this.seed, legs, kind).ops.ctot,
             },
           };
     const stands = this.st.ext.stands;
@@ -774,11 +777,11 @@ export class ScenarioEngine {
     const planned = picked?.ref ?? null;
     this.newGate = reassignedGate(this.st.gate ?? planned, stands, this.seed);
     const ref = this.st.gate ?? planned;
-    const kind =
+    const standKind =
       ref === null
         ? null
         : ((stands ?? []).find((x) => x.ref === ref)?.kind ?? picked?.kind ?? 'gate');
-    this.data = { ...data, ops: { ...data.ops, arrGate: ref, gateKind: kind } };
+    this.data = { ...data, ops: { ...data.ops, arrGate: ref, gateKind: standKind } };
   }
 
   /**
@@ -995,6 +998,7 @@ export class ScenarioEngine {
       data: this.data,
       divert: this.st.divert,
       flightKind: this.kindInfo.kind,
+      kindFilter: this.kindFilter,
       hold: this.st.hold,
       sent: Object.keys(this.st.sent),
       ext: this.st.ext,

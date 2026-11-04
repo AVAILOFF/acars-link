@@ -21,5 +21,5 @@ steps:
         AFTER DIVERSION OF {flags.recovery_flight}
         CREW DUTY TIME CHECKED
         NEW FLIGHT PLAN AND FUEL ORDERED
-        EXPECT LATE PAX AND BAGS
+        ~EXPECT LATE PAX AND BAGS{flight.if_pax}
   - set: { flags.recovery_airport: null, flags.recovery_flight: null, flags.recovery_date: null }

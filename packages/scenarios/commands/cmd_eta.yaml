@@ -20,5 +20,5 @@ steps:
         {ofp.callsign} {ofp.orig}-{ofp.dest}
         ETA {flight.eta_live|hhmm}Z STA {ofp.sched_in|hhmm}Z
         {ops.gate_place}
-        TRANSFER PAX {ops.transfer_pax}
+        ~TRANSFER PAX {ops.transfer_pax}
         CONNECTIONS ADVISED

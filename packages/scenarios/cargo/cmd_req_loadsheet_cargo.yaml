@@ -1,0 +1,17 @@
+# REQ LOADSHEET on a cargo flight (T90): the last cargo loadsheet again (final, else preliminary).
+id: cmd_req_loadsheet_cargo
+version: 1
+category: docs
+title: "Pilot command: REQ LOADSHEET (cargo)"
+description: "REQ LOADSHEET command on a cargo flight: repeats the cargo loadsheet."
+hint: "REQ LOADSHEET asks load control to send the loadsheet again. The answer repeats the latest loadsheet of this cargo flight, preliminary or final. No reply needed."
+enabled_by_default: true
+operations: [cargo]
+trigger:
+  on: command
+  command: REQ_LOADSHEET
+conditions:
+  - "'cargo_final_loadsheet' in flight.sent or 'cargo_prelim_loadsheet' in flight.sent"
+steps:
+  - resend:
+      of: [cargo_final_loadsheet, cargo_prelim_loadsheet]

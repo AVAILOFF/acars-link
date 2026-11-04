@@ -37,6 +37,10 @@ export const RESCUE_CATEGORY: Readonly<Record<AircraftFamily, RescueCategory>> =
   B747: '8-10',
   B777: '8-10',
   B787: '8-10',
+  // T90: wide-bodies, by the same rule.
+  A300: '8-10',
+  B767: '8-10',
+  'MD-11': '8-10',
   'E-JET': '1-5',
   CRJ: '1-5',
   ATR: '1-5',

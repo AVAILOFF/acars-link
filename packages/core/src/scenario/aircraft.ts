@@ -20,6 +20,11 @@ import type { Rng } from '../random/rng.js';
  *   dated primary source for EICAS `[ПРОВЕРИТЬ]`. Holds: FAA AD 2024-13014 names only the
  *   "forward and aft lower lobe cargo compartments" (the 757 airport-planning document was not
  *   read), so no bulk hold.
+ * - A300, B767, MD-11 (T90, approved by the user 2026-11-04): designators checked against ICAO
+ *   Doc 8643 (doc8643.icao.int data, 2026-11-04): A306 A-300B4/C4/F4-600, A30B A-300B2/B4,
+ *   B762/B763/B764 767-200/-300/-400, MD11 MD-11. Holds as the other wide-bodies (no airport-
+ *   planning document read). EICAS of the 767 is common knowledge like the 757's `[ПРОВЕРИТЬ]`;
+ *   the A300 (classic and -600 differ) and the MD-11 get no alerting system name.
  */
 
 export const AIRCRAFT_FAMILIES = [
@@ -27,11 +32,14 @@ export const AIRCRAFT_FAMILIES = [
   'A330',
   'A350',
   'A380',
+  'A300',
   'B737',
   'B747',
   'B757',
+  'B767',
   'B777',
   'B787',
+  'MD-11',
   'E-JET',
   'CRJ',
   'ATR',
@@ -43,7 +51,10 @@ export interface AircraftInfo {
   readonly family: AircraftFamily;
   readonly maker: string;
   readonly body: 'NARROW' | 'WIDE';
-  /** `null`: no central alerting system of ECAM / EICAS kind (turboprops, 737: annunciator panel). */
+  /**
+   * `null`: no central alerting system of ECAM / EICAS kind (turboprops, 737: annunciator panel),
+   * or none named (A300, MD-11).
+   */
   readonly alertSys: 'ECAM' | 'EICAS' | null;
 }
 
@@ -52,11 +63,14 @@ const FAMILY_INFO: Readonly<Record<AircraftFamily, Omit<AircraftInfo, 'family'>>
   A330: { maker: 'AIRBUS', body: 'WIDE', alertSys: 'ECAM' },
   A350: { maker: 'AIRBUS', body: 'WIDE', alertSys: 'ECAM' },
   A380: { maker: 'AIRBUS', body: 'WIDE', alertSys: 'ECAM' },
+  A300: { maker: 'AIRBUS', body: 'WIDE', alertSys: null },
   B737: { maker: 'BOEING', body: 'NARROW', alertSys: null },
   B747: { maker: 'BOEING', body: 'WIDE', alertSys: 'EICAS' },
   B757: { maker: 'BOEING', body: 'NARROW', alertSys: 'EICAS' },
+  B767: { maker: 'BOEING', body: 'WIDE', alertSys: 'EICAS' },
   B777: { maker: 'BOEING', body: 'WIDE', alertSys: 'EICAS' },
   B787: { maker: 'BOEING', body: 'WIDE', alertSys: 'EICAS' },
+  'MD-11': { maker: 'BOEING', body: 'WIDE', alertSys: null },
   'E-JET': { maker: 'EMBRAER', body: 'NARROW', alertSys: 'EICAS' },
   CRJ: { maker: 'BOMBARDIER', body: 'NARROW', alertSys: 'EICAS' },
   ATR: { maker: 'ATR', body: 'NARROW', alertSys: null },
@@ -68,11 +82,14 @@ const CODES: Readonly<Record<AircraftFamily, string>> = {
   A330: 'A332 A333 A338 A339',
   A350: 'A359 A35K',
   A380: 'A388',
+  A300: 'A306 A30B',
   B737: 'B731 B732 B733 B734 B735 B736 B737 B738 B739 B37M B38M B39M B3XM',
   B747: 'B741 B742 B743 B744 B748 B74D B74R B74S',
   B757: 'B752 B753',
+  B767: 'B762 B763 B764',
   B777: 'B772 B773 B77L B77W B778 B779',
   B787: 'B788 B789 B78X',
+  'MD-11': 'MD11',
   'E-JET': 'E170 E75S E75L E190 E195 E290 E295',
   CRJ: 'CRJ1 CRJ2 CRJ7 CRJ9 CRJX',
   ATR: 'AT43 AT44 AT45 AT46 AT72 AT73 AT75 AT76',

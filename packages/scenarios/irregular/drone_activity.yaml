@@ -84,7 +84,8 @@ steps:
                           ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
                           DIVERT {flight.divert} NOTED
                           ~{flight.divert_nm} NM FROM PRESENT POS
-                          HANDLING ORDERED, PAX INFO SENT
+                          ~HANDLING ORDERED, PAX INFO SENT{flight.if_pax}
+                          ~HANDLING ORDERED{flight.if_no_pax}
                         hint: "OPS notes your diversion and its distance; handling is ordered there and the passenger information is sent. No reply needed."
                     - break: true
         - set: { flight.hold: null }
@@ -107,5 +108,6 @@ steps:
               ~{reply.unknown} UNKNOWN, DIVERT {flight.divert}
               DIVERT {flight.divert} NOTED
               ~{flight.divert_nm} NM FROM PRESENT POS
-              HANDLING ORDERED, PAX INFO SENT
+              ~HANDLING ORDERED, PAX INFO SENT{flight.if_pax}
+              ~HANDLING ORDERED{flight.if_no_pax}
             hint: "OPS notes your diversion and its distance; handling is ordered there and the passenger information is sent. No reply needed."

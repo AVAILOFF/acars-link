@@ -155,6 +155,11 @@ export const CONTEXT_VARIABLES = [
   'flight.divert',
   // kind of flight (T89, flight-kind.ts): `sched_pax`, `cargo` …
   'flight.kind',
+  // empty text when passengers may be in the cabin, null on a cargo or ferry flight with the kind
+  // filter on (T90/T91): `~PAX CARE ARRANGED{flight.if_pax}` leaves the line out
+  'flight.if_pax',
+  // the opposite: empty text on a cargo or ferry flight with the filter on, else null
+  'flight.if_no_pax',
   'flight.sent',
   // distance to the diversion airport when its position is known (T51), NM
   'flight.divert_nm',
@@ -382,6 +387,8 @@ export interface ContextInput {
   readonly divert?: string | null;
   /** Kind of flight in force (T89), engine; absent = recognized from the OFP. */
   readonly flightKind?: FlightKind;
+  /** The kind filter is on (T89 option `flightKind`): the texts follow the kind (T90/T91). */
+  readonly kindFilter?: boolean;
   /** Runway needs by family instead of the table of `divert.ts` (tests, T50). */
   readonly runwayNeeds?: Readonly<Partial<Record<AircraftFamily, RunwayNeed>>>;
   /** Holding announced by a scenario (T48), engine. */
@@ -480,6 +487,8 @@ export function buildContext(input: ContextInput): ScenarioContext {
   const w = ofp.weights;
   const f = ofp.fuel;
   const t = ofp.times;
+  const kind = input.flightKind ?? classifyFlight(ofp).kind;
+  const noPax = input.kindFilter === true && (kind === 'cargo' || kind === 'ferry');
   const toDest = tm === null ? null : route.remainingNm(tm);
   const toTod = tm === null ? null : route.toTodNm(tm);
   // Ground speed below 60 kt (taxi, gate) is no basis for an ETA.
@@ -590,7 +599,9 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'flight.block_min': span(oooi.OUT, oooi.IN),
       'flight.air_min': span(oooi.OFF, oooi.ON),
       'flight.divert': input.divert ?? null,
-      'flight.kind': input.flightKind ?? classifyFlight(ofp).kind,
+      'flight.kind': kind,
+      'flight.if_pax': noPax ? null : '',
+      'flight.if_no_pax': noPax ? '' : null,
       'flight.holding': input.hold != null,
       'flight.hold_fuel_low': holdFuelLow(ofp, tm, input.hold ?? null, now),
       'flight.sent': [...(input.sent ?? [])],
@@ -645,7 +656,9 @@ export function buildContext(input: ContextInput): ScenarioContext {
     {
       'ops.arr_gate': ops.arrGate,
       'ops.belt': ops.belt,
-      'ops.transfer_pax': ops.transferPax,
+      // Transfer passengers on a scheduled flight only (T91: none on a charter, T90: cargo).
+      'ops.transfer_pax':
+        input.kindFilter === true && kind !== 'sched_pax' ? null : ops.transferPax,
       'ops.turnaround_min': ops.turnaroundMin,
       'ops.next_flight': ops.nextFlight,
       'ops.next_orig': ops.nextOrig,
