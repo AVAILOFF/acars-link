@@ -35,8 +35,9 @@ import {
  *                                                                      telex the core produced live
  *                                                                      (ATC CPDLC, T23: + the /data2/ packet)
  * {"type":"cmd","t":…,"scenarioId":…,"command":…,"data":{…}}         sim command produced live (T22:
- *                                                                      "vdgs" + VdgsMessage, bridge
- *                                                                      commands + their args)
+ *                                                                      "vdgs" + VdgsMessage, T102:
+ *                                                                      {"action":"stop"} = taken down;
+ *                                                                      bridge commands + their args)
  * {"type":"stop","now":…}                                              flight stopped
  * {"type":"sent","t":…,"n":…,"result":"sent"|"failed"}                 the transport delivered (or gave
  *                                                                      up on) the n-th `out` line (T64)

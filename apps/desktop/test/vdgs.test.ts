@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
-import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import type { VdgsCommand } from '@acars/core';
+import type { VdgsCommand, VdgsMessage } from '@acars/core';
 import { describe, expect, it } from 'vitest';
-import { gsxVdgsDir, VDGS_FILE, VdgsWriter, vdgsFileJson } from '../src/main/vdgs.js';
+import {
+  gsxVdgsDir,
+  VDGS_FILE,
+  type VdgsShown,
+  VdgsWriter,
+  vdgsFileJson,
+} from '../src/main/vdgs.js';
 import { tempDir } from './support.js';
 
 const cmd = (scenarioId: string, text: string, airport = 'RJBB'): VdgsCommand => ({
@@ -27,7 +33,7 @@ const cmd = (scenarioId: string, text: string, airport = 'RJBB'): VdgsCommand =>
 
 describe('GSX VDGS file (T22)', () => {
   it('has the header and message shape of the FSDreamTeam manual', () => {
-    expect(JSON.parse(vdgsFileJson([cmd('vdgs_arrival', 'SJX')]))).toEqual({
+    expect(JSON.parse(vdgsFileJson([cmd('vdgs_arrival', 'SJX') as VdgsShown]))).toEqual({
       type: 'vgds_messages',
       version: '1.0',
       enabled: true,
@@ -75,5 +81,46 @@ describe('GSX VDGS file (T22)', () => {
     expect(w.available).toBe(false);
     w.show(cmd('a', 'ONE'));
     w.clear();
+  });
+
+  it('T102: the departure board takes the id of the GSX message it replaces (flight_information)', () => {
+    const c = cmd('vdgs_departure', 'SJX', 'EDDL');
+    const board: VdgsCommand = {
+      ...c,
+      vdgs: { ...(c.vdgs as VdgsMessage), replaces: 'flight_information' },
+    };
+    const json = JSON.parse(vdgsFileJson([board as VdgsShown]));
+    expect(json.messages[0]).toMatchObject({
+      id: 'flight_information',
+      conditions: { airports: ['EDDL'] },
+    });
+    expect(json.messages[0]).not.toHaveProperty('replaces');
+  });
+
+  it('T102: `vdgs: null` removes the scenario message; the last one gone, the file goes', async () => {
+    const dir = join(await tempDir(), 'VGDS');
+    const w = new VdgsWriter(dir);
+    w.show(cmd('a', 'ONE'));
+    w.show(cmd('b', 'TWO'));
+    w.show({ command: 'vdgs', scenarioId: 'a', t: 1, vdgs: null });
+    const file = JSON.parse(readFileSync(join(dir, VDGS_FILE), 'utf8'));
+    expect(file.messages.map((m: { id: string }) => m.id)).toEqual(['acars_b']);
+    w.show({ command: 'vdgs', scenarioId: 'zz', t: 1, vdgs: null }); // unknown: nothing to do
+    w.show({ command: 'vdgs', scenarioId: 'b', t: 2, vdgs: null });
+    expect(existsSync(join(dir, VDGS_FILE))).toBe(false);
+  });
+
+  it('T102: the same text is not written again (the board is rendered every minute)', async () => {
+    const dir = join(await tempDir(), 'VGDS');
+    const w = new VdgsWriter(dir);
+    w.show(cmd('a', 'ONE'));
+    const file = join(dir, VDGS_FILE);
+    const before = statSync(file).mtimeMs;
+    w.show({ ...cmd('a', 'ONE'), t: 60_000 });
+    expect(statSync(file).mtimeMs).toBe(before);
+    w.show(cmd('a', 'TWO'));
+    expect(JSON.parse(readFileSync(file, 'utf8')).messages[0].display.wide.pages[0].lines).toEqual([
+      'TWO',
+    ]);
   });
 });

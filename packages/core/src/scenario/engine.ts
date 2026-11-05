@@ -33,7 +33,13 @@ import {
   type RunVariable,
   type ScenarioContext,
 } from './context.js';
-import { type DelayPart, LATE_START_CODE, reasonCode, SLOT_CODE } from './delay-codes.js';
+import {
+  type DelayPart,
+  LATE_START_CODE,
+  reasonCode,
+  SLOT_CODE,
+  SLOT_SCENARIO_ID,
+} from './delay-codes.js';
 import { airportPlace, type RunwayNeed } from './divert.js';
 
 import type { Lookup, Value } from './expr.js';
@@ -389,6 +395,11 @@ export interface ScenarioEngineState {
   readonly delayRaisedMs?: number;
   /** What the delay is made of, with IATA delay codes (T43); absent in older states. */
   readonly delayParts?: readonly DelayPart[];
+  /**
+   * The airline's part of the delay (T102, TOBT): the delay without the ATFM slot of
+   * {@link SLOT_SCENARIO_ID}; absent in older states = `delayMs − delayRaisedMs`.
+   */
+  readonly tobtDelayMs?: number;
   /** Factor of the pre-departure offsets (`sched_out` − N) fitted to the time left; absent = 1. */
   readonly preScale?: number;
   /** The user's choice of the kind of flight (T89); absent in older states = the option's. */
@@ -497,6 +508,7 @@ export class ScenarioEngine {
     touchdown: { fpm: number | null } | null;
     delayRaisedMs: number;
     delayParts: DelayPart[];
+    tobtDelayMs: number;
     preScale: number;
     kindOverride: FlightKind | null;
   };
@@ -572,6 +584,7 @@ export class ScenarioEngine {
       touchdown: null,
       delayRaisedMs: 0,
       delayParts: [],
+      tobtDelayMs: 0,
       preScale: 1,
       kindOverride: options.flightKind?.override ?? null,
     };
@@ -626,6 +639,9 @@ export class ScenarioEngine {
     e.st.touchdown = copy.touchdown ?? null;
     e.st.delayRaisedMs = copy.delayRaisedMs ?? 0;
     e.st.delayParts = [...(copy.delayParts ?? [])];
+    // T102.
+    e.st.tobtDelayMs =
+      copy.tobtDelayMs ?? Math.max(0, (copy.delayMs ?? 0) - (copy.delayRaisedMs ?? 0));
     e.st.preScale = copy.preScale ?? 1;
     // T89.
     if (copy.kindOverride !== undefined) e.st.kindOverride = copy.kindOverride;
@@ -833,6 +849,7 @@ export class ScenarioEngine {
       this.setDelay(late > 0 ? Math.ceil(late / DELAY_STEP_MS) * DELAY_STEP_MS : 0);
       const ms = this.st.delayMs ?? 0;
       if (ms > 0) this.st.delayParts.push({ code: LATE_START_CODE, ms });
+      this.st.tobtDelayMs = ms;
       // Less time than the whole pre-departure sequence: squeeze it into what is left, in the
       // same order and proportions, so every message still comes before the departure.
       const left = this.ofp.times.schedOutMs + ms - input.now - PRE_SCALE_MARGIN_MS;
@@ -988,6 +1005,7 @@ export class ScenarioEngine {
     this.ctx = buildContext({
       ofp: this.ctxOfp,
       delayMs: this.st.delayMs ?? 0,
+      tobtDelayMs: this.st.tobtDelayMs,
       delayParts: this.st.delayParts,
       namesVersion: this.namesVersion,
       route: this.route,
@@ -1321,6 +1339,7 @@ export class ScenarioEngine {
       case 'DELAY':
         if (input.oooi.OUT !== null) return { hint: 'OFF BLOCK ALREADY' };
         this.setDelay((this.st.delayMs ?? 0) + (args.minutes as number) * 60_000);
+        this.st.tobtDelayMs += (args.minutes as number) * 60_000;
         this.st.delayParts.push({
           code: reasonCode(args.reason as string | null),
           ms: (args.minutes as number) * 60_000,
@@ -1468,6 +1487,10 @@ export class ScenarioEngine {
           this.st.delayRaisedMs += after - before;
           // Only the slot raises the delay this way: ATFM (T43).
           if (after > before) this.st.delayParts.push({ code: SLOT_CODE, ms: after - before });
+          // The airline's readiness (TOBT, T102) moves with any delay but the ATFM slot's.
+          if (id !== SLOT_SCENARIO_ID) {
+            this.st.tobtDelayMs = Math.max(this.st.tobtDelayMs, Math.round(min) * 60_000);
+          }
           this.setDelay(after);
           refresh = true;
         }
@@ -1815,6 +1838,10 @@ export class ScenarioEngine {
         });
         continue;
       }
+      if (step.kind === 'vdgs_stop') {
+        this.commands.push({ command: 'vdgs', scenarioId: sc.id, t: input.now, vdgs: null });
+        continue;
+      }
       if (step.kind === 'vdgs') {
         try {
           const look = this.lookFor(run.vars);
@@ -1825,12 +1852,15 @@ export class ScenarioEngine {
               red: l.red,
             }));
           }
-          const airport = this.st.divert ?? this.ofp.destination.icao;
+          const airport =
+            step.at === 'orig'
+              ? this.ofp.origin.icao
+              : (this.st.divert ?? this.ofp.destination.icao);
           this.commands.push({
             command: 'vdgs',
             scenarioId: sc.id,
             t: input.now,
-            vdgs: buildVdgsMessage(airport, step.durationSec, given),
+            vdgs: buildVdgsMessage(airport, step.durationSec, given, step.replaces ?? undefined),
           });
           const readsGate = Object.values(step.displays).some((ls) =>
             (ls ?? []).some((l) => GATE_VARS.some((v) => l.t.vars.includes(v))),

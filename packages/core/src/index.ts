@@ -22,6 +22,7 @@ export * from './atc/squawk/squawk.js';
 export * from './atc/xatc.js';
 export * from './core.js';
 export * from './datalink/link.js';
+export * from './ext/acdm-airports.js';
 export * from './ext/aircraft-models.js';
 export * from './ext/airline.js';
 export * from './ext/airshows.js';

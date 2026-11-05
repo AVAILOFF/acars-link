@@ -30,7 +30,12 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
     case 'resume':
       return ['RESUME', 'the app restored the flight after a restart'];
     case 'cmd':
-      return ['SIM', `${e.command.scenarioId}  ${e.command.command}`];
+      return [
+        'SIM',
+        `${e.command.scenarioId}  ${e.command.command}${
+          e.command.command === 'vdgs' && e.command.vdgs === null ? ' stop' : ''
+        }`,
+      ];
     case 'out': {
       const m = e.message;
       if (m.kind === 'cpdlc') return ['CPDLC', `${m.from} → ${m.to}  ${m.message.lines.join(' ')}`];

@@ -40,9 +40,18 @@ export interface VdgsLine {
   readonly red: boolean;
 }
 
+/**
+ * Standard GSX messages a scenario may replace (T102): `flight_information` — the departure
+ * board GSX fills from SimBrief (`parkingServicesgds_standard_messages.json`; docs/06).
+ */
+export const VDGS_REPLACES = ['flight_information'] as const;
+export type VdgsReplaces = (typeof VDGS_REPLACES)[number];
+
 export interface VdgsMessage {
-  /** ICAO of the airport the message is for (the arrival airport, or the diversion). */
+  /** ICAO of the airport the message is for (arrival, diversion or, T102, departure). */
   readonly airport: string;
+  /** Standard GSX message this one replaces (T102); absent = an extra message. */
+  readonly replaces?: VdgsReplaces;
   readonly durationMs: number;
   /** Lines for each display type; `narrow`, `wide` and `x` are always present. */
   readonly displays: Readonly<Partial<Record<VdgsDisplay, readonly VdgsLine[]>>>;
@@ -73,6 +82,7 @@ export function buildVdgsMessage(
   airport: string,
   durationSec: number,
   given: Readonly<Partial<Record<VdgsDisplay, readonly VdgsLine[]>>>,
+  replaces?: VdgsReplaces,
 ): VdgsMessage {
   const norm = (ls: readonly VdgsLine[]) =>
     ls.map((l) => ({ text: l.text.trim().toUpperCase(), red: l.red }));
@@ -87,7 +97,10 @@ export function buildVdgsMessage(
     if (why !== null) throw new VdgsError(why);
     displays[d] = lines;
   }
-  return { airport, durationMs: Math.round(durationSec * 1000), displays };
+  const durationMs = Math.round(durationSec * 1000);
+  return replaces === undefined
+    ? { airport, durationMs, displays }
+    : { airport, replaces, durationMs, displays };
 }
 
 export class VdgsError extends Error {

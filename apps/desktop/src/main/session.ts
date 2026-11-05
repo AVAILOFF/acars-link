@@ -972,7 +972,8 @@ function cmdLine(c: SimCommand): RecordingEvent {
   const { scenarioId, t, command, ...rest } = c;
   const data =
     'vdgs' in rest
-      ? rest.vdgs
+      ? // `vdgs: stop` (T102): the recording keeps `data` an object.
+        (rest.vdgs ?? { action: 'stop' })
       : 'args' in rest
         ? rest.args
         : 'level' in rest

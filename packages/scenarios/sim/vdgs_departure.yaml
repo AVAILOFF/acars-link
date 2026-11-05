@@ -1,0 +1,56 @@
+# Departure board on the GSX VDGS (T102): the airline's TOBT at an A-CDM airport. Replaces GSX's
+# own `flight_information` (its TOBT comes from SimBrief and knows no delay), so the stand shows
+# one TOBT: the scheduled off-block plus the airline's delay (late start, pilot DELAY, irregular
+# delays; not the ATFM slot, which moves the CTOT). Timings of Dusseldorf Airport "Airport-CDM
+# Flight Crew Briefing" v5.0 (2022-08-16) 2.8, approved for all A-CDM airports (user,
+# 2026-11-05): TOBT and a countdown from TOBT - 30 min, in UTC; the line is blank once the TOBT is
+# reached; no TSAT and no CTOT. Not off block 15 min after the TOBT: the TOBT counts as deleted,
+# "FLIGHT SUSPENDED - NEW TOBT REQUIRED" in red until a pilot DELAY gives a new one (15 min and
+# the narrow abbreviations are approved assumptions). Rewritten every minute; taken down at OUT.
+id: vdgs_departure
+version: 1
+category: ops
+title: Departure board (GSX)
+description: "At an A-CDM airport: flight, destination, the airline's TOBT with a countdown, runway and SID on the GSX VDGS at the departure stand."
+hint: "Not a message: the departure stand's GSX docking display shows your flight, destination, runway and SID and, from 30 min before, the airline's target off-block time (TOBT) with a countdown. A DELAY moves the TOBT; not off block 15 min after it, the board asks for a new TOBT."
+enabled_by_default: true
+# T92: airline handling; a business flight has flight support (bizav/), no VDGS.
+operations: [sched_pax, charter_pax, cargo, ferry, medevac]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -60 }
+conditions:
+  - "flight.out == null"
+  - "ofp.orig_acdm"
+  - "ofp.airline != null"
+steps:
+  - loop:
+      until: "flight.out != null"
+      steps:
+        # Before the TOBT window, and from the TOBT until it counts as deleted: no TOBT line.
+        - if: "flight.minutes_to_tobt > 30 or (flight.minutes_to_tobt <= 0 and flight.minutes_to_tobt > -15)"
+          steps:
+            - vdgs:
+                at: orig
+                replaces: flight_information
+                narrow: ["{ofp.airline}", "{ofp.flight}", "{ofp.dest}", "", ""]
+                wide: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "", "", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
+                x: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "", "", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
+        - if: "flight.minutes_to_tobt > 0 and flight.minutes_to_tobt <= 30"
+          steps:
+            - vdgs:
+                at: orig
+                replaces: flight_information
+                narrow: ["{ofp.airline}", "{ofp.flight}", "{ofp.dest}", "TOBT", "{flight.tobt|hhmm}"]
+                wide: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "TOBT {flight.tobt|hhmm}", "TTD {flight.minutes_to_tobt}MIN", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
+                x: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "TOBT {flight.tobt|hhmm}", "TTD {flight.minutes_to_tobt} MIN", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
+        - if: "flight.minutes_to_tobt <= -15"
+          steps:
+            - vdgs:
+                at: orig
+                replaces: flight_information
+                narrow: [{ red: "FLIGHT" }, { red: "SUSPND" }, { red: "NEW" }, { red: "TOBT" }, { red: "REQRD" }]
+                wide: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", { red: "FLIGHT" }, { red: "SUSPENDED" }, { red: "NEW TOBT" }, { red: "REQUIRED" }]
+                x: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", { red: "FLIGHT" }, { red: "SUSPENDED" }, { red: "NEW TOBT" }, { red: "REQUIRED" }]
+        - wait: { minutes: 1 }
+  - vdgs: stop

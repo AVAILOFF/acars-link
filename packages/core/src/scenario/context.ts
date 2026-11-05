@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
+import { isAcdmAirport } from '../ext/acdm-airports.js';
 import { airlineCountry, airlineType } from '../ext/airline.js';
 import {
   CONNEX_ATTRIBUTION,
@@ -62,6 +63,8 @@ export const CONTEXT_VARIABLES = [
   'ofp.altn',
   'ofp.route',
   'ofp.sid',
+  // The origin has fully implemented A-CDM (T102, ext/acdm-airports.ts)
+  'ofp.orig_acdm',
   'ofp.star',
   'ofp.cost_index',
   'ofp.cruise_alt_ft',
@@ -145,6 +148,10 @@ export const CONTEXT_VARIABLES = [
   'flight.minutes_to_dest',
   'flight.minutes_to_sched_out',
   'flight.delay_min',
+  // T102: the airline's TOBT (sched_out + delay without the ATFM slot), epoch ms; minutes to it,
+  // rounded up (0 from the TOBT on, negative after it)
+  'flight.tobt',
+  'flight.minutes_to_tobt',
   // MVT delay element at OUT (T43, delay-codes.ts): `DL81/63/0025/0010`; null on time / before OUT
   'flight.delay_codes',
   'flight.minutes_since_off',
@@ -388,6 +395,8 @@ export interface ContextInput {
   readonly data: FlightData;
   /** Late-start delay plus pilot `DELAY`s (engine), ms. */
   readonly delayMs?: number;
+  /** The airline's part of {@link delayMs}, without the ATFM slot (T102, TOBT); absent = all. */
+  readonly tobtDelayMs?: number;
   /** Generator of `{name:…}` (T43): 1 = by the origin's ICAO prefix, 2 = by the airline. */
   readonly namesVersion?: 1 | 2;
   /** What the delay is made of (T43). */
@@ -508,6 +517,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
   const eta = (nm: number | null) =>
     nm === null || gs === null ? null : Math.round((nm / gs) * 60);
   const block = t.schedBlockSec ?? (t.schedInMs - t.schedOutMs) / 1000;
+  const tobt = t.schedOutMs + (input.tobtDelayMs ?? input.delayMs ?? 0);
 
   return mergeParts(
     {
@@ -533,6 +543,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'ofp.altn': ofp.alternates[0]?.icao ?? null,
       'ofp.route': ofp.route,
       'ofp.sid': ofp.sid,
+      'ofp.orig_acdm': isAcdmAirport(ofp.origin.icao),
       'ofp.star': ofp.star,
       'ofp.cost_index': ofp.costIndex,
       'ofp.cruise_alt_ft': ofp.initialAltitudeFt,
@@ -598,6 +609,8 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'flight.minutes_to_dest': eta(toDest),
       'flight.minutes_to_sched_out': minutes(t.schedOutMs - now),
       'flight.delay_min': minutes(input.delayMs ?? 0),
+      'flight.tobt': tobt,
+      'flight.minutes_to_tobt': Math.ceil((tobt - now) / 60_000),
       'flight.delay_codes':
         oooi.OUT === null
           ? null

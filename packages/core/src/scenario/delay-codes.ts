@@ -35,6 +35,11 @@ const KNOWN = new Set([
 export const LATE_START_CODE = '63';
 /** Slot (`set: flight.delay_min`): ATFM due to ATC en-route demand/capacity (81 AT). */
 export const SLOT_CODE = '81';
+/**
+ * The scenario whose `set: flight.delay_min` is the ATFM slot (T43): its delay moves the CTOT,
+ * not the airline's TOBT (A-CDM; T102, approved by the user 2026-11-05).
+ */
+export const SLOT_SCENARIO_ID = 'slot_ctot';
 /** Delay without a known cause: other reason (99 MX). */
 export const OTHER_CODE = '99';
 

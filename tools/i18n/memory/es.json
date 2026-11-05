@@ -5999,6 +5999,21 @@
     "out": "Pantalla de atraque (GSX)",
     "engine": "deepl"
   },
+  "scn:vdgs_departure.description": {
+    "src": "At an <x>A-CDM</x> airport: flight, destination, the airline's <x>TOBT</x> with a countdown, runway and <x>SID</x> on the <x>GSX</x> <x>VDGS</x> at the departure stand.",
+    "out": "En un aeropuerto A-CDM: vuelo, destino, el TOBT de la aerolínea con una cuenta atrás, pista y SID en el GSX VDGS del puesto de salida.",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure.hint": {
+    "src": "Not a message: the departure stand's <x>GSX</x> docking display shows your flight, destination, runway and <x>SID</x> and, from 30 min before, the airline's target off-block time (<x>TOBT</x>) with a countdown. A <x>DELAY</x> moves the <x>TOBT</x>; not off block 15 min after it, the board asks for a new <x>TOBT</x>.",
+    "out": "No es un mensaje: la pantalla de acoplamiento del GSX del puesto de salida muestra su vuelo, destino, pista y SID y, a partir de 30 minutos antes, la hora prevista de salida del bloque (TOBT) de la aerolínea con una cuenta atrás. Un DELAY modifica el TOBT; si no se sale del bloque 15 minutos después de esa hora, la pantalla solicita un nuevo TOBT.",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure.title": {
+    "src": "Departure board (<x>GSX</x>)",
+    "out": "Panel de salidas (GSX)",
+    "engine": "deepl"
+  },
   "scn:vdgs_divert.description": {
     "src": "Flight, a red <x>DIVERTED</x> line and the origin on the <x>GSX</x> <x>VDGS</x> at the diversion airport.",
     "out": "Vuelo: una línea roja «DIVERTED» y el origen en el VDGS del GSX en el aeropuerto de desvío.",

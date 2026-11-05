@@ -742,6 +742,10 @@ vdgs_arrival:
   title: Écran d'accostage (GSX)
   description: Vol, porte de départ et d'arrivée sur l'GSX VDGS à la position de stationnement de destination.
   hint: "Ce n'est pas un message : votre vol, votre point de départ et votre porte d'arrivée sur l'écran d'accostage du GSX, au poste de stationnement."
+vdgs_departure:
+  title: Tableau des départs (GSX)
+  description: "Dans un aéroport A-CDM : vol, destination, TOBT de la compagnie aérienne avec un compte à rebours, piste et SID sur le GSX VDGS de la position de départ."
+  hint: "Ce n'est pas un message : l'écran d'amarrage GSX de la position de départ affiche votre vol, votre destination, la piste et le SID et, à partir de 30 minutes avant le départ, l'heure de départ prévue par la compagnie aérienne (TOBT) avec un compte à rebours. Un DELAY modifie le TOBT ; si le départ n'a pas lieu 15 minutes après cette heure, l'écran demande un nouveau TOBT."
 vdgs_divert:
   title: Affichage d'amarrage, déroutement (GSX)
   description: "Vol : une ligne rouge « DIVERTED » et l’origine sur le VDGS du GSX à l’aéroport de déroutement."

@@ -5999,6 +5999,21 @@
     "out": "ドッキングディスプレイ（GSX）",
     "engine": "deepl"
   },
+  "scn:vdgs_departure.description": {
+    "src": "At an <x>A-CDM</x> airport: flight, destination, the airline's <x>TOBT</x> with a countdown, runway and <x>SID</x> on the <x>GSX</x> <x>VDGS</x> at the departure stand.",
+    "out": "A-CDM空港の場合：出発スポットのGSX VDGS（SID）には、フライト、目的地、カウントダウン付きの航空会社のTOBT、滑走路、およびSIDが表示されます。",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure.hint": {
+    "src": "Not a message: the departure stand's <x>GSX</x> docking display shows your flight, destination, runway and <x>SID</x> and, from 30 min before, the airline's target off-block time (<x>TOBT</x>) with a countdown. A <x>DELAY</x> moves the <x>TOBT</x>; not off block 15 min after it, the board asks for a new <x>TOBT</x>.",
+    "out": "（注：これはメッセージではありません）出発スポットのGSXドッキングディスプレイには、便名、目的地、滑走路、SIDが表示され、出発の30分前からは、航空会社の目標オフブロック時刻（TOBT）がカウントダウン形式で表示されます。DELAYが発生するとTOBTが変更されます。TOBTから15分経過してもオフブロックできない場合、ディスプレイは新しいTOBTの入力を求めます。",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure.title": {
+    "src": "Departure board (<x>GSX</x>)",
+    "out": "出発ボード（GSX）",
+    "engine": "deepl"
+  },
   "scn:vdgs_divert.description": {
     "src": "Flight, a red <x>DIVERTED</x> line and the origin on the <x>GSX</x> <x>VDGS</x> at the diversion airport.",
     "out": "フライト：ダイバート空港のGSXVDGSに、赤い「DIVERTED」の行と出発地が表示されています。",

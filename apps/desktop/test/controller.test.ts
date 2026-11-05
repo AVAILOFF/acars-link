@@ -287,8 +287,8 @@ describe('AppController', () => {
     // + 1 sim (T22) + 10 special events (T29) + atis_update and vdgs_divert (T45) + emergency_mayday and emergency_pan (T47)
     // + 4 irregular (T46) + connex_list (T30) + hold_fuel_watch (T50) + dep_fire
     // + 10 cargo (T90: 2 loadsheets, REQ LOADSHEET, 7 irregular) + 5 charter and 6 ferry (T91)
-    // + 7 business aviation (T92)
-    expect(list).toHaveLength(119);
+    // + 7 business aviation (T92) + vdgs_departure (T102)
+    expect(list).toHaveLength(120);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');

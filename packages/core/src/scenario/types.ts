@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import type { FlightPhase, PhaseEvent } from '../phase/fsm.js';
+import type { VdgsReplaces } from '../sim/vdgs.js';
 import type { FlightKind } from './flight-kind.js';
 
 /**
@@ -176,19 +177,32 @@ export type SetTarget = (typeof SET_TARGETS)[number];
 export type VdgsLineDef = string | { readonly red: string };
 
 /**
- * Text for the GSX docking display at the arrival airport (T22, `sim/vdgs.ts`): lines per
- * display type, `narrow` required; `wide` and `x` fall back to `narrow`. Templates are
- * rendered when the step runs; a line that does not fit fails the scenario.
+ * Text for the GSX docking display (T22, `sim/vdgs.ts`): lines per display type, `narrow`
+ * required; `wide` and `x` fall back to `narrow`. Templates are rendered when the step runs; a
+ * line that does not fit fails the scenario. Each run replaces the scenario's text; `stop`
+ * takes it down (T102).
  */
 export interface VdgsStep {
-  readonly vdgs: {
-    /** Page time, seconds (default 6). */
-    readonly duration_sec?: number;
-    readonly narrow: readonly VdgsLineDef[];
-    readonly small?: readonly VdgsLineDef[];
-    readonly wide?: readonly VdgsLineDef[];
-    readonly x?: readonly VdgsLineDef[];
-  };
+  readonly vdgs:
+    | 'stop'
+    | {
+        /**
+         * Airport of the display (T102): `dest` (default) — the arrival airport or the diversion;
+         * `orig` — the departure stand.
+         */
+        readonly at?: 'orig' | 'dest';
+        /**
+         * Replace GSX's standard message of this id instead of adding one (T102, GSX "override":
+         * GSX shows its own when the conditions of ours are not met).
+         */
+        readonly replaces?: VdgsReplaces;
+        /** Page time, seconds (default 6). */
+        readonly duration_sec?: number;
+        readonly narrow: readonly VdgsLineDef[];
+        readonly small?: readonly VdgsLineDef[];
+        readonly wide?: readonly VdgsLineDef[];
+        readonly x?: readonly VdgsLineDef[];
+      };
 }
 
 /**

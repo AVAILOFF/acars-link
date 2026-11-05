@@ -742,6 +742,10 @@ vdgs_arrival:
   title: Pantalla de atraque (GSX)
   description: Vuelo, origen y puerta de llegada en el GSX VDGS en el puesto de destino.
   hint: "No es un mensaje: su vuelo, origen y puerta de llegada en la pantalla de atraque del GSX, en el puesto de estacionamiento."
+vdgs_departure:
+  title: Panel de salidas (GSX)
+  description: "En un aeropuerto A-CDM: vuelo, destino, el TOBT de la aerolínea con una cuenta atrás, pista y SID en el GSX VDGS del puesto de salida."
+  hint: "No es un mensaje: la pantalla de acoplamiento del GSX del puesto de salida muestra su vuelo, destino, pista y SID y, a partir de 30 minutos antes, la hora prevista de salida del bloque (TOBT) de la aerolínea con una cuenta atrás. Un DELAY modifica el TOBT; si no se sale del bloque 15 minutos después de esa hora, la pantalla solicita un nuevo TOBT."
 vdgs_divert:
   title: Pantalla de acoplamiento, desvío (GSX)
   description: "Vuelo: una línea roja «DIVERTED» y el origen en el VDGS del GSX en el aeropuerto de desvío."
