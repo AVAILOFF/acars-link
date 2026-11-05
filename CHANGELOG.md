@@ -27,6 +27,10 @@ previous tag; how to release — README.md, "Выпуски".
 - **MAYDAY / PAN on the ground** (T88): before take-off or after landing the rescue services
   of the airport where the aircraft stands come to it (MAYDAY — surround it, PAN — stand by
   ahead of the nose); OPS does not ask DIVERT / CONTINUE.
+- **Smoke package for MSFS 2024** (T104): the smoke column of the fire scenarios now ships with
+  the app. Advanced settings → "Smoke package for MSFS 2024" installs it into the Community
+  folder of the Store and Steam versions, updates and removes it; nothing is copied without the
+  button. Restart MSFS after installing. Own effect and texture, no SDK sample content.
 
 ### Fixed
 
