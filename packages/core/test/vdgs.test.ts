@@ -23,10 +23,20 @@ describe('VDGS limits (FSDreamTeam VGDS manual 2025-07-29)', () => {
   it('display table', () => {
     expect(VDGS_DISPLAYS).toEqual({
       small: { chars: 4, lines: 2 },
-      narrow: { chars: 6, lines: 6 },
-      wide: { chars: 9, lines: 7 },
-      x: { chars: 10, lines: 7 },
+      narrow: { chars: 6, lines: 5 },
+      wide: { chars: 9, lines: 6 },
+      x: { chars: 10, lines: 6 },
     });
+  });
+
+  it('the last display line is left to GSX (VGDS Editor manual, "Reserved Lines")', () => {
+    expect(checkVdgsLines('narrow', L('A', 'B', 'C', 'D', 'E'))).toBeNull();
+    expect(checkVdgsLines('narrow', L('A', 'B', 'C', 'D', 'E', 'F'))).toMatch(/6 lines, max 5/);
+    expect(checkVdgsLines('wide', L('A', 'B', 'C', 'D', 'E', 'F', 'G'))).toMatch(/max 6/);
+    expect(checkVdgsLines('x', L('A', 'B', 'C', 'D', 'E', 'F', 'G'))).toMatch(/max 6/);
+    expect(() => scenario([{ vdgs: { narrow: ['A', 'B', 'C', 'D', 'E', 'F'] } }])).toThrow(
+      /1\.\.5 lines/,
+    );
   });
 
   it('checks width, line count and characters', () => {

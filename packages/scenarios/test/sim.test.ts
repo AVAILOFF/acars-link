@@ -63,12 +63,14 @@ describe('sim scenarios', () => {
     const v = (r.commands[0] as VdgsCommand).vdgs;
     expect(v.airport).toBe('RJBB');
     const narrow = (v.displays.narrow ?? []).map((l) => l.text);
-    expect(narrow.slice(0, 5)).toEqual(['SJX', '822', 'FROM', 'RCTP', 'GATE']);
-    expect(narrow[5]).toMatch(/^[A-Z0-9]{1,6}$/);
+    // 5 lines: the 6th line of a narrow display is GSX's scrolling line.
+    expect(narrow).toHaveLength(5);
+    expect(narrow.slice(0, 4)).toEqual(['SJX', '822', 'RCTP', 'GATE']);
+    expect(narrow[4]).toMatch(/^[A-Z0-9]{1,6}$/);
     expect((v.displays.wide ?? []).map((l) => l.text)).toEqual([
       'SJX 822',
       'FROM RCTP',
-      `GATE ${narrow[5]}`,
+      `GATE ${narrow[4]}`,
     ]);
     expect(v.displays.small).toBeUndefined();
   });

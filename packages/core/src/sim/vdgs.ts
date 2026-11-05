@@ -10,6 +10,9 @@
  * Limits per display type ("Display Types & Specifications"): small (SafeDock3) 4 characters,
  * 5 lines of which 2 are usable while parked; narrow (SafeDock TS24) 6×6; wide (SafeDock TS42)
  * 9×7; x (SafeDock X) 10×7. The manual's own examples exceed them; we keep to the table.
+ * The last line of narrow, wide and x is GSX's own scrolling line ("VGDS Message Editor User
+ * Manual", shipped with GSX Pro in `couatl\GSX\VGDS_EDITOR_USER_MANUAL.pdf`, "Reserved Lines";
+ * checked 2026-11-05), so a message gets one line less: narrow 5, wide 6, x 6.
  *
  * Approved assumptions (user, 2026-10-09; docs/07 T22):
  * - characters: A–Z 0–9 space and `- / . :` only (the manual names no character set);
@@ -20,9 +23,9 @@
 
 export const VDGS_DISPLAYS = {
   small: { chars: 4, lines: 2 },
-  narrow: { chars: 6, lines: 6 },
-  wide: { chars: 9, lines: 7 },
-  x: { chars: 10, lines: 7 },
+  narrow: { chars: 6, lines: 5 },
+  wide: { chars: 9, lines: 6 },
+  x: { chars: 10, lines: 6 },
 } as const;
 export type VdgsDisplay = keyof typeof VDGS_DISPLAYS;
 export const VDGS_DISPLAY_NAMES = Object.keys(VDGS_DISPLAYS) as readonly VdgsDisplay[];

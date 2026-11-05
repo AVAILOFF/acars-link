@@ -25,7 +25,7 @@ const option = { type: 'string', pattern: '^[A-Z][A-Z0-9]*$' } as const;
 const vdgsLines = {
   type: 'array',
   minItems: 1,
-  maxItems: 7,
+  maxItems: 6,
   items: {
     oneOf: [
       text,

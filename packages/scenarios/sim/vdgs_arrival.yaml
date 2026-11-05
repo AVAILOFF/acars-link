@@ -1,6 +1,7 @@
 # Arrival text on the GSX docking display (T22): flight, origin and gate, shown by GSX at the
 # destination only. Without GSX Pro nothing happens. Widths: narrow 6, wide 9, x 10 characters
 # (FSDreamTeam VGDS developer manual, 2025-07-29); `x` falls back to `wide` lines below.
+# The last display line is GSX's scrolling line, so narrow has 5 lines: no room for "FROM".
 id: vdgs_arrival
 version: 1
 category: ops
@@ -19,6 +20,6 @@ conditions:
   - "ofp.airline != null"
 steps:
   - vdgs:
-      narrow: ["{ofp.airline}", "{ofp.flight}", "FROM", "{ofp.orig}", "GATE", "{ops.arr_gate}"]
+      narrow: ["{ofp.airline}", "{ofp.flight}", "{ofp.orig}", "GATE", "{ops.arr_gate}"]
       wide: ["{ofp.airline} {ofp.flight}", "FROM {ofp.orig}", "GATE {ops.arr_gate}"]
       x: ["{ofp.airline} {ofp.flight}", "FROM {ofp.orig}", "GATE {ops.arr_gate}"]
