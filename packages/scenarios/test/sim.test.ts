@@ -121,8 +121,14 @@ describe('sim scenarios', () => {
       boardingMin: number,
       pilot: Readonly<Record<number, string>> = {},
       scenarios = onByDefault,
+      lateStartVersion?: 3,
     ) {
-      const core = AcarsCore.create({ ofp, scenarios, seed: 'sim' });
+      const core = AcarsCore.create({
+        ofp,
+        scenarios,
+        seed: 'sim',
+        ...(lateStartVersion === undefined ? {} : { lateStartVersion }),
+      });
       core.startFlight();
       const out: { t: number; c: VdgsCommand }[] = [];
       const errors: string[] = [];
@@ -184,6 +190,31 @@ describe('sim scenarios', () => {
       expect(last.t).toBe(r.outAt);
       // Every page fits every display (buildVdgsMessage checks, a failure is an error above).
       expect(r.out.filter((x) => x.c.vdgs !== null).length).toBeGreaterThan(30);
+    });
+
+    it('as in the app (late start fitted, v3) with a DELAY at once: the board is up from the start', () => {
+      const r = atStand(fromEddl, 37, { [-35]: 'DELAY 20' }, onByDefault, 3);
+      expect(r.errors).toEqual([]);
+      expect(r.out[0]?.t).toBeLessThanOrEqual(sched - 34 * MIN);
+      expect(wide(at(r, 0))[2]).toBe(`TOBT ${hhmm(sched + 20 * MIN)}`);
+    });
+
+    it('the board does not change the late-start fit of the other pre-departure messages', () => {
+      const run = (scs: typeof sim) => {
+        const core = AcarsCore.create({
+          ofp: fromEddl,
+          scenarios: scs,
+          seed: 's',
+          lateStartVersion: 3,
+        });
+        core.startFlight();
+        const t = sched - 35 * MIN;
+        const flight = generateSyntheticFlight({ ofp: fromEddl, startMs: t });
+        core.tick({ now: t, telemetry: flight.snapshots[0] as (typeof flight.snapshots)[number] });
+        return (core.getState().engine as { preScale?: number }).preScale ?? 1;
+      };
+      const without = run(sim.filter((s) => !s.id.startsWith('vdgs_departure')));
+      expect(run(sim)).toBe(without);
     });
 
     it('DELAY moves the TOBT on the next page', () => {

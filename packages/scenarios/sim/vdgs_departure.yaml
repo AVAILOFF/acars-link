@@ -16,9 +16,12 @@ hint: "Not a message: the departure stand's GSX docking display shows your fligh
 enabled_by_default: true
 # T92: airline handling; a business flight has flight support (bizav/), no VDGS.
 operations: [sched_pax, charter_pax, cargo, ferry, medevac]
+# From the first tick at the stand (est_out - 3 h): `est_out` is not fitted to a late start and
+# not counted in its span (only `sched_out - N` are), so the board is up at once and the other
+# pre-departure messages keep their timing; a DELAY never pushes the start back.
 trigger:
   on: time
-  at: { rel: sched_out, offset_min: -60 }
+  at: { rel: est_out, offset_min: -180 }
 conditions:
   - "flight.out == null"
   - "ofp.orig_acdm"
