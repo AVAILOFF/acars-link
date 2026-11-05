@@ -47,6 +47,7 @@ import { BASE_SCENARIOS, SCENARIO_LOCALES } from './scenario-sources.js';
 import { type Cipher, SecretStore } from './secrets.js';
 import { defaultSettings, SettingsStore } from './settings.js';
 import { holdSingleInstance } from './single-instance.js';
+import { SMOKE_PACKAGE, SmokePackage } from './smoke-package.js';
 import { PUBLIC_BUILD } from './variant.js';
 import { gsxVdgsDir } from './vdgs.js';
 
@@ -323,6 +324,14 @@ async function main(): Promise<void> {
       const error = await shell.openPath(file);
       if (error !== '') throw new Error(error);
     },
+    // T104: installed — resources/avail-acars-smoke (electron-builder.yml); from the sources — the built package in the repository.
+    smokePackage: new SmokePackage({
+      localAppData: process.env['LOCALAPPDATA'] ?? join(app.getPath('home'), 'AppData', 'Local'),
+      appData: app.getPath('appData'),
+      bundleDir: app.isPackaged
+        ? join(process.resourcesPath, SMOKE_PACKAGE)
+        : join(here, '../../../../bridge/msfs/package/dist', SMOKE_PACKAGE),
+    }),
   });
   const ctl = controller;
   registerIpc(ipcMain, ctl, isTrustedSender, log);

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ModelInfo guid="{6F1D0D55-3C0B-4C3F-9B58-5B1A2E7A9C11}" version="1.1">
+	<LODS>
+		<LOD ModelFile="ACARS_Smoke.gltf" minSize="0"/>
+	</LODS>
+	<Behaviors>
+		<Include ModelBehaviorFile="Asobo\Generic\FX.xml"/>
+		<Component ID="ACARS_SMOKE_SPAWNER">
+			<Parameters Type="Override">
+				<FX_GUID>{643F51F8-FBD1-48DC-9CBA-327F01964A5A}</FX_GUID>
+				<FX_CODE>1 0 &gt;</FX_CODE>
+				<FX_CONTACT_POINT_ID>-1</FX_CONTACT_POINT_ID>
+			</Parameters>
+			<Component ID="ACARS_SMOKE_FX_0" Node="ACARS_SMOKE_ROOT">
+				<UseTemplate Name="ASOBO_GT_FX"/>
+			</Component>
+		</Component>
+	</Behaviors>
+</ModelInfo>
+

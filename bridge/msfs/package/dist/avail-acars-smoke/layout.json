@@ -1,0 +1,59 @@
+{
+  "content": [
+    {
+      "path": "contentinfo/avail-acars-smoke/thumbnail.jpg",
+      "size": 5556,
+      "date": 134364449670000000
+    },
+    {
+      "path": "materiallibs/acars-smoke-materiallib/library.xml",
+      "size": 1698,
+      "date": 134383670220000004
+    },
+    {
+      "path": "materiallibs/acars-smoke-materiallib/textures/acars_smoke.png.ktx2",
+      "size": 350144,
+      "date": 134383653580000007
+    },
+    {
+      "path": "materiallibs/acars-smoke-materiallib/textures/acars_smoke.png.ktx2.flags",
+      "size": 27,
+      "date": 134383653580000007
+    },
+    {
+      "path": "materiallibs/acars-smoke-materiallib/textures/acars_smoke.png.ktx2.json",
+      "size": 224,
+      "date": 134383653580000007
+    },
+    {
+      "path": "simobjects/landmarks/acars_smoke/model/acars_smoke.gltf",
+      "size": 554,
+      "date": 134370869290262164
+    },
+    {
+      "path": "simobjects/landmarks/acars_smoke/model/acars_smoke.xml",
+      "size": 635,
+      "date": 134383666050000003
+    },
+    {
+      "path": "simobjects/landmarks/acars_smoke/model/model.cfg",
+      "size": 34,
+      "date": 134370869290000000
+    },
+    {
+      "path": "simobjects/landmarks/acars_smoke/sim.cfg",
+      "size": 835,
+      "date": 134370869290000000
+    },
+    {
+      "path": "visualeffectlibs/acars-smoke/visualeffectlib/acars-smoke.spb",
+      "size": 5950,
+      "date": 134383661790000002
+    },
+    {
+      "path": "visualeffectlibs/acars-smoke/visualeffectlib/visualeffectlibrary.xml",
+      "size": 98,
+      "date": 134383661790000001
+    }
+  ]
+}

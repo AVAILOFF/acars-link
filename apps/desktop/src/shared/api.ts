@@ -620,6 +620,27 @@ export interface AboutInfo {
 export const LEGAL_DOCS = ['eula', 'notices', 'licenses'] as const;
 export type LegalDoc = (typeof LEGAL_DOCS)[number];
 
+/** Which MSFS 2024 install a Community folder belongs to (T104). */
+export type SimInstall = 'store' | 'steam';
+
+/** The smoke package in one Community folder (T104). */
+export interface SmokePackageTarget {
+  readonly install: SimInstall;
+  readonly community: string;
+  /** `package_version` of the installed package; null = not installed (or a foreign folder without a manifest). */
+  readonly installed: string | null;
+  /** A folder `avail-acars-smoke` that is not ours: never replaced or removed. */
+  readonly foreign: boolean;
+}
+
+/** The smoke package for MSFS 2024 (T104): the version shipped with the app and each Community folder found. */
+export interface SmokePackageView {
+  /** null = the package is not in this build. */
+  readonly bundled: string | null;
+  /** Empty = no MSFS 2024 found. */
+  readonly targets: readonly SmokePackageTarget[];
+}
+
 export type Result<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly error: AppError };
@@ -692,6 +713,12 @@ export interface AcarsApi {
   getAbout(): Promise<AboutInfo>;
   /** T74: opens a licence file in the program the OS has for it. */
   openLegal(doc: LegalDoc): Promise<Result<null>>;
+  /** T104: the smoke package for MSFS 2024 in the Community folders. */
+  getSmokePackage(): Promise<Result<SmokePackageView>>;
+  /** T104: copies (or updates) the package into every Community folder found. */
+  installSmokePackage(): Promise<Result<SmokePackageView>>;
+  /** T104: removes our package from the Community folders. */
+  removeSmokePackage(): Promise<Result<SmokePackageView>>;
 }
 
 /** IPC channel names (invoke) and the push channel. */
@@ -728,4 +755,7 @@ export const IPC = {
   exportReport: 'acars:export-report',
   getAbout: 'acars:get-about',
   openLegal: 'acars:open-legal',
+  getSmokePackage: 'acars:get-smoke-package',
+  installSmokePackage: 'acars:install-smoke-package',
+  removeSmokePackage: 'acars:remove-smoke-package',
 } as const;

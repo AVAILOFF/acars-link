@@ -85,4 +85,7 @@ export function registerIpc(
   on(IPC.exportReport, () => guard(() => app.exportReport()));
   on(IPC.getAbout, () => app.getAbout());
   on(IPC.openLegal, (doc) => guard(() => app.openLegal(doc)));
+  on(IPC.getSmokePackage, () => guard(() => app.getSmokePackage()));
+  on(IPC.installSmokePackage, () => guard(() => app.installSmokePackage()));
+  on(IPC.removeSmokePackage, () => guard(() => app.removeSmokePackage()));
 }

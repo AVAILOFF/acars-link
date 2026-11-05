@@ -14,6 +14,7 @@ import type {
   ScenarioInfo,
   Settings,
   SimbriefCheck,
+  SmokePackageView,
 } from '../../shared/api.js';
 import type { ReadyFix } from './welcome.js';
 
@@ -43,7 +44,8 @@ export type Busy =
   | 'diagnostics'
   | 'report'
   | 'legal'
-  | 'kind';
+  | 'kind'
+  | 'smokePackage';
 
 /** Result of a "Check" button (U-06), shown next to its row. */
 export type Checked =
@@ -52,6 +54,8 @@ export type Checked =
 
 interface Store {
   readonly app: AppState | null;
+  /** T104: the smoke package in the Community folders; null = not read yet or not available. */
+  readonly smokePackage: SmokePackageView | null;
   readonly settings: Settings | null;
   readonly creds: CredentialsView | null;
   readonly scenarios: readonly ScenarioInfo[] | null;
@@ -124,6 +128,10 @@ interface Store {
   exportReport(): Promise<void>;
   /** T74: opens the EULA, the third-party notices or the component licences. */
   openLegal(doc: LegalDoc): Promise<void>;
+  /** T104: reads where the smoke package is (no busy mark: the settings page asks on opening). */
+  loadSmokePackage(): Promise<void>;
+  installSmokePackage(): Promise<void>;
+  removeSmokePackage(): Promise<void>;
 }
 
 const api = (): AcarsApi => window.acars;
@@ -154,6 +162,7 @@ export const useStore = create<Store>()((set, get) => {
 
   return {
     app: null,
+    smokePackage: null,
     settings: null,
     creds: null,
     scenarios: null,
@@ -348,6 +357,24 @@ export const useStore = create<Store>()((set, get) => {
       await run('legal', () => api().openLegal(doc));
       // Opening a file is not a saved setting: no "saved" mark.
       if (get().saved === 'legal') set({ saved: null });
+    },
+    async loadSmokePackage() {
+      const r = await api().getSmokePackage();
+      set({ smokePackage: r.ok ? r.value : null });
+    },
+    async installSmokePackage() {
+      await run(
+        'smokePackage',
+        () => api().installSmokePackage(),
+        (v) => set({ smokePackage: v }),
+      );
+    },
+    async removeSmokePackage() {
+      await run(
+        'smokePackage',
+        () => api().removeSmokePackage(),
+        (v) => set({ smokePackage: v }),
+      );
     },
   };
 });

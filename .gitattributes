@@ -1,3 +1,5 @@
 * text=auto eol=lf
 *.cs text eol=crlf
 *.bat text eol=crlf
+# T104: the built MSFS package byte for byte (its layout.json holds the file sizes)
+bridge/msfs/package/dist/** -text

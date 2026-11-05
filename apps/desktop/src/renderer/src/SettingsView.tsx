@@ -3,7 +3,13 @@
 
 import { DEFAULT_RESCUE_FLIPPED, DEFAULT_RESCUE_TITLES, RESCUE_TITLE_GROUPS } from '@acars/core';
 import { useEffect, useState } from 'react';
-import type { Language, Settings, SimChoice, TransportChoice } from '../../shared/api.js';
+import type {
+  Language,
+  Settings,
+  SimChoice,
+  SmokePackageTarget,
+  TransportChoice,
+} from '../../shared/api.js';
 import { activeSim } from '../../shared/api.js';
 import { SourceCredit } from './AboutSection.js';
 import { AerodataboxKeyForm, HoppieCodeForm, UsernameForm } from './SettingsAccounts.js';
@@ -292,6 +298,8 @@ function AdvancedSettings({ s }: { s: Settings }) {
         />
       </Group>
 
+      <SmokePackageGroup />
+
       <Group id="rescue" title={t('set.group.rescue')}>
         <SettingSwitch
           s={s}
@@ -482,5 +490,67 @@ function AdvancedSettings({ s }: { s: Settings }) {
         </Row>
       </Group>
     </>
+  );
+}
+
+/** T104: the smoke package for MSFS 2024: where it is, install / update / remove on the button only. */
+function SmokePackageGroup() {
+  const t = useT();
+  const { off } = useUpdate();
+  const pkg = useStore((st) => st.smokePackage);
+  const load = useStore((st) => st.loadSmokePackage);
+  const install = useStore((st) => st.installSmokePackage);
+  const remove = useStore((st) => st.removeSmokePackage);
+  const done = useStore((st) => st.saved === 'smokePackage');
+  useEffect(() => {
+    void load();
+  }, [load]);
+  if (pkg === null) return null;
+  const bundled = pkg.bundled;
+  const needs = (x: SmokePackageTarget) =>
+    !x.foreign && bundled !== null && (x.installed === null || x.installed !== bundled);
+  const status = (x: SmokePackageTarget): string =>
+    x.foreign
+      ? t('set.smokePkgForeign')
+      : x.installed === null
+        ? t('set.smokePkgMissing')
+        : x.installed === bundled || bundled === null
+          ? t('set.smokePkgInstalled', { version: x.installed })
+          : t('set.smokePkgOld', { version: x.installed, bundled });
+  return (
+    <Group id="smokepkg" title={t('set.group.smokePkg')}>
+      <Row title={t('set.smokePkg')} hint={<Hint text={t('set.smokePkgHint')} />}>
+        {done && (
+          <span className="saved" role="status">
+            ✓ {t('set.smokePkgDone')}
+          </span>
+        )}
+        <button
+          type="button"
+          className="btn"
+          disabled={off || !pkg.targets.some(needs)}
+          onClick={() => void install()}
+        >
+          {pkg.targets.some((x) => needs(x) && x.installed !== null)
+            ? t('set.smokePkgUpdate')
+            : t('set.smokePkgInstall')}
+        </button>
+        <button
+          type="button"
+          className="btn"
+          disabled={off || !pkg.targets.some((x) => !x.foreign && x.installed !== null)}
+          onClick={() => void remove()}
+        >
+          {t('set.smokePkgRemove')}
+        </button>
+      </Row>
+      <p className="sheet-note">
+        {bundled === null
+          ? t('set.smokePkgNotBundled')
+          : pkg.targets.length === 0
+            ? t('set.smokePkgNoSim')
+            : pkg.targets.map((x) => `${t(`set.smokePkg.${x.install}`)}: ${status(x)}`).join(' · ')}
+      </p>
+    </Group>
   );
 }

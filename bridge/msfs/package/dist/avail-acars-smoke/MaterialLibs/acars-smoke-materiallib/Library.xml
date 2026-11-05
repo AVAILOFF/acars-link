@@ -1,0 +1,47 @@
+<Library Version="1.1.0">
+	<Material Version="1.5.0" Name="AcarsSmoke" Guid="{25B93470-C289-491E-85BE-C07FC50EF156}" Context="VFX editor" SurfaceType="UNDEFINED" Type="CODE_DIFFUSE" Metal="0.000000" Rough="1.000000" Opacity="1.000000" BlendMode="Alpha Blend">
+		<TagList/>
+		<FlagList/>
+		<TextureList>
+			<Texture FileName="TEXTURES\ACARS_SMOKE.PNG.ktx2" Binding="MTL_BITMAP_DECAL0"/>
+		</TextureList>
+		<Attributes>
+			<Diffuse Red="0.094000" Green="0.094000" Blue="0.102000"/>
+			<Emissive Red="0.000000" Green="0.000000" Blue="0.000000"/>
+			<UVScale U="1.000000" V="1.000000"/>
+			<UVRotate>0.000000</UVRotate>
+			<TwoSided>TRUE</TwoSided>
+			<FlipBackface>FALSE</FlipBackface>
+			<NoCastShadow>FALSE</NoCastShadow>
+			<SurfaceTypeOnTransparent>FALSE</SurfaceTypeOnTransparent>
+			<Labels/>
+			<ExtraParameters>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="0.100000"/>
+				<Parameter Value="20.000000"/>
+				<Parameter Value="1.000000"/>
+				<Parameter Value="0.240000"/>
+				<Parameter Value="1.000000"/>
+				<Parameter Value="1.000000"/>
+				<Parameter Value="1.000000"/>
+				<Parameter Value="1.000000"/>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="1.000000"/>
+				<Parameter Value="1.000000"/>
+				<Parameter Value="20.000000"/>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="0.000000"/>
+				<Parameter Value="0.000000"/>
+			</ExtraParameters>
+		</Attributes>
+	</Material>
+</Library>
+

@@ -1,6 +1,8 @@
 # deps / build
 node_modules/
 dist/
+# T104: the built MSFS smoke package is kept in the repository (no SDK in CI)
+!bridge/msfs/package/dist/
 out/
 coverage/
 *.tsbuildinfo

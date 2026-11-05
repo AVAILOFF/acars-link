@@ -1229,6 +1229,11 @@
     "out": "自動：{kind}",
     "engine": "deepl"
   },
+  "msg:kind.basis.aircraft_type": {
+    "src": "Aircraft type: <x>{type}</x>",
+    "out": "航空機タイプ：{type}",
+    "engine": "deepl"
+  },
   "msg:kind.basis.cargo": {
     "src": "From the <x>OFP</x>: 0 <x>PAX</x>, freight <x>{t}</x> t",
     "out": "OFPからの情報：0 PAX、貨物 {t} t",
@@ -2214,6 +2219,11 @@
     "out": "救助サービス",
     "engine": "deepl"
   },
+  "msg:set.group.smokePkg": {
+    "src": "Smoke package for <x>MSFS</x> 2024",
+    "out": "MSFS 2024用Smokeパッケージ",
+    "engine": "deepl"
+  },
   "msg:set.group.time": {
     "src": "Time and route",
     "out": "時刻とルート",
@@ -2502,6 +2512,76 @@
   "msg:set.simulatorHint": {
     "src": "Automatic: the sim bridge connects to whichever of <x>MSFS</x> and <x>X-Plane 12</x> is running (if both are, the first to answer) and looks again when it closes. <x>X-Plane 12</x>.1.1 or later, through its built-in web <x>API</x> on port 8086 (Settings &gt; Network must allow incoming traffic). With <x>X-Plane</x> there is no sim time, smoke or rescue vehicles. The installed app restarts the sim bridge when this changes.",
     "out": "自動：シミュレーターブリッジは、MSFS または X-Plane 12 のいずれかが実行されている場合に接続し（両方が実行されている場合は、最初に応答した方に接続）、終了時に再度確認します。X-Plane 12.1.1 以降では、ポート 8086 の組み込み Web API を通じて接続します（[設定] > [ネットワーク] で受信トラフィックを許可する必要があります）。X-Plane では、シミュレーター時間、煙、救助車両は表示されません。インストールされたアプリは、状況が変化した際にシミュレーターブリッジを再起動します。",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkg": {
+    "src": "Package in the Community folder",
+    "out": "コミュニティフォルダ内のパッケージ",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkg.steam": {
+    "src": "<x>MSFS</x> 2024 (Steam)",
+    "out": "MSFS 2024 (Steam)",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkg.store": {
+    "src": "<x>MSFS</x> 2024 (Microsoft Store)",
+    "out": "MSFS 2024 (Microsoft Store)",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgDone": {
+    "src": "Done — restart <x>MSFS</x>",
+    "out": "完了 — MSFSを再起動する",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgForeign": {
+    "src": "the Community folder already holds a folder acars-smoke from another add-on, and the app does not change it",
+    "out": "「Community」フォルダには、別のアドオンによる「acars-smoke」フォルダがすでに存在しており、本アプリはそれを変更しません",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgHint": {
+    "src": "The fire scenarios show a smoke column at the runway only with this package. Rescue vehicles are standard <x>MSFS</x> objects and need no package. The app copies it into Community only when you press the button; restart <x>MSFS</x> afterwards.",
+    "out": "火災シナリオでは、このパッケージを使用した場合にのみ、滑走路に煙の柱が表示されます。救助車両はMSFSの標準オブジェクトであり、パッケージは必要ありません。アプリは、ボタンを押したときにのみCommunityフォルダにコピーします。その後、MSFSを再起動してください。",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgInstall": {
+    "src": "Install",
+    "out": "インストール",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgInstalled": {
+    "src": "installed, <x>{version}</x>",
+    "out": "インストール済み、{version}",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgMissing": {
+    "src": "not installed",
+    "out": "インストールされていない",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgNoSim": {
+    "src": "<x>MSFS</x> 2024 not found (no UserCfg.opt of the Store or Steam version).",
+    "out": "MSFS 2024が見つかりません（Store版またはSteam版にはUserCfg.optがありません）。",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgNotBundled": {
+    "src": "This build has no smoke package.",
+    "out": "このビルドにはsmokeパッケージが含まれていません。",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgOld": {
+    "src": "installed <x>{version}</x>, this app has <x>{bundled}</x>",
+    "out": "インストール済み{version}、このアプリには{bundled}が含まれています",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgRemove": {
+    "src": "Remove",
+    "out": "削除",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgUpdate": {
+    "src": "Update",
+    "out": "更新",
     "engine": "deepl"
   },
   "msg:set.sound": {

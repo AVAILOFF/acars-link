@@ -43,6 +43,7 @@ import type {
   SimbriefCheck,
   SimChoice,
   Simulator,
+  SmokePackageView,
   UiText,
 } from '../shared/api.js';
 import { activeSim, LEGAL_DOCS } from '../shared/api.js';
@@ -124,6 +125,12 @@ export interface AppControllerOptions {
   readonly about?: (() => AboutInfo) | null;
   /** Opens a licence file in the OS program for it (T74); throws when it cannot. Absent = not available. */
   readonly openLegal?: ((doc: LegalDoc) => Promise<void>) | null;
+  /** The smoke package for MSFS 2024 in Community (T104, `smoke-package.ts`); absent or null = not available. */
+  readonly smokePackage?: {
+    view(): Promise<SmokePackageView>;
+    install(): Promise<SmokePackageView>;
+    remove(): Promise<SmokePackageView>;
+  } | null;
 }
 
 /** Title of a scenario in the UI languages. */
@@ -1080,6 +1087,38 @@ export class AppController {
       throw new AppFailure('internal', e instanceof Error ? e.message : String(e));
     }
     return null;
+  }
+
+  /** T104: the smoke package in the Community folders of MSFS 2024. */
+  async getSmokePackage(): Promise<SmokePackageView> {
+    return this.smokePackageDo('view');
+  }
+
+  /** T104: installs or updates the smoke package (only on the user's button). */
+  async installSmokePackage(): Promise<SmokePackageView> {
+    return this.smokePackageDo('install');
+  }
+
+  /** T104: removes the smoke package from the Community folders. */
+  async removeSmokePackage(): Promise<SmokePackageView> {
+    return this.smokePackageDo('remove');
+  }
+
+  private async smokePackageDo(what: 'view' | 'install' | 'remove'): Promise<SmokePackageView> {
+    const p = this.o.smokePackage;
+    if (p == null) throw new AppFailure('internal', 'the smoke package is not available');
+    try {
+      const v = await p[what]();
+      if (what !== 'view') {
+        const where = v.targets.map(
+          (t) => `${t.install} ${t.installed ?? '-'}${t.foreign ? ' (foreign)' : ''}`,
+        );
+        this.log.info(`smoke package ${what}: ${where.join(', ') || 'no MSFS 2024'}`);
+      }
+      return v;
+    } catch (e) {
+      throw new AppFailure('internal', e instanceof Error ? e.message : String(e));
+    }
   }
 
   /** T75: the supervisor of the bridge process reports its state (null = nothing to report). */
