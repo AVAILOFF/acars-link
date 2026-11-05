@@ -12,8 +12,11 @@ import type { VdgsCommand, VdgsLine } from '@acars/core';
  * {@link VDGS_FILE}: one message per scenario, shown only at the message's airport, written
  * atomically, deleted when the flight ends and at app start (approved assumptions, docs/07 T22).
  * A message that `replaces` a standard GSX one (T102: `flight_information`, the departure board)
- * takes its id: GSX then shows ours instead of its own while our conditions hold ("VGDS Message
- * Editor User Manual", "Override and Filtering Interaction"; sample `sample_chock_override.json`).
+ * takes its id, and the file lists it in `overrides.stock`: GSX then shows ours in place of its
+ * own while our conditions hold, and its own elsewhere ("VGDS Message Editor User Manual",
+ * "Override System" and "Override and Filtering Interaction"; sample
+ * `SDK\Samples\VGDS\sample_chock_override.json`; checked 2026-11-05). The same id without
+ * `overrides` is only an extra message after GSX's own (seen in the sim, 2026-11-05).
  * Without GSX (no `Virtuali\GSX` folder) everything is a no-op.
  */
 
@@ -34,6 +37,9 @@ export type VdgsShown = VdgsCommand & { readonly vdgs: NonNullable<VdgsCommand['
 /** The file GSX reads: header of the manual's "Required File Header", then the messages. */
 export function vdgsFileJson(commands: readonly VdgsShown[]): string {
   const line = (l: VdgsLine): Line => (l.red ? { red: l.text } : l.text);
+  const stock = [
+    ...new Set(commands.flatMap((c) => (c.vdgs.replaces === undefined ? [] : [c.vdgs.replaces]))),
+  ];
   return `${JSON.stringify(
     {
       type: 'vgds_messages',
@@ -41,6 +47,7 @@ export function vdgsFileJson(commands: readonly VdgsShown[]): string {
       enabled: true,
       auto_cleanup: false,
       source: SOURCE,
+      ...(stock.length === 0 ? {} : { overrides: { stock } }),
       messages: commands.map((c) => ({
         id: c.vdgs.replaces ?? `acars_${c.scenarioId}`,
         duration: c.vdgs.durationMs,

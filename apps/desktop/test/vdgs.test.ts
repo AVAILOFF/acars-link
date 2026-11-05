@@ -89,12 +89,21 @@ describe('GSX VDGS file (T22)', () => {
       ...c,
       vdgs: { ...(c.vdgs as VdgsMessage), replaces: 'flight_information' },
     };
-    const json = JSON.parse(vdgsFileJson([board as VdgsShown]));
-    expect(json.messages[0]).toMatchObject({
+    const json = JSON.parse(
+      vdgsFileJson([cmd('vdgs_arrival', 'SJX') as VdgsShown, board as VdgsShown]),
+    );
+    // GSX replaces a stock message only when the file lists it (sample_chock_override.json).
+    expect(json.overrides).toEqual({ stock: ['flight_information'] });
+    expect(json.messages[0].id).toBe('acars_vdgs_arrival');
+    expect(json.messages[1]).toMatchObject({
       id: 'flight_information',
       conditions: { airports: ['EDDL'] },
     });
-    expect(json.messages[0]).not.toHaveProperty('replaces');
+    expect(json.messages[1]).not.toHaveProperty('replaces');
+    // No replacing message, no `overrides`.
+    expect(JSON.parse(vdgsFileJson([cmd('vdgs_arrival', 'SJX') as VdgsShown]))).not.toHaveProperty(
+      'overrides',
+    );
   });
 
   it('T102: `vdgs: null` removes the scenario message; the last one gone, the file goes', async () => {
