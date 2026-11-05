@@ -287,8 +287,8 @@ describe('AppController', () => {
     // + 1 sim (T22) + 10 special events (T29) + atis_update and vdgs_divert (T45) + emergency_mayday and emergency_pan (T47)
     // + 4 irregular (T46) + connex_list (T30) + hold_fuel_watch (T50) + dep_fire
     // + 10 cargo (T90: 2 loadsheets, REQ LOADSHEET, 7 irregular) + 5 charter and 6 ferry (T91)
-    // + 7 business aviation (T92) + vdgs_departure (T102)
-    expect(list).toHaveLength(120);
+    // + 7 business aviation (T92) + vdgs_departure (T102) + vdgs_departure_etd (T103)
+    expect(list).toHaveLength(121);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -742,7 +742,10 @@ describe('live data (T13)', () => {
     expect(cmds).toMatchObject([
       { scenarioId: 'vdgs_arrival', command: 'vdgs', data: { airport: 'RJBB' } },
     ]);
-    const again = replay(rec, { scenarios: BASE_SCENARIOS_COMPILED });
+    // Only the scenarios of the flight, as `pnpm replay` does: vdgs_departure_etd is off (T103).
+    const again = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
     const replayed = again.timeline.flatMap((e) => (e.kind === 'cmd' ? [e.command] : []));
     expect(replayed.map((c) => ('vdgs' in c ? c.vdgs : null))).toEqual(
       cmds.map((c) => (c.type === 'cmd' ? c.data : null)),

@@ -746,6 +746,10 @@ vdgs_departure:
   title: Tableau des départs (GSX)
   description: "Dans un aéroport A-CDM : vol, destination, TOBT de la compagnie aérienne avec un compte à rebours, piste et SID sur le GSX VDGS de la position de départ."
   hint: "Ce n'est pas un message : l'écran d'amarrage GSX de la position de départ affiche votre vol, votre destination, la piste et le SID et, à partir de 30 minutes avant le départ, l'heure de départ prévue par la compagnie aérienne (TOBT) avec un compte à rebours. Un DELAY modifie le TOBT ; si le départ n'a pas lieu 15 minutes après cette heure, l'écran demande un nouveau TOBT."
+vdgs_departure_etd:
+  title: Tableau des départs, non-A-CDM (GSX)
+  description: "Il ne s'agit pas d'un affichage réel : en dehors des aéroports A-CDM, le vol, la destination, l'heure de départ prévue (ETD) avec un compte à rebours, la piste et le SID s'affichent sur le VDGS GSX du A-CDM au poste de stationnement."
+  hint: "Il ne s'agit ni d'un message, ni d'une reproduction d'un affichage réel : dans les aéroports sans A-CDM, l'écran d'amarrage GSX du poste de stationnement de départ affiche votre vol, votre destination, la piste et le SID et, à partir de 30 minutes avant le départ, l'heure estimée de départ du poste de stationnement (ETD) avec tous les retards et un compte à rebours."
 vdgs_divert:
   title: Affichage d'amarrage, déroutement (GSX)
   description: "Vol : une ligne rouge « DIVERTED » et l’origine sur le VDGS du GSX à l’aéroport de déroutement."

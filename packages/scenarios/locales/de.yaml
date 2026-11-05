@@ -746,6 +746,10 @@ vdgs_departure:
   title: Abflugtafel (GSX)
   description: "An einem A-CDM-Flughafen: Flug, Zielflughafen, die TOBT der Airline mit einem Countdown, Piste und SID auf dem GSX-VDGS am Abflug."
   hint: "Keine Nachricht: Das GSX-Andockdisplay am Abflugstand zeigt Ihren Flug, den Zielflughafen, die Piste und das SID an und ab 30 Minuten vor dem Abflug die von der Airline angestrebte Abfahrtszeit (TOBT) mit einem Countdown. Eine VERZÖGERUNG (DELAY) verschiebt die TOBT; wenn das Flugzeug nicht 15 Minuten danach abfährt, fordert das Display eine neue TOBT an."
+vdgs_departure_etd:
+  title: Abflugtafel, non-A-CDM-konform (GSX)
+  description: "Keine echte Anzeige: Außerhalb von A-CDM-Flughäfen werden Flug, Zielflughafen, die ETD mit einem Countdown, Piste und SID auf dem GSX-VDGS an der Parkposition für den Abflug angezeigt."
+  hint: "Keine Nachricht und keine Nachbildung einer tatsächlichen Anzeige: An Flughäfen ohne A-CDM zeigt das GSX-Andockdisplay am Abflugstand Ihren Flug, Ihren Zielflughafen, die Piste und die SID sowie ab 30 Minuten vor dem Abflug die voraussichtliche Abflugzeit (ETD) mit allen Verspätungen und einem Countdown an."
 vdgs_divert:
   title: Andockanzeige, Ausweichlandung (GSX)
   description: Flug, eine rote „DIVERTED“-Zeile und der Ursprungsort auf dem GSX-VDGS am Ort der Ausweichlandung.

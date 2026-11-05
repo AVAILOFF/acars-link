@@ -6014,6 +6014,21 @@
     "out": "出発ボード（GSX）",
     "engine": "deepl"
   },
+  "scn:vdgs_departure_etd.description": {
+    "src": "Not a real display: away from <x>A-CDM</x> airports, flight, destination, the <x>ETD</x> with a countdown, runway and <x>SID</x> on the <x>GSX</x> <x>VDGS</x> at the departure stand.",
+    "out": "実際の表示ではありません：A-CDM空港以外では、出発スポットのGSXVDGSに、便名、目的地、カウントダウン付きのETD、滑走路、SIDが表示されます。",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure_etd.hint": {
+    "src": "Not a message, and not a reproduction of a real display: at airports without <x>A-CDM</x> the departure stand's <x>GSX</x> docking display shows your flight, destination, runway and <x>SID</x> and, from 30 min before, the estimated off-block time (<x>ETD</x>) with all delays and a countdown.",
+    "out": "これはメッセージではなく、実際の表示を再現したものでもありません。A-CDMを導入していない空港では、出発スポットのGSXドッキングディスプレイに、フライト番号、目的地、滑走路、SIDが表示され、出発の30分前からは、すべての遅延情報を反映した推定オフブロック時刻（ETD）とカウントダウンが表示されます。",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure_etd.title": {
+    "src": "Departure board, non-<x>A-CDM</x> (<x>GSX</x>)",
+    "out": "出発案内板、non-A-CDM（GSX）",
+    "engine": "deepl"
+  },
   "scn:vdgs_divert.description": {
     "src": "Flight, a red <x>DIVERTED</x> line and the origin on the <x>GSX</x> <x>VDGS</x> at the diversion airport.",
     "out": "フライト：ダイバート空港のGSXVDGSに、赤い「DIVERTED」の行と出発地が表示されています。",

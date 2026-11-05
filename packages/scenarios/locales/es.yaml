@@ -746,6 +746,10 @@ vdgs_departure:
   title: Panel de salidas (GSX)
   description: "En un aeropuerto A-CDM: vuelo, destino, el TOBT de la aerolínea con una cuenta atrás, pista y SID en el GSX VDGS del puesto de salida."
   hint: "No es un mensaje: la pantalla de acoplamiento del GSX del puesto de salida muestra su vuelo, destino, pista y SID y, a partir de 30 minutos antes, la hora prevista de salida del bloque (TOBT) de la aerolínea con una cuenta atrás. Un DELAY modifica el TOBT; si no se sale del bloque 15 minutos después de esa hora, la pantalla solicita un nuevo TOBT."
+vdgs_departure_etd:
+  title: Panel de salidas, non-A-CDM (GSX)
+  description: "No se trata de una pantalla real: fuera de los aeropuertos con A-CDM, el vuelo, el destino, la hora estimada de salida del bloque (ETD) con una cuenta atrás, la pista y el SID en el GSX VDGS de la plataforma de salida."
+  hint: "No se trata de un mensaje ni de una reproducción de una pantalla real: en los aeropuertos sin A-CDM, la pantalla de acoplamiento GSX del puesto de estacionamiento de salida muestra su vuelo, destino, pista y SID y, a partir de 30 minutos antes, la hora estimada de salida del puesto de estacionamiento (ETD) con todos los retrasos y una cuenta atrás."
 vdgs_divert:
   title: Pantalla de acoplamiento, desvío (GSX)
   description: "Vuelo: una línea roja «DIVERTED» y el origen en el VDGS del GSX en el aeropuerto de desvío."

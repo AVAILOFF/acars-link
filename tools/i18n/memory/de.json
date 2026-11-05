@@ -6014,6 +6014,21 @@
     "out": "Abflugtafel (GSX)",
     "engine": "deepl"
   },
+  "scn:vdgs_departure_etd.description": {
+    "src": "Not a real display: away from <x>A-CDM</x> airports, flight, destination, the <x>ETD</x> with a countdown, runway and <x>SID</x> on the <x>GSX</x> <x>VDGS</x> at the departure stand.",
+    "out": "Keine echte Anzeige: Außerhalb von A-CDM-Flughäfen werden Flug, Zielflughafen, die ETD mit einem Countdown, Piste und SID auf dem GSX-VDGS an der Parkposition für den Abflug angezeigt.",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure_etd.hint": {
+    "src": "Not a message, and not a reproduction of a real display: at airports without <x>A-CDM</x> the departure stand's <x>GSX</x> docking display shows your flight, destination, runway and <x>SID</x> and, from 30 min before, the estimated off-block time (<x>ETD</x>) with all delays and a countdown.",
+    "out": "Keine Nachricht und keine Nachbildung einer tatsächlichen Anzeige: An Flughäfen ohne A-CDM zeigt das GSX-Andockdisplay am Abflugstand Ihren Flug, Ihren Zielflughafen, die Piste und die SID sowie ab 30 Minuten vor dem Abflug die voraussichtliche Abflugzeit (ETD) mit allen Verspätungen und einem Countdown an.",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure_etd.title": {
+    "src": "Departure board, non-<x>A-CDM</x> (<x>GSX</x>)",
+    "out": "Abflugtafel, non-A-CDM-konform (GSX)",
+    "engine": "deepl"
+  },
   "scn:vdgs_divert.description": {
     "src": "Flight, a red <x>DIVERTED</x> line and the origin on the <x>GSX</x> <x>VDGS</x> at the diversion airport.",
     "out": "Flug, eine rote „DIVERTED“-Zeile und der Ursprungsort auf dem GSX-VDGS am Ort der Ausweichlandung.",

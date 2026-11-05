@@ -152,6 +152,8 @@ export const CONTEXT_VARIABLES = [
   // rounded up (0 from the TOBT on, negative after it)
   'flight.tobt',
   'flight.minutes_to_tobt',
+  // T103: minutes to `ofp.est_out` (ETD, all delays incl. the slot), rounded up like the TOBT's
+  'flight.minutes_to_etd',
   // MVT delay element at OUT (T43, delay-codes.ts): `DL81/63/0025/0010`; null on time / before OUT
   'flight.delay_codes',
   'flight.minutes_since_off',
@@ -611,6 +613,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'flight.delay_min': minutes(input.delayMs ?? 0),
       'flight.tobt': tobt,
       'flight.minutes_to_tobt': Math.ceil((tobt - now) / 60_000),
+      'flight.minutes_to_etd': Math.ceil((t.estOutMs - now) / 60_000),
       'flight.delay_codes':
         oooi.OUT === null
           ? null

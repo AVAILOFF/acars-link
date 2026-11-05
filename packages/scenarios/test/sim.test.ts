@@ -26,11 +26,14 @@ const sim = loadScenarios(
     .sort()
     .map((file) => ({ file, source: readFileSync(join(DIR, file), 'utf8') })),
 );
+/** What the app runs without the user's changes: `vdgs_departure_etd` (T103) is off by default. */
+const onByDefault = sim.filter((s) => s.def.enabled_by_default);
+const etdOnly = sim.filter((s) => s.id === 'vdgs_departure_etd');
 const ofpOf = (name: string): Ofp =>
   parseSimbriefOfp(JSON.parse(readFileSync(join(OFPS, `${name}.json`), 'utf8')));
 
 function fly(ofp: Ofp, stands = true, say?: string) {
-  const core = AcarsCore.create({ ofp, scenarios: sim, seed: 'sim' });
+  const core = AcarsCore.create({ ofp, scenarios: onByDefault, seed: 'sim' });
   core.startFlight();
   const commands: SimCommand[] = [];
   const errors: string[] = [];
@@ -54,7 +57,13 @@ function fly(ofp: Ofp, stands = true, say?: string) {
 
 describe('sim scenarios', () => {
   it('the VDGS scenarios', () => {
-    expect(sim.map((s) => s.id)).toEqual(['vdgs_arrival', 'vdgs_departure', 'vdgs_divert']);
+    expect(sim.map((s) => s.id)).toEqual([
+      'vdgs_arrival',
+      'vdgs_departure',
+      'vdgs_departure_etd',
+      'vdgs_divert',
+    ]);
+    expect(onByDefault.map((s) => s.id)).not.toContain('vdgs_departure_etd');
   });
 
   it('vdgs_arrival: flight, origin and gate at the destination after landing', () => {
@@ -107,8 +116,13 @@ describe('sim scenarios', () => {
     const hhmm = (ms: number) => new Date(ms).toISOString().slice(11, 16).replace(':', '');
 
     /** Ticks the flight up to OUT and a minute after; `pilot`: minutes from STD → text. */
-    function atStand(ofp: Ofp, boardingMin: number, pilot: Readonly<Record<number, string>> = {}) {
-      const core = AcarsCore.create({ ofp, scenarios: sim, seed: 'sim' });
+    function atStand(
+      ofp: Ofp,
+      boardingMin: number,
+      pilot: Readonly<Record<number, string>> = {},
+      scenarios = onByDefault,
+    ) {
+      const core = AcarsCore.create({ ofp, scenarios, seed: 'sim' });
       core.startFlight();
       const out: { t: number; c: VdgsCommand }[] = [];
       const errors: string[] = [];
@@ -196,6 +210,41 @@ describe('sim scenarios', () => {
         'REQRD',
       ]);
       expect(wide(at(r, 18))[2]).toBe(`TOBT ${hhmm(sched + 30 * MIN)}`);
+    });
+
+    describe('vdgs_departure_etd (T103): ETD board away from A-CDM, off by default', () => {
+      it('none at an A-CDM airport (vdgs_departure is there)', () => {
+        const r = atStand(fromEddl, 37, {}, etdOnly);
+        expect(r.errors).toEqual([]);
+        expect(r.out).toEqual([]);
+      });
+
+      it('ETD with a countdown from ETD - 30, blank after, no SUSPENDED, off at OUT', () => {
+        const etd = base.times.estOutMs;
+        const r = atStand(base, 35 + 25, {}, etdOnly);
+        expect(r.errors).toEqual([]);
+        const first = r.out[0]?.c as VdgsCommand;
+        expect(first.vdgs).toMatchObject({ airport: 'RCTP', replaces: 'flight_information' });
+        expect(wide(first).slice(2, 4)).toEqual(['', '']);
+        const m = Math.ceil((etd - (sched - 10 * MIN)) / MIN);
+        expect(wide(at(r, -10)).slice(2, 4)).toEqual([`ETD ${hhmm(etd)}`, `TTD ${m}MIN`]);
+        expect((at(r, -5).vdgs?.displays.narrow ?? []).map((l) => l.text)).toEqual([
+          'SJX',
+          '822',
+          'RJBB',
+          'ETD',
+          hhmm(etd),
+        ]);
+        expect(JSON.stringify(at(r, 20).vdgs)).not.toMatch(/SUSP|red":true/);
+        expect(r.out.at(-1)?.c.vdgs).toBeNull();
+      });
+
+      it('a DELAY moves the ETD (ETD = ofp.est_out: every delay)', () => {
+        const etd = base.times.estOutMs;
+        const r = atStand(base, 60, { [-20]: 'DELAY 20' }, etdOnly);
+        expect(r.errors).toEqual([]);
+        expect(wide(at(r, -5))[2]).toBe(`ETD ${hhmm(etd + 20 * MIN)}`);
+      });
     });
   });
 });
