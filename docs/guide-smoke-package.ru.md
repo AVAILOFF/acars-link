@@ -64,6 +64,9 @@ SDK\Licenses\MSFS SDK EULA.pdf`, п. 1 b) разрешает образцы SDK 
    `Textures` и скопируйте в неё файл из репозитория:
    `bridge\msfs\package\PackageSources\MaterialLibs\acars-smoke-materiallib\Textures\acars_smoke.png`
    (512×512, сделан скриптом `tools/smoke-texture`, своя работа — распространять можно).
+   Итог должен быть ровно такой: `D:\msfs-projectscars-smoke\PackageSources\MaterialLibscars-smoke-materiallib\Texturescars_smoke.png`
+   — `Textures` **внутри** папки группы, рядом с файлом `.material`. Если положить `Textures` уровнем выше
+   (`MaterialLibs\Textures`), Load Texture выдаст «is not relative to the package source dir».
 4. Откроется **Material Editor**. Если нет — выделите в Project Editor группу `acars-smoke-materiallib` → в Project
    Inspector **Load in Editor** (как у группы эффекта).
 5. Material Editor → **File → New**. Появится выбор **контекста** (где будет использоваться материал) —
