@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <AssemblyName>acars-msfs-bridge</AssemblyName>
     <RootNamespace>AcarsBridge</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <!-- Shown in the exe's Properties → Details (T62). -->
     <Product>ACARS Link</Product>
     <Company>AVAILOFF</Company>

@@ -4,6 +4,51 @@ ACARS Link releases: SemVer, an annotated tag `vX.Y.Z` on `master` for each (0.x
 public release, 1.0.0 — the first public one). `pnpm release <X.Y.Z>` adds a section from the `Merge task/…` commits since the
 previous tag; how to release — README.md, "Выпуски".
 
+## 1.1.0 — 2026-11-05
+
+### New
+
+- **Kinds of flight** (T89): scheduled, charter, cargo, ferry, business or medevac — recognized
+  from the OFP (FPL items 8b and 18, PAX and freight, aircraft type) and confirmed after loading;
+  can be changed until off-block. Passenger scenarios run only on passenger flights; the kind is
+  in the flight report and the recording.
+- **Cargo flights** (T90): loadsheets without PAX, NOTOC with `CAO YES` for lithium batteries,
+  special loads (AVI, PER, PIL, HUM, VAL), late truck, damaged ULD, weight correction, hub sort
+  shift, temperature container failure. Aircraft families A300, B767, MD-11.
+- **Charter and ferry flights** (T91): tour group changes, tour operator, sports team, VIP
+  charter, transfer at the destination; crew-only loadsheet, ferry permit, release to service.
+- **Business aviation** (T92): 16 families of business jets and turboprops; `FLIGHT SUPPORT`
+  messages (handling and FBO, fuel release, catering, eAPIS into the US, car and crew hotel);
+  flights without an airline, with the registration as callsign.
+- **Departure board on the GSX VDGS** (T102): at the 35 A-CDM airports the board shows flight,
+  destination, runway, SID, the airline's TOBT and a countdown, and `FLIGHT SUSPENDED / NEW
+  TOBT REQUIRED` 15 min past the TOBT until a `DELAY`. Elsewhere — an optional board with the
+  ETD (T103, off by default). SafeDock FLEX displays are supported.
+- **MAYDAY / PAN on the ground** (T88): before take-off or after landing the rescue services
+  of the airport where the aircraft stands come to it (MAYDAY — surround it, PAN — stand by
+  ahead of the nose); OPS does not ask DIVERT / CONTINUE.
+
+### Fixed
+
+- Bridge: `smoke_start`, `rescue_start` and `ping` answered "sim not connected" while MSFS was
+  connected — SimConnect messages were lost in `acars_simconnect.dll` (`fix/simconnect-dispatch-queue`).
+- VDGS: the app no longer writes over GSX's scrolling line (narrow 5, wide and x 6 lines); the
+  narrow arrival board drops the `FROM` line (T22).
+- The language list no longer marks machine translations.
+
+### Changed
+
+- LMC and passenger lines follow the kind of flight: no passenger LMC on cargo, none at all on
+  ferry flights; `BAGGAGE BELT`, `TRANSFER PAX` and the like only with passengers.
+- Recording format: `flightKind` and `rescueVersion: 2` in the header; older recordings replay
+  as before.
+
+### Known limits
+
+- An airport handler script that sets the VDGS itself wins over the app (e.g. Aerosoft EDDF).
+- The Hoppie sender stays `OPS{flight}`; `LOAD CONTROL`, `CHARTER HANDLING`, `FLIGHT SUPPORT`
+  are in the message text.
+
 ## 1.0.0 — 2026-11-01
 
 - About page and data sources (`task/T74-about`)
