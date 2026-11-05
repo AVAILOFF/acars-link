@@ -8,6 +8,8 @@ title: Medical case on board
 description: "In cruise the cabin crew report a sick passenger. Reply CONTINUE or DIVERT (default CONTINUE after 10 min). DIVERT diverts to the nearest of the origin and the alternates."
 hint: "OPS: the cabin crew report a medical case on board, with the seat, the passenger's age, the symptoms and whether a doctor is on board. MedLink, the ground doctors who advise crews, give their advice next."
 enabled_by_default: true
+# T89: passengers in the cabin; not on cargo, ferry, business or air ambulance flights.
+operations: [sched_pax, charter_pax]
 trigger:
   on: phase
   phase: CRUISE

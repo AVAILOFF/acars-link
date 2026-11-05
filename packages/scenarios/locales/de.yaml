@@ -45,10 +45,107 @@ aviation_history:
   title: An diesem Tag in der Geschichte der Luftfahrt
   description: Eine Tatsache aus der Luftfahrtgeschichte mit dem heutigen Datum (Quellenverzeichnis).
   hint: "OPS-Informationen: Ein Ereignis aus der Luftfahrtgeschichte, das an diesem Tag stattfand. Keine Antwort erforderlich."
+bizav_arrival:
+  title: Ankunftsvorbereitungen (Geschäftsflüge)
+  description: "Vor der TOD-Zeit bei einem Geschäftsflug: Ein Fahrzeug holt die Passagiere am Flugzeug ab; das Hotel und der Transport für die Besatzung sind bestätigt."
+  hint: "Flugunterstützung am Zielflughafen: Ein Fahrzeug holt Ihre Passagiere am Flugzeug ab, und das Hotel sowie der Transfer der Besatzung vom FBO sind gebucht. Keine Antwort erforderlich."
+bizav_catering:
+  title: Catering (Geschäftsflüge)
+  description: "Vor dem Abflug eines Geschäftsfluges: Die Catering-Bestellung ist bestätigt und wurde an das Flugzeug geliefert."
+  hint: "Flugunterstützung: Die Catering-Bestellung für Ihre Passagiere ist bestätigt und wird zum angegebenen Zeitpunkt an das Flugzeug geliefert. Eine Antwort ist nicht erforderlich."
+bizav_eapis:
+  title: eAPIS-Manifest (Geschäftsflüge, USA)
+  description: "Vor dem Abflug eines Geschäftsfluges in die US: Das eAPIS-Manifest der Ankunft wurde an die CBP übermittelt."
+  hint: "Flugunterstützung: Das Manifest der Ankunft der Besatzung und der Passagiere wurde über eAPIS an die US-Zoll- und Grenzschutzbehörde (CBP) übermittelt, wie es für Privatflugzeuge, die in die US einfliegen, mindestens 60 Minuten vor dem Abflug vorgeschrieben ist. Eine Antwort ist nicht erforderlich."
+bizav_fuel_release:
+  title: Kraftstofffreigabe (Geschäftsflug)
+  description: "Vor dem Abflug eines Geschäftsfluges: Die Freigabe für den Kraftstoff für den Abflug wird erteilt."
+  hint: "Flugunterstützung: Die Freigabe für den Kraftstoff (die Vereinbarung mit dem Lieferanten von Kraftstoff) für diesen Flughafen wird für die geplante Blockmenge an Kraftstoff erteilt; der Betankungsdienst verfügt darüber. Eine Antwort ist nicht erforderlich."
+bizav_handling:
+  title: Abfertigung bestätigt (Geschäftsflug)
+  description: "Vor dem Abflug eines Geschäftsfluges: Der Flugdienst bestätigt die Bodenabfertigung an beiden Flughäfen."
+  hint: "Flugunterstützung (das Unternehmen, das Flüge mit Geschäftsflugzeugen organisiert): Die Bodenabfertigung am Abflug- und am Zielflughafen ist bestätigt; das FBO (das Terminal für die Geschäftsfliegerei) kennt Ihre Zeiten. Eine Antwort ist nicht erforderlich."
+bizav_principal_late:
+  title: Auftraggeber verspätet (Geschäftsflug)
+  description: "Vor dem Abflug eines Geschäftsfluges: Der Auftraggeber verspätet sich, es entsteht eine Verspätung von 15–45 Minuten."
+  hint: "Flugunterstützung: Der Auftraggeber (der Hauptpassagier, Eigentümer oder Kunde) verspätet sich; der Abflug hat eine Verspätung von den angegebenen Minuten. Planen Sie entsprechend. Eine Antwort ist nicht erforderlich."
 block_report:
   title: Blockzeiten (OOOI)
   description: Blockzeiten und Codes für Verspätungen nach dem Einparken.
   hint: "Blockbericht nach dem Parken: OUT-, OFF-, ON- und IN-Zeiten (Off-Block, Start, Landung, On-Block), Block- und Flugzeit sowie Kraftstoff an Bord; nach einer Verspätung zusätzlich die IATA-Verspätungscodes für die Ursachen. Für die Unterlagen der Airline; keine Antwort erforderlich."
+cargo_act_failure:
+  title: Ausfall eines Temperaturcontainers (Fracht)
+  description: "Vor dem Abflug eines Frachtfluges: Ein aktiver temperaturgeregelter Container mit Arzneimitteln fällt aus und wird ersetzt, wodurch es zu einer Verspätung von 15–30 Minuten kommt."
+  hint: "Frachtkontrolle: Ein aktiver temperaturgeregelter Container (ACT) mit Arzneimitteln hat vor der Verladung eine Störung gemeldet. Er wird ersetzt, wodurch es zu einer Verspätung beim Abflug um die angegebenen Minuten kommt. Eine Antwort ist nicht erforderlich."
+cargo_final_loadsheet:
+  title: Endgültiger Loadsheet (Fracht)
+  description: Endgültiges Loadsheet eines Frachtfluges mit einer kurzfristigen Änderung der Fracht.
+  hint: "Endgültige Loadsheet der Ladungskontrolle für einen Frachtflug: Ist-Gewichte im Vergleich zu den Grenzwerten (ZFW, TOW, LAW), Start- und Flugkraftstoff (TOF, TIF) sowie die Fracht; LMC bezeichnet die kurzfristige Änderung der Fracht gegenüber der vorläufigen Loadsheet. Bitte überprüfen Sie die Angaben und übernehmen Sie diese in das FMS; eine Rückmeldung ist nicht erforderlich."
+cargo_late_truck:
+  title: Verspäteter Lkw (Fracht)
+  description: "Vor dem Abflug eines Frachtfluges: Ein Lkw mit geplanter Fracht ist verspätet; die Frachtannahmefrist wird verlängert und der Abflug um 10–30 Minuten verzögert."
+  hint: "Frachtkontrolle: Ein Lkw mit für Ihren Flug gebuchter Fracht ist verspätet, daher wird die Frachtannahmefrist verlängert und der Abflug um die angegebenen Minuten verzögert. Planen Sie entsprechend. Eine Antwort ist nicht erforderlich."
+cargo_notoc:
+  title: Gefahrgut (NOTOC, Fracht)
+  description: "Vor dem Abflug eines Frachtfluges: Gefahrgut an Bord, teilweise nur für Frachtflugzeuge zugelassen (CAO YES). Antworten Sie mit ACK als Unterschrift des Kapitäns."
+  hint: "NOTOC (Mitteilung an den Kapitän) eines Frachtfluges: die verladenen Gefahrgüter mit UN-Nummer, Klasse, Code für die Abfertigung, Position im Frachtraum und Anzahl der Versandstücke; „CAO YES“ kennzeichnet Güter, die ausschließlich in Frachtflugzeugen befördert werden dürfen. Bestätigen Sie mit „ACK“, was als Unterschrift des Kapitäns gilt."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Sie haben das NOTOC gelesen; dies gilt als Ihre Unterschrift.
+    notoc:
+      hint: "Die Frachtkontrolle hat Ihre Bestätigung erhalten: Eine Kopie wird in die Flugakte aufgenommen, und der Verladeleiter ist informiert. Eine Antwort ist nicht erforderlich."
+cargo_prelim_loadsheet:
+  title: Vorläufiges Loadsheet (Fracht)
+  description: "Vorläufiges Loadsheet eines Frachtfluges: geplante Werte aus dem OFP, Fracht ohne Passagiere."
+  hint: "Vorläufiges Loadsheet der Ladungskontrolle für einen Frachtflug: die geplanten Gewichte und Mengen an Kraftstoff aus dem Flugplan (ZFW, TOF, TOW, TIF, LAW im Vergleich zu den Höchstwerten) sowie die Fracht. Verwenden Sie es zur Vorbereitung des FMS; die endgültigen Zahlen finden Sie im endgültigen Loadsheet. Eine Antwort ist nicht erforderlich."
+cargo_sort_shift:
+  title: Verschiebung der Hub-Sortierung (Fracht)
+  description: "Während des Reiseflugs eines Frachtfluges: Die Sortierung am Zielflughafen beginnt später, es besteht kein Grund zur Eile."
+  hint: "Frachtkontrolle: Die Sortierung der Fracht am Zielflughafen beginnt später als geplant, und zwar um die angegebenen Minuten, daher besteht kein Grund zur Eile. Zur Information; keine Antwort erforderlich."
+cargo_special_load:
+  title: Sonderfracht (Fracht)
+  description: "Vor dem Abflug eines Frachtfluges: Sonderfracht an Bord (lebende Tiere, verderbliche Güter, Arzneimittel, menschliche Überreste oder Wertgegenstände) mit dem entsprechenden Code für die Abfertigung. Antworten Sie mit „ACK“."
+  hint: "Meldung über Sonderfracht von der Frachtkontrolle: Eine Sendung, die während des Fluges oder bei der Ankunft besonderer Sorgfalt bedarf, mit Angabe des IATA-Codes für die Abfertigung, der Position im Frachtraum und der erforderlichen Bedingungen (Temperatur, vorrangige Entladung). Bestätigen Sie mit ACK."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Sie sind über die Sonderfracht informiert.
+    ack:
+      hint: Die Frachtkontrolle hat Ihre Bestätigung erhalten und die Abfertigung am Zielflughafen informiert. Eine Antwort ist nicht erforderlich.
+cargo_uld_damaged:
+  title: Beschädigtes ULD (Fracht)
+  description: "Vor dem Abflug eines Frachtfluges: Ein beschädigtes ULD wird ersetzt und ein Teil seiner Fracht ausgeladen; im endgültigen Loadsheet wird derselbe Fracht-LMC ausgewiesen."
+  hint: "Ladungskontrolle: Eine Ladeeinheit (Container oder Palette) wurde beim Verladen als beschädigt festgestellt. Die Fracht wurde auf eine andere Einheit umgeladen, und der Teil, der nicht passte, bleibt zurück; das endgültige Loadsheet wird diese Änderung ausweisen. Keine Antwort erforderlich."
+cargo_weight_error:
+  title: Gewichtskorrektur (Fracht)
+  description: "Vor dem Abflug eines Frachtfluges: Ein ULD wird erneut gewogen und ist schwerer als gebucht; das endgültige Loadsheet weist denselben Fracht-LMC aus."
+  hint: "Ladungskontrolle: Eine Einheit wurde erneut gewogen und ist schwerer als in der Buchung angegeben. Die Differenz ist eine kurzfristige Änderung (LMC) und wird im endgültigen Loadsheet aufgeführt. Eine Antwort ist nicht erforderlich."
+charter_group_lmc:
+  title: Änderung bei der Reisegruppe (Charter)
+  description: "Vor dem Abflug eines Charterfluges: Passagiere der Reisegruppe erscheinen nicht oder eine verspätete Gruppe wird hinzugefügt; das endgültige Loadsheet weist dieselbe Passagier-LMC aus."
+  hint: "Charterabfertigung: Der Reiseveranstalter meldet eine Änderung in seiner Gruppe, d. h. Passagiere, die nicht erschienen sind, oder verspätet hinzugekommene Passagiere. Die Zahl entspricht der Last-Minute-Änderung (LMC), die im endgültigen Loadsheet ausgewiesen wird. Eine Antwort ist nicht erforderlich."
+  steps:
+    no_show:
+      hint: "Charterabfertigung: Passagiere der Reisegruppe sind nicht erschienen; ihr Gepäck wird ausgeladen, und die Änderung wird in dem endgültigen Loadsheet ausgewiesen. Eine Antwort ist nicht erforderlich."
+    added:
+      hint: "Charter-Abfertigung: Ein verspäteter Teil der Reisegruppe wurde akzeptiert; deren Gepäck wurde verladen, und die Änderung wird im endgültigen Loadsheet ausgewiesen. Keine Antwort erforderlich."
+charter_sports_team:
+  title: Sportmannschaft (Charter)
+  description: "Vor dem Abflug eines Charterfluges: Eine Sportmannschaft an Bord mit übergroßer Sportausrüstung im Frachtraum und vom Charterer bestelltem Spezialcatering."
+  hint: "Charterabfertigung: Eine Sportmannschaft fliegt mit Ihnen. Ihre übergroße Ausrüstung wurde in den zugewiesenen Frachtraum verladen, und der Charterer hat eine eigene Verpflegung bestellt. Keine Antwort erforderlich."
+charter_tour_rep:
+  title: Vertreter des Reiseveranstalters (Charter)
+  description: "Vor dem Abflug eines Charterfluges: Der Vertreter des Reiseveranstalters hat die Gruppe eingecheckt und bittet um eine kurze Begrüßung über die PA-Anlage."
+  hint: "Charter-Abfertigung: Der Vertreter des Reiseveranstalters befindet sich am Gate, der Check-in der Gruppe ist abgeschlossen, und der Vertreter wünscht nach dem Einsteigen eine kurze Begrüßung über die Lautsprecheranlage. Eine Antwort ist nicht erforderlich."
+charter_transfer:
+  title: Transfer am Zielflughafen (Charter)
+  description: "Vor der TOD-Zeit bei einem Charterflug: Die Transferbusse für die Passagiere warten am Zielflughafen, ein Vertreter des Reiseveranstalters empfängt sie."
+  hint: "Charter-Abfertigung am Zielflughafen: Die Reisebusse des Reiseveranstalters warten auf Ihre Passagiere, und ein Vertreter empfängt sie in der Halle der Ankunft. Nützlich für die Durchsage an Bord. Keine Antwort erforderlich."
+charter_vip:
+  title: VIP-Charter
+  description: "Vor dem Abflug eines Charterfluges: Eine VIP-Gruppe erreicht mit dem Auto das Flugzeug und steigt als Letzte ein; das Catering erfolgt nach deren Wunsch."
+  hint: "Charterabfertigung: Es handelt sich um einen VIP-Charter. Die Gruppe kommt mit dem Auto zum Flugzeug und steigt als Letzte ein; das Catering erfolgt nach deren Wunsch. Eine Antwort ist nicht erforderlich."
 cmd_delay:
   title: "Pilotenbefehl: „DELAY“"
   description: "DELAY-Befehl: bestätigt die neue Abfahrtszeit."
@@ -153,6 +250,22 @@ cmd_req_loadsheet:
   title: "Pilotenbefehl: „REQ LOADSHEET“"
   description: "Befehl „REQ LOADSHEET“: Wiederholt das Loadsheet."
   hint: "REQ LOADSHEET: Fordert OPS auf, das Loadsheet erneut zu senden. Die Antwort wiederholt das aktuellste Loadsheet dieses Fluges, sei es vorläufig oder endgültig. Eine Antwort ist nicht erforderlich."
+cmd_req_loadsheet_bizav:
+  title: "Pilotenbefehl: „REQ LOADSHEET“ (Geschäftsflug)"
+  description: "Befehl „REQ LOADSHEET“ bei einem Geschäftsflug: Es wird kein Loadsheet ausgestellt; die Gewichts- und Schwerpunktberechnung wird von der Besatzung durchgeführt."
+  hint: "Antwort auf „REQ LOADSHEET“ bei einem Geschäftsflug: Die Flugunterstützung stellt kein Loadsheet aus; die Gewichts- und Schwerpunktberechnung wird von der Besatzung durchgeführt. Keine Antwort erforderlich."
+cmd_req_loadsheet_cargo:
+  title: "Pilotenbefehl: „REQ LOADSHEET“ (Fracht)"
+  description: "Befehl „REQ LOADSHEET“ bei einem Frachtflug: Wiederholt das FrachtLoadsheet."
+  hint: „REQ LOADSHEET“ fordert die Ladungskontrolle auf, das Loadsheet erneut zu senden. Die Antwort wiederholt das aktuellste Loadsheet dieses Frachtfluges, sei es vorläufig oder endgültig. Eine Antwort ist nicht erforderlich.
+cmd_req_loadsheet_ferry:
+  title: "Pilotenbefehl: „REQ LOADSHEET“ (Überführungsflug)"
+  description: "Befehl „REQ LOADSHEET“ bei einem Überführungsflug: Wiederholt das ausschließlich für die Besatzung bestimmte Loadsheet."
+  hint: „REQ LOADSHEET“ fordert die Ladungskontrolle auf, das Loadsheet erneut zu senden. Die Antwort wiederholt das ausschließlich für die Besatzung bestimmte Loadsheet dieses Überführungsflugs. Eine Antwort ist nicht erforderlich.
+cmd_req_loadsheet_ferry_none:
+  title: "Pilotenbefehl: „REQ LOADSHEET“, noch keine vorliegend (Überführungsflug)"
+  description: Befehl „REQ LOADSHEET“ bei einem Überführungsflug, bevor das Loadsheet vorliegt.
+  hint: "Antwort auf „REQ LOADSHEET“ bei einem Überführungsflug: Das Loadsheet wurde noch nicht ausgestellt; in der Nachricht wird angegeben, wann es eintrifft. Keine Antwort erforderlich."
 cmd_req_loadsheet_none:
   title: "Pilotenbefehl: „REQ LOADSHEET“, noch keine vorhanden"
   description: Befehl „REQ LOADSHEET“, bevor ein Loadsheet vorliegt.
@@ -344,6 +457,28 @@ f1_result:
   title: Formel-1-Ergebnis
   description: "Ein Grand Prix, der während des Fluges zu Ende ging: das Podium (Jolpica)."
   hint: "OPS-Informationen: das Ergebnis eines Formel-1-Grand-Prix, der während Ihres Fluges zu Ende ging. Keine Antwort erforderlich."
+ferry_after_mx:
+  title: Überführungsflug nach der Wartung (Ferry)
+  description: "Vor einem Überführungsflug: Das Flugzeug kommt aus der Wartung und ist wieder flugtauglich; überprüfen Sie das technische Logbuch."
+  hint: "Wartung: Das Flugzeug wurde gewartet und ist wieder für den Flugbetrieb freigegeben. Überprüfen Sie vor dem Abflug die Einträge im technischen Logbuch. Keine Antwort erforderlich."
+ferry_loadsheet:
+  title: Loadsheet (Überführungsflug)
+  description: "Loadsheet für einen Überführungsflug: nur Besatzung, keine Passagiere und keine Fracht."
+  hint: "Loadsheet eines Überführungs- oder Positionierungsflugs: nur Besatzung, ohne Passagiere und Fracht; die Gewichte (ZFW, TOW, LAW im Vergleich zu den Höchstwerten) sowie der Start- und Flugkraftstoff. Überprüfen Sie die Angaben und übernehmen Sie sie in das FMS; eine Antwort ist nicht erforderlich."
+ferry_permit:
+  title: Überführungsgenehmigung (ferry)
+  description: "Vor einem Überführungsflug: Das Flugzeug fliegt im Rahmen einer Sondergenehmigung (US) oder einer Fluggenehmigung für die Wartung. Antworten Sie mit ACK."
+  hint: "Wartung: Das Flugzeug erfüllt die Anforderungen an die Lufttüchtigkeit nicht vollständig, darf jedoch mit einer Überführungsgenehmigung zur Wartungsbasis fliegen; die Genehmigung und ihre Einschränkungen sind in den Flugzeugunterlagen enthalten. Lesen Sie diese durch und bestätigen Sie mit „ACK“."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Sie haben die Genehmigung und deren Einschränkungen gelesen.
+    ack:
+      hint: Die Leitung der Wartung hat Ihre Bestätigung erhalten; die Wartungsbasis am Zielflughafen erwartet das Flugzeug. Keine Antwort erforderlich.
+ferry_positioning:
+  title: Positionierung für den nächsten Flug (Überführungsflug)
+  description: "Im Reiseflug eines Überführungsflugs: Das Flugzeug positioniert sich für seinen nächsten Abflug (ausschließlich echte AeroDataBox-Daten)."
+  hint: "Betrieb: Bei diesem Flug wird das Flugzeug für seinen nächsten Abflug vom Zielflughafen positioniert, wobei Flug, Route und STD aus der AeroDataBox stammen. Keine Antwort erforderlich."
 final_loadsheet:
   title: Endgültiges Loadsheet
   description: Endgültiges Loadsheet mit der kurzfristigen Änderung gegenüber dem vorläufigen Loadsheet.
@@ -607,6 +742,14 @@ vdgs_arrival:
   title: Andockanzeige (GSX)
   description: Flug, Abflug- und Ankunftsgate auf dem GSX-VDGS am Zielflughafen.
   hint: "Keine Nachricht: Ihr Flug, Abflug- und Ankunftsgate auf dem GSX-Andockdisplay an der Parkposition."
+vdgs_departure:
+  title: Abflugtafel (GSX)
+  description: "An einem A-CDM-Flughafen: Flug, Zielflughafen, die TOBT der Airline mit einem Countdown, Piste und SID auf dem GSX-VDGS am Abflug."
+  hint: "Keine Nachricht: Das GSX-Andockdisplay am Abflugstand zeigt Ihren Flug, den Zielflughafen, die Piste und das SID an und ab 30 Minuten vor dem Abflug die von der Airline angestrebte Abfahrtszeit (TOBT) mit einem Countdown. Eine VERZÖGERUNG (DELAY) verschiebt die TOBT; wenn das Flugzeug nicht 15 Minuten danach abfährt, fordert das Display eine neue TOBT an."
+vdgs_departure_etd:
+  title: Abflugtafel, non-A-CDM-konform (GSX)
+  description: "Keine echte Anzeige: Außerhalb von A-CDM-Flughäfen werden Flug, Zielflughafen, die ETD mit einem Countdown, Piste und SID auf dem GSX-VDGS an der Parkposition für den Abflug angezeigt."
+  hint: "Keine Nachricht und keine Nachbildung einer tatsächlichen Anzeige: An Flughäfen ohne A-CDM zeigt das GSX-Andockdisplay am Abflugstand Ihren Flug, Ihren Zielflughafen, die Piste und die SID sowie ab 30 Minuten vor dem Abflug die voraussichtliche Abflugzeit (ETD) mit allen Verspätungen und einem Countdown an."
 vdgs_divert:
   title: Andockanzeige, Ausweichlandung (GSX)
   description: Flug, eine rote „DIVERTED“-Zeile und der Ursprungsort auf dem GSX-VDGS am Ort der Ausweichlandung.

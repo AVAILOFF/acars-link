@@ -7,6 +7,8 @@ title: Gate reassignment
 description: "At the start of the descent the assigned gate is taken: a new gate, used by arrival info and REQ GATE from then on."
 hint: "Gate change: the gate you were given is occupied (the reason is in the message) and you get a new gate; the baggage belt stays. Arrival information and REQ GATE now give the new gate. No reply needed."
 enabled_by_default: true
+# T92: airline handling; a business flight has flight support (bizav/), no gate, no VDGS.
+operations: [sched_pax, charter_pax, cargo, ferry, medevac]
 trigger:
   on: phase_enter
   phase: DESCENT
@@ -22,5 +24,5 @@ steps:
         GATE {ops.arr_gate} OCCUPIED
         {pick:[DEPARTURE DELAYED,TECH ACFT ON GATE,STAND U/S]}
         NEW GATE {irr.new_gate}
-        BAGGAGE BELT {ops.belt} UNCHANGED
+        ~BAGGAGE BELT {ops.belt} UNCHANGED{flight.if_pax}
   - set: { ops.arr_gate: "{irr.new_gate}" }

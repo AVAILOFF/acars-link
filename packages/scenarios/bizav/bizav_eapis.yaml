@@ -1,0 +1,29 @@
+# eAPIS of a business flight into the US (T92): the arrival manifest of a private aircraft goes to
+# CBP no later than 60 minutes before departure from the foreign airport, 19 CFR 122.22(b)(2)
+# (Cornell LII, checked 2026-11-04). Only into the US from outside (`ops.us_arrival`: destination
+# K, PA, PH; approved by the user 2026-11-04). Sent at STD-60, the last moment the rule allows.
+id: bizav_eapis
+version: 1
+category: ops
+title: eAPIS manifest (business, US)
+description: "Before departure of a business flight into the US: the eAPIS arrival manifest has been sent to CBP."
+hint: "Flight support: the arrival manifest of crew and passengers has been sent to US Customs and Border Protection (CBP) through eAPIS, as required at least 60 minutes before departure for private aircraft flying into the US. No reply needed."
+enabled_by_default: true
+operations: [bizav]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -60 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "ops.us_arrival == true"
+priority: 5
+steps:
+  - send:
+      header: FLIGHT SUPPORT
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        EAPIS ARRIVAL MANIFEST
+        TRANSMITTED TO CBP
+        CREW AND PAX LISTED
+        ETA {ofp.sched_in|hhmm}Z
+      footer: "{name:ops}"

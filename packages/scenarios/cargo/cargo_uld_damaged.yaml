@@ -1,0 +1,30 @@
+# Damaged ULD (T90): a unit is found damaged at loading, its freight is rebuilt and part of it
+# stays behind. Only when the freight LMC (ops-data.ts) is negative, and the text names those same
+# kilograms, so the final loadsheet agrees (approved by the user 2026-11-04). No ULD numbers: no
+# position codes are generated (T40).
+id: cargo_uld_damaged
+version: 1
+category: irregular
+title: Damaged ULD (cargo)
+description: "Before departure of a cargo flight: a damaged ULD is replaced and part of its freight offloaded; the final loadsheet shows the same freight LMC."
+hint: "Load control: a unit load device (container or pallet) was found damaged at loading. Its freight was moved to another unit and the part that did not fit stays behind; the final loadsheet will show this change. No reply needed."
+enabled_by_default: true
+operations: [cargo]
+excludes: [cargo_act_failure]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -20 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "load.cargo_lmc_kg < 0"
+probability: 0.06
+steps:
+  - send:
+      header: LOAD MSG
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        ULD FOUND DAMAGED AT LOADING
+        FREIGHT REBUILT ON NEW ULD
+        LMC CGO {load.cargo_lmc_kg|sign} KG OFFLOADED
+        FINAL LOADSHEET TO FOLLOW
+      footer: "LOAD CONTROL {name:ops}"

@@ -1,0 +1,26 @@
+# Ferry after maintenance (T91): the aircraft leaves the maintenance base, released to service
+# (approved by the user 2026-11-04, 30 %). No work-order numbers are made up.
+id: ferry_after_mx
+version: 1
+category: ops
+title: Ferry after maintenance (ferry)
+description: "Before a ferry flight: the aircraft comes out of maintenance, released to service; check the technical log."
+hint: "Maintenance control: the aircraft has come out of maintenance and has been released to service. Check the technical log entries before departure. No reply needed."
+enabled_by_default: true
+operations: [ferry]
+excludes: [ferry_permit]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -45 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.3
+steps:
+  - send:
+      header: MX CONTROL {ofp.ac_reg}
+      body: |
+        FERRY FLT {ofp.orig}-{ofp.dest}
+        AFTER MAINTENANCE
+        RELEASE TO SERVICE SIGNED
+        CHECK TECH LOG BEFORE DEPARTURE
+      footer: "MX CONTROL {name:ops}"

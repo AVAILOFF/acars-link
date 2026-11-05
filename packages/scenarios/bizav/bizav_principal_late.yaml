@@ -1,0 +1,29 @@
+# The principal of a business flight is late (T92): the departure waits 15-45 min (approved by
+# the user 2026-11-04, 5 %).
+id: bizav_principal_late
+version: 1
+category: irregular
+title: Principal late (business)
+description: "Before departure of a business flight: the principal is running late, the departure is delayed by 15-45 minutes."
+hint: "Flight support: the principal (the main passenger, owner or client) is running late; the departure is delayed by the minutes given. Plan accordingly. No reply needed."
+enabled_by_default: true
+operations: [bizav]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -30 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.05
+steps:
+  - draw:
+      - set: { run.delay: [15, 45] }
+  - send:
+      header: FLIGHT SUPPORT
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        PRINCIPAL RUNNING LATE
+        EXPECT DELAY {run.delay} MIN
+        FBO AND HANDLING ADVISED
+      footer: "{name:ops}"
+  - set:
+      flight.delay_min: "{run.delay}"

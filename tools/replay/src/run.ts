@@ -99,6 +99,7 @@ export function recordedCoreOptions(
     ...(h.hub === undefined ? {} : { hub: h.hub }),
     ...(h.xatc === undefined ? {} : { xatc: h.xatc }),
     ...(h.datalink === undefined ? {} : { datalink: h.datalink }),
+    ...(h.flightKind === undefined ? {} : { flightKind: { override: h.flightKind.override } }),
     ...(o.phaseConfig === undefined ? {} : { phaseConfig: o.phaseConfig }),
   };
 }
@@ -166,6 +167,7 @@ export function replay(recording: Recording, o: ReplayOptions): ReplayResult {
             ...(inbound.length > 0 ? { inbound } : {}),
             ...(e.data === undefined ? {} : { data: e.data }),
             ...(e.force === undefined ? {} : { force: e.force }),
+            ...(e.flightKind === undefined ? {} : { flightKind: e.flightKind }),
           }),
         );
         break;

@@ -111,10 +111,9 @@ export function SavedMark({ field }: { field: string }) {
 /** One sheet row: title and hint on the left, the control on the right; `off` dims it (U-13). */
 /**
  * The options of a language list (settings, welcome; T85): the ready languages by their own names, a
- * machine translation marked; the current language stays listed even when it is not ready.
+ * machine translation is not marked; the current language stays listed even when it is not ready.
  */
 export function LanguageOptions({ current }: { current: Language }) {
-  const t = useT();
   const list = LANGUAGE_CHOICES.includes(current)
     ? LANGUAGE_CHOICES
     : [...LANGUAGE_CHOICES, current];
@@ -122,7 +121,7 @@ export function LanguageOptions({ current }: { current: Language }) {
     const info = LANGUAGES[l];
     return (
       <option key={l} value={l} lang={l}>
-        {info.machine ? `${info.name} (${t('set.language.machine')})` : info.name}
+        {info.name}
       </option>
     );
   });

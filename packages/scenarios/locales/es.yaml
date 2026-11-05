@@ -45,10 +45,107 @@ aviation_history:
   title: En este día en la historia de la aviación
   description: Un dato de la historia de la aviación correspondiente a la fecha de hoy (lista de referencias con fuentes).
   hint: "Información OPS: un acontecimiento de la historia de la aviación que tuvo lugar en esta fecha. No es necesaria respuesta."
+bizav_arrival:
+  title: Disposiciones de llegada (vuelos de negocios)
+  description: "Antes de la hora de llegada prevista (TOD) en un vuelo de negocios: un vehículo recogerá a los pasajeros en el avión; el alojamiento y el transporte de la tripulación están confirmados."
+  hint: "Asistencia de vuelo en el destino: un vehículo recogerá a sus pasajeros junto al avión, y ya se han reservado el hotel para la tripulación y el transporte de la tripulación desde el FBO. No es necesario responder."
+bizav_catering:
+  title: Catering (negocios)
+  description: "Antes de la salida de un vuelo de negocios: se confirma el pedido de catering y se entrega en la aeronave."
+  hint: "Apoyo al vuelo: el pedido de catering para sus pasajeros está confirmado y se entregará en la aeronave a la hora indicada. No es necesario responder."
+bizav_eapis:
+  title: Manifiesto eAPIS (empresarial, US)
+  description: "Antes de la salida de un vuelo de negocios con destino a los US: se ha enviado el manifiesto de llegada de eAPIS a la CBP."
+  hint: "Asistencia en vuelo: se ha enviado el manifiesto de llegada de la tripulación y los pasajeros a la Oficina de Aduanas y Protección Fronteriza de EE. US (CBP) a través de eAPIS, tal y como se exige al menos 60 minutos antes de la salida de las aeronaves privadas que vuelan a EE. US. No es necesario responder."
+bizav_fuel_release:
+  title: Autorización de combustible (vuelos de negocios)
+  description: "Antes de la salida de un vuelo de negocios: se emite la autorización de repostaje para el aeropuerto de salida."
+  hint: "Apoyo al vuelo: se ha emitido la autorización de repostaje (el acuerdo con el proveedor de combustible) para este aeropuerto en relación con el combustible previsto; el encargado del repostaje la tiene. No es necesario responder."
+bizav_handling:
+  title: Handling confirmado (negocios)
+  description: "Antes de la salida de un vuelo de negocios: el servicio de apoyo al vuelo confirma la asistencia en tierra en ambos aeropuertos."
+  hint: "Servicio de apoyo al vuelo (la empresa que organiza los viajes de aviones de negocios): se confirma la asistencia en tierra tanto en el aeropuerto de salida como en el de destino; el FBO (la terminal de aviación de negocios) conoce sus horarios. No es necesario responder."
+bizav_principal_late:
+  title: El cliente principal llega tarde (vuelo de negocios)
+  description: "Antes de la salida de un vuelo de negocios: el cliente principal llega tarde; hay un retraso de 15 a 45 minutos."
+  hint: "Asistencia de vuelo: el cliente principal (el pasajero principal, el propietario o el cliente) llega tarde; la salida sufre un retraso de los minutos indicados. Planifique en consecuencia. No es necesario responder."
 block_report:
   title: Tiempos de bloque (OOOI)
   description: Tiempos de bloque y códigos de retraso tras la llegada al bloque.
   hint: "Informe de bloque tras el estacionamiento: tiempos de OUT, OFF, ON e IN (salida del bloque, despegue, aterrizaje, entrada en el bloque), tiempo de bloque y de vuelo, y combustible a bordo; tras un retraso, también los códigos de retraso de la IATA que indican sus causas. Para los registros de la aerolínea; no es necesaria respuesta."
+cargo_act_failure:
+  title: Fallo en un contenedor termorregulado (carga)
+  description: "Antes de la salida de un vuelo de carga: un contenedor activo con control de temperatura que transporta productos farmacéuticos presenta un fallo y se sustituye, lo que provoca un retraso de 15 a 30 minutos."
+  hint: "Control de carga: un contenedor activo con control de temperatura (ACT) que transporta productos farmacéuticos ha notificado un fallo antes de la carga. Se está sustituyendo, lo que provoca un retraso de los minutos indicados. No es necesario responder."
+cargo_final_loadsheet:
+  title: Hoja de carga definitiva (carga)
+  description: Hoja de carga definitiva de un vuelo de carga con un cambio de última hora en la mercancía.
+  hint: "Hoja de carga definitiva procedente del control de carga para un vuelo de carga: pesos reales frente a los límites (ZFW, TOW, LAW), combustible de despegue y de travesía (TOF, TIF) y la carga; LMC es el cambio de última hora en la carga respecto a la hoja de carga preliminar. Compruebe las cifras y utilícelas en el FMS; no es necesario responder."
+cargo_late_truck:
+  title: Camión (carga) con retraso
+  description: "Antes de la salida de un vuelo de carga: un camión con la carga prevista llega con retraso; se amplía el plazo de cierre de carga y la salida sufre un retraso de 10 a 30 minutos."
+  hint: "Control de carga: un camión con carga reservada en su vuelo llega con retraso, por lo que se amplía el plazo de cierre de carga y la salida se retrasa los minutos indicados. Planifique en consecuencia. No es necesario responder."
+cargo_notoc:
+  title: Mercancías peligrosas (NOTOC, carga)
+  description: "Antes de la salida de un vuelo de carga: mercancías peligrosas a bordo, algunas de ellas solo para aviones de carga (CAO YES). Responda con ACK para la firma del comandante."
+  hint: "NOTOC (notificación al comandante) de un vuelo de carga: las mercancías peligrosas cargadas, con el número de la UN, la clase, el código de manipulación, la ubicación en la bodega y el número de bultos; «CAO YES» indica que las mercancías solo están permitidas en aviones de carga. Confirme con «ACK», lo que equivale a la firma del comandante."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Ha leído el NOTOC; esto equivale a su firma.
+    notoc:
+      hint: "El control de carga ha recibido su acuse de recibo: se incluye una copia en el expediente de vuelo y el supervisor de carga está al corriente. No es necesario responder."
+cargo_prelim_loadsheet:
+  title: Hoja de carga preliminar (carga)
+  description: "Hoja de carga preliminar de un vuelo de carga: cifras previstas del OFP; carga sin pasajeros."
+  hint: ZFW, TOF, TOW, TIF, LAW en relación con los valores máximos) y la carga. Utilícela para preparar la FMS; las cifras definitivas figuran en la hoja de carga definitiva. No es necesario responder.
+cargo_sort_shift:
+  title: Cambio en la clasificación en el centro de distribución (carga)
+  description: "Durante el vuelo de crucero de un vuelo de carga: la clasificación en el centro de distribución del destino comienza más tarde, no es necesario acelerar el vuelo."
+  hint: "Control de carga: la clasificación de la mercancía en el centro de distribución de destino comienza más tarde de lo previsto, según los minutos indicados, por lo que no es necesario apresurarse. A título informativo; no es necesario responder."
+cargo_special_load:
+  title: Carga especial (mercancía)
+  description: "Antes de la salida de un vuelo de carga: carga especial a bordo (animales vivos, productos perecederos, productos farmacéuticos, restos humanos u objetos de valor) con su código de handling. Responda con «ACK»."
+  hint: "Notificación de carga especial por parte del control de carga: un envío que requiere atención especial durante el vuelo o a la llegada, con su código de handling de la IATA, su ubicación en la bodega y sus requisitos (temperatura, descarga prioritaria). Confirme con ACK."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Está al corriente de la carga especial.
+    ack:
+      hint: El control de carga ha recibido su acuse de recibo y lo ha comunicado al personal de handling en el destino. No es necesario responder.
+cargo_uld_damaged:
+  title: ULD dañado (carga)
+  description: "Antes de la salida de un vuelo de carga: se sustituye un ULD dañado y se descarga parte de su carga; la hoja de carga definitiva muestra el mismo LMC de la carga."
+  hint: "Control de carga: se ha detectado que un dispositivo de carga unitaria (contenedor o palé) presentaba daños durante la carga. Su mercancía se ha trasladado a otra unidad y la parte que no cabía se ha quedado atrás; la hoja de carga definitiva reflejará este cambio. No es necesaria ninguna respuesta."
+cargo_weight_error:
+  title: Corrección de peso (carga)
+  description: "Antes de la salida de un vuelo de carga: se vuelve a pesar una ULD y resulta más pesada de lo reservado; la hoja de carga definitiva muestra el mismo LMC de la carga."
+  hint: "Control de carga: se ha vuelto a pesar una unidad y pesa más de lo indicado en la reserva. La diferencia se debe a un cambio de última hora (LMC) y figurará en la hoja de carga definitiva. No es necesario responder."
+charter_group_lmc:
+  title: Modificación de un grupo turístico (chárter)
+  description: "Antes de la salida de un vuelo chárter: los pasajeros del grupo turístico no se presentan o se añade un grupo que llega tarde; la hoja de carga definitiva muestra el mismo LMC de pasajeros."
+  hint: "Gestión de vuelos chárter: el operador turístico comunica un cambio en su grupo, ya sea por pasajeros que no se han presentado o por pasajeros que han llegado tarde y se han incorporado. La cifra corresponde al cambio de última hora (LMC) que figurará en la hoja de carga definitiva. No es necesario responder."
+  steps:
+    no_show:
+      hint: "Handling de vuelos chárter: los pasajeros del grupo turístico no se han presentado; se están descargando sus equipajes y la hoja de carga definitiva reflejará el cambio. No es necesaria ninguna respuesta."
+    added:
+      hint: "Gestión de vuelos chárter: se ha admitido a una parte del grupo turístico que ha llegado tarde; su equipaje se ha cargado y la hoja de carga definitiva reflejará el cambio. No es necesaria ninguna respuesta."
+charter_sports_team:
+  title: Equipo deportivo (vuelo chárter)
+  description: "Antes de la salida de un vuelo chárter: un equipo deportivo a bordo con equipamiento deportivo de gran tamaño en la bodega y catering especial solicitado por el fletador."
+  hint: "Gestión de vuelos chárter: un equipo deportivo viaja con usted. Su equipamiento de gran tamaño se ha cargado en la bodega asignada y el fletador ha solicitado su propio servicio de catering. No es necesaria ninguna respuesta."
+charter_tour_rep:
+  title: Representante del operador turístico (vuelo chárter)
+  description: "Antes de la salida de un vuelo chárter: el representante del operador turístico ha realizado el check-in del grupo y solicita un breve mensaje de bienvenida por megafonía (PA)."
+  hint: "Handling de vuelos chárter: el representante del operador turístico se encuentra en la puerta de embarque, el registro del grupo ha finalizado y el representante desea que se emita un breve mensaje de bienvenida por megafonía tras el embarque. No es necesaria respuesta."
+charter_transfer:
+  title: Traslado en destino (vuelo chárter)
+  description: "Antes de la hora de llegada prevista (TOD) en un vuelo chárter: los autocares de traslado para los pasajeros esperan en el destino y el representante del operador turístico se encarga de recibirlos."
+  hint: "Handling de vuelos chárter en el destino: los autocares del operador turístico esperan a sus pasajeros y un representante les recibe en la sala de llegadas. Útil para el anuncio a bordo. No es necesaria respuesta."
+charter_vip:
+  title: Vuelo chárter VIP
+  description: "Antes de la salida de un vuelo chárter: un grupo de VIP llega en coche al avión y embarca en último lugar; el servicio de catering se adapta a sus peticiones."
+  hint: "Handling de vuelos chárter: se trata de un vuelo chárter VIP. El grupo llega en coche hasta la aeronave y embarca en último lugar; el servicio de catering se adapta a sus peticiones. No es necesaria ninguna respuesta."
 cmd_delay:
   title: "Comando del piloto: DELAY"
   description: "Comando DELAY: confirma la nueva hora de salida del bloque."
@@ -153,6 +250,22 @@ cmd_req_loadsheet:
   title: "Comando del piloto: «REQ LOADSHEET»"
   description: "Comando REQ LOADSHEET: repite la hoja de carga."
   hint: "REQ LOADSHEET: solicita a OPS que envíe de nuevo la hoja de carga. La respuesta repite la última hoja de carga de este vuelo, ya sea preliminar o definitiva. No es necesaria ninguna respuesta."
+cmd_req_loadsheet_bizav:
+  title: "Comando del piloto: «REQ LOADSHEET» (vuelo de negocios)"
+  description: "Comando REQ LOADSHEET en un vuelo de negocios: no se emite hoja de carga; la tripulación se encarga del cálculo de peso y equilibrio."
+  hint: "Respuesta a «REQ LOADSHEET» en un vuelo de negocios: el servicio de apoyo al vuelo no emite hoja de carga; el cálculo del peso y el equilibrio lo realiza la tripulación. No es necesaria ninguna respuesta."
+cmd_req_loadsheet_cargo:
+  title: "Comando del piloto: «REQ LOADSHEET» (carga)"
+  description: "Comando REQ LOADSHEET» en un vuelo de carga: repite la hoja de carga."
+  hint: «REQ LOADSHEET» solicita al control de carga que envíe de nuevo la hoja de carga. La respuesta repite la última hoja de carga de este vuelo de carga, ya sea preliminar o definitiva. No es necesaria ninguna respuesta.
+cmd_req_loadsheet_ferry:
+  title: "Comando del piloto: «REQ LOADSHEET» (vuelo de traslado)"
+  description: "Comando REQ LOADSHEET» en un vuelo de traslado: repite la hoja de carga exclusiva para la tripulación."
+  hint: «REQ LOADSHEET» solicita al control de carga que envíe de nuevo la hoja de carga. La respuesta repite la hoja de carga exclusiva para la tripulación de este vuelo de traslado. No es necesaria ninguna respuesta.
+cmd_req_loadsheet_ferry_none:
+  title: "Comando del piloto: «REQ LOADSHEET», aún no hay ninguna (vuelo de traslado)"
+  description: Comando REQ LOADSHEET» en un vuelo de traslado antes de que exista la hoja de carga.
+  hint: "Respuesta a «REQ LOADSHEET» en un vuelo de traslado: la hoja de carga aún no se ha emitido; el mensaje indicará cuándo estará disponible. No es necesaria ninguna respuesta."
 cmd_req_loadsheet_none:
   title: "Comando del piloto: «REQ LOADSHEET», aún no hay ninguna"
   description: Comando REQ LOADSHEET antes de que exista ninguna hoja de carga.
@@ -344,6 +457,28 @@ f1_result:
   title: Resultado de Fórmula 1
   description: "Un Gran Premio que ha concluido durante el vuelo: el podio (Jolpica)."
   hint: "Información OPS: el resultado de un Gran Premio de Fórmula 1 que ha concluido durante su vuelo. No es necesario responder."
+ferry_after_mx:
+  title: Vuelo de traslado tras el mantenimiento (ferry)
+  description: "Antes de un vuelo de traslado: la aeronave sale del mantenimiento y ha sido autorizada para el servicio; compruebe el registro técnico."
+  hint: "Control de mantenimiento: la aeronave ha salido del taller y ha sido autorizada para el servicio. Compruebe las anotaciones del registro técnico antes de la salida. No es necesario responder."
+ferry_loadsheet:
+  title: Hoja de carga (vuelo de traslado)
+  description: "Hoja de carga de un vuelo de traslado: solo tripulación, sin pasajeros ni carga."
+  hint: "Hoja de carga de un vuelo de traslado o de posicionamiento: solo tripulación, sin pasajeros ni carga; los pesos (ZFW, TOW, LAW en relación con los máximos) y el combustible de despegue y de travesía. Compruebe las cifras e utilícelas en el FMS; no es necesario responder."
+ferry_permit:
+  title: Permiso de traslado (ferry)
+  description: "Antes de un vuelo de traslado: la aeronave se dirige al centro de mantenimiento con un permiso de vuelo especial (US) o un permiso de vuelo. Responda con ACK."
+  hint: "Control de mantenimiento: la aeronave no cumple plenamente los requisitos de aeronavegabilidad, pero puede volar hasta la base de mantenimiento con un permiso de traslado; dicho permiso y sus limitaciones figuran en la documentación de la aeronave. Léalos y acuse recibo con «ACK»."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Ha leído el permiso y sus limitaciones.
+    ack:
+      hint: El control de mantenimiento ha recibido su acuse de recibo; la base de mantenimiento en el destino espera la llegada de la aeronave. No es necesario responder.
+ferry_positioning:
+  title: Posicionamiento para el próximo vuelo (vuelo de traslado)
+  description: "En crucero de un vuelo de traslado: la aeronave se posiciona para su próxima salida (solo datos reales de AeroDataBox)."
+  hint: "Operaciones: este vuelo posiciona la aeronave para su próxima salida desde el destino, con el vuelo, la ruta y el STD de AeroDataBox. No es necesaria respuesta."
 final_loadsheet:
   title: Hoja de carga definitiva
   description: Hoja de carga definitiva con el cambio de última hora respecto a la preliminar.
@@ -607,6 +742,14 @@ vdgs_arrival:
   title: Pantalla de atraque (GSX)
   description: Vuelo, origen y puerta de llegada en el GSX VDGS en el puesto de destino.
   hint: "No es un mensaje: su vuelo, origen y puerta de llegada en la pantalla de atraque del GSX, en el puesto de estacionamiento."
+vdgs_departure:
+  title: Panel de salidas (GSX)
+  description: "En un aeropuerto A-CDM: vuelo, destino, el TOBT de la aerolínea con una cuenta atrás, pista y SID en el GSX VDGS del puesto de salida."
+  hint: "No es un mensaje: la pantalla de acoplamiento del GSX del puesto de salida muestra su vuelo, destino, pista y SID y, a partir de 30 minutos antes, la hora prevista de salida del bloque (TOBT) de la aerolínea con una cuenta atrás. Un DELAY modifica el TOBT; si no se sale del bloque 15 minutos después de esa hora, la pantalla solicita un nuevo TOBT."
+vdgs_departure_etd:
+  title: Panel de salidas, non-A-CDM (GSX)
+  description: "No se trata de una pantalla real: fuera de los aeropuertos con A-CDM, el vuelo, el destino, la hora estimada de salida del bloque (ETD) con una cuenta atrás, la pista y el SID en el GSX VDGS de la plataforma de salida."
+  hint: "No se trata de un mensaje ni de una reproducción de una pantalla real: en los aeropuertos sin A-CDM, la pantalla de acoplamiento GSX del puesto de estacionamiento de salida muestra su vuelo, destino, pista y SID y, a partir de 30 minutos antes, la hora estimada de salida del puesto de estacionamiento (ETD) con todos los retrasos y una cuenta atrás."
 vdgs_divert:
   title: Pantalla de acoplamiento, desvío (GSX)
   description: "Vuelo: una línea roja «DIVERTED» y el origen en el VDGS del GSX en el aeropuerto de desvío."

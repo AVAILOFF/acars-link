@@ -43,6 +43,18 @@ export interface OfpAirport {
   readonly atis: readonly OfpAtis[];
 }
 
+/**
+ * FPL item 18 (T89): the line as SimBrief gives it (without brackets) and the indicators the core
+ * reads. Indicators per ICAO Doc 4444, appendix 2.
+ */
+export interface OfpItem18 {
+  readonly raw: string;
+  /** `STS/` reasons for special handling (`HOSP`, `MEDEVAC`, `HUM` …), in their order; empty = none. */
+  readonly sts: readonly string[];
+  /** `RMK/` plain-language remarks; null = none. */
+  readonly rmk: string | null;
+}
+
 export type OfpStage = 'CLB' | 'CRZ' | 'DSC';
 
 export interface OfpFix {
@@ -101,7 +113,13 @@ export interface OfpWeights {
   readonly bagCount: number | null;
   readonly paxWeightKg: number | null;
   readonly bagWeightKg: number | null;
+  /** Baggage and freight together (`cargo`): SimBrief counts the bags in it. */
   readonly cargoKg: number;
+  /**
+   * Freight only, without baggage (`freight_added`, T89). Absent in recordings made before T89:
+   * readers treat `undefined` as null.
+   */
+  readonly freightKg?: number | null;
   readonly payloadKg: number;
   readonly estZfwKg: number;
   readonly maxZfwKg: number;
@@ -180,6 +198,16 @@ export interface Ofp {
   /** ICAO airline designator, e.g. `SJX`. Null for private / non-airline flights. */
   readonly airlineIcao: string | null;
   readonly flightNumber: string | null;
+  /**
+   * FPL item 8b, type of flight (`atc.flight_type`, T89): `S` scheduled, `N` non-scheduled, `G`
+   * general aviation, `M` military, `X` other (ICAO Doc 4444, app. 2). Absent in recordings made
+   * before T89: readers treat `undefined` as null.
+   */
+  readonly flightType?: string | null;
+  /** FPL item 8a, flight rules (`atc.flight_rules`: `I`, `V`, `Y`, `Z`, T89); absent before T89. */
+  readonly flightRules?: string | null;
+  /** FPL item 18, other information (`atc.section18`, T89); null when empty, absent before T89. */
+  readonly item18?: OfpItem18 | null;
   readonly costIndex: number | null;
   readonly initialAltitudeFt: number;
   /**

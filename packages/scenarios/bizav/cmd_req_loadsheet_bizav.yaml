@@ -1,0 +1,19 @@
+# REQ LOADSHEET on a business flight (T92): flight support issues no loadsheet; the crew does the
+# weight and balance (approved by the user 2026-11-04: no airline loadsheet on business flights).
+id: cmd_req_loadsheet_bizav
+version: 1
+category: docs
+title: "Pilot command: REQ LOADSHEET (business)"
+description: "REQ LOADSHEET command on a business flight: no loadsheet is issued, the crew does the weight and balance."
+hint: "Answer to REQ LOADSHEET on a business flight: flight support issues no loadsheet; the weight and balance is done by the crew. No reply needed."
+enabled_by_default: true
+operations: [bizav]
+trigger:
+  on: command
+  command: REQ_LOADSHEET
+steps:
+  - send:
+      header: FLIGHT SUPPORT
+      body: |
+        {ofp.callsign} NO LOADSHEET ISSUED
+        MASS AND BALANCE BY CREW

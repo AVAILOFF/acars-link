@@ -1,0 +1,27 @@
+# Positioning flight for the next service (T91): only with a real next departure of the airline
+# from AeroDataBox FIDS (T55 level 1, `ops.next_real`); none is made up, not even the flight number
+# of a route of the statistics (decision of the user 2026-11-04).
+id: ferry_positioning
+version: 1
+category: ops
+title: Positioning for the next flight (ferry)
+description: "In cruise of a ferry flight: the aircraft positions for its next departure (real AeroDataBox data only)."
+hint: "Operations: this flight positions the aircraft for its next departure from the destination, with flight, route and STD from AeroDataBox. No reply needed."
+enabled_by_default: true
+operations: [ferry]
+trigger:
+  on: phase_enter
+  phase: CRUISE
+conditions:
+  - "flight.divert == null"
+  - "ops.next_real == true"
+priority: 0
+steps:
+  - send:
+      header: POSITIONING {ofp.dest}
+      body: |
+        {ofp.callsign} POSITIONING FLT
+        NEXT {ops.next_flight}
+        {ops.next_orig}-{ops.next_dest}
+        STD {ops.next_std|hhmm}Z
+        {ops.next_src}

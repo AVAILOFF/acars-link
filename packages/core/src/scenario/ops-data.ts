@@ -8,6 +8,7 @@ import { type RouteStatsData, routeCandidates } from '../ext/routes.js';
 import type { Ofp } from '../ofp/types.js';
 import { createRng, type Rng } from '../random/rng.js';
 import { aircraftInfo } from './aircraft.js';
+import type { FlightKind } from './flight-kind.js';
 
 /**
  * Per-flight "airline data" that several scenarios must agree on (T07): the last-minute
@@ -94,10 +95,16 @@ export interface NextLegOptions {
 
 const NEXT_LEG_DEFAULT: NextLegOptions = { version: 2, hub: null };
 
+/**
+ * `kind` (T90/T91): the kind of flight when the kind filter is on (T89). A cargo flight has no
+ * passenger LMC, a ferry flight no LMC at all; the draws are made all the same, so the rest of the
+ * draw order does not move. Absent = as before T90 (recordings without the filter).
+ */
 export function buildFlightData(
   ofp: Ofp,
   seed: number | string,
   nextLegOptions: NextLegOptions = NEXT_LEG_DEFAULT,
+  kind?: FlightKind,
 ): FlightData {
   const rng = createRng(`${String(seed)}/#ops`);
   const w = ofp.weights;
@@ -106,10 +113,11 @@ export function buildFlightData(
 
   // LMC (docs/01: ±5 pax at p = 0.5, ±200 kg cargo at p = 0.5).
   const maxPax = ofp.aircraft.maxPax ?? Number.POSITIVE_INFINITY;
+  const noPax = kind === 'cargo' || kind === 'ferry';
   const paxDraw = rng.chance(0.5) ? rng.int(-5, 5) : 0;
-  const pax = Math.min(maxPax, Math.max(0, w.paxCount + paxDraw));
+  const pax = noPax ? w.paxCount : Math.min(maxPax, Math.max(0, w.paxCount + paxDraw));
   const cargoDraw = rng.chance(0.5) ? rng.int(-20, 20) * 10 : 0;
-  const cargoKg = Math.max(0, w.cargoKg + cargoDraw);
+  const cargoKg = kind === 'ferry' ? w.cargoKg : Math.max(0, w.cargoKg + cargoDraw);
   const paxLmc = pax - w.paxCount;
   const cargoLmcKg = cargoKg - w.cargoKg;
   const perPax = (w.paxWeightKg ?? DEFAULT_PAX_KG) + (w.bagWeightKg ?? 0);

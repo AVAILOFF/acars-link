@@ -89,7 +89,8 @@ const out = {
   destination: airport(raw.destination),
   alternate: (raw.alternate ?? []).map(airport),
   navlog: raw.navlog.map((f) => pick(f, FIX_KEYS)),
-  atc: pick(raw.atc, ['callsign', 'flight_rules', 'flight_type', 'initial_alt']),
+  // T89: section18 (item 18 of the FPL: PBN, REG, EET, RMK … — no personal data).
+  atc: pick(raw.atc, ['callsign', 'flight_rules', 'flight_type', 'initial_alt', 'section18']),
   aircraft: pick(raw.aircraft, [
     'icao_code',
     'iata_code',
@@ -134,6 +135,7 @@ const out = {
     'pax_weight',
     'bag_weight',
     'cargo',
+    'freight_added',
     'payload',
     'est_zfw',
     'max_zfw',

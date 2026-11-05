@@ -57,6 +57,8 @@ exports[`parseSimbriefOfp — real OFP planned in kg (A35K RCTP-RJBB) > is stabl
   },
   "etops": null,
   "flightNumber": "822",
+  "flightRules": "I",
+  "flightType": "S",
   "fuel": {
     "alternateBurnKg": 3897,
     "contingencyKg": 1440,
@@ -70,6 +72,7 @@ exports[`parseSimbriefOfp — real OFP planned in kg (A35K RCTP-RJBB) > is stabl
     "taxiKg": 600,
   },
   "initialAltitudeFt": 39000,
+  "item18": null,
   "landingPerf": null,
   "navlog": [
     {
@@ -1316,6 +1319,7 @@ exports[`parseSimbriefOfp — real OFP planned in kg (A35K RCTP-RJBB) > is stabl
     "estRampKg": 205341,
     "estTowKg": 204741,
     "estZfwKg": 182664,
+    "freightKg": null,
     "maxLdwKg": 236000,
     "maxTowKg": 247944,
     "maxZfwKg": 223000,

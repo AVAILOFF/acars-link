@@ -1,0 +1,25 @@
+# Catering of a business flight (T92): ordered by flight support for the passengers of the OFP,
+# delivered to the aircraft before departure (approved by the user 2026-11-04).
+id: bizav_catering
+version: 1
+category: ops
+title: Catering (business)
+description: "Before departure of a business flight: the catering order is confirmed and delivered to the aircraft."
+hint: "Flight support: the catering order for your passengers is confirmed and will be delivered to the aircraft by the time given. No reply needed."
+enabled_by_default: true
+operations: [bizav]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -50 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "ofp.pax > 0"
+steps:
+  - send:
+      header: FLIGHT SUPPORT
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        CATERING ORDER CONFIRMED
+        FOR {ofp.pax} PAX
+        DELIVERY TO A/C BY {ofp.sched_out|plusmin:-30|hhmm}Z
+      footer: "{name:ops}"

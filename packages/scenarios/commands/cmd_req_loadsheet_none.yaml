@@ -6,11 +6,13 @@ title: "Pilot command: REQ LOADSHEET, none yet"
 description: "REQ LOADSHEET command before any loadsheet exists."
 hint: "Answer to REQ LOADSHEET: no loadsheet has been issued for this flight yet; the message says when the preliminary one comes. No reply needed."
 enabled_by_default: true
+# T91/T92: a ferry flight has one loadsheet (ferry/), a business flight none (bizav/).
+operations: [sched_pax, charter_pax, cargo, medevac]
 trigger:
   on: command
   command: REQ_LOADSHEET
 conditions:
-  - "not ('final_loadsheet' in flight.sent or 'prelim_loadsheet' in flight.sent)"
+  - "not ('final_loadsheet' in flight.sent or 'prelim_loadsheet' in flight.sent or 'cargo_final_loadsheet' in flight.sent or 'cargo_prelim_loadsheet' in flight.sent)"
 steps:
   - send:
       header: LOADSHEET

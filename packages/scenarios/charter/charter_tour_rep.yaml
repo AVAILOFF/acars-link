@@ -1,0 +1,27 @@
+# Tour operator's representative on a charter (T91): roles of a package-holiday charter, an
+# assumption approved by the user 2026-11-04. One charter story per flight (group charter_story).
+id: charter_tour_rep
+version: 1
+category: ops
+title: Tour operator representative (charter)
+description: "Before departure of a charter: the tour operator's representative has checked the group in and asks for a short welcome on the PA."
+hint: "Charter handling: the tour operator's representative is at the gate, the group check-in is complete and the representative would like a short welcome on the public address after boarding. No reply needed."
+enabled_by_default: true
+operations: [charter_pax]
+group: charter_story
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -40 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.3
+steps:
+  - send:
+      header: CHARTER MSG
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        TOUR OPERATOR REP AT GATE
+        GROUP CHECK-IN COMPLETE
+        REP REQUESTS PA WELCOME
+        AFTER BOARDING
+      footer: "CHARTER HANDLING {name:ops}"

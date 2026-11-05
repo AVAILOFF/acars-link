@@ -1,0 +1,51 @@
+# Departure board on the GSX VDGS away from A-CDM airports (T103). NOT a reproduction of a real
+# display: airports without A-CDM have no TOBT, so this board shows the ETD (estimated off-block,
+# `ofp.est_out`: every delay including the ATFM slot) with a countdown, the labels GSX's own
+# `flight_information` uses (ETD/TTD). Same layout and timings as vdgs_departure (T102): the time
+# from ETD - 30 min, blank once the ETD is reached; no FLIGHT SUSPENDED (an A-CDM procedure).
+# Off by default (approved by the user 2026-11-05). Rewritten every minute; taken down at OUT.
+id: vdgs_departure_etd
+version: 1
+category: ops
+title: Departure board, non-A-CDM (GSX)
+description: "Not a real display: away from A-CDM airports, flight, destination, the ETD with a countdown, runway and SID on the GSX VDGS at the departure stand."
+hint: "Not a message, and not a reproduction of a real display: at airports without A-CDM the departure stand's GSX docking display shows your flight, destination, runway and SID and, from 30 min before, the estimated off-block time (ETD) with all delays and a countdown."
+enabled_by_default: false
+# T92: airline handling; a business flight has flight support (bizav/), no VDGS.
+operations: [sched_pax, charter_pax, cargo, ferry, medevac]
+# From the first tick at the stand (est_out - 3 h): `est_out` is not fitted to a late start and
+# not counted in its span (only `sched_out - N` are), so the board is up at once and the other
+# pre-departure messages keep their timing; a DELAY never pushes the start back.
+trigger:
+  on: time
+  at: { rel: est_out, offset_min: -180 }
+conditions:
+  - "flight.out == null"
+  - "not ofp.orig_acdm"
+  - "ofp.airline != null"
+steps:
+  - loop:
+      until: "flight.out != null"
+      steps:
+        - if: "flight.minutes_to_etd > 30 or flight.minutes_to_etd <= 0"
+          steps:
+            - vdgs:
+                at: orig
+                replaces: flight_information
+                narrow: ["{ofp.airline}", "{ofp.flight}", "{ofp.dest}", "", ""]
+                wide: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "", "", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
+                x: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "", "", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
+                # SafeDock FLEX: 5 lines of 10, no room for the SID.
+                flex: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "", "", "~RWY {ofp.orig_rwy}"]
+        - if: "flight.minutes_to_etd > 0 and flight.minutes_to_etd <= 30"
+          steps:
+            - vdgs:
+                at: orig
+                replaces: flight_information
+                narrow: ["{ofp.airline}", "{ofp.flight}", "{ofp.dest}", "ETD", "{ofp.est_out|hhmm}"]
+                wide: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "ETD {ofp.est_out|hhmm}", "TTD {flight.minutes_to_etd}MIN", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
+                x: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "ETD {ofp.est_out|hhmm}", "TTD {flight.minutes_to_etd} MIN", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
+                # SafeDock FLEX: 5 lines of 10, no room for the SID.
+                flex: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "ETD {ofp.est_out|hhmm}", "TTD {flight.minutes_to_etd} MIN", "~RWY {ofp.orig_rwy}"]
+        - wait: { minutes: 1 }
+  - vdgs: stop

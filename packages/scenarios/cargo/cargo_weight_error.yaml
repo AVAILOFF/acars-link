@@ -1,0 +1,28 @@
+# Weight error of a position (T90): a unit is reweighed and is heavier than booked. Only when the
+# freight LMC (ops-data.ts) is positive, and the text names the same kilograms, so the final
+# loadsheet agrees (approved by the user 2026-11-04). No position codes (T40).
+id: cargo_weight_error
+version: 1
+category: irregular
+title: Weight correction (cargo)
+description: "Before departure of a cargo flight: a ULD is reweighed heavier than booked; the final loadsheet shows the same freight LMC."
+hint: "Load control: one unit was weighed again and is heavier than its booking. The difference is a last-minute change (LMC) and will be in the final loadsheet. No reply needed."
+enabled_by_default: true
+operations: [cargo]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -15 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+  - "load.cargo_lmc_kg > 0"
+probability: 0.06
+steps:
+  - send:
+      header: LOAD MSG
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        WEIGHT CORRECTION
+        ULD REWEIGHED AT BUILD-UP
+        LMC CGO {load.cargo_lmc_kg|sign} KG
+        FINAL LOADSHEET TO FOLLOW
+      footer: "LOAD CONTROL {name:ops}"

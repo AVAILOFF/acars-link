@@ -17,5 +17,5 @@ steps:
       body: |
         {ofp.callsign} ARR {ofp.dest}
         {ops.gate_expected}
-        BAGGAGE BELT {ops.belt}
+        ~BAGGAGE BELT {ops.belt}{flight.if_pax}
         STA {ofp.sched_in|hhmm}Z

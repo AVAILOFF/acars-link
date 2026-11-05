@@ -1199,6 +1199,126 @@
     "out": "Sugerencia",
     "engine": "deepl"
   },
+  "msg:kind.ask.bizav": {
+    "src": "A business jet — the messages will come from flight support, not from an airline. Right?",
+    "out": "Un jet ejecutivo: los mensajes procederán del servicio de apoyo al vuelo, no de una aerolínea. ¿Es así?",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.cargo": {
+    "src": "No passengers, freight on board — are we flying cargo?",
+    "out": "Sin pasajeros, con carga a bordo: ¿volamos con carga?",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.ferry": {
+    "src": "No passengers and no freight — is this a ferry or positioning flight?",
+    "out": "Sin pasajeros ni carga: ¿se trata de un vuelo de enlace o de posicionamiento?",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.medevac": {
+    "src": "The plan has <x>STS</x>/<x>{sts}</x> — is this an air ambulance flight?",
+    "out": "El plan incluye STS/{sts}: ¿se trata de un vuelo de ambulancia aérea?",
+    "engine": "deepl"
+  },
+  "msg:kind.ask.sched_pax": {
+    "src": "A normal scheduled passenger flight — is that right?",
+    "out": "¿Se trata de un vuelo regular de pasajeros normal?",
+    "engine": "deepl"
+  },
+  "msg:kind.auto": {
+    "src": "Auto: <x>{kind}</x>",
+    "out": "Automático: {kind}",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.cargo": {
+    "src": "From the <x>OFP</x>: 0 <x>PAX</x>, freight <x>{t}</x> t",
+    "out": "Desde el OFP: 0 PAX, carga {t} t",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.default": {
+    "src": "From the <x>OFP</x>: <x>{pax}</x> <x>PAX</x>",
+    "out": "Del OFP: {pax} PAX",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.ferry": {
+    "src": "From the <x>OFP</x>: 0 <x>PAX</x>, no freight",
+    "out": "Según el OFP: 0 PAX, sin carga",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.flight_type": {
+    "src": "Type of flight in the plan: <x>{type}</x>",
+    "out": "Tipo de vuelo en el plan de vuelo: {type}",
+    "engine": "deepl"
+  },
+  "msg:kind.basis.sts": {
+    "src": "Item 18 of the plan: <x>STS</x>/<x>{sts}</x>",
+    "out": "Punto 18 del plan: STS/{sts}",
+    "engine": "deepl"
+  },
+  "msg:kind.bizav": {
+    "src": "Business aviation",
+    "out": "Aviación de negocios",
+    "engine": "deepl"
+  },
+  "msg:kind.cargo": {
+    "src": "Cargo",
+    "out": "Carga",
+    "engine": "deepl"
+  },
+  "msg:kind.charter_pax": {
+    "src": "Charter",
+    "out": "Chárter",
+    "engine": "deepl"
+  },
+  "msg:kind.ferry": {
+    "src": "Ferry / positioning",
+    "out": "Vuelo de enlace / posicionamiento",
+    "engine": "deepl"
+  },
+  "msg:kind.hint": {
+    "src": "Scenarios for passengers (unruly passenger, connections, lost bags…) do not run on cargo, ferry, business and air ambulance flights. You can change the kind until pushback.",
+    "out": "Los escenarios relacionados con los pasajeros (pasajeros conflictivos, conexiones, equipaje perdido…) no se aplican en vuelos de carga, de enlace, de negocios ni de ambulancia aérea. Puede cambiar el tipo hasta el momento del remolque hacia atrás.",
+    "engine": "deepl"
+  },
+  "msg:kind.locked": {
+    "src": "Fixed after pushback (<x>OUT</x>): the scenarios already follow it.",
+    "out": "Fijado tras el remolque hacia atrás (OUT): los escenarios ya lo tienen en cuenta.",
+    "engine": "deepl"
+  },
+  "msg:kind.manual": {
+    "src": "Chosen by you; recognized: <x>{kind}</x>",
+    "out": "Elegido por usted; reconocido: {kind}",
+    "engine": "deepl"
+  },
+  "msg:kind.medevac": {
+    "src": "Air ambulance",
+    "out": "Ambulancia aérea",
+    "engine": "deepl"
+  },
+  "msg:kind.notFor": {
+    "src": "<x>{title}</x> — not for this kind of flight",
+    "out": "{title}: no aplicable a este tipo de vuelo",
+    "engine": "deepl"
+  },
+  "msg:kind.other": {
+    "src": "Another kind…",
+    "out": "Otro tipo…",
+    "engine": "deepl"
+  },
+  "msg:kind.sched_pax": {
+    "src": "Scheduled passenger",
+    "out": "Vuelo de pasajeros programado",
+    "engine": "deepl"
+  },
+  "msg:kind.title": {
+    "src": "Kind of flight",
+    "out": "Tipo de vuelo",
+    "engine": "deepl"
+  },
+  "msg:kind.yes": {
+    "src": "Yes",
+    "out": "Sí",
+    "engine": "deepl"
+  },
   "msg:link.held": {
     "src": "held: <x>{n}</x>",
     "out": "en espera: {n}",
@@ -1589,6 +1709,11 @@
     "out": "Incidentes",
     "engine": "deepl"
   },
+  "msg:report.kind": {
+    "src": "Kind of flight",
+    "out": "Tipo de vuelo",
+    "engine": "deepl"
+  },
   "msg:report.landed": {
     "src": "Landed at",
     "out": "Aterrizado en",
@@ -1907,6 +2032,16 @@
   "msg:set.aircraftIcaoHexHint": {
     "src": "For the <x>SATCOM AES/GES</x> header (decoder format, not a cockpit display). No address, no header. Enter the address of your airframe: open databases are not used.",
     "out": "Para el encabezado SATCOM AES/GES (formato de decodificador, no una pantalla de cabina). Sin dirección, no hay encabezado. Introduzca la dirección de su aeronave: no se utilizan bases de datos abiertas.",
+    "engine": "deepl"
+  },
+  "msg:set.askKind": {
+    "src": "Ask the kind of flight after loading the <x>OFP</x>",
+    "out": "Indique el tipo de vuelo tras cargar el OFP",
+    "engine": "deepl"
+  },
+  "msg:set.askKindHint": {
+    "src": "A card on the flight panel shows the recognized kind (scheduled, cargo, ferry…) and what it is based on. Off: the recognized kind applies without a question; you can still change it on the panel until pushback.",
+    "out": "Una ficha en el panel de vuelo muestra el tipo reconocido (regular, de carga, de traslado…) y en qué se basa. Desactivado: el tipo reconocido se aplica sin lugar a dudas; aún así, puede modificarlo en el panel hasta el momento del remolque hacia atrás.",
     "engine": "deepl"
   },
   "msg:set.badHex": {
@@ -2984,6 +3119,11 @@
     "out": "Salto de posición de {nm} NM (desplazamiento / teletransporte)",
     "engine": "deepl"
   },
+  "msg:sys.flight_kind": {
+    "src": "Kind of flight: <x>{kind}</x>",
+    "out": "Tipo de vuelo: {kind}",
+    "engine": "deepl"
+  },
   "msg:sys.flight_resumed": {
     "src": "Flight <x>{callsign}</x> continued after a restart of the app",
     "out": "El vuelo {callsign} continuó tras reiniciar la aplicación",
@@ -3007,6 +3147,11 @@
   "msg:sys.forced_conditions": {
     "src": "Cannot start <x>{id}</x> now: condition <x>{detail}</x> not met",
     "out": "No se puede iniciar {id} ahora: no se cumple la condición {detail}",
+    "engine": "deepl"
+  },
+  "msg:sys.forced_operation": {
+    "src": "<x>{id}</x> is not for this kind of flight (<x>{detail}</x>)",
+    "out": "{id} no es válido para este tipo de vuelo ({detail})",
     "engine": "deepl"
   },
   "msg:sys.forced_running": {
@@ -3359,6 +3504,11 @@
     "out": "opción desconocida",
     "engine": "deepl"
   },
+  "msg:why.flight_kind": {
+    "src": "unknown kind of flight",
+    "out": "tipo de vuelo desconocido",
+    "engine": "deepl"
+  },
   "msg:why.flight_running": {
     "src": "a flight is in progress",
     "out": "un vuelo está en curso",
@@ -3372,6 +3522,11 @@
   "msg:why.icao_hex": {
     "src": "the <x>ICAO</x> address must be six hex digits or empty",
     "out": "la dirección de la ICAO debe constar de seis dígitos hexadecimales o estar vacía",
+    "engine": "deepl"
+  },
+  "msg:why.kind_locked": {
+    "src": "the kind of flight is fixed after pushback (<x>OUT</x>)",
+    "out": "el tipo de vuelo se determina tras el remolque hacia atrás (OUT)",
     "engine": "deepl"
   },
   "msg:why.load_ofp_first": {
@@ -3629,6 +3784,96 @@
     "out": "En este día en la historia de la aviación",
     "engine": "deepl"
   },
+  "scn:bizav_arrival.description": {
+    "src": "Before <x>TOD</x> on a business flight: a car meets the passengers at the aircraft, the crew hotel and transport are confirmed.",
+    "out": "Antes de la hora de llegada prevista (TOD) en un vuelo de negocios: un vehículo recogerá a los pasajeros en el avión; el alojamiento y el transporte de la tripulación están confirmados.",
+    "engine": "deepl"
+  },
+  "scn:bizav_arrival.hint": {
+    "src": "Flight support at the destination: a car will meet your passengers at the aircraft, and the crew hotel and the crew transport from the <x>FBO</x> are booked. No reply needed.",
+    "out": "Asistencia de vuelo en el destino: un vehículo recogerá a sus pasajeros junto al avión, y ya se han reservado el hotel para la tripulación y el transporte de la tripulación desde el FBO. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:bizav_arrival.title": {
+    "src": "Arrival arrangements (business)",
+    "out": "Disposiciones de llegada (vuelos de negocios)",
+    "engine": "deepl"
+  },
+  "scn:bizav_catering.description": {
+    "src": "Before departure of a business flight: the catering order is confirmed and delivered to the aircraft.",
+    "out": "Antes de la salida de un vuelo de negocios: se confirma el pedido de catering y se entrega en la aeronave.",
+    "engine": "deepl"
+  },
+  "scn:bizav_catering.hint": {
+    "src": "Flight support: the catering order for your passengers is confirmed and will be delivered to the aircraft by the time given. No reply needed.",
+    "out": "Apoyo al vuelo: el pedido de catering para sus pasajeros está confirmado y se entregará en la aeronave a la hora indicada. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:bizav_catering.title": {
+    "src": "Catering (business)",
+    "out": "Catering (negocios)",
+    "engine": "deepl"
+  },
+  "scn:bizav_eapis.description": {
+    "src": "Before departure of a business flight into the <x>US</x>: the eAPIS arrival manifest has been sent to <x>CBP</x>.",
+    "out": "Antes de la salida de un vuelo de negocios con destino a los US: se ha enviado el manifiesto de llegada de eAPIS a la CBP.",
+    "engine": "deepl"
+  },
+  "scn:bizav_eapis.hint": {
+    "src": "Flight support: the arrival manifest of crew and passengers has been sent to <x>US</x> Customs and Border Protection (<x>CBP</x>) through eAPIS, as required at least 60 minutes before departure for private aircraft flying into the <x>US</x>. No reply needed.",
+    "out": "Asistencia en vuelo: se ha enviado el manifiesto de llegada de la tripulación y los pasajeros a la Oficina de Aduanas y Protección Fronteriza de EE. US (CBP) a través de eAPIS, tal y como se exige al menos 60 minutos antes de la salida de las aeronaves privadas que vuelan a EE. US. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:bizav_eapis.title": {
+    "src": "eAPIS manifest (business, <x>US</x>)",
+    "out": "Manifiesto eAPIS (empresarial, US)",
+    "engine": "deepl"
+  },
+  "scn:bizav_fuel_release.description": {
+    "src": "Before departure of a business flight: the fuel release for the departure airport is issued.",
+    "out": "Antes de la salida de un vuelo de negocios: se emite la autorización de repostaje para el aeropuerto de salida.",
+    "engine": "deepl"
+  },
+  "scn:bizav_fuel_release.hint": {
+    "src": "Flight support: the fuel release (the arrangement with the fuel supplier) for this airport is issued for the planned block fuel; the fueller has it. No reply needed.",
+    "out": "Apoyo al vuelo: se ha emitido la autorización de repostaje (el acuerdo con el proveedor de combustible) para este aeropuerto en relación con el combustible previsto; el encargado del repostaje la tiene. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:bizav_fuel_release.title": {
+    "src": "Fuel release (business)",
+    "out": "Autorización de combustible (vuelos de negocios)",
+    "engine": "deepl"
+  },
+  "scn:bizav_handling.description": {
+    "src": "Before departure of a business flight: flight support confirms ground handling at both airports.",
+    "out": "Antes de la salida de un vuelo de negocios: el servicio de apoyo al vuelo confirma la asistencia en tierra en ambos aeropuertos.",
+    "engine": "deepl"
+  },
+  "scn:bizav_handling.hint": {
+    "src": "Flight support (the company that arranges trips of business aircraft): ground handling at the departure and the destination is confirmed; the <x>FBO</x> (the business aviation terminal) knows your times. No reply needed.",
+    "out": "Servicio de apoyo al vuelo (la empresa que organiza los viajes de aviones de negocios): se confirma la asistencia en tierra tanto en el aeropuerto de salida como en el de destino; el FBO (la terminal de aviación de negocios) conoce sus horarios. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:bizav_handling.title": {
+    "src": "Handling confirmed (business)",
+    "out": "Handling confirmado (negocios)",
+    "engine": "deepl"
+  },
+  "scn:bizav_principal_late.description": {
+    "src": "Before departure of a business flight: the principal is running late, the departure is delayed by 15-45 minutes.",
+    "out": "Antes de la salida de un vuelo de negocios: el cliente principal llega tarde; hay un retraso de 15 a 45 minutos.",
+    "engine": "deepl"
+  },
+  "scn:bizav_principal_late.hint": {
+    "src": "Flight support: the principal (the main passenger, owner or client) is running late; the departure is delayed by the minutes given. Plan accordingly. No reply needed.",
+    "out": "Asistencia de vuelo: el cliente principal (el pasajero principal, el propietario o el cliente) llega tarde; la salida sufre un retraso de los minutos indicados. Planifique en consecuencia. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:bizav_principal_late.title": {
+    "src": "Principal late (business)",
+    "out": "El cliente principal llega tarde (vuelo de negocios)",
+    "engine": "deepl"
+  },
   "scn:block_report.description": {
     "src": "Block times and delay codes after on-block.",
     "out": "Tiempos de bloque y códigos de retraso tras la llegada al bloque.",
@@ -3642,6 +3887,246 @@
   "scn:block_report.title": {
     "src": "Block times (<x>OOOI</x>)",
     "out": "Tiempos de bloque (OOOI)",
+    "engine": "deepl"
+  },
+  "scn:cargo_act_failure.description": {
+    "src": "Before departure of a cargo flight: an active temperature-controlled container with pharmaceuticals fails and is replaced, delaying the departure by 15-30 minutes.",
+    "out": "Antes de la salida de un vuelo de carga: un contenedor activo con control de temperatura que transporta productos farmacéuticos presenta un fallo y se sustituye, lo que provoca un retraso de 15 a 30 minutos.",
+    "engine": "deepl"
+  },
+  "scn:cargo_act_failure.hint": {
+    "src": "Cargo control: an active temperature-controlled container (<x>ACT</x>) with pharmaceuticals reported a fault before loading. It is being replaced, which delays the departure by the minutes given. No reply needed.",
+    "out": "Control de carga: un contenedor activo con control de temperatura (ACT) que transporta productos farmacéuticos ha notificado un fallo antes de la carga. Se está sustituyendo, lo que provoca un retraso de los minutos indicados. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:cargo_act_failure.title": {
+    "src": "Temperature container failed (cargo)",
+    "out": "Fallo en un contenedor termorregulado (carga)",
+    "engine": "deepl"
+  },
+  "scn:cargo_final_loadsheet.description": {
+    "src": "Final loadsheet of a cargo flight with the last-minute change of the freight.",
+    "out": "Hoja de carga definitiva de un vuelo de carga con un cambio de última hora en la mercancía.",
+    "engine": "deepl"
+  },
+  "scn:cargo_final_loadsheet.hint": {
+    "src": "Final loadsheet from load control for a cargo flight: actual weights against the limits (<x>ZFW</x>, <x>TOW</x>, <x>LAW</x>), takeoff and trip fuel (<x>TOF</x>, <x>TIF</x>) and the freight; <x>LMC</x> is the last-minute change of the freight against the preliminary loadsheet. Check the figures and use them in the <x>FMS</x>; no reply needed.",
+    "out": "Hoja de carga definitiva procedente del control de carga para un vuelo de carga: pesos reales frente a los límites (ZFW, TOW, LAW), combustible de despegue y de travesía (TOF, TIF) y la carga; LMC es el cambio de última hora en la carga respecto a la hoja de carga preliminar. Compruebe las cifras y utilícelas en el FMS; no es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:cargo_final_loadsheet.title": {
+    "src": "Final loadsheet (cargo)",
+    "out": "Hoja de carga definitiva (carga)",
+    "engine": "deepl"
+  },
+  "scn:cargo_late_truck.description": {
+    "src": "Before departure of a cargo flight: a truck with planned freight is late, the cargo cut-off is extended and the departure delayed by 10-30 minutes.",
+    "out": "Antes de la salida de un vuelo de carga: un camión con la carga prevista llega con retraso; se amplía el plazo de cierre de carga y la salida sufre un retraso de 10 a 30 minutos.",
+    "engine": "deepl"
+  },
+  "scn:cargo_late_truck.hint": {
+    "src": "Cargo control: a truck with freight booked on your flight is late, so the cargo cut-off is extended and the departure delayed by the minutes given. Plan accordingly. No reply needed.",
+    "out": "Control de carga: un camión con carga reservada en su vuelo llega con retraso, por lo que se amplía el plazo de cierre de carga y la salida se retrasa los minutos indicados. Planifique en consecuencia. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:cargo_late_truck.title": {
+    "src": "Late truck (cargo)",
+    "out": "Camión (carga) con retraso",
+    "engine": "deepl"
+  },
+  "scn:cargo_notoc.description": {
+    "src": "Before departure of a cargo flight: dangerous goods on board, some for cargo aircraft only (<x>CAO YES</x>). Reply <x>ACK</x> for the captain signature.",
+    "out": "Antes de la salida de un vuelo de carga: mercancías peligrosas a bordo, algunas de ellas solo para aviones de carga (CAO YES). Responda con ACK para la firma del comandante.",
+    "engine": "deepl"
+  },
+  "scn:cargo_notoc.hint": {
+    "src": "<x>NOTOC</x> (notification to captain) of a cargo flight: the dangerous goods loaded, with the <x>UN</x> number, class, handling code, hold position and number of packages; <x>CAO YES</x> marks goods allowed on cargo aircraft only. Acknowledge with <x>ACK</x>, which counts as the captain's signature.",
+    "out": "NOTOC (notificación al comandante) de un vuelo de carga: las mercancías peligrosas cargadas, con el número de la UN, la clase, el código de manipulación, la ubicación en la bodega y el número de bultos; «CAO YES» indica que las mercancías solo están permitidas en aviones de carga. Confirme con «ACK», lo que equivale a la firma del comandante.",
+    "engine": "deepl"
+  },
+  "scn:cargo_notoc.steps.notoc.hint": {
+    "src": "Cargo control received your acknowledgement: a copy goes into the flight folder and the loading supervisor knows. No reply needed.",
+    "out": "El control de carga ha recibido su acuse de recibo: se incluye una copia en el expediente de vuelo y el supervisor de carga está al corriente. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:cargo_notoc.steps.reply.reply_hints.ACK": {
+    "src": "You have read the <x>NOTOC</x>; this counts as your signature.",
+    "out": "Ha leído el NOTOC; esto equivale a su firma.",
+    "engine": "deepl"
+  },
+  "scn:cargo_notoc.title": {
+    "src": "Dangerous goods (<x>NOTOC</x>, cargo)",
+    "out": "Mercancías peligrosas (NOTOC, carga)",
+    "engine": "deepl"
+  },
+  "scn:cargo_prelim_loadsheet.description": {
+    "src": "Preliminary loadsheet of a cargo flight: planned figures from the <x>OFP</x>, freight without passengers.",
+    "out": "Hoja de carga preliminar de un vuelo de carga: cifras previstas del OFP; carga sin pasajeros.",
+    "engine": "deepl"
+  },
+  "scn:cargo_prelim_loadsheet.hint": {
+    "src": "Preliminary loadsheet from load control for a cargo flight: the planned weights and fuel from the flight plan (<x>ZFW</x>, <x>TOF</x>, <x>TOW</x>, <x>TIF</x>, <x>LAW</x> against the maximums) and the freight. Use it to prepare the <x>FMS</x>; the final figures come in the final loadsheet. No reply needed.",
+    "out": "ZFW, TOF, TOW, TIF, LAW en relación con los valores máximos) y la carga. Utilícela para preparar la FMS; las cifras definitivas figuran en la hoja de carga definitiva. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:cargo_prelim_loadsheet.title": {
+    "src": "Preliminary loadsheet (cargo)",
+    "out": "Hoja de carga preliminar (carga)",
+    "engine": "deepl"
+  },
+  "scn:cargo_sort_shift.description": {
+    "src": "In cruise of a cargo flight: the sort at the destination hub starts later, no need to expedite.",
+    "out": "Durante el vuelo de crucero de un vuelo de carga: la clasificación en el centro de distribución del destino comienza más tarde, no es necesario acelerar el vuelo.",
+    "engine": "deepl"
+  },
+  "scn:cargo_sort_shift.hint": {
+    "src": "Cargo control: the sorting of freight at the destination hub starts later than planned, by the minutes given, so there is no need to hurry for it. For information; no reply needed.",
+    "out": "Control de carga: la clasificación de la mercancía en el centro de distribución de destino comienza más tarde de lo previsto, según los minutos indicados, por lo que no es necesario apresurarse. A título informativo; no es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:cargo_sort_shift.title": {
+    "src": "Hub sort moved (cargo)",
+    "out": "Cambio en la clasificación en el centro de distribución (carga)",
+    "engine": "deepl"
+  },
+  "scn:cargo_special_load.description": {
+    "src": "Before departure of a cargo flight: special load on board (live animals, perishables, pharma, human remains or valuables) with its handling code. Reply <x>ACK</x>.",
+    "out": "Antes de la salida de un vuelo de carga: carga especial a bordo (animales vivos, productos perecederos, productos farmacéuticos, restos humanos u objetos de valor) con su código de handling. Responda con «ACK».",
+    "engine": "deepl"
+  },
+  "scn:cargo_special_load.hint": {
+    "src": "Special load notification from cargo control: a consignment that needs care in flight or on arrival, with its <x>IATA</x> handling code, hold position and what it needs (temperature, priority offload). Acknowledge with <x>ACK</x>.",
+    "out": "Notificación de carga especial por parte del control de carga: un envío que requiere atención especial durante el vuelo o a la llegada, con su código de handling de la IATA, su ubicación en la bodega y sus requisitos (temperatura, descarga prioritaria). Confirme con ACK.",
+    "engine": "deepl"
+  },
+  "scn:cargo_special_load.steps.ack.hint": {
+    "src": "Cargo control received your acknowledgement and has told the handling at the destination. No reply needed.",
+    "out": "El control de carga ha recibido su acuse de recibo y lo ha comunicado al personal de handling en el destino. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:cargo_special_load.steps.reply.reply_hints.ACK": {
+    "src": "You know about the special load.",
+    "out": "Está al corriente de la carga especial.",
+    "engine": "deepl"
+  },
+  "scn:cargo_special_load.title": {
+    "src": "Special load (cargo)",
+    "out": "Carga especial (mercancía)",
+    "engine": "deepl"
+  },
+  "scn:cargo_uld_damaged.description": {
+    "src": "Before departure of a cargo flight: a damaged <x>ULD</x> is replaced and part of its freight offloaded; the final loadsheet shows the same freight <x>LMC</x>.",
+    "out": "Antes de la salida de un vuelo de carga: se sustituye un ULD dañado y se descarga parte de su carga; la hoja de carga definitiva muestra el mismo LMC de la carga.",
+    "engine": "deepl"
+  },
+  "scn:cargo_uld_damaged.hint": {
+    "src": "Load control: a unit load device (container or pallet) was found damaged at loading. Its freight was moved to another unit and the part that did not fit stays behind; the final loadsheet will show this change. No reply needed.",
+    "out": "Control de carga: se ha detectado que un dispositivo de carga unitaria (contenedor o palé) presentaba daños durante la carga. Su mercancía se ha trasladado a otra unidad y la parte que no cabía se ha quedado atrás; la hoja de carga definitiva reflejará este cambio. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:cargo_uld_damaged.title": {
+    "src": "Damaged <x>ULD</x> (cargo)",
+    "out": "ULD dañado (carga)",
+    "engine": "deepl"
+  },
+  "scn:cargo_weight_error.description": {
+    "src": "Before departure of a cargo flight: a <x>ULD</x> is reweighed heavier than booked; the final loadsheet shows the same freight <x>LMC</x>.",
+    "out": "Antes de la salida de un vuelo de carga: se vuelve a pesar una ULD y resulta más pesada de lo reservado; la hoja de carga definitiva muestra el mismo LMC de la carga.",
+    "engine": "deepl"
+  },
+  "scn:cargo_weight_error.hint": {
+    "src": "Load control: one unit was weighed again and is heavier than its booking. The difference is a last-minute change (<x>LMC</x>) and will be in the final loadsheet. No reply needed.",
+    "out": "Control de carga: se ha vuelto a pesar una unidad y pesa más de lo indicado en la reserva. La diferencia se debe a un cambio de última hora (LMC) y figurará en la hoja de carga definitiva. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:cargo_weight_error.title": {
+    "src": "Weight correction (cargo)",
+    "out": "Corrección de peso (carga)",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.description": {
+    "src": "Before departure of a charter: passengers of the tour group do not show or a late group is added; the final loadsheet shows the same passenger <x>LMC</x>.",
+    "out": "Antes de la salida de un vuelo chárter: los pasajeros del grupo turístico no se presentan o se añade un grupo que llega tarde; la hoja de carga definitiva muestra el mismo LMC de pasajeros.",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.hint": {
+    "src": "Charter handling: the tour operator reports a change in its group, passengers who did not show or late ones added. The number is the last-minute change (<x>LMC</x>) the final loadsheet will show. No reply needed.",
+    "out": "Gestión de vuelos chárter: el operador turístico comunica un cambio en su grupo, ya sea por pasajeros que no se han presentado o por pasajeros que han llegado tarde y se han incorporado. La cifra corresponde al cambio de última hora (LMC) que figurará en la hoja de carga definitiva. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.steps.added.hint": {
+    "src": "Charter handling: a late part of the tour group was accepted; their bags are loaded and the final loadsheet will show the change. No reply needed.",
+    "out": "Gestión de vuelos chárter: se ha admitido a una parte del grupo turístico que ha llegado tarde; su equipaje se ha cargado y la hoja de carga definitiva reflejará el cambio. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.steps.no_show.hint": {
+    "src": "Charter handling: passengers of the tour group did not show; their bags are being taken off and the final loadsheet will show the change. No reply needed.",
+    "out": "Handling de vuelos chárter: los pasajeros del grupo turístico no se han presentado; se están descargando sus equipajes y la hoja de carga definitiva reflejará el cambio. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_group_lmc.title": {
+    "src": "Tour group change (charter)",
+    "out": "Modificación de un grupo turístico (chárter)",
+    "engine": "deepl"
+  },
+  "scn:charter_sports_team.description": {
+    "src": "Before departure of a charter: a sports team on board with oversize sports equipment in the hold and special catering ordered by the charterer.",
+    "out": "Antes de la salida de un vuelo chárter: un equipo deportivo a bordo con equipamiento deportivo de gran tamaño en la bodega y catering especial solicitado por el fletador.",
+    "engine": "deepl"
+  },
+  "scn:charter_sports_team.hint": {
+    "src": "Charter handling: a sports team flies with you. Their oversize equipment is loaded in the hold given and the charterer ordered its own catering. No reply needed.",
+    "out": "Gestión de vuelos chárter: un equipo deportivo viaja con usted. Su equipamiento de gran tamaño se ha cargado en la bodega asignada y el fletador ha solicitado su propio servicio de catering. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_sports_team.title": {
+    "src": "Sports team (charter)",
+    "out": "Equipo deportivo (vuelo chárter)",
+    "engine": "deepl"
+  },
+  "scn:charter_tour_rep.description": {
+    "src": "Before departure of a charter: the tour operator's representative has checked the group in and asks for a short welcome on the <x>PA</x>.",
+    "out": "Antes de la salida de un vuelo chárter: el representante del operador turístico ha realizado el check-in del grupo y solicita un breve mensaje de bienvenida por megafonía (PA).",
+    "engine": "deepl"
+  },
+  "scn:charter_tour_rep.hint": {
+    "src": "Charter handling: the tour operator's representative is at the gate, the group check-in is complete and the representative would like a short welcome on the public address after boarding. No reply needed.",
+    "out": "Handling de vuelos chárter: el representante del operador turístico se encuentra en la puerta de embarque, el registro del grupo ha finalizado y el representante desea que se emita un breve mensaje de bienvenida por megafonía tras el embarque. No es necesaria respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_tour_rep.title": {
+    "src": "Tour operator representative (charter)",
+    "out": "Representante del operador turístico (vuelo chárter)",
+    "engine": "deepl"
+  },
+  "scn:charter_transfer.description": {
+    "src": "Before <x>TOD</x> on a charter: transfer coaches for the passengers wait at the destination, the tour operator's representative meets them.",
+    "out": "Antes de la hora de llegada prevista (TOD) en un vuelo chárter: los autocares de traslado para los pasajeros esperan en el destino y el representante del operador turístico se encarga de recibirlos.",
+    "engine": "deepl"
+  },
+  "scn:charter_transfer.hint": {
+    "src": "Charter handling at the destination: coaches of the tour operator wait for your passengers and a representative meets them in the arrivals hall. Useful for the cabin announcement. No reply needed.",
+    "out": "Handling de vuelos chárter en el destino: los autocares del operador turístico esperan a sus pasajeros y un representante les recibe en la sala de llegadas. Útil para el anuncio a bordo. No es necesaria respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_transfer.title": {
+    "src": "Transfer at destination (charter)",
+    "out": "Traslado en destino (vuelo chárter)",
+    "engine": "deepl"
+  },
+  "scn:charter_vip.description": {
+    "src": "Before departure of a charter: a <x>VIP</x> party arrives by car at the aircraft and boards last; catering to their order.",
+    "out": "Antes de la salida de un vuelo chárter: un grupo de VIP llega en coche al avión y embarca en último lugar; el servicio de catering se adapta a sus peticiones.",
+    "engine": "deepl"
+  },
+  "scn:charter_vip.hint": {
+    "src": "Charter handling: this is a <x>VIP</x> charter. The party comes by car to the aircraft and boards last, and the catering is to their order. No reply needed.",
+    "out": "Handling de vuelos chárter: se trata de un vuelo chárter VIP. El grupo llega en coche hasta la aeronave y embarca en último lugar; el servicio de catering se adapta a sus peticiones. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:charter_vip.title": {
+    "src": "<x>VIP</x> charter",
+    "out": "Vuelo chárter VIP",
     "engine": "deepl"
   },
   "scn:cmd_delay.description": {
@@ -3987,6 +4472,66 @@
   "scn:cmd_req_loadsheet.title": {
     "src": "Pilot command: <x>REQ LOADSHEET</x>",
     "out": "Comando del piloto: «REQ LOADSHEET»",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_bizav.description": {
+    "src": "<x>REQ LOADSHEET</x> command on a business flight: no loadsheet is issued, the crew does the weight and balance.",
+    "out": "Comando REQ LOADSHEET en un vuelo de negocios: no se emite hoja de carga; la tripulación se encarga del cálculo de peso y equilibrio.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_bizav.hint": {
+    "src": "Answer to <x>REQ LOADSHEET</x> on a business flight: flight support issues no loadsheet; the weight and balance is done by the crew. No reply needed.",
+    "out": "Respuesta a «REQ LOADSHEET» en un vuelo de negocios: el servicio de apoyo al vuelo no emite hoja de carga; el cálculo del peso y el equilibrio lo realiza la tripulación. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_bizav.title": {
+    "src": "Pilot command: <x>REQ LOADSHEET</x> (business)",
+    "out": "Comando del piloto: «REQ LOADSHEET» (vuelo de negocios)",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_cargo.description": {
+    "src": "<x>REQ LOADSHEET</x> command on a cargo flight: repeats the cargo loadsheet.",
+    "out": "Comando REQ LOADSHEET» en un vuelo de carga: repite la hoja de carga.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_cargo.hint": {
+    "src": "<x>REQ LOADSHEET</x> asks load control to send the loadsheet again. The answer repeats the latest loadsheet of this cargo flight, preliminary or final. No reply needed.",
+    "out": "«REQ LOADSHEET» solicita al control de carga que envíe de nuevo la hoja de carga. La respuesta repite la última hoja de carga de este vuelo de carga, ya sea preliminar o definitiva. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_cargo.title": {
+    "src": "Pilot command: <x>REQ LOADSHEET</x> (cargo)",
+    "out": "Comando del piloto: «REQ LOADSHEET» (carga)",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry.description": {
+    "src": "<x>REQ LOADSHEET</x> command on a ferry flight: repeats the crew-only loadsheet.",
+    "out": "Comando REQ LOADSHEET» en un vuelo de traslado: repite la hoja de carga exclusiva para la tripulación.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry.hint": {
+    "src": "<x>REQ LOADSHEET</x> asks load control to send the loadsheet again. The answer repeats the crew-only loadsheet of this ferry flight. No reply needed.",
+    "out": "«REQ LOADSHEET» solicita al control de carga que envíe de nuevo la hoja de carga. La respuesta repite la hoja de carga exclusiva para la tripulación de este vuelo de traslado. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry.title": {
+    "src": "Pilot command: <x>REQ LOADSHEET</x> (ferry)",
+    "out": "Comando del piloto: «REQ LOADSHEET» (vuelo de traslado)",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry_none.description": {
+    "src": "<x>REQ LOADSHEET</x> command on a ferry flight before the loadsheet exists.",
+    "out": "Comando REQ LOADSHEET» en un vuelo de traslado antes de que exista la hoja de carga.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry_none.hint": {
+    "src": "Answer to <x>REQ LOADSHEET</x> on a ferry flight: the loadsheet has not been issued yet; the message says when it comes. No reply needed.",
+    "out": "Respuesta a «REQ LOADSHEET» en un vuelo de traslado: la hoja de carga aún no se ha emitido; el mensaje indicará cuándo estará disponible. No es necesaria ninguna respuesta.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_loadsheet_ferry_none.title": {
+    "src": "Pilot command: <x>REQ LOADSHEET</x>, none yet (ferry)",
+    "out": "Comando del piloto: «REQ LOADSHEET», aún no hay ninguna (vuelo de traslado)",
     "engine": "deepl"
   },
   "scn:cmd_req_loadsheet_none.description": {
@@ -4562,6 +5107,76 @@
   "scn:f1_result.title": {
     "src": "Formula 1 result",
     "out": "Resultado de Fórmula 1",
+    "engine": "deepl"
+  },
+  "scn:ferry_after_mx.description": {
+    "src": "Before a ferry flight: the aircraft comes out of maintenance, released to service; check the technical log.",
+    "out": "Antes de un vuelo de traslado: la aeronave sale del mantenimiento y ha sido autorizada para el servicio; compruebe el registro técnico.",
+    "engine": "deepl"
+  },
+  "scn:ferry_after_mx.hint": {
+    "src": "Maintenance control: the aircraft has come out of maintenance and has been released to service. Check the technical log entries before departure. No reply needed.",
+    "out": "Control de mantenimiento: la aeronave ha salido del taller y ha sido autorizada para el servicio. Compruebe las anotaciones del registro técnico antes de la salida. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:ferry_after_mx.title": {
+    "src": "Ferry after maintenance (ferry)",
+    "out": "Vuelo de traslado tras el mantenimiento (ferry)",
+    "engine": "deepl"
+  },
+  "scn:ferry_loadsheet.description": {
+    "src": "Loadsheet of a ferry flight: crew only, no passengers and no cargo.",
+    "out": "Hoja de carga de un vuelo de traslado: solo tripulación, sin pasajeros ni carga.",
+    "engine": "deepl"
+  },
+  "scn:ferry_loadsheet.hint": {
+    "src": "Loadsheet of a ferry or positioning flight: crew only, without passengers and cargo; the weights (<x>ZFW</x>, <x>TOW</x>, <x>LAW</x> against the maximums) and the takeoff and trip fuel. Check the figures and use them in the <x>FMS</x>; no reply needed.",
+    "out": "Hoja de carga de un vuelo de traslado o de posicionamiento: solo tripulación, sin pasajeros ni carga; los pesos (ZFW, TOW, LAW en relación con los máximos) y el combustible de despegue y de travesía. Compruebe las cifras e utilícelas en el FMS; no es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:ferry_loadsheet.title": {
+    "src": "Loadsheet (ferry)",
+    "out": "Hoja de carga (vuelo de traslado)",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.description": {
+    "src": "Before a ferry flight: the aircraft flies to maintenance under a special flight permit (<x>US</x>) or a permit to fly. Reply <x>ACK</x>.",
+    "out": "Antes de un vuelo de traslado: la aeronave se dirige al centro de mantenimiento con un permiso de vuelo especial (US) o un permiso de vuelo. Responda con ACK.",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.hint": {
+    "src": "Maintenance control: the aircraft does not fully meet its airworthiness requirements but may fly to the maintenance base under a ferry permit; the permit and its limitations are in the aircraft documents. Read them and acknowledge with <x>ACK</x>.",
+    "out": "Control de mantenimiento: la aeronave no cumple plenamente los requisitos de aeronavegabilidad, pero puede volar hasta la base de mantenimiento con un permiso de traslado; dicho permiso y sus limitaciones figuran en la documentación de la aeronave. Léalos y acuse recibo con «ACK».",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.steps.ack.hint": {
+    "src": "Maintenance control received your acknowledgement; the maintenance base at the destination expects the aircraft. No reply needed.",
+    "out": "El control de mantenimiento ha recibido su acuse de recibo; la base de mantenimiento en el destino espera la llegada de la aeronave. No es necesario responder.",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.steps.reply.reply_hints.ACK": {
+    "src": "You have read the permit and its limitations.",
+    "out": "Ha leído el permiso y sus limitaciones.",
+    "engine": "deepl"
+  },
+  "scn:ferry_permit.title": {
+    "src": "Ferry permit (ferry)",
+    "out": "Permiso de traslado (ferry)",
+    "engine": "deepl"
+  },
+  "scn:ferry_positioning.description": {
+    "src": "In cruise of a ferry flight: the aircraft positions for its next departure (real <x>AeroDataBox</x> data only).",
+    "out": "En crucero de un vuelo de traslado: la aeronave se posiciona para su próxima salida (solo datos reales de AeroDataBox).",
+    "engine": "deepl"
+  },
+  "scn:ferry_positioning.hint": {
+    "src": "Operations: this flight positions the aircraft for its next departure from the destination, with flight, route and <x>STD</x> from <x>AeroDataBox</x>. No reply needed.",
+    "out": "Operaciones: este vuelo posiciona la aeronave para su próxima salida desde el destino, con el vuelo, la ruta y el STD de AeroDataBox. No es necesaria respuesta.",
+    "engine": "deepl"
+  },
+  "scn:ferry_positioning.title": {
+    "src": "Positioning for the next flight (ferry)",
+    "out": "Posicionamiento para el próximo vuelo (vuelo de traslado)",
     "engine": "deepl"
   },
   "scn:final_loadsheet.description": {
@@ -5382,6 +5997,36 @@
   "scn:vdgs_arrival.title": {
     "src": "Docking display (<x>GSX</x>)",
     "out": "Pantalla de atraque (GSX)",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure.description": {
+    "src": "At an <x>A-CDM</x> airport: flight, destination, the airline's <x>TOBT</x> with a countdown, runway and <x>SID</x> on the <x>GSX</x> <x>VDGS</x> at the departure stand.",
+    "out": "En un aeropuerto A-CDM: vuelo, destino, el TOBT de la aerolínea con una cuenta atrás, pista y SID en el GSX VDGS del puesto de salida.",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure.hint": {
+    "src": "Not a message: the departure stand's <x>GSX</x> docking display shows your flight, destination, runway and <x>SID</x> and, from 30 min before, the airline's target off-block time (<x>TOBT</x>) with a countdown. A <x>DELAY</x> moves the <x>TOBT</x>; not off block 15 min after it, the board asks for a new <x>TOBT</x>.",
+    "out": "No es un mensaje: la pantalla de acoplamiento del GSX del puesto de salida muestra su vuelo, destino, pista y SID y, a partir de 30 minutos antes, la hora prevista de salida del bloque (TOBT) de la aerolínea con una cuenta atrás. Un DELAY modifica el TOBT; si no se sale del bloque 15 minutos después de esa hora, la pantalla solicita un nuevo TOBT.",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure.title": {
+    "src": "Departure board (<x>GSX</x>)",
+    "out": "Panel de salidas (GSX)",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure_etd.description": {
+    "src": "Not a real display: away from <x>A-CDM</x> airports, flight, destination, the <x>ETD</x> with a countdown, runway and <x>SID</x> on the <x>GSX</x> <x>VDGS</x> at the departure stand.",
+    "out": "No se trata de una pantalla real: fuera de los aeropuertos con A-CDM, el vuelo, el destino, la hora estimada de salida del bloque (ETD) con una cuenta atrás, la pista y el SID en el GSX VDGS de la plataforma de salida.",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure_etd.hint": {
+    "src": "Not a message, and not a reproduction of a real display: at airports without <x>A-CDM</x> the departure stand's <x>GSX</x> docking display shows your flight, destination, runway and <x>SID</x> and, from 30 min before, the estimated off-block time (<x>ETD</x>) with all delays and a countdown.",
+    "out": "No se trata de un mensaje ni de una reproducción de una pantalla real: en los aeropuertos sin A-CDM, la pantalla de acoplamiento GSX del puesto de estacionamiento de salida muestra su vuelo, destino, pista y SID y, a partir de 30 minutos antes, la hora estimada de salida del puesto de estacionamiento (ETD) con todos los retrasos y una cuenta atrás.",
+    "engine": "deepl"
+  },
+  "scn:vdgs_departure_etd.title": {
+    "src": "Departure board, non-<x>A-CDM</x> (<x>GSX</x>)",
+    "out": "Panel de salidas, non-A-CDM (GSX)",
     "engine": "deepl"
   },
   "scn:vdgs_divert.description": {

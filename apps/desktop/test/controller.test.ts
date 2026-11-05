@@ -286,7 +286,9 @@ describe('AppController', () => {
     // 15 base + 12 commands (T12) + 8 command scenarios (T44) + slot_missed (T43) + 4 live-data (T13) + 2 launches (T28) + 24 irregular (T14, T44)
     // + 1 sim (T22) + 10 special events (T29) + atis_update and vdgs_divert (T45) + emergency_mayday and emergency_pan (T47)
     // + 4 irregular (T46) + connex_list (T30) + hold_fuel_watch (T50) + dep_fire
-    expect(list).toHaveLength(91);
+    // + 10 cargo (T90: 2 loadsheets, REQ LOADSHEET, 7 irregular) + 5 charter and 6 ferry (T91)
+    // + 7 business aviation (T92) + vdgs_departure (T102) + vdgs_departure_etd (T103)
+    expect(list).toHaveLength(121);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');
@@ -740,7 +742,10 @@ describe('live data (T13)', () => {
     expect(cmds).toMatchObject([
       { scenarioId: 'vdgs_arrival', command: 'vdgs', data: { airport: 'RJBB' } },
     ]);
-    const again = replay(rec, { scenarios: BASE_SCENARIOS_COMPILED });
+    // Only the scenarios of the flight, as `pnpm replay` does: vdgs_departure_etd is off (T103).
+    const again = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
     const replayed = again.timeline.flatMap((e) => (e.kind === 'cmd' ? [e.command] : []));
     expect(replayed.map((c) => ('vdgs' in c ? c.vdgs : null))).toEqual(
       cmds.map((c) => (c.type === 'cmd' ? c.data : null)),
@@ -1446,7 +1451,8 @@ describe('irregular events by hand', () => {
     });
     await s.app.startFlight();
     const list = s.app.state().irregular;
-    expect(list.length).toBe(34);
+    // T90: 7 cargo irregular events; T91: the tour group change of a charter; T92: principal late.
+    expect(list.length).toBe(43);
     expect(list.find((x) => x.id === 'vip_onboard')?.title).toMatchObject({
       en: 'VIP on board',
       ru: 'VIP на борту',
@@ -1741,6 +1747,126 @@ describe('XATC station (T23)', () => {
     expect(s.app.state().atc).toEqual({ station: null, connected: null, dcl: 'XCTP' });
     expect(s.app.state().feed.some((e) => e.kind === 'system' && e.code === 'atc_needs_data')).toBe(
       true,
+    );
+  });
+});
+
+describe('kind of flight (T89)', () => {
+  const rawOfp = readFileSync(OFP_FIXTURE, 'utf8');
+  /** The fixture OFP with no passengers and this much freight (kg). */
+  const cargoBody = (freight: number) => {
+    const j = JSON.parse(rawOfp);
+    j.weights.pax_count = '0';
+    j.weights.freight_added = String(freight);
+    j.weights.cargo = String(freight);
+    return JSON.stringify(j);
+  };
+
+  async function ready(body: string) {
+    const http = new FakeHttp(() => ({ status: 200, body: current }));
+    let current = body;
+    const s = await setup({ http });
+    await s.app.setSimbriefUsername('pilot42');
+    await s.app.updateSettings({ transport: 'offline', liveData: false });
+    s.sockets.last().hello();
+    const serve = (b: string) => {
+      current = b;
+    };
+    return { ...s, serve };
+  }
+
+  it('asks after loading the OFP; "Yes" answers it; the same kind on reload asks nothing', async () => {
+    const s = await ready(cargoBody(42_500));
+    expect(s.app.state().flightKind).toBeNull();
+    await s.app.loadOfp();
+    expect(s.app.state().flightKind).toMatchObject({
+      kind: 'cargo',
+      auto: 'cargo',
+      override: null,
+      rule: 'cargo',
+      freightKg: 42_500,
+      ask: true,
+      locked: false,
+    });
+    await s.app.setFlightKind('cargo');
+    expect(s.app.state().flightKind).toMatchObject({
+      kind: 'cargo',
+      override: 'cargo',
+      ask: false,
+    });
+    // The same flight again: the recognized kind did not change — no question, the answer stays.
+    s.serve(cargoBody(40_000));
+    await s.app.loadOfp();
+    expect(s.app.state().flightKind).toMatchObject({ override: 'cargo', ask: false });
+    // The recognized kind changed: ask again.
+    s.serve(rawOfp);
+    await s.app.loadOfp();
+    expect(s.app.state().flightKind).toMatchObject({
+      kind: 'sched_pax',
+      override: null,
+      ask: true,
+    });
+    expect(await guard(() => s.app.setFlightKind('tanker'))).toMatchObject({
+      ok: false,
+      error: { code: 'invalid_input', reason: 'flight_kind' },
+    });
+  });
+
+  it('with the setting off the recognized kind applies without a question', async () => {
+    const s = await ready(cargoBody(1000));
+    await s.app.updateSettings({ askFlightKind: false });
+    await s.app.loadOfp();
+    expect(s.app.state().flightKind).toMatchObject({ kind: 'cargo', ask: false });
+  });
+
+  it('another kind before OUT goes to the core and the recording; after OUT it is refused', async () => {
+    const s = await ready(cargoBody(30_000));
+    await s.app.loadOfp();
+    // "Another kind…" before the start: scheduled.
+    await s.app.setFlightKind('sched_pax');
+    await s.app.startFlight();
+    const gate = flight.snapshots.findIndex((x) => x.t > T0 + 5 * 60_000);
+    fly(s, 0, gate);
+    // At the gate: ferry. The question was answered: no card any more.
+    await s.app.setFlightKind('ferry');
+    expect(s.app.state().flightKind).toMatchObject({ kind: 'ferry', ask: false, locked: false });
+    fly(s, gate);
+    expect(s.app.state().flightKind).toMatchObject({ kind: 'ferry', locked: true });
+    expect(await guard(() => s.app.setFlightKind('cargo'))).toMatchObject({
+      ok: false,
+      error: { code: 'bad_state', reason: 'kind_locked' },
+    });
+    expect(s.app.state().feed.some((e) => e.kind === 'system' && e.code === 'flight_kind')).toBe(
+      true,
+    );
+    await s.app.stopFlight();
+    const rec = await readRecording(s.recordings);
+    expect(rec.header.flightKind).toEqual({ override: 'sched_pax', kind: 'sched_pax' });
+    expect(rec.events.filter((e) => e.type === 'tick' && e.flightKind !== undefined)).toEqual([
+      expect.objectContaining({ flightKind: { override: 'ferry' } }),
+    ]);
+    const r = replay(rec, {
+      scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
+    });
+    expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+  });
+
+  it('"run now" of a passenger scenario on a cargo flight is refused by the core', async () => {
+    const s = await ready(cargoBody(30_000));
+    await s.app.loadOfp();
+    await s.app.startFlight();
+    expect(s.app.state().irregular.find((x) => x.id === 'unruly_passenger')).toMatchObject({
+      operations: ['sched_pax', 'charter_pax'],
+    });
+    fly(s, 0, 10);
+    await s.app.forceScenario('unruly_passenger');
+    fly(s, 10, 12);
+    expect(s.app.state().feed).toContainEqual(
+      expect.objectContaining({
+        kind: 'system',
+        code: 'forced_operation',
+        params: { id: 'unruly_passenger', detail: 'cargo' },
+      }),
     );
   });
 });

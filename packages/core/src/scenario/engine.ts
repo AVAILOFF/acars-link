@@ -33,11 +33,18 @@ import {
   type RunVariable,
   type ScenarioContext,
 } from './context.js';
-import { type DelayPart, LATE_START_CODE, reasonCode, SLOT_CODE } from './delay-codes.js';
+import {
+  type DelayPart,
+  LATE_START_CODE,
+  reasonCode,
+  SLOT_CODE,
+  SLOT_SCENARIO_ID,
+} from './delay-codes.js';
 import { airportPlace, type RunwayNeed } from './divert.js';
 
 import type { Lookup, Value } from './expr.js';
 import { pruneExpiredFlags } from './flags-expiry.js';
+import { classifyFlight, type FlightKind, type FlightKindInfo } from './flight-kind.js';
 import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
 import { buildFlightData, type FlightData, type NextLegOptions } from './ops-data.js';
 import {
@@ -95,6 +102,10 @@ import type { PilotCommand, ScenarioCategory, StartWindow, TimeRef } from './typ
  * its trigger, probability, cooldown and excludes, but only when its conditions hold (they
  * keep its messages meaningful) and it is not running. The outcome is a `FORCED` event.
  * While telemetry is lost the request waits in the state like a pilot message.
+ *
+ * Kind of flight (T89, option `flightKind`): a scenario with `operations` starts only on those
+ * kinds, by hand too (`SCENARIO_SKIPPED` / `FORCED` with `operation`). The user may change the kind
+ * until OUT (`input.flightKind`, event `FLIGHT_KIND`); running scenarios go on.
  */
 
 export interface OutboundMessage {
@@ -188,8 +199,19 @@ export type ScenarioEvent =
       readonly type: 'FORCED';
       readonly id: string;
       readonly t: number;
-      readonly result: 'started' | 'conditions' | 'running' | 'unknown';
+      readonly result: 'started' | 'conditions' | 'running' | 'unknown' | 'operation';
       readonly detail: string | null;
+    }
+  | {
+      /**
+       * The user's choice of the kind of flight (T89, `input.flightKind`): `applied: false` after
+       * OUT (the kind is fixed then) or without the filter (`flightKind` option absent).
+       */
+      readonly type: 'FLIGHT_KIND';
+      readonly t: number;
+      readonly kind: FlightKind;
+      readonly override: FlightKind | null;
+      readonly applied: boolean;
     }
   | {
       /** A `wait: until` ended (T39): the condition held, or its time ran out. */
@@ -209,7 +231,8 @@ export type ScenarioEvent =
         | 'excluded'
         | 'running'
         | 'window'
-        | 'conditions';
+        | 'conditions'
+        | 'operation';
     }
   | { readonly type: 'SCENARIO_DONE'; readonly id: string; readonly t: number }
   | {
@@ -234,6 +257,8 @@ export interface EngineTickInput {
   readonly data?: ExtDataUpdate;
   /** Scenario ids the user starts by hand. */
   readonly force?: readonly string[];
+  /** The user's choice of the kind of flight (T89): null = automatic. Ignored after OUT. */
+  readonly flightKind?: { readonly override: FlightKind | null };
 }
 
 export interface EngineTickOutput {
@@ -295,6 +320,12 @@ export interface ScenarioEngineOptions {
   readonly runwayNeeds?: Readonly<Partial<Record<AircraftFamily, RunwayNeed>>>;
   /** `flags.*` left by earlier flights (T14). */
   readonly flags?: Readonly<Record<string, Value>>;
+  /**
+   * Kind of flight (T89, `flight-kind.ts`): present = scenarios start only on the kinds of their
+   * `operations`; `override` is the user's choice (null = recognized from the OFP). Absent = no
+   * filter, as in recordings made before T89.
+   */
+  readonly flightKind?: { readonly override: FlightKind | null };
 }
 
 interface ScenarioState {
@@ -364,8 +395,15 @@ export interface ScenarioEngineState {
   readonly delayRaisedMs?: number;
   /** What the delay is made of, with IATA delay codes (T43); absent in older states. */
   readonly delayParts?: readonly DelayPart[];
+  /**
+   * The airline's part of the delay (T102, TOBT): the delay without the ATFM slot of
+   * {@link SLOT_SCENARIO_ID}; absent in older states = `delayMs − delayRaisedMs`.
+   */
+  readonly tobtDelayMs?: number;
   /** Factor of the pre-departure offsets (`sched_out` − N) fitted to the time left; absent = 1. */
   readonly preScale?: number;
+  /** The user's choice of the kind of flight (T89); absent in older states = the option's. */
+  readonly kindOverride?: FlightKind | null;
 }
 
 interface PendingWx {
@@ -470,8 +508,14 @@ export class ScenarioEngine {
     touchdown: { fpm: number | null } | null;
     delayRaisedMs: number;
     delayParts: DelayPart[];
+    tobtDelayMs: number;
     preScale: number;
+    kindOverride: FlightKind | null;
   };
+  /** The kind filter is on (T89, option `flightKind`). */
+  private readonly kindFilter: boolean;
+  /** Kind of flight now (T89), from the OFP and `st.kindOverride`. */
+  private kindInfo: FlightKindInfo;
   /** Longest `sched_out − N` offset among the scenarios, ms (0 = none). */
   private readonly preSpanMs: number;
   private readonly fitPre: boolean;
@@ -540,8 +584,12 @@ export class ScenarioEngine {
       touchdown: null,
       delayRaisedMs: 0,
       delayParts: [],
+      tobtDelayMs: 0,
       preScale: 1,
+      kindOverride: options.flightKind?.override ?? null,
     };
+    this.kindFilter = options.flightKind !== undefined;
+    this.kindInfo = classifyFlight(options.ofp, this.st.kindOverride);
     let span = 0;
     for (const s of this.ordered) {
       const tr = s.def.trigger;
@@ -591,7 +639,13 @@ export class ScenarioEngine {
     e.st.touchdown = copy.touchdown ?? null;
     e.st.delayRaisedMs = copy.delayRaisedMs ?? 0;
     e.st.delayParts = [...(copy.delayParts ?? [])];
+    // T102.
+    e.st.tobtDelayMs =
+      copy.tobtDelayMs ?? Math.max(0, (copy.delayMs ?? 0) - (copy.delayRaisedMs ?? 0));
     e.st.preScale = copy.preScale ?? 1;
+    // T89.
+    if (copy.kindOverride !== undefined) e.st.kindOverride = copy.kindOverride;
+    e.kindInfo = classifyFlight(options.ofp, e.st.kindOverride);
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
     e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
@@ -611,6 +665,37 @@ export class ScenarioEngine {
   /** Diversion airport (a scenario's or the pilot's), null = none (T48: the XATC station reads it). */
   get divert(): string | null {
     return this.st.divert;
+  }
+
+  /** Kind of flight now (T89); null without the filter (option `flightKind` absent). */
+  get flightKind(): FlightKindInfo | null {
+    return this.kindFilter ? this.kindInfo : null;
+  }
+
+  /** The user's choice of the kind (T89): applied before OUT, with the filter; an event either way. */
+  private chooseKind(input: EngineTickInput, events: ScenarioEvent[]): void {
+    const choice = input.flightKind;
+    if (choice === undefined) return;
+    const applied = this.kindFilter && input.oooi.OUT === null;
+    if (applied) {
+      this.st.kindOverride = choice.override;
+      this.kindInfo = classifyFlight(this.ofp, choice.override);
+      // The LMC depends on the kind (T90/T91).
+      this.rebuildData();
+    }
+    events.push({
+      type: 'FLIGHT_KIND',
+      t: input.now,
+      kind: this.kindInfo.kind,
+      override: choice.override,
+      applied,
+    });
+  }
+
+  /** The scenario is not for the kind of this flight (T89; never without the filter). */
+  private wrongKind(sc: CompiledScenario): boolean {
+    const ops = sc.def.operations;
+    return this.kindFilter && ops !== undefined && !ops.includes(this.kindInfo.kind);
   }
 
   /** Holding the airline announced (`flight.hold`, T48), null = none. */
@@ -689,7 +774,8 @@ export class ScenarioEngine {
     // T55: the next leg from the AeroDataBox data of the flight once they are here.
     const ext = this.st.ext;
     const legs = { ...this.nextLeg, live: { connex: ext.connex, routes: ext.routes } };
-    const built = buildFlightData(at(delay), this.seed, legs);
+    const kind = this.kindFilter ? this.kindInfo.kind : undefined;
+    const built = buildFlightData(at(delay), this.seed, legs, kind);
     const raised = this.st.delayRaisedMs;
     const data =
       raised === 0
@@ -698,7 +784,7 @@ export class ScenarioEngine {
             ...built,
             ops: {
               ...built.ops,
-              ctot: buildFlightData(at(delay - raised), this.seed, legs).ops.ctot,
+              ctot: buildFlightData(at(delay - raised), this.seed, legs, kind).ops.ctot,
             },
           };
     const stands = this.st.ext.stands;
@@ -707,11 +793,11 @@ export class ScenarioEngine {
     const planned = picked?.ref ?? null;
     this.newGate = reassignedGate(this.st.gate ?? planned, stands, this.seed);
     const ref = this.st.gate ?? planned;
-    const kind =
+    const standKind =
       ref === null
         ? null
         : ((stands ?? []).find((x) => x.ref === ref)?.kind ?? picked?.kind ?? 'gate');
-    this.data = { ...data, ops: { ...data.ops, arrGate: ref, gateKind: kind } };
+    this.data = { ...data, ops: { ...data.ops, arrGate: ref, gateKind: standKind } };
   }
 
   /**
@@ -763,6 +849,7 @@ export class ScenarioEngine {
       this.setDelay(late > 0 ? Math.ceil(late / DELAY_STEP_MS) * DELAY_STEP_MS : 0);
       const ms = this.st.delayMs ?? 0;
       if (ms > 0) this.st.delayParts.push({ code: LATE_START_CODE, ms });
+      this.st.tobtDelayMs = ms;
       // Less time than the whole pre-departure sequence: squeeze it into what is left, in the
       // same order and proportions, so every message still comes before the departure.
       const left = this.ofp.times.schedOutMs + ms - input.now - PRE_SCALE_MARGIN_MS;
@@ -780,6 +867,7 @@ export class ScenarioEngine {
       )
         this.rebuildData();
     }
+    this.chooseKind(input, events);
     this.trackFuel(input);
     this.trackTouchdown(input);
     const inbox = [...this.st.inbox, ...(input.inbound ?? [])];
@@ -917,6 +1005,7 @@ export class ScenarioEngine {
     this.ctx = buildContext({
       ofp: this.ctxOfp,
       delayMs: this.st.delayMs ?? 0,
+      tobtDelayMs: this.st.tobtDelayMs,
       delayParts: this.st.delayParts,
       namesVersion: this.namesVersion,
       route: this.route,
@@ -926,6 +1015,8 @@ export class ScenarioEngine {
       oooi: input.oooi,
       data: this.data,
       divert: this.st.divert,
+      flightKind: this.kindInfo.kind,
+      kindFilter: this.kindFilter,
       hold: this.st.hold,
       sent: Object.keys(this.st.sent),
       ext: this.st.ext,
@@ -951,8 +1042,9 @@ export class ScenarioEngine {
     const s = this.st.scenarios[sc.id] as ScenarioState;
     const w = (sc.def.trigger as { window: StartWindow }).window;
     if (s.pending != null) return;
-    const skip = (reason: 'probability' | 'cooldown' | 'excluded' | 'running' | 'window') =>
-      events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason });
+    const skip = (
+      reason: 'probability' | 'cooldown' | 'excluded' | 'running' | 'window' | 'operation',
+    ) => events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason });
     const blocked = this.blocker(sc, s, input.now);
     if (blocked !== null) return void skip(blocked);
     const rng = this.rngs.get(sc.id) as Rng;
@@ -1001,11 +1093,13 @@ export class ScenarioEngine {
     events: ScenarioEvent[],
   ): void {
     const note = (
-      result: 'started' | 'conditions' | 'running' | 'unknown',
+      result: 'started' | 'conditions' | 'running' | 'unknown' | 'operation',
       detail = null as string | null,
     ) => events.push({ type: 'FORCED', id, t: input.now, result, detail });
     const sc = this.byId.get(id);
     if (sc === undefined) return void note('unknown');
+    // T89: "run now" does not get round the kind of flight.
+    if (this.wrongKind(sc)) return void note('operation', this.kindInfo.kind);
     if (this.st.runs.some((r) => r.id === id)) return void note('running');
     const failed = sc.conditions.findIndex((c) => !c.test(this.look));
     if (failed >= 0) return void note('conditions', sc.def.conditions?.[failed] ?? null);
@@ -1245,6 +1339,7 @@ export class ScenarioEngine {
       case 'DELAY':
         if (input.oooi.OUT !== null) return { hint: 'OFF BLOCK ALREADY' };
         this.setDelay((this.st.delayMs ?? 0) + (args.minutes as number) * 60_000);
+        this.st.tobtDelayMs += (args.minutes as number) * 60_000;
         this.st.delayParts.push({
           code: reasonCode(args.reason as string | null),
           ms: (args.minutes as number) * 60_000,
@@ -1392,6 +1487,10 @@ export class ScenarioEngine {
           this.st.delayRaisedMs += after - before;
           // Only the slot raises the delay this way: ATFM (T43).
           if (after > before) this.st.delayParts.push({ code: SLOT_CODE, ms: after - before });
+          // The airline's readiness (TOBT, T102) moves with any delay but the ATFM slot's.
+          if (id !== SLOT_SCENARIO_ID) {
+            this.st.tobtDelayMs = Math.max(this.st.tobtDelayMs, Math.round(min) * 60_000);
+          }
           this.setDelay(after);
           refresh = true;
         }
@@ -1457,7 +1556,8 @@ export class ScenarioEngine {
     sc: CompiledScenario,
     s: ScenarioState,
     now: number,
-  ): 'cooldown' | 'excluded' | 'running' | null {
+  ): 'cooldown' | 'excluded' | 'running' | 'operation' | null {
+    if (this.wrongKind(sc)) return 'operation';
     if (this.st.runs.some((r) => r.id === sc.id)) return 'running';
     const cd = sc.def.cooldown ?? (sc.def.trigger.on === 'command' ? 'none' : 'per_flight');
     if (cd === 'per_flight' && s.starts > 0) return 'cooldown';
@@ -1738,6 +1838,10 @@ export class ScenarioEngine {
         });
         continue;
       }
+      if (step.kind === 'vdgs_stop') {
+        this.commands.push({ command: 'vdgs', scenarioId: sc.id, t: input.now, vdgs: null });
+        continue;
+      }
       if (step.kind === 'vdgs') {
         try {
           const look = this.lookFor(run.vars);
@@ -1748,12 +1852,15 @@ export class ScenarioEngine {
               red: l.red,
             }));
           }
-          const airport = this.st.divert ?? this.ofp.destination.icao;
+          const airport =
+            step.at === 'orig'
+              ? this.ofp.origin.icao
+              : (this.st.divert ?? this.ofp.destination.icao);
           this.commands.push({
             command: 'vdgs',
             scenarioId: sc.id,
             t: input.now,
-            vdgs: buildVdgsMessage(airport, step.durationSec, given),
+            vdgs: buildVdgsMessage(airport, step.durationSec, given, step.replaces ?? undefined),
           });
           const readsGate = Object.values(step.displays).some((ls) =>
             (ls ?? []).some((l) => GATE_VARS.some((v) => l.t.vars.includes(v))),

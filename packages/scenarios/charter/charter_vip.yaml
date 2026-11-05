@@ -1,0 +1,28 @@
+# One-off VIP charter (T91): the principal comes by car to the aircraft, catering to order; an
+# assumption approved by the user 2026-11-04. One charter story per flight; not with vip_onboard.
+id: charter_vip
+version: 1
+category: ops
+title: VIP charter
+description: "Before departure of a charter: a VIP party arrives by car at the aircraft and boards last; catering to their order."
+hint: "Charter handling: this is a VIP charter. The party comes by car to the aircraft and boards last, and the catering is to their order. No reply needed."
+enabled_by_default: true
+operations: [charter_pax]
+group: charter_story
+excludes: [vip_onboard]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -40 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.3
+steps:
+  - send:
+      header: CHARTER MSG
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        VIP CHARTER
+        PARTY ARRIVES BY CAR AT AIRCRAFT
+        BOARDING LAST, STD UNCHANGED
+        CATERING AS ORDERED
+      footer: "CHARTER HANDLING {name:ops}"

@@ -8,6 +8,8 @@ title: Final loadsheet
 description: "Final loadsheet with the last-minute change against the preliminary one."
 hint: "Final loadsheet from load control: actual weights against the limits (ZFW zero fuel, TOW takeoff, LAW landing), takeoff and trip fuel (TOF, TIF), passengers and cargo; LMC is the last-minute change against the preliminary loadsheet. Check the figures and use them in the FMS; no reply needed."
 enabled_by_default: true
+# T90-T92: cargo and ferry flights have their own loadsheets (cargo/, ferry/), business aviation none.
+operations: [sched_pax, charter_pax, medevac]
 trigger:
   on: time
   at: { rel: sched_out, offset_min: -7 }

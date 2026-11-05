@@ -37,10 +37,31 @@ export const RESCUE_CATEGORY: Readonly<Record<AircraftFamily, RescueCategory>> =
   B747: '8-10',
   B777: '8-10',
   B787: '8-10',
+  // T90: wide-bodies, by the same rule.
+  A300: '8-10',
+  B767: '8-10',
+  'MD-11': '8-10',
   'E-JET': '1-5',
   CRJ: '1-5',
   ATR: '1-5',
   DH8: '1-5',
+  // T92: business aviation, as a type outside the table (the smallest group).
+  CITATION: '1-5',
+  CHALLENGER: '1-5',
+  GLOBAL: '1-5',
+  GULFSTREAM: '1-5',
+  FALCON: '1-5',
+  LEARJET: '1-5',
+  PHENOM: '1-5',
+  PRAETOR: '1-5',
+  'PC-24': '1-5',
+  HONDAJET: '1-5',
+  VISION: '1-5',
+  HAWKER: '1-5',
+  ECLIPSE: '1-5',
+  'KING AIR': '1-5',
+  'PC-12': '1-5',
+  TBM: '1-5',
 };
 
 /** Regional types in category 6 (user decision of 2026-10-17): E190, E195, DH8D. */

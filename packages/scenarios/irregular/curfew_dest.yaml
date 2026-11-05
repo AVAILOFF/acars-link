@@ -53,5 +53,5 @@ steps:
             body: |
               PLAN DIVERT {ofp.altn}
               HOTEL AND BUSES ARRANGED
-              PAX TRANSFER BY ROAD
+              ~PAX TRANSFER BY ROAD{flight.if_pax}
             hint: "OPS plans your diversion to the alternate: a hotel and buses are arranged and the passengers go on to the destination by road. No reply needed."

@@ -19,6 +19,6 @@ steps:
       body: |
         {ofp.callsign} ON BLOCK {flight.divert}
         HANDLING AND FUEL ORDERED
-        PAX CARE ARRANGED
-        {ofp.dest} PAX REBOOKING IN PROGRESS
+        ~PAX CARE ARRANGED{flight.if_pax}
+        ~{ofp.dest} PAX REBOOKING IN PROGRESS{flight.if_pax}
         SEND FUEL REQUEST AND NEW ETD

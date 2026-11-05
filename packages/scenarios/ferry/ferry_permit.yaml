@@ -1,0 +1,47 @@
+# Ferry flight to a maintenance base under a ferry permit (T91). The kind of permit by the
+# registration (`ops.ferry_permit`): US (N + digit) SPECIAL FLIGHT PERMIT, 14 CFR 21.197(a)(1)
+# "flying the aircraft to a base where repairs, alterations, or maintenance are to be performed";
+# others PERMIT TO FLY, EASA Part 21, 21.A.701 (checked 2026-11-04). No permit numbers and no
+# limitations are made up: they are in the permit (approved by the user 2026-11-04, 15 %).
+id: ferry_permit
+version: 1
+category: ops
+title: Ferry permit (ferry)
+description: "Before a ferry flight: the aircraft flies to maintenance under a special flight permit (US) or a permit to fly. Reply ACK."
+hint: "Maintenance control: the aircraft does not fully meet its airworthiness requirements but may fly to the maintenance base under a ferry permit; the permit and its limitations are in the aircraft documents. Read them and acknowledge with ACK."
+enabled_by_default: true
+operations: [ferry]
+excludes: [ferry_after_mx]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -45 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.15
+steps:
+  - send:
+      header: MX CONTROL {ofp.ac_reg}
+      body: |
+        FERRY FLT {ofp.orig}-{ofp.dest}
+        TO MAINTENANCE BASE
+        {ops.ferry_permit} ISSUED
+        PERMIT AND LIMITATIONS
+        IN AIRCRAFT DOCUMENTS
+        REVIEW AND REPLY ACK
+      footer: "MX CONTROL {name:ops}"
+  - wait:
+      reply:
+        id: reply
+        options: [ACK]
+        timeout_min: 15
+        default: ACK
+        reply_hints:
+          ACK: "You have read the permit and its limitations."
+  - send:
+      id: ack
+      header: MX CONTROL {ofp.ac_reg}
+      body: |
+        ACK RECEIVED
+        {ofp.dest} MAINTENANCE EXPECTS A/C
+      footer: "MX CONTROL"
+      hint: "Maintenance control received your acknowledgement; the maintenance base at the destination expects the aircraft. No reply needed."

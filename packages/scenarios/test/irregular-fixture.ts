@@ -13,6 +13,7 @@ import {
   DEFAULT_PROFILE,
   type DisplayProfile,
   type ExtDataUpdate,
+  type FlightKind,
   generateSyntheticFlight,
   latestLanding,
   MISSING,
@@ -39,7 +40,7 @@ import { standsFor } from './stands.js';
  */
 
 const dir = (name: string) => join(import.meta.dirname, '..', name);
-const read = (name: string) =>
+export const read = (name: string) =>
   readdirSync(dir(name))
     .filter((f) => f.endsWith('.yaml'))
     .sort()
@@ -231,6 +232,8 @@ export function fly(
     nextLegVersion?: 1 | 2 | 3;
     /** Stop the flight once this holds (after a tick): what the test reads is already there. */
     until?: (r: Run) => boolean;
+    /** Core `flightKind` (T89): the kind filter on, with this choice (null = recognized). */
+    flightKind?: FlightKind | null;
   } = {},
 ): Run {
   const core = AcarsCore.create({
@@ -242,6 +245,7 @@ export function fly(
     syntheticConnections: o.synthetic ?? true,
     ...(o.flags === undefined ? {} : { flags: o.flags }),
     ...(o.nextLegVersion === undefined ? {} : { nextLegVersion: o.nextLegVersion }),
+    ...(o.flightKind === undefined ? {} : { flightKind: { override: o.flightKind } }),
   });
   core.startFlight();
   const out: OutboundMessage[] = [];

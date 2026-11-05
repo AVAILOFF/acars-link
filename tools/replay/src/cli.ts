@@ -61,10 +61,18 @@ const nodeIo: Io = {
   err: (t) => process.stderr.write(t),
 };
 
-/** The scenarios the app ships: the base set and the pilot command handlers (T12) and the live-data scenarios (T13). */
-const BASE_DIRS = ['base', 'commands', 'external', 'irregular', 'sim'].map((d) =>
-  fileURLToPath(new URL(`../../../packages/scenarios/${d}/`, import.meta.url)),
-);
+/** The scenarios the app ships: the base set, the pilot command handlers (T12), the live-data scenarios (T13) and the rest, as `scenario-sources.ts`. */
+const BASE_DIRS = [
+  'base',
+  'commands',
+  'external',
+  'irregular',
+  'sim',
+  'cargo',
+  'charter',
+  'ferry',
+  'bizav',
+].map((d) => fileURLToPath(new URL(`../../../packages/scenarios/${d}/`, import.meta.url)));
 const readBase = () => BASE_DIRS.flatMap((d) => readScenarioPath(d));
 
 class UsageError extends Error {}

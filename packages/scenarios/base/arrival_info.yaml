@@ -6,6 +6,8 @@ title: Arrival info
 description: "Gate, baggage belt, transfer passengers and ground support on the way down."
 hint: "Arrival information from OPS for the destination: the gate or stand, the baggage belt, how many passengers transfer to other flights and the ground handling planned. No reply needed."
 enabled_by_default: true
+# T92: airline handling; a business flight has flight support (bizav/), no gate, no VDGS.
+operations: [sched_pax, charter_pax, cargo, ferry, medevac]
 trigger:
   on: distance
   dist: { to: dest, lte_nm: 60 }
@@ -18,6 +20,6 @@ steps:
       body: |
         {ofp.callsign} {ofp.dest}
         {ops.gate_line}
-        BAGGAGE BELT {ops.belt}
-        TRANSFER PAX {ops.transfer_pax}
+        ~BAGGAGE BELT {ops.belt}{flight.if_pax}
+        ~TRANSFER PAX {ops.transfer_pax}
         {ops.ground_support}

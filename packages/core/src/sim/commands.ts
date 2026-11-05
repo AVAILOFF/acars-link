@@ -44,10 +44,10 @@ export interface BridgeCommand extends CommandBase {
   readonly args: SimCommandArgs;
 }
 
-/** Text for the GSX VDGS of the arrival airport (T22). */
+/** Text for the GSX VDGS (T22); null = take the scenario's text down (T102, `vdgs: stop`). */
 export interface VdgsCommand extends CommandBase {
   readonly command: 'vdgs';
-  readonly vdgs: VdgsMessage;
+  readonly vdgs: VdgsMessage | null;
 }
 
 /**

@@ -7,10 +7,13 @@ import {
   VDGS_DISPLAY_NAMES,
   VDGS_DISPLAYS,
   VDGS_DURATION,
+  VDGS_REPLACES,
   type VdgsDisplay,
+  type VdgsReplaces,
 } from '../sim/vdgs.js';
 import { isContextVariable, isFlagVariable, isRunVariable } from './context.js';
 import { type CompiledExpr, compileExpr, ExprError } from './expr.js';
+import { isFlightKind } from './flight-kind.js';
 import { type CompiledTemplate, compileTemplate, TemplateError } from './template.js';
 import {
   DISTANCE_TARGETS,
@@ -112,9 +115,12 @@ export type CompiledStep =
   | { readonly kind: 'if'; readonly cond: CompiledExpr; readonly end: number }
   | {
       readonly kind: 'vdgs';
+      readonly at: 'orig' | 'dest';
+      readonly replaces: VdgsReplaces | null;
       readonly durationSec: number;
       readonly displays: Readonly<Partial<Record<VdgsDisplay, readonly CompiledVdgsLine[]>>>;
-    };
+    }
+  | { readonly kind: 'vdgs_stop' };
 
 /** One option of a `draw`: its weight and the values to give (a range is drawn). */
 export interface CompiledDrawOption {
@@ -252,6 +258,13 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
   }
 
   if (def.group !== undefined && !ID.test(def.group)) fail('group', 'must be snake_case');
+  // T89: kinds of flight.
+  if (def.operations !== undefined) {
+    if (def.operations.length === 0) fail('operations', 'must name at least one kind of flight');
+    for (const k of def.operations) {
+      if (!isFlightKind(k)) fail('operations', `unknown kind of flight ${String(k)}`);
+    }
+  }
 
   const text = (en: string | undefined): LocalText | null => (en === undefined ? null : { en });
   /** T85: ids of the steps for the translation files, unique among sends and among replies. */
@@ -596,6 +609,17 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
       }
       if ('vdgs' in s) {
         const v = s.vdgs;
+        if (typeof v === 'string') {
+          if (v !== 'stop') fail(`${path}.vdgs`, 'must be stop or { narrow, … }');
+          steps.push({ kind: 'vdgs_stop' });
+          continue;
+        }
+        const at = v.at ?? 'dest';
+        if (at !== 'orig' && at !== 'dest') fail(`${path}.vdgs.at`, 'must be orig or dest');
+        const replaces = v.replaces ?? null;
+        if (replaces !== null && !VDGS_REPLACES.includes(replaces)) {
+          fail(`${path}.vdgs.replaces`, `must be one of ${VDGS_REPLACES.join(', ')}`);
+        }
         const durationSec = v.duration_sec ?? VDGS_DURATION.default;
         if (!(durationSec >= VDGS_DURATION.min && durationSec <= VDGS_DURATION.max)) {
           fail(`${path}.vdgs.duration_sec`, `must be ${VDGS_DURATION.min}..${VDGS_DURATION.max}`);
@@ -620,7 +644,7 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
             return { t: template(`${at}[${i}]`, src) as CompiledTemplate, red };
           });
         }
-        steps.push({ kind: 'vdgs', durationSec, displays });
+        steps.push({ kind: 'vdgs', at, replaces, durationSec, displays });
         continue;
       }
       fail(path, `unsupported step ${Object.keys(s).join(',')}`);

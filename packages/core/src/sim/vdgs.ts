@@ -10,19 +10,26 @@
  * Limits per display type ("Display Types & Specifications"): small (SafeDock3) 4 characters,
  * 5 lines of which 2 are usable while parked; narrow (SafeDock TS24) 6×6; wide (SafeDock TS42)
  * 9×7; x (SafeDock X) 10×7. The manual's own examples exceed them; we keep to the table.
+ * The last line of narrow, wide and x is GSX's own scrolling line ("VGDS Message Editor User
+ * Manual", shipped with GSX Pro in `couatl\GSX\VGDS_EDITOR_USER_MANUAL.pdf`, "Reserved Lines";
+ * checked 2026-11-05), so a message gets one line less: narrow 5, wide 6, x 6. `flex` (SafeDock
+ * FLEX, 10 characters, 6 lines, 5 of them ours) is in the editor manual and in GSX's standard
+ * `flight_information`; written since a FLEX stand (EDDF A19, 2026-11-05) showed GSX's own text
+ * because our message had no variant for it.
  *
  * Approved assumptions (user, 2026-10-09; docs/07 T22):
  * - characters: A–Z 0–9 space and `- / . :` only (the manual names no character set);
- * - `narrow` is required; `wide` and `x` fall back to the narrow lines, `small` is only shown
+ * - `narrow` is required; `wide`, `x` and `flex` fall back to the narrow lines, `small` is only shown
  *   when the scenario gives it;
  * - a line that does not fit is an error, never shortened.
  */
 
 export const VDGS_DISPLAYS = {
   small: { chars: 4, lines: 2 },
-  narrow: { chars: 6, lines: 6 },
-  wide: { chars: 9, lines: 7 },
-  x: { chars: 10, lines: 7 },
+  narrow: { chars: 6, lines: 5 },
+  wide: { chars: 9, lines: 6 },
+  x: { chars: 10, lines: 6 },
+  flex: { chars: 10, lines: 5 },
 } as const;
 export type VdgsDisplay = keyof typeof VDGS_DISPLAYS;
 export const VDGS_DISPLAY_NAMES = Object.keys(VDGS_DISPLAYS) as readonly VdgsDisplay[];
@@ -37,11 +44,20 @@ export interface VdgsLine {
   readonly red: boolean;
 }
 
+/**
+ * Standard GSX messages a scenario may replace (T102): `flight_information` — the departure
+ * board GSX fills from SimBrief (`parkingServicesgds_standard_messages.json`; docs/06).
+ */
+export const VDGS_REPLACES = ['flight_information'] as const;
+export type VdgsReplaces = (typeof VDGS_REPLACES)[number];
+
 export interface VdgsMessage {
-  /** ICAO of the airport the message is for (the arrival airport, or the diversion). */
+  /** ICAO of the airport the message is for (arrival, diversion or, T102, departure). */
   readonly airport: string;
+  /** Standard GSX message this one replaces (T102); absent = an extra message. */
+  readonly replaces?: VdgsReplaces;
   readonly durationMs: number;
-  /** Lines for each display type; `narrow`, `wide` and `x` are always present. */
+  /** Lines for each display type; `narrow`, `wide`, `x` and `flex` are always present. */
   readonly displays: Readonly<Partial<Record<VdgsDisplay, readonly VdgsLine[]>>>;
 }
 
@@ -70,6 +86,7 @@ export function buildVdgsMessage(
   airport: string,
   durationSec: number,
   given: Readonly<Partial<Record<VdgsDisplay, readonly VdgsLine[]>>>,
+  replaces?: VdgsReplaces,
 ): VdgsMessage {
   const norm = (ls: readonly VdgsLine[]) =>
     ls.map((l) => ({ text: l.text.trim().toUpperCase(), red: l.red }));
@@ -77,14 +94,17 @@ export function buildVdgsMessage(
   if (narrow === undefined) throw new VdgsError('narrow lines are required');
   const displays: Partial<Record<VdgsDisplay, readonly VdgsLine[]>> = {};
   for (const d of VDGS_DISPLAY_NAMES) {
-    const src = given[d] ?? (d === 'wide' || d === 'x' ? narrow : undefined);
+    const src = given[d] ?? (d === 'wide' || d === 'x' || d === 'flex' ? narrow : undefined);
     if (src === undefined) continue;
     const lines = norm(src);
     const why = checkVdgsLines(d, lines);
     if (why !== null) throw new VdgsError(why);
     displays[d] = lines;
   }
-  return { airport, durationMs: Math.round(durationSec * 1000), displays };
+  const durationMs = Math.round(durationSec * 1000);
+  return replaces === undefined
+    ? { airport, durationMs, displays }
+    : { airport, replaces, durationMs, displays };
 }
 
 export class VdgsError extends Error {

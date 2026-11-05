@@ -1,0 +1,64 @@
+# Dangerous goods on a cargo flight (T90): NOTOC with CAO (cargo aircraft only) items.
+# UN numbers, names, classes and the passenger / cargo-aircraft limits: 49 CFR 172.101 Hazardous
+# Materials Table (govinfo, revised as of 2025-10-01; public domain), checked 2026-11-04. UN3480 and
+# UN3090 are "Forbidden" on passenger aircraft, 35 kg on cargo aircraft: CAO YES. The others are
+# allowed on passenger aircraft too: CAO NO. Special handling codes (RLI, RLM, ICE, RCL, RCM, RFG,
+# RDS): IATA codes as listed by SAS Cargo "Special handling codes", valid as of 2026-03-18.
+# Approved by the user 2026-11-04.
+id: cargo_notoc
+version: 1
+category: irregular
+title: Dangerous goods (NOTOC, cargo)
+description: "Before departure of a cargo flight: dangerous goods on board, some for cargo aircraft only (CAO YES). Reply ACK for the captain signature."
+hint: "NOTOC (notification to captain) of a cargo flight: the dangerous goods loaded, with the UN number, class, handling code, hold position and number of packages; CAO YES marks goods allowed on cargo aircraft only. Acknowledge with ACK, which counts as the captain's signature."
+enabled_by_default: true
+operations: [cargo]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -30 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+probability: 0.25
+steps:
+  - draw:
+      - weight: 3
+        set: { run.item: UN3480 LITHIUM ION BATTERIES, run.cl: "9", run.shc: RLI, run.cao: "YES" }
+      - weight: 2
+        set: { run.item: UN3090 LITHIUM METAL BATTERIES, run.cl: "9", run.shc: RLM, run.cao: "YES" }
+      - weight: 2
+        set: { run.item: UN1845 DRY ICE, run.cl: "9", run.shc: ICE, run.cao: "NO" }
+      - weight: 1
+        set: { run.item: UN1977 NITROGEN REFRIGERATED LIQUID, run.cl: "2.2", run.shc: RCL, run.cao: "NO" }
+      - weight: 1
+        set: { run.item: UN2794 BATTERIES WET FILLED WITH ACID, run.cl: "8", run.shc: RCM, run.cao: "NO" }
+      - weight: 1
+        set: { run.item: UN1950 AEROSOLS FLAMMABLE, run.cl: "2.1", run.shc: RFG, run.cao: "NO" }
+      - weight: 1
+        set: { run.item: UN3373 BIOLOGICAL SUBSTANCE CAT B, run.cl: "6.2", run.shc: RDS, run.cao: "NO" }
+  - send:
+      header: NOTOC
+      body: |
+        DANGEROUS GOODS ON BOARD
+        {run.item}
+        CL {run.cl} SHC {run.shc}
+        POS {hold} PKG {rand:2-24}
+        CAO {run.cao}
+        REPLY ACK FOR CAPT SIGNATURE
+      footer: "CARGO CONTROL {name:ops}"
+  - wait:
+      reply:
+        id: reply
+        options: [ACK]
+        timeout_min: 10
+        default: ACK
+        reply_hints:
+          ACK: "You have read the NOTOC; this counts as your signature."
+  - send:
+      id: notoc
+      header: NOTOC
+      body: |
+        NOTOC ACK RECEIVED
+        COPY IN FLIGHT FOLDER
+        LOADING SUPERVISOR INFORMED
+      footer: "CARGO CONTROL"
+      hint: "Cargo control received your acknowledgement: a copy goes into the flight folder and the loading supervisor knows. No reply needed."

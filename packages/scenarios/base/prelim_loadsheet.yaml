@@ -6,6 +6,8 @@ title: Preliminary loadsheet
 description: "Preliminary loadsheet with the planned figures from the OFP."
 hint: "Preliminary loadsheet: the planned weights and fuel from the flight plan (ZFW, TOF, TOW, TIF, LAW against the maximums), passengers and cargo. Use it to prepare the FMS; the final figures come in the final loadsheet. No reply needed."
 enabled_by_default: true
+# T90-T92: cargo and ferry flights have their own loadsheets (cargo/, ferry/), business aviation none.
+operations: [sched_pax, charter_pax, medevac]
 trigger:
   on: time
   at: { rel: sched_out, offset_min: -25 }

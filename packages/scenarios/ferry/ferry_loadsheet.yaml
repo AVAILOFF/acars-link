@@ -1,0 +1,51 @@
+# Loadsheet of a ferry / positioning flight (T91): crew only, no passengers and no cargo, no LMC
+# (ops-data.ts); one loadsheet before departure (approved by the user 2026-11-04).
+id: ferry_loadsheet
+version: 1
+category: docs
+title: Loadsheet (ferry)
+description: "Loadsheet of a ferry flight: crew only, no passengers and no cargo."
+hint: "Loadsheet of a ferry or positioning flight: crew only, without passengers and cargo; the weights (ZFW, TOW, LAW against the maximums) and the takeoff and trip fuel. Check the figures and use them in the FMS; no reply needed."
+enabled_by_default: true
+operations: [ferry]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -7 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING','PUSHBACK','TAXI_OUT']"
+priority: 3
+steps:
+  - wait: { until: "ofp.crew_cockpit == null", timeout_min: 0.02 }
+  - branch:
+      MET:
+        - send:
+            header: LOADSHEET
+            body: |
+              {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
+              A/C {ofp.ac_reg} {ofp.ac_icao}
+              CREW ONLY
+              NO PAX NO CARGO
+              OEW {ofp.oew_kg|kg1}
+              ZFW {load.zfw_kg|kg1} MAX {ofp.max_zfw_kg|kg1}
+              TOF {ofp.fuel_takeoff_kg|kg1}
+              TOW {load.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
+              TIF {ofp.fuel_burn_kg|kg1}
+              LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
+              ALL WEIGHTS IN TONNES
+            footer: "LOAD CONTROL {name:ops}"
+      TIMEOUT:
+        - send:
+            header: LOADSHEET
+            body: |
+              {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
+              A/C {ofp.ac_reg} {ofp.ac_icao}
+              CREW ONLY {ofp.crew_cockpit}/{ofp.crew_cabin}
+              NO PAX NO CARGO
+              OEW {ofp.oew_kg|kg1}
+              ZFW {load.zfw_kg|kg1} MAX {ofp.max_zfw_kg|kg1}
+              TOF {ofp.fuel_takeoff_kg|kg1}
+              TOW {load.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
+              TIF {ofp.fuel_burn_kg|kg1}
+              LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
+              ALL WEIGHTS IN TONNES
+            footer: "LOAD CONTROL {name:ops}"

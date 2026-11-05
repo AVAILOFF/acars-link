@@ -7,6 +7,8 @@ title: Gate assignment
 description: "Departure gate assignment."
 hint: "OPS gives your expected gate or stand at the destination. No reply needed."
 enabled_by_default: true
+# T92: airline handling; a business flight has flight support (bizav/), no gate, no VDGS.
+operations: [sched_pax, charter_pax, cargo, ferry, medevac]
 trigger:
   on: distance
   dist: { to: tod, lte_nm: 120 }

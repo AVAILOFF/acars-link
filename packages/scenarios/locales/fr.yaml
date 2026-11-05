@@ -45,10 +45,107 @@ aviation_history:
   title: Ce jour-là dans l’histoire de l’aviation
   description: Une anecdote tirée de l’histoire de l’aviation en lien avec la date du jour (liste de références avec sources).
   hint: "Informations OPS : un événement de l’histoire de l’aviation survenu ce jour-là. Aucune réponse requise."
+bizav_arrival:
+  title: Dispositions d’arrivée (affaires)
+  description: "Avant l’heure d’TOD, lors d’un vol d’affaires : une voiture viendra chercher les passagers à la sortie de l’avion ; l’hôtel et le transport de l’équipage sont confirmés."
+  hint: "Assistance au vol à destination : une voiture viendra chercher vos passagers à la sortie de l’avion, et l’hôtel ainsi que le transport de l’équipage depuis le FBO sont réservés. Aucune réponse n’est nécessaire."
+bizav_catering:
+  title: Restauration (affaires)
+  description: "Avant le départ d’un vol d’affaires : la commande de restauration est confirmée et livrée à bord de l’avion."
+  hint: "Assistance en vol : la commande de restauration pour vos passagers est confirmée et sera livrée à bord de l’avion à l’heure indiquée. Aucune réponse n’est nécessaire."
+bizav_eapis:
+  title: Manifeste eAPIS (affaires, US)
+  description: "Avant le départ d’un vol d’affaires à destination des US : le manifeste d’arrivée eAPIS a été transmis au CBP."
+  hint: "Assistance au vol : la liste des passagers et de l'équipage a été transmise au Service des douanes et de la protection des frontières des États-Unis (CBP) via le système eAPIS, conformément aux exigences, au moins 60 minutes avant le départ des avions privés à destination des US. Il n'est pas nécessaire de répondre."
+bizav_fuel_release:
+  title: Autorisation de ravitaillement en carburant (avions d'affaires)
+  description: "Avant le départ d’un vol d’affaires : l’autorisation de ravitaillement pour l’aéroport de départ est émise."
+  hint: "Assistance au vol : l’autorisation de ravitaillement (l’accord avec le fournisseur de carburant) pour cet aéroport est émise pour la quantité de carburant prévue ; le ravitailleur en dispose. Aucune réponse n’est nécessaire."
+bizav_handling:
+  title: Assistance au sol confirmée (d’affaires)
+  description: "Avant le départ d’un vol d’affaires : le service d’assistance au vol confirme l’assistance en escale dans les deux aéroports."
+  hint: "Service d’assistance en vol (la société qui organise les voyages en avion d’affaires) : l’assistance en escale au départ et à la destination est confirmée ; le FBO (le terminal dédié à l’aviation d’affaires) connaît vos horaires. Aucune réponse n’est nécessaire."
+bizav_principal_late:
+  title: Retard du passager principal (vol d’affaires)
+  description: "Avant le départ d’un vol d’affaires : le passager principal est en retard, le départ est retardé de 15 à 45 minutes."
+  hint: "Assistance au vol : le passager principal (passager principal, propriétaire ou client) est en retard ; le départ est retardé du nombre de minutes indiqué. Prévoyez en conséquence. Aucune réponse n’est nécessaire."
 block_report:
   title: Temps de bloc (OOOI)
   description: Temps de stationnement et codes de retard après la mise en place.
   hint: "Rapport de blocage après stationnement : heures « OUT », « OFF », « ON » et « IN » (départ du blocage, décollage, atterrissage, retour au blocage), durée du blocage et du vol, ainsi que la quantité de carburant à bord ; en cas de retard, les codes de retard IATA correspondant à ses causes sont également indiqués. À des fins d’archivage par la compagnie aérienne ; aucune réponse n’est requise."
+cargo_act_failure:
+  title: Défaillance d’un conteneur réfrigéré (fret)
+  description: "Avant le départ d’un vol de fret : un conteneur à température contrôlée actif contenant des produits pharmaceutiques tombe en panne et est remplacé, ce qui entraîne un retard de 15 à 30 minutes."
+  hint: "Contrôle du fret : un conteneur à température contrôlée (ACT) contenant des produits pharmaceutiques a signalé une défaillance avant le chargement. Il est en cours de remplacement, ce qui entraîne un retard du temps indiqué en minutes. Aucune réponse n’est nécessaire."
+cargo_final_loadsheet:
+  title: Devis de masse et centrage définitif (fret)
+  description: Devis de masse et centrage définitif d’un vol cargo avec modification de dernière minute de la cargaison.
+  hint: "Devis de masse et centrage définitif émanant du service de contrôle du chargement pour un vol cargo : poids réels par rapport aux limites (ZFW, TOW, LAW), carburant de décollage et de croisière (TOF, TIF) et fret ; LMC correspond à la modification de dernière minute du fret par rapport au devis de masse et centrage préliminaire. Vérifiez les chiffres et utilisez-les dans le FMS ; aucune réponse n'est nécessaire."
+cargo_late_truck:
+  title: Camion en retard (fret)
+  description: "Avant le départ d’un vol cargo : un camion transportant le fret prévu est en retard ; l’heure limite d’acceptation du fret est repoussée et le départ est retardé de 10 à 30 minutes."
+  hint: "Contrôle du fret : un camion transportant du fret réservé sur votre vol est en retard ; l’heure limite d’acceptation du fret est donc repoussée et le départ retardé du nombre de minutes indiqué. Veuillez vous organiser en conséquence. Aucune réponse n’est nécessaire."
+cargo_notoc:
+  title: Marchandises dangereuses (NOTOC, fret)
+  description: "Avant le départ d’un vol cargo : marchandises dangereuses à bord, dont certaines réservées aux avions-cargos (CAO YES). Répondez par ACK pour la signature du commandant de bord."
+  hint: "NOTOC (notification au commandant de bord) d’un vol cargo : les marchandises dangereuses chargées, avec le numéro UN, la classe, le code d’assistance, l’emplacement dans la soute et le nombre de colis ; la mention « CAO YES » indique que les marchandises sont autorisées uniquement à bord d’un avion-cargo. Confirmez par « ACK », ce qui vaut signature du commandant de bord."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Vous avez pris connaissance du NOTOC ; cela tient lieu de votre signature.
+    notoc:
+      hint: "Le service de contrôle du fret a reçu votre accusé de réception : une copie est versée au dossier de vol et le responsable du chargement en est informé. Aucune réponse n’est nécessaire."
+cargo_prelim_loadsheet:
+  title: Devis de masse et centrage préliminaire (fret)
+  description: "Devis de masse et centrage préliminaire d’un vol cargo : chiffres prévus par l’OFP, fret sans passagers."
+  hint: "Fiche de masse et centrage préliminaire provenant du service de contrôle du chargement pour un vol cargo : les poids et le carburant prévus figurant dans le plan de vol (ZFW, TOF, TOW, TIF, LAW par rapport aux limites maximales) ainsi que le fret. Utilisez-la pour préparer le FMS ; les chiffres définitifs figurent dans le devis de masse et centrage définitif. Aucune réponse n'est nécessaire."
+cargo_sort_shift:
+  title: Report du tri au hub (fret)
+  description: "En croisière d’un vol de fret : le tri au hub de destination commence plus tard, pas besoin d’accélérer."
+  hint: "Contrôle du fret : le tri du fret au hub de destination commence plus tard que prévu, avec le retard indiqué en minutes ; il n’est donc pas nécessaire de se dépêcher. À titre d’information ; aucune réponse requise."
+cargo_special_load:
+  title: Cargaison spéciale
+  description: "Avant le départ d’un vol cargo : chargement spécial à bord (animaux vivants, denrées périssables, produits pharmaceutiques, dépouilles humaines ou objets de valeur) avec son code d’assistance. Répondez par « ACK »."
+  hint: "Notification de chargement spécial émanant du contrôle du fret : un envoi nécessitant une attention particulière en vol ou à l’arrivée, avec son code d’assistance IATA, son emplacement dans la soute et ses exigences (température, déchargement prioritaire). Confirmez par ACK."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Vous êtes informé de la présence de ce fret spécial.
+    ack:
+      hint: Le contrôle du fret a reçu votre accusé de réception et en a informé l’assistance à la destination. Aucune réponse n’est nécessaire.
+cargo_uld_damaged:
+  title: ULD endommagé (fret)
+  description: "Avant le départ d’un vol cargo : un ULD endommagé est remplacé et une partie de son fret est déchargée ; le devis de masse et centrage final indique le même LMC de fret."
+  hint: "Contrôle du chargement : un dispositif de chargement unitaire (conteneur ou palette) a été constaté endommagé lors du chargement. Sa cargaison a été transférée vers une autre unité et la partie qui ne tenait pas a été laissée à quai ; le devis de masse et centrage final indiquera cette modification. Aucune réponse n’est nécessaire."
+cargo_weight_error:
+  title: Correction de poids (fret)
+  description: "Avant le départ d’un vol cargo : un ULD a été pesé à nouveau et s’avère plus lourd que prévu ; le devis de masse et centrage définitif indique le même LMC de fret."
+  hint: "Contrôle du chargement : une unité a été pesée à nouveau et s’avère plus lourde que prévu lors de la réservation. La différence correspond à une modification de dernière minute (LMC) et figurera sur le devis de masse et centrage définitif. Aucune réponse n’est nécessaire."
+charter_group_lmc:
+  title: Modification concernant un groupe de touristes (vol charter)
+  description: "Avant le départ d’un vol charter : des passagers du groupe organisé ne se sont pas présentés ou un groupe en retard a été ajouté ; le devis de masse et centrage définitif indique le même « LMC » (modification de dernière minute) concernant les passagers."
+  hint: "Assistance pour les vols charters : le voyagiste signale une modification au sein de son groupe, concernant des passagers qui ne se sont pas présentés ou des passagers arrivés en retard. Le nombre correspond à la modification de dernière minute (LMC) qui figurera sur le devis de masse et centrage définitif. Aucune réponse n’est nécessaire."
+  steps:
+    no_show:
+      hint: "Assistance pour les vols charters : les passagers du groupe organisé ne se sont pas présentés ; leurs bagages sont déchargés et le devis de masse et centrage final indiquera cette modification. Aucune réponse n’est nécessaire."
+    added:
+      hint: "Assistance pour les vols charters : une partie du groupe organisé, arrivée en retard, a été acceptée ; leurs bagages sont chargés et le devis de masse et centrage final indiquera cette modification. Aucune réponse n’est nécessaire."
+charter_sports_team:
+  title: Équipe sportive (vol charter)
+  description: "Avant le départ d’un vol charter : une équipe sportive est à bord avec du matériel sportif hors gabarit dans la soute et un service de restauration spécial commandé par le client."
+  hint: "Assistance pour un vol charter : une équipe sportive voyage avec vous. Son équipement hors gabarit est chargé dans la soute qui lui a été attribuée et le client a commandé sa propre restauration. Aucune réponse n’est nécessaire."
+charter_tour_rep:
+  title: Représentant du voyagiste (vol charter)
+  description: "Avant le départ d’un vol charter : le représentant du voyagiste a effectué l’enregistrement du groupe et demande qu’un bref message de bienvenue soit diffusé par le système PA."
+  hint: "Assistance pour un vol charter : le représentant du voyagiste se trouve à la porte d’embarquement, l’enregistrement du groupe est terminé et il souhaite qu’un bref message de bienvenue soit diffusé par haut-parleur après l’embarquement. Aucune réponse n’est nécessaire."
+charter_transfer:
+  title: Transfert à la destination (vol charter)
+  description: "Avant l’TOD sur un vol charter : les autocars de transfert destinés aux passagers attendent à la destination, où un représentant du voyagiste vient les accueillir."
+  hint: "Assistance pour un vol charter à destination : les autocars du voyagiste attendent vos passagers et un représentant les accueille dans le hall des arrivées. Utile pour l’annonce en cabine. Aucune réponse n’est nécessaire."
+charter_vip:
+  title: Vol charter VIP
+  description: "Avant le départ d’un vol charter : un groupe de VIP arrive en voiture à l’avion et embarque en dernier ; le service de restauration est adapté à leur demande."
+  hint: "Assistance pour un vol charter : il s’agit d’un vol charter VIP. Le groupe se rend en voiture jusqu’à l’avion et embarque en dernier ; le service de restauration est adapté à leur commande. Aucune réponse n’est nécessaire."
 cmd_delay:
   title: "Commande pilote : DELAY"
   description: "Commande DELAY : confirme la nouvelle heure de départ du bloc."
@@ -153,6 +250,22 @@ cmd_req_loadsheet:
   title: "Commande pilote : « REQ LOADSHEET »"
   description: "Commande REQ LOADSHEET : répète le devis de masse et centrage."
   hint: "REQ LOADSHEET : demande à OPS de renvoyer le devis de masse et centrage. La réponse reprend le dernier devis de masse et centrage de ce vol, qu’il soit préliminaire ou définitif. Aucune réponse n’est nécessaire."
+cmd_req_loadsheet_bizav:
+  title: "Commande pilote : « REQ LOADSHEET » (vol d’affaires)"
+  description: "Commande REQ LOADSHEET lors d’un vol d’affaires : aucun devis de masse et centrage n’est émis, l’équipage effectue lui-même le calcul de la masse et du centrage."
+  hint: "Réponse à « REQ LOADSHEET » lors d’un vol d’affaires : le service d’assistance au vol n’émet pas de devis de masse et centrage ; le calcul de la masse et du centrage est effectué par l’équipage. Aucune réponse n’est nécessaire."
+cmd_req_loadsheet_cargo:
+  title: "Commande pilote : « REQ LOADSHEET » (fret)"
+  description: "Commande REQ LOADSHEET sur un vol de fret : répète le devis de masse et centrage du fret."
+  hint: « REQ LOADSHEET » demande au contrôle du chargement de renvoyer le devis de masse et centrage. La réponse reprend le dernier devis de masse et centrage de ce vol de fret, qu’il soit préliminaire ou définitif. Aucune réponse n’est requise.
+cmd_req_loadsheet_ferry:
+  title: "Commande pilote : « REQ LOADSHEET » (vol de transfert)"
+  description: "Commande REQ LOADSHEET lors d’un vol de transfert : répète le devis de masse et centrage réservé à l’équipage."
+  hint: « REQ LOADSHEET » demande au contrôle du chargement de renvoyer le devis de masse et centrage. La réponse reprend le devis de masse et centrage réservé à l’équipage de ce vol de transfert. Aucune réponse n’est requise.
+cmd_req_loadsheet_ferry_none:
+  title: "Commande pilote : « REQ LOADSHEET », pas encore disponible (vol de convoyage)"
+  description: Commande « REQ LOADSHEET » lors d’un vol de convoyage avant que le devis de masse et centrage n’existe.
+  hint: "Réponse à « REQ LOADSHEET » lors d’un vol de transfert : le devis de masse et centrage n’a pas encore été émis ; le message indiquera quand il sera disponible. Aucune réponse n’est nécessaire."
 cmd_req_loadsheet_none:
   title: "Commande pilote : « REQ LOADSHEET », aucune pour l’instant"
   description: Commande « REQ LOADSHEET » avant l’existence d’un devis de masse et centrage.
@@ -344,6 +457,28 @@ f1_result:
   title: Résultat de Formule 1
   description: "Un Grand Prix qui s’est terminé pendant le vol : le podium (Jolpica)."
   hint: "Informations OPS : le résultat d’un Grand Prix de Formule 1 qui s’est terminé pendant votre vol. Aucune réponse n’est nécessaire."
+ferry_after_mx:
+  title: Vol de transfert après maintenance (ferry)
+  description: "Avant un vol de transfert : l’aéronef sort de maintenance et est remis en service ; vérifiez le carnet technique."
+  hint: "Contrôle de maintenance : l’appareil est sorti de maintenance et a été remis en service. Vérifiez les inscriptions du carnet technique avant le départ. Aucune réponse n’est nécessaire."
+ferry_loadsheet:
+  title: Devis de masse et centrage (vol de transfert)
+  description: "Devis de masse et centrage d’un vol de transfert : équipage uniquement, sans passagers ni fret."
+  hint: "Devis de masse et centrage d’un vol de transfert ou de positionnement : équipage uniquement, sans passagers ni fret ; les masses (ZFW, TOW, LAW par rapport aux limites maximales) ainsi que le carburant de décollage et de route. Vérifiez les chiffres et utilisez-les dans le FMS ; aucune réponse n’est nécessaire."
+ferry_permit:
+  title: Autorisation de vol de transfert (ferry)
+  description: "Avant un vol de convoyage : l’aéronef se rend au centre de maintenance en vertu d’une autorisation de vol spéciale (US) ou d’une autorisation de vol. Répondez par « ACK »."
+  hint: "Contrôle de maintenance : l’aéronef ne satisfait pas entièrement aux exigences de navigabilité, mais peut se rendre à la base de maintenance au titre d’une autorisation de vol de transfert ; cette autorisation et ses restrictions figurent dans la documentation de l’aéronef. Veuillez les lire et accuser réception par « ACK »."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Vous avez pris connaissance de l’autorisation et de ses restrictions.
+    ack:
+      hint: Le centre de contrôle de maintenance a reçu votre accusé de réception ; la base de maintenance à destination attend l’aéronef. Aucune réponse n’est nécessaire.
+ferry_positioning:
+  title: Positionnement pour le prochain vol (vol de transfert)
+  description: "En croisière lors d’un vol de transfert : l’aéronef se positionne en vue de son prochain départ (données réelles d’AeroDataBox uniquement)."
+  hint: "Opérations : ce vol positionne l’aéronef en vue de son prochain départ de la destination, avec le vol, la route et le STD provenant d’AeroDataBox. Aucune réponse n’est nécessaire."
 final_loadsheet:
   title: Devis de masse et centrage définitif
   description: Devis de masse et centrage définitif avec la modification de dernière minute par rapport à la version préliminaire.
@@ -607,6 +742,14 @@ vdgs_arrival:
   title: Écran d'accostage (GSX)
   description: Vol, porte de départ et d'arrivée sur l'GSX VDGS à la position de stationnement de destination.
   hint: "Ce n'est pas un message : votre vol, votre point de départ et votre porte d'arrivée sur l'écran d'accostage du GSX, au poste de stationnement."
+vdgs_departure:
+  title: Tableau des départs (GSX)
+  description: "Dans un aéroport A-CDM : vol, destination, TOBT de la compagnie aérienne avec un compte à rebours, piste et SID sur le GSX VDGS de la position de départ."
+  hint: "Ce n'est pas un message : l'écran d'amarrage GSX de la position de départ affiche votre vol, votre destination, la piste et le SID et, à partir de 30 minutes avant le départ, l'heure de départ prévue par la compagnie aérienne (TOBT) avec un compte à rebours. Un DELAY modifie le TOBT ; si le départ n'a pas lieu 15 minutes après cette heure, l'écran demande un nouveau TOBT."
+vdgs_departure_etd:
+  title: Tableau des départs, non-A-CDM (GSX)
+  description: "Il ne s'agit pas d'un affichage réel : en dehors des aéroports A-CDM, le vol, la destination, l'heure de départ prévue (ETD) avec un compte à rebours, la piste et le SID s'affichent sur le VDGS GSX du A-CDM au poste de stationnement."
+  hint: "Il ne s'agit ni d'un message, ni d'une reproduction d'un affichage réel : dans les aéroports sans A-CDM, l'écran d'amarrage GSX du poste de stationnement de départ affiche votre vol, votre destination, la piste et le SID et, à partir de 30 minutes avant le départ, l'heure estimée de départ du poste de stationnement (ETD) avec tous les retards et un compte à rebours."
 vdgs_divert:
   title: Affichage d'amarrage, déroutement (GSX)
   description: "Vol : une ligne rouge « DIVERTED » et l’origine sur le VDGS du GSX à l’aéroport de déroutement."

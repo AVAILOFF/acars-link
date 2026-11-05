@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
+import { isAcdmAirport } from '../ext/acdm-airports.js';
 import { airlineCountry, airlineType } from '../ext/airline.js';
 import {
   CONNEX_ATTRIBUTION,
@@ -25,6 +26,7 @@ import { type AircraftFamily, aircraftInfo, aircraftVariables } from './aircraft
 import { type DelayPart, delayLine } from './delay-codes.js';
 import { airportPlace, pickDivert, type RunwayNeed } from './divert.js';
 import type { Value } from './expr.js';
+import { classifyFlight, type FlightKind } from './flight-kind.js';
 import type { IrregularData } from './irregular-data.js';
 import { countryRegion, MULTINATIONAL_AIRLINES } from './names.js';
 import type { FlightData } from './ops-data.js';
@@ -61,6 +63,8 @@ export const CONTEXT_VARIABLES = [
   'ofp.altn',
   'ofp.route',
   'ofp.sid',
+  // The origin has fully implemented A-CDM (T102, ext/acdm-airports.ts)
+  'ofp.orig_acdm',
   'ofp.star',
   'ofp.cost_index',
   'ofp.cruise_alt_ft',
@@ -144,6 +148,12 @@ export const CONTEXT_VARIABLES = [
   'flight.minutes_to_dest',
   'flight.minutes_to_sched_out',
   'flight.delay_min',
+  // T102: the airline's TOBT (sched_out + delay without the ATFM slot), epoch ms; minutes to it,
+  // rounded up (0 from the TOBT on, negative after it)
+  'flight.tobt',
+  'flight.minutes_to_tobt',
+  // T103: minutes to `ofp.est_out` (ETD, all delays incl. the slot), rounded up like the TOBT's
+  'flight.minutes_to_etd',
   // MVT delay element at OUT (T43, delay-codes.ts): `DL81/63/0025/0010`; null on time / before OUT
   'flight.delay_codes',
   'flight.minutes_since_off',
@@ -152,6 +162,13 @@ export const CONTEXT_VARIABLES = [
   'flight.block_min',
   'flight.air_min',
   'flight.divert',
+  // kind of flight (T89, flight-kind.ts): `sched_pax`, `cargo` …
+  'flight.kind',
+  // empty text when passengers may be in the cabin, null on a cargo or ferry flight with the kind
+  // filter on (T90/T91): `~PAX CARE ARRANGED{flight.if_pax}` leaves the line out
+  'flight.if_pax',
+  // the opposite: empty text on a cargo or ferry flight with the filter on, else null
+  'flight.if_no_pax',
   'flight.sent',
   // distance to the diversion airport when its position is known (T51), NM
   'flight.divert_nm',
@@ -269,6 +286,15 @@ export const CONTEXT_VARIABLES = [
   'ops.next_dest',
   'ops.next_std',
   'ops.next_src',
+  // name of a ferry permit (T91): `SPECIAL FLIGHT PERMIT` for a US registration (N + digit;
+  // 14 CFR 21.197), else `PERMIT TO FLY` (EASA Part 21, 21.A.701); approved by the user 2026-11-04
+  'ops.ferry_permit',
+  // the next leg is a real departure of the airline (AeroDataBox FIDS, T55 level 1), not a route
+  // of the statistics with a made-up number (T91)
+  'ops.next_real',
+  // a flight into the US from outside (T92, eAPIS arrival manifest, 19 CFR 122.22): destination
+  // ICAO K, PA (Alaska) or PH (Hawaii), origin not; approved by the user 2026-11-04
+  'ops.us_arrival',
   'flight.fuel_stable',
   'flight.fuel_before_kg',
   'flight.fuel_uplift_kg',
@@ -371,12 +397,18 @@ export interface ContextInput {
   readonly data: FlightData;
   /** Late-start delay plus pilot `DELAY`s (engine), ms. */
   readonly delayMs?: number;
+  /** The airline's part of {@link delayMs}, without the ATFM slot (T102, TOBT); absent = all. */
+  readonly tobtDelayMs?: number;
   /** Generator of `{name:…}` (T43): 1 = by the origin's ICAO prefix, 2 = by the airline. */
   readonly namesVersion?: 1 | 2;
   /** What the delay is made of (T43). */
   readonly delayParts?: readonly DelayPart[];
   /** Diversion airport the pilot declared (`DIVERT`), engine. */
   readonly divert?: string | null;
+  /** Kind of flight in force (T89), engine; absent = recognized from the OFP. */
+  readonly flightKind?: FlightKind;
+  /** The kind filter is on (T89 option `flightKind`): the texts follow the kind (T90/T91). */
+  readonly kindFilter?: boolean;
   /** Runway needs by family instead of the table of `divert.ts` (tests, T50). */
   readonly runwayNeeds?: Readonly<Partial<Record<AircraftFamily, RunwayNeed>>>;
   /** Holding announced by a scenario (T48), engine. */
@@ -467,6 +499,9 @@ export function holdFuelLow(
 const r1 = (x: number) => Math.round(x * 10) / 10;
 const minutes = (ms: number) => Math.round(ms / 60_000);
 
+/** US airports for `ops.us_arrival` (T92): ICAO K (contiguous US), PA (Alaska), PH (Hawaii). */
+const US_AIRPORT = /^(K|PA|PH)/;
+
 export function buildContext(input: ContextInput): ScenarioContext {
   const { ofp, route, now, telemetry: tm, oooi } = input;
   const { load, ops } = input.data;
@@ -475,6 +510,8 @@ export function buildContext(input: ContextInput): ScenarioContext {
   const w = ofp.weights;
   const f = ofp.fuel;
   const t = ofp.times;
+  const kind = input.flightKind ?? classifyFlight(ofp).kind;
+  const noPax = input.kindFilter === true && (kind === 'cargo' || kind === 'ferry');
   const toDest = tm === null ? null : route.remainingNm(tm);
   const toTod = tm === null ? null : route.toTodNm(tm);
   // Ground speed below 60 kt (taxi, gate) is no basis for an ETA.
@@ -482,6 +519,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
   const eta = (nm: number | null) =>
     nm === null || gs === null ? null : Math.round((nm / gs) * 60);
   const block = t.schedBlockSec ?? (t.schedInMs - t.schedOutMs) / 1000;
+  const tobt = t.schedOutMs + (input.tobtDelayMs ?? input.delayMs ?? 0);
 
   return mergeParts(
     {
@@ -507,6 +545,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'ofp.altn': ofp.alternates[0]?.icao ?? null,
       'ofp.route': ofp.route,
       'ofp.sid': ofp.sid,
+      'ofp.orig_acdm': isAcdmAirport(ofp.origin.icao),
       'ofp.star': ofp.star,
       'ofp.cost_index': ofp.costIndex,
       'ofp.cruise_alt_ft': ofp.initialAltitudeFt,
@@ -572,6 +611,9 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'flight.minutes_to_dest': eta(toDest),
       'flight.minutes_to_sched_out': minutes(t.schedOutMs - now),
       'flight.delay_min': minutes(input.delayMs ?? 0),
+      'flight.tobt': tobt,
+      'flight.minutes_to_tobt': Math.ceil((tobt - now) / 60_000),
+      'flight.minutes_to_etd': Math.ceil((t.estOutMs - now) / 60_000),
       'flight.delay_codes':
         oooi.OUT === null
           ? null
@@ -585,6 +627,9 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'flight.block_min': span(oooi.OUT, oooi.IN),
       'flight.air_min': span(oooi.OFF, oooi.ON),
       'flight.divert': input.divert ?? null,
+      'flight.kind': kind,
+      'flight.if_pax': noPax ? null : '',
+      'flight.if_no_pax': noPax ? '' : null,
       'flight.holding': input.hold != null,
       'flight.hold_fuel_low': holdFuelLow(ofp, tm, input.hold ?? null, now),
       'flight.sent': [...(input.sent ?? [])],
@@ -639,7 +684,9 @@ export function buildContext(input: ContextInput): ScenarioContext {
     {
       'ops.arr_gate': ops.arrGate,
       'ops.belt': ops.belt,
-      'ops.transfer_pax': ops.transferPax,
+      // Transfer passengers on a scheduled flight only (T91: none on a charter, T90: cargo).
+      'ops.transfer_pax':
+        input.kindFilter === true && kind !== 'sched_pax' ? null : ops.transferPax,
       'ops.turnaround_min': ops.turnaroundMin,
       'ops.next_flight': ops.nextFlight,
       'ops.next_orig': ops.nextOrig,
@@ -647,6 +694,11 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'ops.next_std': ops.nextStd,
       // C4 (T55): attribution line of a message with the AeroDataBox next leg; empty otherwise.
       'ops.next_src': ops.nextLive === null ? '' : CONNEX_ATTRIBUTION,
+      'ops.next_real': ops.nextLive === 'fids',
+      'ops.us_arrival': US_AIRPORT.test(ofp.destination.icao) && !US_AIRPORT.test(ofp.origin.icao),
+      'ops.ferry_permit': /^N[0-9]/.test(ofp.aircraft.reg ?? '')
+        ? 'SPECIAL FLIGHT PERMIT'
+        : 'PERMIT TO FLY',
       'ops.cabin_crew': ops.cabinCrew,
     },
   );

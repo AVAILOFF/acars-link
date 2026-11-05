@@ -59,9 +59,20 @@ describe('parseScenario / loadScenario', () => {
     ['duplicate key', `${minimal}title: Again\n`, /unique|duplicate/i],
     ['YAML syntax', 'id: [unclosed', /flow|end|missing/i],
     ['not an object', '- a\n- b\n', /must be object/],
+    // T89: kinds of flight.
+    ['unknown kind of flight', `${minimal}operations: [cargo, tanker]\n`, /operations\/1/],
+    ['empty operations', `${minimal}operations: []\n`, /operations/],
   ])('schema/YAML error: %s', (_, src, re) => {
     expect(() => parseScenario(src, 'x.yaml')).toThrow(ScenarioLoadError);
     expect(() => parseScenario(src, 'x.yaml')).toThrow(re);
+  });
+
+  it('operations (T89): the kinds of flight a scenario is for', () => {
+    expect(loadScenario(`${minimal}operations: [sched_pax, cargo]\n`).def.operations).toEqual([
+      'sched_pax',
+      'cargo',
+    ]);
+    expect(loadScenario(minimal).def.operations).toBeUndefined();
   });
 
   it('semantic errors come from compileScenario, with file and path', () => {

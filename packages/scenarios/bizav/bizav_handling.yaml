@@ -1,0 +1,27 @@
+# Ground handling confirmed by flight support (T92): business aviation is handled by FBOs and
+# handling agents, not by the airline's stations. No brand names (no checked source); approved by
+# the user 2026-11-04.
+id: bizav_handling
+version: 1
+category: ops
+title: Handling confirmed (business)
+description: "Before departure of a business flight: flight support confirms ground handling at both airports."
+hint: "Flight support (the company that arranges trips of business aircraft): ground handling at the departure and the destination is confirmed; the FBO (the business aviation terminal) knows your times. No reply needed."
+enabled_by_default: true
+operations: [bizav]
+trigger:
+  on: time
+  at: { rel: sched_out, offset_min: -55 }
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+priority: 4
+steps:
+  - send:
+      header: FLIGHT SUPPORT
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
+        ETD {ofp.sched_out|hhmm}Z ETA {ofp.sched_in|hhmm}Z
+        HANDLING CONFIRMED
+        AT {ofp.orig} AND {ofp.dest}
+        FBO ADVISED OF TIMES
+      footer: "{name:ops}"

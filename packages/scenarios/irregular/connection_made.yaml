@@ -6,6 +6,8 @@ title: Connection made
 description: "On block after a short connection with 40 min or more left: the onward flight waits."
 hint: "Connections: the onward flight of your transfer passengers will wait for them; a transfer bus is at your gate. No reply needed."
 enabled_by_default: true
+# T89/T91: transfer passengers of a scheduled flight; a charter has no connections.
+operations: [sched_pax]
 trigger:
   on: phase_enter
   phase: ON_BLOCK

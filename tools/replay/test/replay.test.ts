@@ -559,6 +559,63 @@ describe('airline memory in a recording (T14)', () => {
   });
 });
 
+describe('kind of flight in a recording (T89)', () => {
+  const pax = {
+    file: 'pax.yaml',
+    source: [
+      'id: pax',
+      'version: 1',
+      'category: irregular',
+      'title: pax',
+      'enabled_by_default: true',
+      'operations: [sched_pax]',
+      'trigger: { on: phase_enter, phase: CRUISE }',
+      'steps: [{ send: { body: "PAX ON BOARD" } }]',
+    ].join('\n'),
+  };
+  const scenarios = pickScenarios({ base: [pax], extra: [], recorded: ['pax'] }).scenarios;
+  const texts = (r: Recording) => replay(r, { scenarios }).outbound.map((m) => m.message.text);
+
+  it('a synthetic flight records the filter and the recognized kind', () => {
+    expect(normal.header.flightKind).toEqual({ override: null, kind: 'sched_pax' });
+    expect(recordedCoreOptions(normal.header, scenarios).flightKind).toEqual({ override: null });
+    expect(texts(normal)).toEqual(['PAX ON BOARD']);
+  });
+
+  it("the user's choice in a tick before OUT is replayed; a recording before T89 has no filter", () => {
+    const [first, ...rest] = normal.events;
+    const tick = rest.findIndex((e) => e.type === 'tick');
+    const events = [...rest];
+    const t = events[tick];
+    if (t?.type !== 'tick') throw new Error('no tick');
+    events[tick] = { ...t, flightKind: { override: 'cargo' } };
+    const chosen: Recording = {
+      ...normal,
+      events: [first as Recording['events'][number], ...events],
+    };
+    const parsed = parseJsonl(encodeRecording(chosen));
+    if (parsed.kind !== 'recording') throw new Error('not a recording');
+    expect(texts(parsed.recording)).toEqual([]);
+    const { flightKind: _, ...old } = chosen.header;
+    expect(recordedCoreOptions(old as Recording['header'], scenarios)).not.toHaveProperty(
+      'flightKind',
+    );
+    expect(texts({ ...chosen, header: old as Recording['header'] })).toEqual(['PAX ON BOARD']);
+  });
+
+  it('checks the kind in the header and in the ticks', () => {
+    const [h] = encodeRecording(normal).split('\n');
+    const header = JSON.parse(h as string);
+    expect(() =>
+      parseJsonl(JSON.stringify({ ...header, flightKind: { override: 'tanker' } })),
+    ).toThrow(/flightKind/);
+    const line = (x: object) => [h, JSON.stringify(x)].join('\n');
+    expect(() =>
+      parseJsonl(line({ type: 'tick', now: 1, telemetry: null, flightKind: { override: 1 } })),
+    ).toThrow(/line 2: flightKind/);
+  });
+});
+
 describe('rescue services in a replay (T54)', () => {
   it('MEDICAL in cruise: the rescue command is on the timeline, the same on every run', () => {
     const dir = join(import.meta.dirname, '../../../packages/scenarios/commands');

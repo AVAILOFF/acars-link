@@ -6,6 +6,8 @@ title: Crew information
 description: "Crew names and cabin crew head count."
 hint: "Crew list of the flight from crew control: captain (CPT), first officer (FO), senior cabin crew member (SCCM) and the number of cabin crew. No reply needed."
 enabled_by_default: true
+# T92: airline handling; a business flight has flight support (bizav/), no gate, no VDGS.
+operations: [sched_pax, charter_pax, cargo, ferry, medevac]
 trigger:
   on: time
   at: { rel: sched_out, offset_min: -45 }
