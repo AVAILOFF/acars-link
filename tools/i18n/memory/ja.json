@@ -3219,6 +3219,11 @@
     "out": "{id} への応答なし：{option} とみなされます",
     "engine": "deepl"
   },
+  "msg:sys.rescue_no_airport": {
+    "src": "Scenario <x>{id}</x>: no rescue services in the sim, the aircraft is not within 5 <x>NM</x> of an airport of the flight",
+    "out": "シナリオ{id}：シミュレーション内に救助サービスは存在せず、航空機は当該フライトの空港から5NM圏内にありません",
+    "engine": "deepl"
+  },
   "msg:sys.scenario_error": {
     "src": "Scenario <x>{id}</x> failed: <x>{error}</x>",
     "out": "シナリオ {id} が失敗しました：{error}",
@@ -5025,8 +5030,8 @@
     "engine": "deepl"
   },
   "scn:emergency_mayday.description": {
-    "src": "The crew declared <x>MAYDAY</x> to <x>ATC</x> through the <x>XATC</x> station. The airline emergency desk offers <x>DIVERT</x> to the nearest suitable airport (default <x>DIVERT</x> after 5 min) and alerts rescue and medical services there. Starts only after a <x>MAYDAY</x> to <x>XATC</x>.",
-    "out": "乗務員は、XATC局を通じてATCにMAYDAYを発信しました。航空会社の緊急対応デスクは、最寄りの適切な空港へのDIVERT（5分経過後はデフォルトでDIVERT）を提案し、現地の救助隊および医療サービスに通報します。MAYDAYがXATCに発信された後にのみ開始されます。",
+    "src": "The crew declared <x>MAYDAY</x> to <x>ATC</x> through the <x>XATC</x> station. The airline emergency desk offers <x>DIVERT</x> to the nearest suitable airport (default <x>DIVERT</x> after 5 min) and alerts rescue and medical services there; on the ground it alerts the services of the airport where the aircraft stands. Starts only after a <x>MAYDAY</x> to <x>XATC</x>.",
+    "out": "乗務員は、XATC局を通じてATCにMAYDAYを発信しました。航空会社の緊急対応デスクは、最寄りの適切な空港へのDIVERTを提案し（5分経過後はデフォルトでDIVERT）、現地の救助隊および医療サービスに連絡します。地上では、航空機がスポットに停泊している空港のサービス機関に連絡します。XATC局へのMAYDAY発信後にのみ開始されます。",
     "engine": "deepl"
   },
   "scn:emergency_mayday.hint": {
@@ -5042,6 +5047,11 @@
   "scn:emergency_mayday.steps.divert.hint": {
     "src": "<x>OPS</x> confirms your diversion airport and its distance: rescue and fire services are alerted, medical help and handling ordered. Send your new <x>ETA</x> by free-text telex when you can.",
     "out": "OPSがダイバート先空港とその距離を確認します。救助隊および消防隊に通報し、医療支援およびハンドリングの手配が行われます。可能になりましたら、自由文テレックスにて新しいETAをお送りください。",
+    "engine": "deepl"
+  },
+  "scn:emergency_mayday.steps.ground.hint": {
+    "src": "The airline's emergency desk got your <x>MAYDAY</x> through <x>ATC</x> while you are on the ground: rescue and fire services at the airport are alerted. Tell <x>OPS</x> by free-text telex what you intend to do.",
+    "out": "地上にいる間に、航空会社の緊急対応デスクがATCを通じてMAYDAYからあなたのMAYDAYを受信しました。空港の救助隊および消防隊には通報済みです。今後の対応方針を自由文テレックスでOPSに伝えてください。",
     "engine": "deepl"
   },
   "scn:emergency_mayday.steps.reply.reply_hints.CONTINUE": {
@@ -5060,8 +5070,8 @@
     "engine": "deepl"
   },
   "scn:emergency_pan.description": {
-    "src": "The crew declared <x>PAN PAN</x> to <x>ATC</x> through the <x>XATC</x> station. The airline desk offers <x>DIVERT</x> or <x>CONTINUE</x> (default <x>CONTINUE</x> after 5 min) and puts rescue and medical services at the destination on standby. Starts only after a <x>PAN PAN</x> to <x>XATC</x>.",
-    "out": "乗務員は、XATC局を通じてATCにPAN PANを宣言しました。航空会社のデスクは、DIVERTまたはCONTINUE（5分経過後はデフォルトでCONTINUE）の選択肢を提示し、目的地での救助および医療サービスを待機状態にします。この処理は、XATC局へのPAN PAN宣言があった後にのみ開始されます。",
+    "src": "The crew declared <x>PAN PAN</x> to <x>ATC</x> through the <x>XATC</x> station. The airline desk offers <x>DIVERT</x> or <x>CONTINUE</x> (default <x>CONTINUE</x> after 5 min) and puts rescue and medical services at the destination on standby; on the ground, those of the airport where the aircraft stands. Starts only after a <x>PAN PAN</x> to <x>XATC</x>.",
+    "out": "乗務員は、XATC局を通じてATCにPAN PANを宣言しました。航空会社のデスクは、DIVERTまたはCONTINUE（5分経過後はデフォルトでCONTINUE）の選択肢を提示し、目的地での救助および医療サービスを待機状態にします。地上では、航空機が停泊している空港のサービスが待機状態となります。PAN PANをXATCに送信した後にのみ開始されます。",
     "engine": "deepl"
   },
   "scn:emergency_pan.hint": {
@@ -5077,6 +5087,11 @@
   "scn:emergency_pan.steps.divert.hint": {
     "src": "<x>OPS</x> confirms your diversion airport and its distance; rescue services and handling are ordered there. Send your new <x>ETA</x> by free-text telex when you can.",
     "out": "OPSが、ダイバート先の空港とその距離を確認します。当該空港への救助隊およびハンドリングの手配が行われます。可能になり次第、自由文テレックスで新しいETAをお送りください。",
+    "engine": "deepl"
+  },
+  "scn:emergency_pan.steps.ground.hint": {
+    "src": "The airline's emergency desk got your <x>PAN PAN</x> through <x>ATC</x> while you are on the ground: rescue and medical services at the airport stand by. Tell <x>OPS</x> by free-text telex what you intend to do.",
+    "out": "地上にいる間に、航空会社の緊急対応デスクがATCを通じてあなたのPAN PANを受信しました。空港の救助隊および医療サービスは待機しています。自由文テレックスでOPSに今後の対応方針をお知らせください。",
     "engine": "deepl"
   },
   "scn:emergency_pan.steps.reply.reply_hints.CONTINUE": {

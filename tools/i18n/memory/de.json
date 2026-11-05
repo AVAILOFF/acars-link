@@ -3219,6 +3219,11 @@
     "out": "Keine Antwort auf {id}: {option} angenommen",
     "engine": "deepl"
   },
+  "msg:sys.rescue_no_airport": {
+    "src": "Scenario <x>{id}</x>: no rescue services in the sim, the aircraft is not within 5 <x>NM</x> of an airport of the flight",
+    "out": "Szenario {id}: keine Rettungsdienste in der Simulation, das Flugzeug befindet sich nicht innerhalb von 5 NM eines Flughafens der Flugstrecke",
+    "engine": "deepl"
+  },
   "msg:sys.scenario_error": {
     "src": "Scenario <x>{id}</x> failed: <x>{error}</x>",
     "out": "Szenario {id} fehlgeschlagen: {error}",
@@ -5025,8 +5030,8 @@
     "engine": "deepl"
   },
   "scn:emergency_mayday.description": {
-    "src": "The crew declared <x>MAYDAY</x> to <x>ATC</x> through the <x>XATC</x> station. The airline emergency desk offers <x>DIVERT</x> to the nearest suitable airport (default <x>DIVERT</x> after 5 min) and alerts rescue and medical services there. Starts only after a <x>MAYDAY</x> to <x>XATC</x>.",
-    "out": "Die Besatzung hat über die XATC-Station einen MAYDAY an die ATC gemeldet. Die Notfallzentrale der Airline bietet eine Umleitung (DIVERT) zum nächstgelegenen geeigneten Flughafen an (standardmäßige Umleitung nach 5 Minuten) und alarmiert dort die Rettungs- und medizinischen Dienste. Der Vorgang beginnt erst nach einem MAYDAY an XATC.",
+    "src": "The crew declared <x>MAYDAY</x> to <x>ATC</x> through the <x>XATC</x> station. The airline emergency desk offers <x>DIVERT</x> to the nearest suitable airport (default <x>DIVERT</x> after 5 min) and alerts rescue and medical services there; on the ground it alerts the services of the airport where the aircraft stands. Starts only after a <x>MAYDAY</x> to <x>XATC</x>.",
+    "out": "Die Besatzung hat über die XATC-Station einen MAYDAY-Ruf an die ATC abgesetzt. Die Notfallzentrale der Airline schlägt eine Umleitung (DIVERT) zum nächstgelegenen geeigneten Flughafen vor (standardmäßige Umleitung nach 5 Minuten) und alarmiert dort die Rettungs- und medizinischen Dienste; am Boden alarmiert sie die Dienste des Flughafens, auf dem sich das Flugzeug befindet. Der Vorgang beginnt erst nach einem MAYDAY-Ruf an XATC.",
     "engine": "deepl"
   },
   "scn:emergency_mayday.hint": {
@@ -5042,6 +5047,11 @@
   "scn:emergency_mayday.steps.divert.hint": {
     "src": "<x>OPS</x> confirms your diversion airport and its distance: rescue and fire services are alerted, medical help and handling ordered. Send your new <x>ETA</x> by free-text telex when you can.",
     "out": "OPS bestätigt Ihre Ausweichlandung und deren Entfernung: Rettungs- und Feuerwehreinheiten werden alarmiert, medizinische Hilfe und Abfertigung angeordnet. Senden Sie Ihre neue ETA, sobald dies möglich ist, per Freitext-Telex.",
+    "engine": "deepl"
+  },
+  "scn:emergency_mayday.steps.ground.hint": {
+    "src": "The airline's emergency desk got your <x>MAYDAY</x> through <x>ATC</x> while you are on the ground: rescue and fire services at the airport are alerted. Tell <x>OPS</x> by free-text telex what you intend to do.",
+    "out": "Die Notfallzentrale der Airline hat Ihren MAYDAY-Ruf über die ATC empfangen, während Sie sich am Boden befinden: Rettungs- und Feuerwehrdienste am Flughafen werden alarmiert. Teilen Sie OPS per Freitext-Telex mit, was Sie zu tun beabsichtigen.",
     "engine": "deepl"
   },
   "scn:emergency_mayday.steps.reply.reply_hints.CONTINUE": {
@@ -5060,8 +5070,8 @@
     "engine": "deepl"
   },
   "scn:emergency_pan.description": {
-    "src": "The crew declared <x>PAN PAN</x> to <x>ATC</x> through the <x>XATC</x> station. The airline desk offers <x>DIVERT</x> or <x>CONTINUE</x> (default <x>CONTINUE</x> after 5 min) and puts rescue and medical services at the destination on standby. Starts only after a <x>PAN PAN</x> to <x>XATC</x>.",
-    "out": "Die Besatzung hat über die XATC-Station einen „PAN PAN“-Notruf an die Flugsicherung (ATC) abgesetzt. Die Airline bietet die Optionen „DIVERT“ oder „CONTINUE“ an (Standard: „CONTINUE“ nach 5 Minuten) und versetzt Rettungs- und medizinische Dienste am Zielflughafen in Bereitschaft. Der Vorgang beginnt erst nach einem „PAN PAN“-Notruf an XATC.",
+    "src": "The crew declared <x>PAN PAN</x> to <x>ATC</x> through the <x>XATC</x> station. The airline desk offers <x>DIVERT</x> or <x>CONTINUE</x> (default <x>CONTINUE</x> after 5 min) and puts rescue and medical services at the destination on standby; on the ground, those of the airport where the aircraft stands. Starts only after a <x>PAN PAN</x> to <x>XATC</x>.",
+    "out": "Die Besatzung hat über die XATC-Station einen „PAN PAN“-Notruf an die Flugsicherung (ATC) abgesetzt. Die Airline bietet die Optionen „DIVERT“ oder „CONTINUE“ an (Standard: „CONTINUE“ nach 5 Minuten) und versetzt Rettungs- und medizinische Dienste am Zielflughafen in Bereitschaft; am Boden sind dies die Dienste des Flughafens, auf dem sich das Flugzeug befindet. Der Vorgang beginnt erst nach einem „PAN PAN“-Notruf an XATC.",
     "engine": "deepl"
   },
   "scn:emergency_pan.hint": {
@@ -5077,6 +5087,11 @@
   "scn:emergency_pan.steps.divert.hint": {
     "src": "<x>OPS</x> confirms your diversion airport and its distance; rescue services and handling are ordered there. Send your new <x>ETA</x> by free-text telex when you can.",
     "out": "OPS bestätigt Ihre Ausweichlandung und deren Entfernung; Rettungsdienste und Abfertigung werden dort angeordnet. Senden Sie Ihre neue ETA, sobald es Ihnen möglich ist, per Freitext-Telex.",
+    "engine": "deepl"
+  },
+  "scn:emergency_pan.steps.ground.hint": {
+    "src": "The airline's emergency desk got your <x>PAN PAN</x> through <x>ATC</x> while you are on the ground: rescue and medical services at the airport stand by. Tell <x>OPS</x> by free-text telex what you intend to do.",
+    "out": "Die Notfallzentrale der Airline hat Ihren „PAN PAN“-Notruf über die Flugsicherung (ATC) erhalten, während Sie sich am Boden befinden: Rettungs- und medizinische Dienste am Flughafen stehen bereit. Teilen Sie OPS per Freitext-Telex mit, was Sie zu tun beabsichtigen.",
     "engine": "deepl"
   },
   "scn:emergency_pan.steps.reply.reply_hints.CONTINUE": {

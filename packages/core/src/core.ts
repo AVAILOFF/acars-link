@@ -101,6 +101,8 @@ export interface CoreOptions {
   readonly hub?: string;
   /** Start close to the departure, see `ScenarioEngineOptions.lateStartVersion`; default 1. */
   readonly lateStartVersion?: 1 | 2 | 3;
+  /** Rescue on the ground, see `ScenarioEngineOptions.rescueVersion` (T88); default 1. */
+  readonly rescueVersion?: 1 | 2;
   /** `flags.*` left by earlier flights (T14); read back with {@link AcarsCore.flags}. */
   readonly flags?: Readonly<Record<string, Value>>;
   /**
@@ -487,5 +489,6 @@ function engineOptions(o: CoreOptions) {
     ...(o.hub === undefined ? {} : { hub: o.hub }),
     ...(o.lateStartVersion === undefined ? {} : { lateStartVersion: o.lateStartVersion }),
     ...(o.flightKind === undefined ? {} : { flightKind: o.flightKind }),
+    ...(o.rescueVersion === undefined ? {} : { rescueVersion: o.rescueVersion }),
   };
 }

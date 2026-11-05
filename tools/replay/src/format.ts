@@ -92,6 +92,8 @@ export interface RecordingHeader {
   readonly nextLegVersion?: 1 | 2 | 3;
   /** Core `lateStartVersion`; absent = 1, the late start of recordings made before it. */
   readonly lateStartVersion?: 1 | 2 | 3;
+  /** Core `rescueVersion` (T88); absent = 1, the rescue airport of recordings made before it. */
+  readonly rescueVersion?: 1 | 2;
   /** Core `hub` (T53): the user's hub; absent = OpenFlights. */
   readonly hub?: string;
   /** Probabilities set by the user instead of the files' (scenario id → 0..1); absent = none. */
@@ -260,6 +262,8 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     throw bad('nextLegVersion');
   if (x['lateStartVersion'] !== undefined && ![1, 2, 3].includes(x['lateStartVersion'] as number))
     throw bad('lateStartVersion');
+  if (x['rescueVersion'] !== undefined && x['rescueVersion'] !== 1 && x['rescueVersion'] !== 2)
+    throw bad('rescueVersion');
   if (x['hub'] !== undefined && !(isStr(x['hub']) && /^[A-Z]{4}$/.test(x['hub']))) throw bad('hub');
   const p = x['probabilities'];
   if (p !== undefined && !(isObj(p) && Object.values(p).every((v) => isNum(v) && v >= 0 && v <= 1)))

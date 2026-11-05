@@ -3219,6 +3219,11 @@
     "out": "No hay respuesta a {id}: se asume {option}",
     "engine": "deepl"
   },
+  "msg:sys.rescue_no_airport": {
+    "src": "Scenario <x>{id}</x>: no rescue services in the sim, the aircraft is not within 5 <x>NM</x> of an airport of the flight",
+    "out": "Escenario {id}: no hay servicios de rescate en el simulador; la aeronave no se encuentra a menos de 5 NM de un aeropuerto de la ruta",
+    "engine": "deepl"
+  },
   "msg:sys.scenario_error": {
     "src": "Scenario <x>{id}</x> failed: <x>{error}</x>",
     "out": "El escenario {id} ha fallado: {error}",
@@ -5025,8 +5030,8 @@
     "engine": "deepl"
   },
   "scn:emergency_mayday.description": {
-    "src": "The crew declared <x>MAYDAY</x> to <x>ATC</x> through the <x>XATC</x> station. The airline emergency desk offers <x>DIVERT</x> to the nearest suitable airport (default <x>DIVERT</x> after 5 min) and alerts rescue and medical services there. Starts only after a <x>MAYDAY</x> to <x>XATC</x>.",
-    "out": "La tripulación ha declarado «MAYDAY» al ATC a través de la estación XATC. El centro de emergencias de la aerolínea propone un desvío (DIVERT) al aeropuerto adecuado más cercano (desvío automático tras 5 minutos) y alerta a los servicios de rescate y médicos de dicho lugar. El proceso solo se inicia tras un «MAYDAY» a XATC.",
+    "src": "The crew declared <x>MAYDAY</x> to <x>ATC</x> through the <x>XATC</x> station. The airline emergency desk offers <x>DIVERT</x> to the nearest suitable airport (default <x>DIVERT</x> after 5 min) and alerts rescue and medical services there; on the ground it alerts the services of the airport where the aircraft stands. Starts only after a <x>MAYDAY</x> to <x>XATC</x>.",
+    "out": "La tripulación ha declarado «MAYDAY» a ATC a través de la estación XATC. El servicio de emergencias de la aerolínea propone un desvío (DIVERT) al aeropuerto adecuado más cercano (desvío por defecto tras 5 minutos) y alerta a los servicios de rescate y médicos de dicho lugar; en tierra, alerta a los servicios del aeropuerto en el que se encuentra la aeronave. Solo se activa tras un «MAYDAY» a XATC.",
     "engine": "deepl"
   },
   "scn:emergency_mayday.hint": {
@@ -5042,6 +5047,11 @@
   "scn:emergency_mayday.steps.divert.hint": {
     "src": "<x>OPS</x> confirms your diversion airport and its distance: rescue and fire services are alerted, medical help and handling ordered. Send your new <x>ETA</x> by free-text telex when you can.",
     "out": "OPS confirma su aeropuerto de desvío y la distancia a este: se avisa a los servicios de rescate y bomberos, y se solicita asistencia médica y servicios de handling. Envíe su nueva ETA mediante télex de texto libre tan pronto como le sea posible.",
+    "engine": "deepl"
+  },
+  "scn:emergency_mayday.steps.ground.hint": {
+    "src": "The airline's emergency desk got your <x>MAYDAY</x> through <x>ATC</x> while you are on the ground: rescue and fire services at the airport are alerted. Tell <x>OPS</x> by free-text telex what you intend to do.",
+    "out": "La central de emergencias de la aerolínea ha recibido su llamada de «MAYDAY» a través del ATC mientras se encuentra en tierra: se ha alertado a los servicios de rescate y bomberos del aeropuerto. Indique a OPS, mediante un télex de texto libre, qué tiene previsto hacer.",
     "engine": "deepl"
   },
   "scn:emergency_mayday.steps.reply.reply_hints.CONTINUE": {
@@ -5060,8 +5070,8 @@
     "engine": "deepl"
   },
   "scn:emergency_pan.description": {
-    "src": "The crew declared <x>PAN PAN</x> to <x>ATC</x> through the <x>XATC</x> station. The airline desk offers <x>DIVERT</x> or <x>CONTINUE</x> (default <x>CONTINUE</x> after 5 min) and puts rescue and medical services at the destination on standby. Starts only after a <x>PAN PAN</x> to <x>XATC</x>.",
-    "out": "La tripulación declaró «PAN PAN» a ATC a través de la estación XATC. La central de la aerolínea ofrece las opciones «DIVERT» o «CONTINUE» (por defecto, «CONTINUE» tras 5 minutos) y pone en estado de alerta a los servicios de rescate y médicos en el destino. Solo se inicia tras un «PAN PAN» a XATC.",
+    "src": "The crew declared <x>PAN PAN</x> to <x>ATC</x> through the <x>XATC</x> station. The airline desk offers <x>DIVERT</x> or <x>CONTINUE</x> (default <x>CONTINUE</x> after 5 min) and puts rescue and medical services at the destination on standby; on the ground, those of the airport where the aircraft stands. Starts only after a <x>PAN PAN</x> to <x>XATC</x>.",
+    "out": "La tripulación declaró «PAN PAN» a ATC a través de la estación XATC. La oficina de la aerolínea ofrece las opciones «DIVERT» o «CONTINUE» (por defecto, «CONTINUE» tras 5 minutos) y pone en estado de alerta a los servicios de rescate y médicos en el destino; en tierra, a los del aeropuerto en el que se encuentra la aeronave. El procedimiento solo se inicia tras un «PAN PAN» a XATC.",
     "engine": "deepl"
   },
   "scn:emergency_pan.hint": {
@@ -5077,6 +5087,11 @@
   "scn:emergency_pan.steps.divert.hint": {
     "src": "<x>OPS</x> confirms your diversion airport and its distance; rescue services and handling are ordered there. Send your new <x>ETA</x> by free-text telex when you can.",
     "out": "OPS confirma su aeropuerto de desvío y la distancia a este; allí se ordenan los servicios de rescate y la handling. Envíe su nueva ETA mediante un télex de texto libre tan pronto como le sea posible.",
+    "engine": "deepl"
+  },
+  "scn:emergency_pan.steps.ground.hint": {
+    "src": "The airline's emergency desk got your <x>PAN PAN</x> through <x>ATC</x> while you are on the ground: rescue and medical services at the airport stand by. Tell <x>OPS</x> by free-text telex what you intend to do.",
+    "out": "La central de emergencias de la aerolínea ha recibido su llamada «PAN PAN» a través del ATC mientras se encuentra en tierra: los servicios de rescate y médicos del aeropuerto están a la espera. Comunique a OPS, mediante un télex de texto libre, lo que tiene previsto hacer.",
     "engine": "deepl"
   },
   "scn:emergency_pan.steps.reply.reply_hints.CONTINUE": {

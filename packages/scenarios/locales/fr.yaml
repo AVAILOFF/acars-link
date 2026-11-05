@@ -429,9 +429,11 @@ earthquake_dest:
   hint: "Informations OPS : un séisme récent près de la destination, avec indication de la magnitude, du lieu, de la distance par rapport à l’aéroport et de la profondeur (USGS). Vérifiez les NOTAM pour connaître l’état de l’aéroport. Aucune réponse n’est nécessaire."
 emergency_mayday:
   title: Déclaration « MAYDAY »
-  description: L'équipage a lancé un appel « MAYDAY » à ATC via la station XATC. Le centre d'urgence de la compagnie aérienne propose un DIVERT vers l'aéroport approprié le plus proche (DIVERT par défaut après 5 minutes) et alerte les services de secours et médicaux sur place. Cette procédure ne démarre qu'après un appel « MAYDAY » adressé à XATC.
+  description: L’équipage a déclaré « MAYDAY » à ATC via la station XATC. Le centre d’urgence de la compagnie aérienne propose un « DIVERT » vers l’aéroport approprié le plus proche (DIVERT par défaut après 5 minutes) et alerte les services de secours et médicaux sur place ; au sol, il alerte les services de l’aéroport où se trouve l’avion. Ne se déclenche qu’après un « MAYDAY » adressé à XATC.
   hint: Le centre d’urgence de la compagnie aérienne a reçu votre appel «MAYDAY» par l’intermédiaire de l’ATC et vous indique l’aéroport approprié le plus proche ainsi que sa distance. Indiquez à l’OPS si vous vous déroutez ou si vous poursuivez votre vol.
   steps:
+    ground:
+      hint: "Le centre d’urgence de la compagnie aérienne a reçu votre appel « MAYDAY » par l’intermédiaire de l’ATC alors que vous êtes au sol : les services de secours et de lutte contre l’incendie de l’aéroport sont alertés. Indiquez à lOPS, par télex en texte libre, ce que vous comptez faire."
     reply:
       reply_hints:
         DIVERT: Détournez-vous vers l’aéroport approprié le plus proche, ou vers un autre aéroport désigné par le mot « DIVERT EDDM ».
@@ -442,9 +444,11 @@ emergency_mayday:
       hint: OPS prend note que vous poursuivez votre vol jusqu’à la destination ; les services de secours et de lutte contre l’incendie sur place sont alertés. Informez OPS si votre plan change. Aucune réponse n’est nécessaire.
 emergency_pan:
   title: Déclaration « PAN PAN »
-  description: L’équipage a déclaré « PAN PAN » à l’ATC via la station XATC. Le poste de contrôle de la compagnie aérienne propose les options « DIVERT » ou « CONTINUE » (option par défaut « CONTINUE » après 5 minutes) et met en alerte les services de secours et médicaux à la destination. Le processus ne démarre qu’après un « PAN PAN » adressé à XATC.
+  description: L’équipage a déclaré « PAN PAN » à l’ATC via la station XATC. Le poste de contrôle de la compagnie aérienne propose les options « DIVERT » ou « CONTINUE » (par défaut « CONTINUE » après 5 minutes) et met en attente les services de secours et médicaux à destination ; au sol, ce sont ceux de l’aéroport où se trouve l’avion. La procédure ne démarre qu’après un « PAN PAN » adressé à XATC.
   hint: "Le centre d’urgence de la compagnie aérienne a reçu votre appel «PAN PAN» par l’intermédiaire de l’ATC : la destination est communiquée et les services de secours et médicaux sur place sont en attente. Il vous indique l’aéroport approprié le plus proche et vous demande si vous souhaitez vous dérouter ou poursuivre votre vol."
   steps:
+    ground:
+      hint: "Le centre d’urgence de la compagnie aérienne a reçu votre appel « PAN PAN » par l’intermédiaire de lATC alors que vous êtes au sol : les services de secours et les services médicaux de l’aéroport se tiennent prêts. Indiquez à lOPS, par télex en texte libre, ce que vous comptez faire."
     reply:
       reply_hints:
         DIVERT: Se dérouter vers l’aéroport approprié le plus proche, ou vers un autre aéroport désigné par le mot « DIVERT EDDM ».

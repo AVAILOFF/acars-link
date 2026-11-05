@@ -144,6 +144,8 @@ const NAMES_VERSION = 2;
 const NEXT_LEG_VERSION = 3;
 /** Start close to the departure (core `lateStartVersion`): messages fitted to the time left. */
 const LATE_START_VERSION = 3;
+/** Rescue on the ground at the airport where the aircraft stands (core `rescueVersion`, T88). */
+const RESCUE_VERSION = 2;
 
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */
 export const DATA_WAIT_MS = 60_000;
@@ -229,6 +231,7 @@ export class FlightSession {
             namesVersion: NAMES_VERSION,
             nextLegVersion: NEXT_LEG_VERSION,
             lateStartVersion: LATE_START_VERSION,
+            rescueVersion: RESCUE_VERSION,
             ...(o.hub === undefined ? {} : { hub: o.hub }),
             ...(o.flightKind === undefined ? {} : { flightKind: o.flightKind }),
           },
@@ -278,6 +281,7 @@ export class FlightSession {
         namesVersion: NAMES_VERSION,
         nextLegVersion: NEXT_LEG_VERSION,
         lateStartVersion: LATE_START_VERSION,
+        rescueVersion: RESCUE_VERSION,
         ...(o.hub === undefined ? {} : { hub: o.hub }),
         simTime: this.simTime,
         ...(o.flightKind === undefined
@@ -710,6 +714,9 @@ export class FlightSession {
         case 'SCENARIO_ERROR':
           this.feed.system(e.t, 'scenario_error', { id: e.id, error: e.error });
           break;
+        case 'RESCUE_NO_AIRPORT':
+          this.feed.system(e.t, 'rescue_no_airport', { id: e.id });
+          break;
         case 'REPLY_EXPECTED':
           // The transport caps this itself (Hoppie: 3 min of faster polling).
           if (!this.replaying) this.transport.expectReply(e.timeoutMs);
@@ -983,6 +990,7 @@ function cmdLine(c: SimCommand): RecordingEvent {
               airport: rest.airport,
               runway: rest.runway,
               windFromDeg: rest.windFromDeg,
+              ...(rest.ground === true ? { ground: true } : {}),
             }
           : {
               action: rest.action,

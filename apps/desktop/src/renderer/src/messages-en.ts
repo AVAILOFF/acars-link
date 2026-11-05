@@ -347,6 +347,8 @@ export const en = {
   'sys.telemetry_restored': 'Telemetry restored after {gapSec} s',
   'sys.discontinuity': 'Position jump of {nm} NM (slew / teleport)',
   'sys.scenario_error': 'Scenario {id} failed: {error}',
+  'sys.rescue_no_airport':
+    'Scenario {id}: no rescue services in the sim, the aircraft is not within 5 NM of an airport of the flight',
   'sys.reply_timeout': 'No reply to {id}: {option} assumed',
   'sys.transport_status': 'Network: {status} {reason}',
   'sys.sim_command_failed': 'Sim command {command} failed: {error} {detail}',

@@ -24,7 +24,7 @@ import type { FlightPhase, OooiKind } from '../phase/fsm.js';
 import type { TelemetrySnapshot } from '../telemetry/types.js';
 import { type AircraftFamily, aircraftInfo, aircraftVariables } from './aircraft.js';
 import { type DelayPart, delayLine } from './delay-codes.js';
-import { airportPlace, pickDivert, type RunwayNeed } from './divert.js';
+import { airportHere, airportPlace, pickDivert, type RunwayNeed } from './divert.js';
 import type { Value } from './expr.js';
 import { classifyFlight, type FlightKind } from './flight-kind.js';
 import type { IrregularData } from './irregular-data.js';
@@ -183,6 +183,9 @@ export const CONTEXT_VARIABLES = [
   // nearest of those and the reserve airports (T50): MAYDAY, fire
   'flight.nearest_any',
   'flight.nearest_any_nm',
+  // on the ground (before OFF or after ON): the airport of the flight within 5 NM (T88,
+  // divert.ts `airportHere`); null in the air or when none is that close
+  'flight.here',
   // the run's last pilot answer (`wait: reply`), null before one
   'reply.option',
   'reply.text',
@@ -861,6 +864,7 @@ type IrrVariable = Extract<
   | 'flight.nearest_any'
   | 'flight.nearest_any_nm'
   | 'flight.divert_nm'
+  | 'flight.here'
 >;
 
 /** `irr.*` (T14) and the nearest alternate; margins use the delayed estimates of the context. */
@@ -884,6 +888,11 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
   const divertNm = tm === null || dest === null ? null : Math.round(distanceNm(tm, dest));
   const nearest = pick('ofp');
   const nearestAny = pick('any');
+  const ground = input.oooi.OFF === null || input.oooi.ON !== null;
+  const here =
+    tm === null || !ground
+      ? null
+      : airportHere(ofp, tm, divert, input.ext?.divertApts, input.ext?.places);
   const i = input.irr;
   const t = ofp.times;
   const offset = ofp.destination.utcOffsetH;
@@ -897,6 +906,7 @@ function irrVariables(input: ContextInput): Record<IrrVariable, Value> {
     'flight.nearest_any': nearestAny?.icao ?? null,
     'flight.nearest_any_nm': nearestAny?.nm ?? null,
     'flight.divert_nm': divertNm,
+    'flight.here': here?.icao ?? null,
     'irr.curfew': curfew,
     'irr.curfew_local': curfew === null || offset === null ? null : curfew + offset * 3_600_000,
     'irr.curfew_margin_min': curfew === null ? null : minutes(curfew - (t.estOnMs ?? t.estInMs)),

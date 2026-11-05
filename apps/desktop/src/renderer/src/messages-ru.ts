@@ -349,6 +349,8 @@ export const ru: Record<MessageKey, string> = {
   'sys.telemetry_restored': 'Телеметрия восстановлена через {gapSec} с',
   'sys.discontinuity': 'Скачок позиции на {nm} NM (slew / телепорт)',
   'sys.scenario_error': 'Ошибка сценария {id}: {error}',
+  'sys.rescue_no_airport':
+    'Сценарий {id}: аварийных служб в симуляторе не будет — в 5 NM от самолёта нет аэропорта рейса',
   'sys.reply_timeout': 'Нет ответа на {id}: принят вариант {option}',
   'sys.transport_status': 'Сеть: {status} {reason}',
   'sys.sim_command_failed': 'Команда симулятору {command} не выполнена: {error} {detail}',

@@ -370,6 +370,7 @@ export type SystemCode =
   | 'telemetry_restored'
   | 'discontinuity'
   | 'scenario_error'
+  | 'rescue_no_airport'
   | 'reply_timeout'
   | 'data_failed'
   | 'memory'

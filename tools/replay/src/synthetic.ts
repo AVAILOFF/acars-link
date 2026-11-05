@@ -46,6 +46,7 @@ export function recordingFromSnapshots(
       lateStartVersion: 3,
       // T89: the kind filter, as the app runs a flight.
       flightKind: { override: null, kind: classifyFlight(meta.ofp).kind },
+      rescueVersion: 2,
     }),
     events: eventsFromSnapshots(snapshots),
   };

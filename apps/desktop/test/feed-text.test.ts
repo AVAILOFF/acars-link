@@ -20,6 +20,7 @@ const SENT: Readonly<Record<SystemCode, Readonly<Record<string, string>>>> = {
   telemetry_restored: { gapSec: '12' },
   discontinuity: { nm: '3.4' },
   scenario_error: { id: 's', error: 'e' },
+  rescue_no_airport: { id: 's' },
   reply_timeout: { id: 's', option: 'A' },
   data_failed: { source: 'metar', error: 'e' },
   memory: { names: 'a, b' },

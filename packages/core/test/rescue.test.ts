@@ -129,6 +129,11 @@ describe('rescue vehicles (T54)', () => {
     expect(checkSimCommand('rescue_start', { ...ok, side: 'up' })).toMatch(/side/);
     expect(checkSimCommand('rescue_start', { ...ok, fireFlip: '0' })).toMatch(/fireFlip/);
     expect(checkSimCommand('rescue_start', { ...ok, fireFlip: '0|2' })).toMatch(/fireFlip/);
+    // T88: an optional `ground: true`.
+    expect(checkSimCommand('rescue_start', { ...ok, ground: true })).toBeNull();
+    expect(checkSimCommand('rescue_start', { ...ok, ground: false })).toMatch(/ground/);
+    expect(checkSimCommand('rescue_start', { ...ok, ground: 'yes' })).toMatch(/ground/);
+    expect(checkSimCommand('rescue_start', { ...ok, extra: 1 })).toMatch(/only/);
     expect(
       fireFlips(['ASO_Firetruck02', 'Truck Fire Airport Medium'], DEFAULT_RESCUE_FLIPPED),
     ).toBe('0|1');

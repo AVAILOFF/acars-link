@@ -9,9 +9,11 @@ namespace AcarsBridge;
 /// <param name="Medic">Title of the ambulance; empty = none.</param>
 /// <param name="Left">The trucks wait left of the runway (landing direction); else right. The app picks the upwind side.</param>
 /// <param name="Flip">Per fire truck: its model is drawn nose to tail with its sim heading (turn it 180°); null = none.</param>
+/// <param name="Ground">T88: called on the ground, the trucks come to the aircraft at once instead of waiting for a landing.</param>
 public sealed record RescueRequest(
     bool Full, double ThrLat, double ThrLon, double Hdg, double LengthM,
-    IReadOnlyList<string> Fire, IReadOnlyList<string> Medic, bool Left = false, IReadOnlyList<bool>? Flip = null)
+    IReadOnlyList<string> Fire, IReadOnlyList<string> Medic, bool Left = false, IReadOnlyList<bool>? Flip = null,
+    bool Ground = false)
 {
     /// <summary>Truck <paramref name="i"/> is drawn reversed.</summary>
     public bool Flipped(int i) => Flip is { } f && i < f.Count && f[i];
@@ -29,12 +31,13 @@ public sealed record RescueRequest(
             args["hdg"].GetValue<double>(), args["lengthM"].GetValue<double>(),
             Titles(args["fire"].GetValue<string>()), Titles(args["medic"].GetValue<string>()),
             args["side"].GetValue<string>() == "left",
-            Titles(args["fireFlip"].GetValue<string>()).Select(x => x == "1").ToArray());
+            Titles(args["fireFlip"].GetValue<string>()).Select(x => x == "1").ToArray(),
+            args.TryGetValue("ground", out var g) && g.GetValue<bool>());
     }
 
     /// <summary>Same trucks at the same runway: only the level may differ.</summary>
     public bool SameFire(RescueRequest o) =>
-        ThrLat == o.ThrLat && ThrLon == o.ThrLon && Hdg == o.Hdg && Left == o.Left && Fire.SequenceEqual(o.Fire, StringComparer.Ordinal) &&
+        Ground == o.Ground && ThrLat == o.ThrLat && ThrLon == o.ThrLon && Hdg == o.Hdg && Left == o.Left && Fire.SequenceEqual(o.Fire, StringComparer.Ordinal) &&
         (Flip ?? []).SequenceEqual(o.Flip ?? []);
 
     public bool SameMedic(RescueRequest o) =>
@@ -109,6 +112,11 @@ public enum RescueStage
 /// <item>touchdown only after <see cref="TouchdownAfter"/> on the ground without a break, back to waiting only after
 /// <see cref="GoAroundAfter"/> in the air.</item>
 /// </list>
+/// A call on the ground (<see cref="RescueRequest.Ground"/>, T88, approved 2026-11-04): the trucks are created beside the
+/// runway as above and come to the aircraft at once, straight across the airfield (no taxiways): <c>full</c> ones surround
+/// it while it stands and follow it while it rolls; <c>standby</c> ones stand aside on an arc of <see cref="StandbyM"/>
+/// ahead of it (a game rule). "Stands" and "rolls" here go by the ground speed only: some aircraft report
+/// <c>SIM ON GROUND</c> = 0 at the stand (BlueBird 757, recording of 2026-11-01).
 /// Thread-safe: commands arrive on a network thread, positions and steps on the SimConnect thread. <paramref name="log"/>
 /// gets a line on every change of the stage or of what the controller sees, on the events of the trucks, and every
 /// <see cref="TraceEvery"/> per moving truck (diagnostics for the human check).
@@ -142,6 +150,8 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     /// <summary>Following: truck i is (i + 1) × this behind the aircraft, m.</summary>
     public const double TrailM = 25;
     public const double CircleM = 50;
+    /// <summary>T88: <c>standby</c> trucks of a call on the ground wait on an arc this far ahead of the aircraft, m.</summary>
+    public const double StandbyM = 100;
     /// <summary>Ambulance: left of the aircraft, m.</summary>
     public const double MedicSideM = 30;
     /// <summary>The aircraft parks again this far from the ambulance: it is created anew beside the aircraft, m.</summary>
@@ -185,6 +195,8 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     private DateTimeOffset? _slowSince;
     /// <summary>Since when the aircraft is on the ground / in the air without a break.</summary>
     private DateTimeOffset? _groundSince, _airSince;
+    /// <summary>T88: since when the ground speed is below / at least <see cref="StopKt"/>, whatever <c>SIM ON GROUND</c> says.</summary>
+    private DateTimeOffset? _stillSince, _rollingSince;
     private DateTimeOffset? _stoppedAt;
     private DateTimeOffset _lastMove;
     private DateTimeOffset? _lastStep;
@@ -270,6 +282,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
             _airborne = false;
             _slowSince = null;
             _groundSince = _airSince = null;
+            _stillSince = _rollingSince = null;
             _stoppedAt = null;
             ClearTrucks();
         }
@@ -346,6 +359,16 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     {
         if (!a.OnGround || a.GsKt >= StopKt) _slowSince = null;
         else _slowSince ??= now;
+        if (a.GsKt >= StopKt)
+        {
+            _rollingSince ??= now;
+            _stillSince = null;
+        }
+        else
+        {
+            _stillSince ??= now;
+            _rollingSince = null;
+        }
         if (a.OnGround)
         {
             _groundSince ??= now;
@@ -359,6 +382,9 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     }
 
     private bool Stands(DateTimeOffset now) => _slowSince is { } s && now - s >= StopAfter;
+    /// <summary>T88: below <see cref="StopKt"/> for <see cref="StopAfter"/>, by the ground speed only.</summary>
+    private bool Still(DateTimeOffset now) => _stillSince is { } s && now - s >= StopAfter;
+    private bool Rolling(DateTimeOffset now) => _rollingSince is { } s && now - s >= StopAfter;
     private bool Landed(DateTimeOffset now) => _groundSince is { } g && now - g >= TouchdownAfter;
     private bool WentAround(DateTimeOffset now) => _airSince is { } t && now - t >= GoAroundAfter;
 
@@ -404,6 +430,11 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         {
             RemoveFire();
             _stage = RescueStage.Idle;
+            return;
+        }
+        if (req.Ground && _stage != RescueStage.Idle)
+        {
+            FireOnGround(a, req, now);
             return;
         }
         switch (_stage)
@@ -462,31 +493,119 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
                 StartFollowing(a);
                 return;
             case RescueStage.Encircle:
-                if (_stoppedAt is { } t && now - t >= StayAfterStop)
+                EncircleStep(now);
+                return;
+        }
+    }
+
+    /// <summary>
+    /// T88, a call on the ground: from the runway straight to the aircraft. While it stands, <c>full</c> trucks drive to
+    /// the circle and <c>standby</c> ones aside; while it rolls, <c>full</c> trucks follow it (not faster than
+    /// <see cref="MaxTrailKt"/>: a take-off run leaves them standing) and <c>standby</c> ones wait.
+    /// </summary>
+    private void FireOnGround(RescueAircraft a, RescueRequest req, DateTimeOffset now)
+    {
+        switch (_stage)
+        {
+            case RescueStage.Staged:
+                if (Still(now))
                 {
-                    RemoveFire();
-                    _stage = RescueStage.Done;
-                    return;
+                    if (req.Full) Stopped(a, req, now);
+                    else Aside(a, now);
                 }
-                for (var i = 0; i < MaxFire; i++)
+                else if (req.Full && Rolling(now))
                 {
-                    if (_circle[i] is not { } c) continue;
-                    var d = _pos[i] is { } p ? Meters(p, c) : double.MaxValue;
-                    if (d <= _circleBest[i] - ProgressM)
-                    {
-                        _circleBest[i] = d;
-                        _circleProgressAt[i] = now;
-                    }
-                    var arrived = d <= ArrivedM || (_route[i].Count == 0 && d < double.MaxValue);
-                    var stuck = now - _circleProgressAt[i] >= NoProgressAfter;
-                    var late = _stoppedAt is { } s && now - s >= CircleDriveMax;
-                    if (!arrived && !stuck && !late) continue;
-                    Halt(i);
-                    _circle[i] = null;
-                    var why = arrived ? "arrived on the circle" : stuck ? $"stops: no closer in {NoProgressAfter.TotalSeconds:0} s, {d:0} m to go" : "stops: 5 min after the stop";
-                    Log($"rescue slot {i}: {why}");
+                    _stage = RescueStage.Trailing;
+                    _lastMove = now - MoveEvery;
+                    Log("rescue: called on the ground, the aircraft rolls, trucks follow it");
+                    FollowOnGround(a, now);
                 }
                 return;
+            case RescueStage.Trailing:
+                if (Still(now))
+                {
+                    Stopped(a, req, now);
+                    return;
+                }
+                FollowOnGround(a, now);
+                return;
+            case RescueStage.Encircle:
+                if (req.Full && Rolling(now))
+                {
+                    _stage = RescueStage.Trailing;
+                    _stoppedAt = null;
+                    Array.Clear(_circle);
+                    _lastMove = now - MoveEvery;
+                    Log("rescue: the aircraft rolls again, trucks follow it");
+                    FollowOnGround(a, now);
+                    return;
+                }
+                EncircleStep(now);
+                return;
+        }
+    }
+
+    /// <summary>T88: <c>full</c> trucks of a call on the ground follow the rolling aircraft; past <see cref="MaxTrailKt"/> they stop.</summary>
+    private void FollowOnGround(RescueAircraft a, DateTimeOffset now)
+    {
+        if (now - _lastMove < MoveEvery) return;
+        _lastMove = now;
+        if (a.GsKt > MaxTrailKt)
+        {
+            for (var i = 0; i < _fireSpawned; i++) Halt(i);
+            return;
+        }
+        var kt = TrailKt(a);
+        for (var i = 0; i < _fireSpawned; i++) Go(i, [TrailPoint(a, i)], kt);
+    }
+
+    /// <summary>T88: the aircraft stands after a call on the ground with <c>standby</c>: the trucks drive to their places aside.</summary>
+    private void Aside(RescueAircraft a, DateTimeOffset now)
+    {
+        _stage = RescueStage.Encircle;
+        _stoppedAt = now;
+        Log("rescue: called on the ground, the aircraft stands, standby trucks drive aside");
+        for (var i = 0; i < _fireSpawned; i++)
+        {
+            var target = StandbyPoint(a, i, _fireSpawned);
+            var from = _pos[i] ?? target;
+            var route = CircleRoute(a, from, target);
+            Go(i, route, CircleKt);
+            _circle[i] = target;
+            _circleBest[i] = Meters(from, target);
+            _circleProgressAt[i] = now;
+        }
+    }
+
+    /// <summary>
+    /// The trucks stand by the aircraft: removed <see cref="StayAfterStop"/> after the stop; those still on the way stop
+    /// when they arrive or get stuck.
+    /// </summary>
+    private void EncircleStep(DateTimeOffset now)
+    {
+        if (_stoppedAt is { } t && now - t >= StayAfterStop)
+        {
+            RemoveFire();
+            _stage = RescueStage.Done;
+            return;
+        }
+        for (var i = 0; i < MaxFire; i++)
+        {
+            if (_circle[i] is not { } c) continue;
+            var d = _pos[i] is { } p ? Meters(p, c) : double.MaxValue;
+            if (d <= _circleBest[i] - ProgressM)
+            {
+                _circleBest[i] = d;
+                _circleProgressAt[i] = now;
+            }
+            var arrived = d <= ArrivedM || (_route[i].Count == 0 && d < double.MaxValue);
+            var stuck = now - _circleProgressAt[i] >= NoProgressAfter;
+            var late = _stoppedAt is { } s && now - s >= CircleDriveMax;
+            if (!arrived && !stuck && !late) continue;
+            Halt(i);
+            _circle[i] = null;
+            var why = arrived ? "arrived on the circle" : stuck ? $"stops: no closer in {NoProgressAfter.TotalSeconds:0} s, {d:0} m to go" : "stops: 5 min after the stop";
+            Log($"rescue slot {i}: {why}");
         }
     }
 
@@ -550,7 +669,7 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
         _medicFor = req;
         if (req.Medic.Count == 0) return;
         var nm = SmokeController.DistanceNm(a.Lat, a.Lon, req.ThrLat, req.ThrLon);
-        var parked = nm <= StageNm && a.ParkingBrake && Stands(now);
+        var parked = nm <= StageNm && a.ParkingBrake && (req.Ground ? Still(now) : Stands(now));
         if (_medicSpawned)
         {
             if (nm > RemoveNm || now - _medicAt >= StayAfterStop)
@@ -611,6 +730,13 @@ public sealed class RescueController(TimeProvider clock, Action<string>? log = n
     /// <summary>Point <paramref name="i"/> of <paramref name="n"/> on the circle around the aircraft, the first at its nose.</summary>
     public static (double Lat, double Lon) CirclePoint(RescueAircraft a, int i, int n) =>
         Offset(a.Lat, a.Lon, a.HdgDeg + 360.0 * i / Math.Max(1, n), CircleM);
+
+    /// <summary>
+    /// T88: place <paramref name="i"/> of <paramref name="n"/> of a <c>standby</c> truck called on the ground: on an arc of
+    /// <see cref="StandbyM"/> from 60° left to 60° right of the nose (one truck: at the nose).
+    /// </summary>
+    public static (double Lat, double Lon) StandbyPoint(RescueAircraft a, int i, int n) =>
+        Offset(a.Lat, a.Lon, a.HdgDeg + (n <= 1 ? 0 : -60 + 120.0 * i / (n - 1)), StandbyM);
 
     /// <summary>
     /// From <paramref name="from"/> to <paramref name="target"/> on the circle: straight when the line passes at least

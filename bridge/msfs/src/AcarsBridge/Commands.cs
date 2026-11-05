@@ -81,8 +81,11 @@ public static class CommandCatalog
     /// </summary>
     private static string? ValidateRescueStart(IReadOnlyDictionary<string, JsonValue> args)
     {
-        if (args.Count != RescueArgs.Length || !RescueArgs.All(args.ContainsKey))
-            return $"rescue_start needs {string.Join(", ", RescueArgs)} only";
+        // T88: an optional `ground: true`, a call on the ground.
+        var ground = args.ContainsKey("ground") ? 1 : 0;
+        if (args.Count != RescueArgs.Length + ground || !RescueArgs.All(args.ContainsKey))
+            return $"rescue_start needs {string.Join(", ", RescueArgs)} only, and ground";
+        if (ground == 1 && !(args["ground"].TryGetValue<bool>(out var g) && g)) return "ground must be true";
         if (!args["level"].TryGetValue<string>(out var level) || level is not ("full" or "standby" or "medical"))
             return "level must be full, standby or medical";
         if (!args["thrLat"].TryGetValue<double>(out var la) || !(la >= -90 && la <= 90)) return "thrLat must be -90..90";

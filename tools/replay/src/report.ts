@@ -97,6 +97,8 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
           return o.verbose === true ? ['SCENARIO', `${ev.id} done`] : null;
         case 'SCENARIO_ERROR':
           return ['SCENARIO', `${ev.id} ERROR: ${ev.error}`];
+        case 'RESCUE_NO_AIRPORT':
+          return ['SIM', `${ev.id}  rescue: no airport of the flight within 5 NM`];
         case 'SCENARIO_SKIPPED':
           return o.verbose === true ? ['SCENARIO', `${ev.id} skipped (${ev.reason})`] : null;
         case 'ALT_CHANGE':
