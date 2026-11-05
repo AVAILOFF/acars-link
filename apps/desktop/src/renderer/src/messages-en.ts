@@ -617,7 +617,7 @@ export const en = {
   'set.smokePkgOld': 'installed {version}, this app has {bundled}',
   'set.smokePkgMissing': 'not installed',
   'set.smokePkgForeign':
-    'the Community folder already holds a folder acars-smoke from another add-on, and the app does not change it',
+    'the Community folder already holds a folder avail-acars-smoke from another add-on, and the app does not change it',
   'set.smokePkgNotBundled': 'This build has no smoke package.',
   'set.smokePkgNoSim': 'MSFS 2024 not found (no UserCfg.opt of the Store or Steam version).',
   'set.smokePkg.store': 'MSFS 2024 (Microsoft Store)',

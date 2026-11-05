@@ -1,6 +1,6 @@
 # Как собрать пакет дыма для установщика (T104)
 
-Гайд для человека с MSFS 2024 и SDK. Результат — папка `acars-smoke`, которую приложение ставит в Community
+Гайд для человека с MSFS 2024 и SDK. Результат — папка `avail-acars-smoke`, которую приложение ставит в Community
 по кнопке «Установить» (Расширенные настройки → «Пакет дыма для MSFS 2024»).
 
 Чем отличается от [guide-smoke-rescue.ru.md](guide-smoke-rescue.ru.md), часть 2: там эффект делался **из копии
@@ -16,7 +16,7 @@ SDK\Licenses\MSFS SDK EULA.pdf`, п. 1 b) разрешает образцы SDK 
 Источники: страницы SDK MSFS 2024 [The Visual Effects Editor](https://docs.flightsimulator.com/msfs2024/retail/devmode/editors/vfx-editor/the-visual-effects-editor/index.md),
 [Output](https://docs.flightsimulator.com/msfs2024/retail/devmode/editors/vfx-editor/nodes/output/index.md),
 [The Material Editor](https://docs.flightsimulator.com/msfs2024/retail/devmode/editors/material-editor/the-material-editor/index.md)
-(сверено 2026-11-05); типы групп ассетов — из вашего рабочего проекта `D:\msfs-projects\acars-smoke` (проверен
+(сверено 2026-11-05); типы групп ассетов — из вашего рабочего проекта T34 `D:\msfs-projects\acars-smoke\acars-smoke\SimpleFX` (проверен
 в симуляторе 2026-10-17).
 
 ---
@@ -29,23 +29,25 @@ SDK\Licenses\MSFS SDK EULA.pdf`, п. 1 b) разрешает образцы SDK 
    и `mycompany-simplefx-materiallib` куда-нибудь вне Community, например в `D:\msfs-projects\old-community\`.
    В старом пакете тоже есть объект с названием `ACARS Smoke`: если оставить оба, неизвестно, какой
    создаст мост, и проверка ничего не покажет. Перезапустите MSFS.
-4. Откройте рядом старый проект `D:\msfs-projects\acars-smoke` только **для сверки чисел** (раздел 4).
+4. Откройте рядом старый проект `D:\msfs-projects\acars-smoke\acars-smoke\SimpleFX` только **для сверки чисел** (раздел 4).
    Копировать из него узлы, файлы эффекта или материал нельзя.
 
 ## 1. Новый проект
 
 1. DevMode → **File → New Project** **[?]** (на странице VFX Editor сказано только «создайте или откройте проект
    в Project Editor»; если пункт называется иначе — выберите создание проекта).
-2. Папка: `D:\msfs-projects\acars-smoke-pkg` (вне репозитория). Имя проекта: `acars-smoke`.
+2. Папка: `D:\msfs-projects\acars-smoke` (вне репозитория), файл проекта `acars-smoke.xml`.
 3. Откроется окно **Add Package** (у нового проекта оно открывается само; иначе — кнопка **Add Package** внизу
    Project Editor).
 
 ## 2. Пакет и эффект
 
 1. В **Add Package** выберите **Visual Effect**.
-2. Имя пакета: **`acars-smoke`** — ровно так: приложение ищет в Community папку с этим именем. Если мастер
-   требует вид `компания-имя`, `acars-smoke` под него подходит. **Create**.
-3. Откроется **Visual Effects Wizard**. Имя эффекта: **`AcarsSmokeColumn`**. **Create Visual Effect**.
+2. Имя пакета: **`acars-smoke`** → **Create**. Project Editor сам добавит к нему компанию по умолчанию
+   (поле Default company name) — получится **`avail-acars-smoke`**. Так и нужно: приложение ищет в Community
+   папку с этим именем. Не переименовывайте пакет.
+3. Откроется **Visual Effects Wizard**. Имя эффекта — любое, например `acars-smoke` (объект находит эффект
+   по InstanceId, не по имени). **Create Visual Effect**.
    Откроется Visual Effects Editor со стартовыми узлами.
 4. Project Editor → меню **Project → Save**.
 5. Проверьте путь эффекта: в Project Editor раскройте пакет → группа **VisualEffectsLib** → поле **Asset
@@ -55,7 +57,7 @@ SDK\Licenses\MSFS SDK EULA.pdf`, п. 1 b) разрешает образцы SDK 
 
 ## 3. Материал со своей текстурой
 
-1. Project Editor → выделите пакет `acars-smoke` → внизу Project Inspector, в разделе Asset groups — **Add
+1. Project Editor → выделите пакет `avail-acars-smoke` → внизу Project Inspector, в разделе Asset groups — **Add
    Asset Group**.
 2. В Package Wizard: **Custom** → **Next**. Имя: `acars-smoke-materiallib`, тип **MaterialLib** → **Create**.
 3. В Project Inspector найдите **AssetDir** группы материала → **Show In Explorer**. Создайте там папку
@@ -76,13 +78,13 @@ SDK\Licenses\MSFS SDK EULA.pdf`, п. 1 b) разрешает образцы SDK 
 6. **Save** внизу Material Inspector. Материал появится в списке.
 
 > **[?] Материал в том же пакете.** В примере SDK материал лежит в отдельном пакете, а приложение ставит
-> только одну папку `acars-smoke`. Обязательно ли разделение, документация не говорит. Если на шаге 6 сборка
+> только одну папку `avail-acars-smoke`. Обязательно ли разделение, документация не говорит. Если на шаге 6 сборка
 > ругается на материал или в симуляторе дым есть, но с другой текстурой (раздел 7), — напишите: тогда я
 > научу приложение ставить второй пакет.
 
 ## 4. Граф эффекта
 
-Откройте эффект: Visual Effects Editor → `AcarsSmokeColumn` в списке эффектов (или Project Editor →
+Откройте эффект: Visual Effects Editor → ваш эффект в списке эффектов (или Project Editor →
 VisualEffectsLib → **Load In Editor**). Цепочка сверху вниз: **VisualEffect → Emitter → Init → Update →
 Output**. Поля узла — в **Inspector** справа, когда узел выделен. Новый узел — правый клик на пустом месте
 графа, поиск по имени. Связь — тянуть мышью от выхода узла к входу поля.
@@ -145,17 +147,17 @@ Visual Effects Editor → **File → Save**, затем Project Editor → **Pro
    `<VisualEffect.VisualEffect InstanceId="{…}">`. Скопируйте значение целиком, с фигурными скобками.
 2. Скопируйте из репозитория папку
    `bridge\msfs\package\PackageSources\SimObjects\Landmarks\ACARS_Smoke`
-   в проект: `D:\msfs-projects\acars-smoke-pkg\PackageSources\SimObjects\Landmarks\ACARS_Smoke`.
+   в проект: `D:\msfs-projects\acars-smoke\PackageSources\SimObjects\Landmarks\ACARS_Smoke`.
    Папку `bridge\msfs\package\PackageSources\VisualEffectLibs` **не копируйте**.
 3. В **скопированном** `model\ACARS_Smoke.xml` замените в `<FX_GUID>` нули на InstanceId из пункта 1.
 4. `sim.cfg`: строка `title=ACARS Smoke` — **не меняйте**, это название ищет мост.
-5. Project Editor → пакет `acars-smoke` → **Add Asset Group**. Тип **SimObject** (так работает в вашем
+5. Project Editor → пакет `avail-acars-smoke` → **Add Asset Group**. Тип **SimObject** (так работает в вашем
    проекте T34), источник — `PackageSources\SimObjects\Landmarks\ACARS_Smoke\`, выход —
    `SimObjects\Landmarks\ACARS_Smoke\`.
 
 ## 6. Свойства пакета и сборка
 
-1. Project Editor → выделите пакет `acars-smoke` → Project Inspector:
+1. Project Editor → выделите пакет `avail-acars-smoke` → Project Inspector:
 
    | Поле | Значение |
    |---|---|
@@ -166,16 +168,16 @@ Visual Effects Editor → **File → Save**, затем Project Editor → **Pro
    **Title не меняйте в следующих версиях.** По нему приложение отличает наш пакет от чужой папки с тем же
    именем. Версию **повышайте** при каждой новой сборке — иначе «Обновить» не появится.
 2. **Build All In Project**. В консоли — без красных ошибок.
-3. Результат — `D:\msfs-projects\acars-smoke-pkg\Packages\acars-smoke\`. Откройте в нём `manifest.json`:
+3. Результат — `D:\msfs-projects\acars-smoke\Packages\avail-acars-smoke\`. Откройте в нём `manifest.json`:
    должны быть `"title": "ACARS Smoke"` и `"package_version": "1.0.0"`. Без них приложение пакет не увидит.
 
 ## 7. Проверка через приложение
 
-1. Скопируйте `Packages\acars-smoke` в репозиторий: `bridge\msfs\package\dist\acars-smoke`.
+1. Скопируйте `Packages\avail-acars-smoke` в репозиторий: `bridge\msfs\package\dist\avail-acars-smoke`.
 2. **Закройте MSFS.** `pnpm desktop:dev` → Расширенные настройки → «Пакет дыма для MSFS 2024»:
    «MSFS 2024 (Steam): не установлен», кнопка **Установить** активна. Нажмите — «Готово — перезапустите MSFS»,
-   в `D:\MSFS2024\Community\acars-smoke` появился пакет.
-3. Запустите MSFS, начните полёт. DevMode → **Tools → SimObject Spawner** → фильтр **Packages** = `acars-smoke`
+   в `D:\MSFS2024\Community\avail-acars-smoke` появился пакет.
+3. Запустите MSFS, начните полёт. DevMode → **Tools → SimObject Spawner** → фильтр **Packages** = `avail-acars-smoke`
    → в списке `ACARS Smoke` → **Spawn**. Должен пойти дым.
 4. Полная проверка: LEBL, на стоянке, приложение подключено, Сценарии → `dep_fire` → «Запустить сейчас».
    Через ~1 мин — столб дыма у ВПП 24L, с той стороны, что в телексе.
@@ -185,12 +187,12 @@ Visual Effects Editor → **File → Save**, затем Project Editor → **Pro
    - **ветер:** поставьте в погоде ветер 15–25 узлов; дым должен уходить **по ветру** (ветер с запада — дым на
      восток). Если столб вертикальный — запишите, будем отдельно разбираться с ветром;
    - **FPS:** заметно ли проседает рядом с дымом.
-6. Проверьте «Удалить»: MSFS закрыт → «Удалить» → папки `acars-smoke` в Community нет.
+6. Проверьте «Удалить»: MSFS закрыт → «Удалить» → папки `avail-acars-smoke` в Community нет.
 
 ## 8. Что прислать
 
 - всё ли прошло, и на каких шагах с **[?]** пришлось делать иначе (дословно, что выбрали);
 - скриншот дыма издалека и вблизи.
 
-После этого я закоммичу `bridge/msfs/package/dist/acars-smoke` (собранный пакет; исходники проекта — тоже, если
-пришлёте папку `D:\msfs-projects\acars-smoke-pkg` без `_PackageInt` и `Packages`), и он попадёт в установщик.
+После этого я закоммичу `bridge/msfs/package/dist/avail-acars-smoke` (собранный пакет; исходники проекта — тоже:
+`D:\msfs-projects\acars-smoke` без `_PackageInt`, `Packages` и старой подпапки `acars-smoke\SimpleFX`), и он попадёт в установщик.

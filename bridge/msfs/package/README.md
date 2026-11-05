@@ -35,7 +35,7 @@ aircraft", so this SimObject is legacy (non-modular): a `sim.cfg` with `category
    node: with the sample's GUIDs it played only while the project was open in DevMode, never from Community
    (seen 2026-10-17; new GUIDs fixed it).
 2. Create a package project in the SDK, add these `PackageSources` folders, build, copy the result to the
-   `Community` folder as `acars-smoke`.
+   `Community` folder (for the installer: `docs/guide-smoke-package.ru.md`, package `avail-acars-smoke`, T104).
 3. DevMode → Aircraft selector: is the title `ACARS Smoke` listed? (`SimConnect_EnumerateSimObjectsAndLiveries`
    also lists it.) If the sim wants an aircraft Preset or a flight model, add what it asks for.
 4. Run the app with the real bridge, scenario `dest_fire` (Scenarios → run now) in flight within 40 NM of

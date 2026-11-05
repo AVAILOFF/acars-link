@@ -635,7 +635,7 @@ export const es: Readonly<Partial<Record<MessageKey, string>>> = {
   'set.smokePkgOld': '{version} instalada, esta aplicación incluye {bundled}',
   'set.smokePkgMissing': 'no instalado',
   'set.smokePkgForeign':
-    'la carpeta «Community» ya contiene una carpeta «acars-smoke» de otro complemento, y la aplicación no la modifica',
+    'la carpeta «Community» ya contiene una carpeta «avail-acars-smoke» de otro complemento, y la aplicación no la modifica',
   'set.smokePkgNotBundled': 'Esta versión no incluye el paquete «smoke».',
   'set.smokePkgNoSim':
     'No se ha encontrado MSFS 2024 (no hay archivo UserCfg.opt en la versión de la Tienda o de Steam).',

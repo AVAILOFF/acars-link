@@ -622,7 +622,7 @@ export const ru: Record<MessageKey, string> = {
   'set.smokePkgInstalled': 'установлен, {version}',
   'set.smokePkgOld': 'установлен {version}, в приложении {bundled}',
   'set.smokePkgMissing': 'не установлен',
-  'set.smokePkgForeign': 'в Community другая папка acars-smoke, не наша; не трогаем',
+  'set.smokePkgForeign': 'в Community другая папка avail-acars-smoke, не наша; не трогаем',
   'set.smokePkgNotBundled': 'В этой сборке нет пакета дыма.',
   'set.smokePkgNoSim': 'MSFS 2024 не найден (нет UserCfg.opt версии Store или Steam).',
   'set.smokePkg.store': 'MSFS 2024 (Microsoft Store)',

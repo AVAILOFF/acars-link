@@ -638,7 +638,7 @@ export const de: Readonly<Partial<Record<MessageKey, string>>> = {
   'set.smokePkgOld': '{version} installiert, diese App enthält {bundled}',
   'set.smokePkgMissing': 'nicht installiert',
   'set.smokePkgForeign':
-    'Der Community-Ordner enthält bereits einen Ordner „acars-smoke“ aus einem anderen Add-on, und die App nimmt daran keine Änderungen vor',
+    'Der Community-Ordner enthält bereits einen Ordner „avail-acars-smoke“ aus einem anderen Add-on, und die App nimmt daran keine Änderungen vor',
   'set.smokePkgNotBundled': 'Diese Version enthält kein Smoke-Paket.',
   'set.smokePkgNoSim':
     'MSFS 2024 nicht gefunden (keine „UserCfg.opt“-Datei in der Store- oder Steam-Version).',

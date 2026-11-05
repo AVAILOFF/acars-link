@@ -623,7 +623,7 @@ export const ja: Readonly<Partial<Record<MessageKey, string>>> = {
   'set.smokePkgOld': 'インストール済み{version}、このアプリには{bundled}が含まれています',
   'set.smokePkgMissing': 'インストールされていない',
   'set.smokePkgForeign':
-    '「Community」フォルダには、別のアドオンによる「acars-smoke」フォルダがすでに存在しており、本アプリはそれを変更しません',
+    '「Community」フォルダには、別のアドオンによる「avail-acars-smoke」フォルダがすでに存在しており、本アプリはそれを変更しません',
   'set.smokePkgNotBundled': 'このビルドにはsmokeパッケージが含まれていません。',
   'set.smokePkgNoSim':
     'MSFS 2024が見つかりません（Store版またはSteam版にはUserCfg.optがありません）。',

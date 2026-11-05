@@ -629,7 +629,7 @@ export interface SmokePackageTarget {
   readonly community: string;
   /** `package_version` of the installed package; null = not installed (or a foreign folder without a manifest). */
   readonly installed: string | null;
-  /** A folder `acars-smoke` that is not ours: never replaced or removed. */
+  /** A folder `avail-acars-smoke` that is not ours: never replaced or removed. */
   readonly foreign: boolean;
 }
 

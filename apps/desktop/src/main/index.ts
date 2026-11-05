@@ -324,7 +324,7 @@ async function main(): Promise<void> {
       const error = await shell.openPath(file);
       if (error !== '') throw new Error(error);
     },
-    // T104: installed — resources/acars-smoke (electron-builder.yml); from the sources — the built package in the repository.
+    // T104: installed — resources/avail-acars-smoke (electron-builder.yml); from the sources — the built package in the repository.
     smokePackage: new SmokePackage({
       localAppData: process.env['LOCALAPPDATA'] ?? join(app.getPath('home'), 'AppData', 'Local'),
       appData: app.getPath('appData'),

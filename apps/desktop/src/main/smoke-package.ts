@@ -17,8 +17,8 @@ import type { SimInstall, SmokePackageTarget, SmokePackageView } from '../shared
  * installed: the package goes to each.
  */
 
-/** Folder name of the package in Community. */
-export const SMOKE_PACKAGE = 'acars-smoke';
+/** Folder name of the package in Community: the package name the SDK made, `<company>-<name>` (T104). */
+export const SMOKE_PACKAGE = 'avail-acars-smoke';
 
 export interface SmokePackageEnv {
   /** `%LOCALAPPDATA%`. */
