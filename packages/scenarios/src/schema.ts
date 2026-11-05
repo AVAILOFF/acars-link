@@ -386,6 +386,7 @@ export const SCENARIO_SCHEMA = {
                       small: vdgsLines,
                       wide: vdgsLines,
                       x: vdgsLines,
+                      flex: vdgsLines,
                     },
                   },
                 ],

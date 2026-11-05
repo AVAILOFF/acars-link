@@ -35,6 +35,8 @@ steps:
                 narrow: ["{ofp.airline}", "{ofp.flight}", "{ofp.dest}", "", ""]
                 wide: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "", "", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
                 x: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "", "", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
+                # SafeDock FLEX: 5 lines of 10, no room for the SID.
+                flex: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "", "", "~RWY {ofp.orig_rwy}"]
         - if: "flight.minutes_to_etd > 0 and flight.minutes_to_etd <= 30"
           steps:
             - vdgs:
@@ -43,5 +45,7 @@ steps:
                 narrow: ["{ofp.airline}", "{ofp.flight}", "{ofp.dest}", "ETD", "{ofp.est_out|hhmm}"]
                 wide: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "ETD {ofp.est_out|hhmm}", "TTD {flight.minutes_to_etd}MIN", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
                 x: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "ETD {ofp.est_out|hhmm}", "TTD {flight.minutes_to_etd} MIN", "~RWY {ofp.orig_rwy}", "~{ofp.sid}"]
+                # SafeDock FLEX: 5 lines of 10, no room for the SID.
+                flex: ["{ofp.airline} {ofp.flight}", "TO {ofp.dest}", "ETD {ofp.est_out|hhmm}", "TTD {flight.minutes_to_etd} MIN", "~RWY {ofp.orig_rwy}"]
         - wait: { minutes: 1 }
   - vdgs: stop

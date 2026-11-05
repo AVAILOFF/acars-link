@@ -27,6 +27,7 @@ describe('VDGS limits (FSDreamTeam VGDS manual 2025-07-29)', () => {
       narrow: { chars: 6, lines: 5 },
       wide: { chars: 9, lines: 6 },
       x: { chars: 10, lines: 6 },
+      flex: { chars: 10, lines: 5 },
     });
   });
 
@@ -61,6 +62,7 @@ describe('VDGS limits (FSDreamTeam VGDS manual 2025-07-29)', () => {
         narrow: [{ text: 'GATE', red: true }],
         wide: [{ text: 'GATE', red: true }],
         x: [{ text: 'GATE', red: true }],
+        flex: [{ text: 'GATE', red: true }],
       },
     });
     const withSmall = buildVdgsMessage('RJBB', 2.5, {
@@ -71,6 +73,7 @@ describe('VDGS limits (FSDreamTeam VGDS manual 2025-07-29)', () => {
     expect(withSmall.durationMs).toBe(2500);
     expect(withSmall.displays.small).toEqual(L('B12'));
     expect(withSmall.displays.x).toEqual(L('GATE')); // x falls back to narrow, not wide
+    expect(withSmall.displays.flex).toEqual(L('GATE'));
   });
 
   it('refuses instead of shortening', () => {
@@ -135,6 +138,7 @@ describe('vdgs step', () => {
         narrow: [...L('SJX', '822'), { text: 'GATE', red: true }],
         wide: [...L('SJX', '822'), { text: 'GATE', red: true }],
         x: [...L('SJX', '822'), { text: 'GATE', red: true }],
+        flex: [...L('SJX', '822'), { text: 'GATE', red: true }],
       },
     });
   });
@@ -219,6 +223,7 @@ describe('departure board (T102)', () => {
           narrow: L('822', ''),
           wide: L('822', ''),
           x: L('822', ''),
+          flex: L('822', ''),
         },
       },
       null,

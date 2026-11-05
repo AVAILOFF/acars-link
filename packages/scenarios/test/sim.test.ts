@@ -182,6 +182,14 @@ describe('sim scenarios', () => {
         expect.arrayContaining(['SJX 822', 'TO RJBB', `TOBT ${hhmm(sched)}`, 'TTD 30MIN']),
       );
       expect(wide(at(r, -10))[3]).toMatch(/^TTD 1[01]MIN$/);
+      // SafeDock FLEX (EDDF A19): 5 lines of 10.
+      expect((at(r, -10).vdgs?.displays.flex ?? []).map((l) => l.text)).toEqual([
+        'SJX 822',
+        'TO RJBB',
+        `TOBT ${hhmm(sched)}`,
+        expect.stringMatching(/^TTD 1[01] MIN$/),
+        'RWY 05R',
+      ]);
       const narrow = (at(r, -5).vdgs?.displays.narrow ?? []).map((l) => l.text);
       expect(narrow).toEqual(['SJX', '822', 'RJBB', 'TOBT', hhmm(sched)]);
       expect(wide(at(r, 1)).slice(2, 4)).toEqual(['', '']);

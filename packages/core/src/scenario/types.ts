@@ -202,6 +202,8 @@ export interface VdgsStep {
         readonly small?: readonly VdgsLineDef[];
         readonly wide?: readonly VdgsLineDef[];
         readonly x?: readonly VdgsLineDef[];
+        /** SafeDock FLEX, 10 × 5 (T102); without it, `narrow`. */
+        readonly flex?: readonly VdgsLineDef[];
       };
 }
 
