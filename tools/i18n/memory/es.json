@@ -1229,6 +1229,11 @@
     "out": "Automático: {kind}",
     "engine": "deepl"
   },
+  "msg:kind.basis.aircraft_type": {
+    "src": "Aircraft type: <x>{type}</x>",
+    "out": "Tipo de aeronave: {type}",
+    "engine": "deepl"
+  },
   "msg:kind.basis.cargo": {
     "src": "From the <x>OFP</x>: 0 <x>PAX</x>, freight <x>{t}</x> t",
     "out": "Desde el OFP: 0 PAX, carga {t} t",
@@ -2214,6 +2219,11 @@
     "out": "Servicios de rescate",
     "engine": "deepl"
   },
+  "msg:set.group.smokePkg": {
+    "src": "Smoke package for <x>MSFS</x> 2024",
+    "out": "Paquete «Smoke» para MSFS 2024",
+    "engine": "deepl"
+  },
   "msg:set.group.time": {
     "src": "Time and route",
     "out": "Hora y ruta",
@@ -2502,6 +2512,76 @@
   "msg:set.simulatorHint": {
     "src": "Automatic: the sim bridge connects to whichever of <x>MSFS</x> and <x>X-Plane 12</x> is running (if both are, the first to answer) and looks again when it closes. <x>X-Plane 12</x>.1.1 or later, through its built-in web <x>API</x> on port 8086 (Settings &gt; Network must allow incoming traffic). With <x>X-Plane</x> there is no sim time, smoke or rescue vehicles. The installed app restarts the sim bridge when this changes.",
     "out": "Automático: el puente de simulación se conecta a cualquiera de los programas MSFS y X-Plane 12 que esté en ejecución (si ambos lo están, al primero que responda) y vuelve a comprobarlo cuando se cierre. X-Plane 12.1.1 o posterior, a través de su API web integrada en el puerto 8086 (en «Configuración > Red» debe permitirse el tráfico entrante). Con X-Plane no hay tiempo de simulación, humo ni vehículos de rescate. La aplicación instalada reinicia el puente de simulación cuando esto cambia.",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkg": {
+    "src": "Package in the Community folder",
+    "out": "Paquete en la carpeta «Community»",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkg.steam": {
+    "src": "<x>MSFS</x> 2024 (Steam)",
+    "out": "MSFS 2024 (Steam)",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkg.store": {
+    "src": "<x>MSFS</x> 2024 (Microsoft Store)",
+    "out": "MSFS 2024 (Microsoft Store)",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgDone": {
+    "src": "Done — restart <x>MSFS</x>",
+    "out": "Listo — reinicie MSFS",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgForeign": {
+    "src": "the Community folder already holds a folder acars-smoke from another add-on, and the app does not change it",
+    "out": "la carpeta «Community» ya contiene una carpeta «acars-smoke» de otro complemento, y la aplicación no la modifica",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgHint": {
+    "src": "The fire scenarios show a smoke column at the runway only with this package. Rescue vehicles are standard <x>MSFS</x> objects and need no package. The app copies it into Community only when you press the button; restart <x>MSFS</x> afterwards.",
+    "out": "Los escenarios de incendio muestran una columna de humo en la pista únicamente con este paquete. Los vehículos de rescate son objetos estándar de MSFS y no necesitan ningún paquete. La aplicación los copia en «Community» solo cuando pulse el botón; reinicie MSFS a continuación.",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgInstall": {
+    "src": "Install",
+    "out": "Instalar",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgInstalled": {
+    "src": "installed, <x>{version}</x>",
+    "out": "instalado, {version}",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgMissing": {
+    "src": "not installed",
+    "out": "no instalado",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgNoSim": {
+    "src": "<x>MSFS</x> 2024 not found (no UserCfg.opt of the Store or Steam version).",
+    "out": "No se ha encontrado MSFS 2024 (no hay archivo UserCfg.opt en la versión de la Tienda o de Steam).",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgNotBundled": {
+    "src": "This build has no smoke package.",
+    "out": "Esta versión no incluye el paquete «smoke».",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgOld": {
+    "src": "installed <x>{version}</x>, this app has <x>{bundled}</x>",
+    "out": "{version} instalada, esta aplicación incluye {bundled}",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgRemove": {
+    "src": "Remove",
+    "out": "Eliminar",
+    "engine": "deepl"
+  },
+  "msg:set.smokePkgUpdate": {
+    "src": "Update",
+    "out": "Actualizar",
     "engine": "deepl"
   },
   "msg:set.sound": {
