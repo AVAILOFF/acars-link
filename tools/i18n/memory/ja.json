@@ -189,6 +189,11 @@
     "out": "はい、「シナリオ」タブで可能です。個々のシナリオやカテゴリ全体のオン／オフを切り替えたり、ランダムイベントの発生確率を変更したりできます。変更は次のフライトから適用されます。パイロットコマンドには切り替えスイッチはありませんが、リクエストにはスイッチが必要です。",
     "engine": "deepl"
   },
+  "help:settings.scenarios.a1": {
+    "src": "To turn off one kind of message, type a word from it into the search field on the Scenarios tab: “<x>CTOT</x>” finds the three scenarios with slot messages. In the feed, the subject of a message is the name of its scenario.",
+    "out": "特定の種類のメッセージを表示しないようにするには、「シナリオ」タブの検索フィールドにそのメッセージに含まれる単語を入力してください。「CTOT」と入力すると、スロットに関するメッセージが表示される3つのシナリオが見つかります。メッセージ一覧では、メッセージの件名は、そのシナリオの名前となります。",
+    "engine": "deepl"
+  },
   "help:settings.scenarios.q": {
     "src": "Can I choose which messages arrive?",
     "out": "どのメッセージが到着するかを選択することはできますか？",

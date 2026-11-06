@@ -147,6 +147,7 @@ export const fr: readonly HelpSection[] = [
         q: 'Puis-je choisir les messages que je souhaite recevoir ?',
         a: [
           'Oui, dans l’onglet « Scénarios » : activez ou désactivez des scénarios individuels ou des catégories entières, et modifiez la probabilité des événements aléatoires. Les modifications s’appliquent dès le prochain vol. Les commandes pilote ne comportent pas de commutateurs : ce sont les demandes qui en nécessitent.',
+          'Pour désactiver un type de message, saisissez un mot de celui-ci dans le champ de recherche de l’onglet « Scénarios » : « CTOT » permet de trouver les trois scénarios comportant des messages relatifs aux créneaux horaires. Dans le fil des messages, l’objet d’un message correspond au nom de son scénario.',
         ],
       },
       {

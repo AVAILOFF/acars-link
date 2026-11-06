@@ -147,6 +147,7 @@ export const es: readonly HelpSection[] = [
         q: '¿Puedo elegir qué mensajes recibo?',
         a: [
           'Sí, en la pestaña «Escenarios»: active o desactive escenarios individuales o categorías completas y modifique la probabilidad de que se produzcan eventos aleatorios. Los cambios se aplican a partir del siguiente vuelo. Los comandos del piloto no tienen interruptores: las solicitudes sí los necesitan.',
+          'Para desactivar un tipo de mensaje, escriba una palabra del mismo en el campo de búsqueda de la pestaña «Escenarios»: «CTOT» localiza los tres escenarios con mensajes de franja horaria. En la lista de mensajes, el asunto de un mensaje es el nombre de su escenario.',
         ],
       },
       {
