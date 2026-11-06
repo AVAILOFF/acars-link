@@ -139,6 +139,7 @@ export const en: readonly HelpSection[] = [
         q: 'Can I choose which messages arrive?',
         a: [
           'Yes, on the Scenarios tab: turn single scenarios or whole categories on and off and change the chance of random events. Changes apply from the next flight. Pilot commands have no switches: requests need them.',
+          'To turn off one kind of message, type a word from it into the search field on the Scenarios tab: “CTOT” finds the three scenarios with slot messages. In the feed, the subject of a message is the name of its scenario.',
         ],
       },
       {

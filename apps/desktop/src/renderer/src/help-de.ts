@@ -147,6 +147,7 @@ export const de: readonly HelpSection[] = [
         q: 'Kann ich auswählen, welche Nachrichten angezeigt werden?',
         a: [
           'Ja, auf der Registerkarte „Szenarien“: Schalten Sie einzelne Szenarien oder ganze Kategorien ein und aus und ändern Sie die Wahrscheinlichkeit von Zufallsereignissen. Die Änderungen gelten ab dem nächsten Flug. Pilotenbefehle haben keine Schalter: Anfragen benötigen diese.',
+          'Um eine bestimmte Art von Nachricht zu deaktivieren, geben Sie ein Wort daraus in das Suchfeld auf der Registerkarte „Szenarien“ ein: „CTOT“ findet die drei Szenarien mit Slot-Nachrichten. In der Nachrichtenliste ist der Betreff einer Nachricht der Name des zugehörigen Szenarios.',
         ],
       },
       {

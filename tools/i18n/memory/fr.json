@@ -189,6 +189,11 @@
     "out": "Oui, dans l’onglet « Scénarios » : activez ou désactivez des scénarios individuels ou des catégories entières, et modifiez la probabilité des événements aléatoires. Les modifications s’appliquent dès le prochain vol. Les commandes pilote ne comportent pas de commutateurs : ce sont les demandes qui en nécessitent.",
     "engine": "deepl"
   },
+  "help:settings.scenarios.a1": {
+    "src": "To turn off one kind of message, type a word from it into the search field on the Scenarios tab: “<x>CTOT</x>” finds the three scenarios with slot messages. In the feed, the subject of a message is the name of its scenario.",
+    "out": "Pour désactiver un type de message, saisissez un mot de celui-ci dans le champ de recherche de l’onglet « Scénarios » : « CTOT » permet de trouver les trois scénarios comportant des messages relatifs aux créneaux horaires. Dans le fil des messages, l’objet d’un message correspond au nom de son scénario.",
+    "engine": "deepl"
+  },
   "help:settings.scenarios.q": {
     "src": "Can I choose which messages arrive?",
     "out": "Puis-je choisir les messages que je souhaite recevoir ?",
