@@ -663,6 +663,7 @@ export class AppController {
       flags,
       minGapMs: settings.messageGapSec * 1000,
       ...(settings.hubIcao === '' ? {} : { hub: settings.hubIcao }),
+      massUnit: settings.massUnit,
       ...(simTime ? { simTime: true } : {}),
       flightKind: { override: this.kindOverride },
       simCommands: (c) => this.sendSimCommand(c),

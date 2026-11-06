@@ -25,6 +25,6 @@ steps:
         {ofp.callsign} {ofp.orig}-{ofp.dest}
         ULD FOUND DAMAGED AT LOADING
         FREIGHT REBUILT ON NEW ULD
-        LMC CGO {load.cargo_lmc_kg|sign} KG OFFLOADED
+        LMC CGO {load.cargo_lmc_kg|w|sign} {units.mass} OFFLOADED
         FINAL LOADSHEET TO FOLLOW
       footer: "LOAD CONTROL {name:ops}"

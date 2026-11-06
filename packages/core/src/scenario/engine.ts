@@ -28,6 +28,7 @@ import {
   buildContext,
   compass8,
   type FuelTrack,
+  type MassUnitOption,
   metarWind,
   RouteGeometry,
   type RunVariable,
@@ -313,6 +314,8 @@ export interface ScenarioEngineOptions {
    * recorded before T43), 2 = by the airline's country (default).
    */
   readonly namesVersion?: 1 | 2;
+  /** Mass unit of the messages (T105, `context.ts`); default `kg`, as recorded before T105. */
+  readonly massUnit?: MassUnitOption;
   /**
    * How the next leg is chosen (T53, `ops-data.ts`): 1 = always back to the origin (as recorded
    * before T53), 2 = from the hub after a flight into it (default), 3 = first from the AeroDataBox
@@ -505,6 +508,7 @@ export class ScenarioEngine {
   private readonly ordered: readonly CompiledScenario[];
   private readonly rngs = new Map<string, Rng>();
   private readonly namesVersion: 1 | 2;
+  private readonly massUnit: MassUnitOption;
   private st: {
     scenarios: Record<string, ScenarioState>;
     runs: Run[];
@@ -559,6 +563,7 @@ export class ScenarioEngine {
     if (!(this.dataWaitMs >= 0)) throw new RangeError('dataWaitMs must be ≥ 0');
     this.seed = options.seed;
     this.namesVersion = options.namesVersion ?? 2;
+    this.massUnit = options.massUnit ?? 'kg';
     this.fitPre = options.lateStartVersion === 2 || options.lateStartVersion === 3;
     this.fitLive = options.lateStartVersion === 3;
     this.groundRescue = options.rescueVersion === 2;
@@ -1027,6 +1032,7 @@ export class ScenarioEngine {
       tobtDelayMs: this.st.tobtDelayMs,
       delayParts: this.st.delayParts,
       namesVersion: this.namesVersion,
+      massUnit: this.massUnit,
       route: this.route,
       now: input.now,
       phase: input.phase,

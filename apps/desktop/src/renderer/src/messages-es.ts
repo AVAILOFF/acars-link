@@ -573,6 +573,12 @@ export const es: Readonly<Partial<Record<MessageKey, string>>> = {
   'set.offDatalink': 'Active la opción «Simulación de enlace de datos» más arriba.',
   'set.offRescue': 'Active la opción «Servicios de rescate en el simulador» más arriba.',
   'set.offXplane': 'No disponible con X-Plane.',
+  'set.massUnit': 'Unidades de peso',
+  'set.massUnitHint':
+    'Unidades de las hojas de carga, cifras de combustible y otros pesos en los mensajes de las aerolíneas: las cifras grandes se expresan en toneladas o miles de libras, y las pequeñas en KG o LB.',
+  'set.massUnit.ofp': 'Al igual que en el OFP',
+  'set.massUnit.kg': 'Kilogramos (KG)',
+  'set.massUnit.lb': 'Libras (LB)',
   'set.simulator': 'Simulador',
   'set.simulatorHint':
     'Automático: el puente de simulación se conecta a cualquiera de los programas MSFS y X-Plane 12 que esté en ejecución (si ambos lo están, al primero que responda) y vuelve a comprobarlo cuando se cierre. X-Plane 12.1.1 o posterior, a través de su API web integrada en el puerto 8086 (en «Configuración > Red» debe permitirse el tráfico entrante). Con X-Plane no hay tiempo de simulación, humo ni vehículos de rescate. La aplicación instalada reinicia el puente de simulación cuando esto cambia.',

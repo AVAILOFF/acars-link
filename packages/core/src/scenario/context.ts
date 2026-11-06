@@ -118,6 +118,9 @@ export const CONTEXT_VARIABLES = [
   // person names (T43, names.ts): surname region and mix of nationalities
   'names.region',
   'names.mix',
+  // mass units of the messages (T105): KG / LB and the label of big figures (TONNES / 1000 LBS)
+  'units.mass',
+  'units.mass_big',
   // aircraft
   'aircraft.icao',
   'aircraft.cat',
@@ -404,6 +407,8 @@ export interface ContextInput {
   readonly tobtDelayMs?: number;
   /** Generator of `{name:…}` (T43): 1 = by the origin's ICAO prefix, 2 = by the airline. */
   readonly namesVersion?: 1 | 2;
+  /** Mass unit of the messages (T105); absent = `kg`, as recorded before T105. */
+  readonly massUnit?: MassUnitOption;
   /** What the delay is made of (T43). */
   readonly delayParts?: readonly DelayPart[];
   /** Diversion airport the pilot declared (`DIVERT`), engine. */
@@ -670,6 +675,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       ...t46Variables(input),
       ...perfVariables(ofp),
       ...nameVariables(input),
+      ...unitVariables(input),
       'ofp.airline_type': airlineType(ofp.airlineIcao),
       'load.pax': load.pax,
       'load.pax_lmc': load.paxLmc,
@@ -1164,6 +1170,19 @@ function perfVariables(
     'ofp.crew_cockpit': crew?.cockpit ?? null,
     'ofp.crew_cabin': crew?.cabin ?? null,
   };
+}
+
+/**
+ * Mass unit of the messages (T105): `ofp` = the unit the OFP was planned in (`Ofp.source.plannedUnit`).
+ * Masses stay in kg in the context; the template formatters `w1`, `w`, `wt` convert.
+ */
+export type MassUnitOption = 'ofp' | 'kg' | 'lb';
+
+/** `units.*` (T105): `KG`/`LB` and the label of `|w1` figures. */
+function unitVariables(input: ContextInput): Record<'units.mass' | 'units.mass_big', Value> {
+  const o = input.massUnit ?? 'kg';
+  const lb = (o === 'ofp' ? input.ofp.source.plannedUnit : o) === 'lb';
+  return { 'units.mass': lb ? 'LB' : 'KG', 'units.mass_big': lb ? '1000 LBS' : 'TONNES' };
 }
 
 /** `names.*` (T43): version 2 — the airline's country, else the origin's (VATSpy), else null. */

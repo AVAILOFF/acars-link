@@ -5,6 +5,7 @@ import {
   DEFAULT_RESCUE_FLIPPED,
   DEFAULT_RESCUE_TITLES,
   DEFAULT_STATION,
+  type MassUnitOption,
   RESCUE_MAX_VEHICLES,
   RESCUE_TITLE_GROUPS,
   type RescueTitles,
@@ -32,6 +33,7 @@ export const DEFAULT_BRIDGE_PORT = 47830;
 
 const TRANSPORTS: readonly TransportChoice[] = ['hoppie', 'offline'];
 const SIM_CHOICES: readonly SimChoice[] = ['auto', 'msfs', 'xplane'];
+const MASS_UNITS: readonly MassUnitOption[] = ['ofp', 'kg', 'lb'];
 /** Letters/digits and `{flight}` / `{airline}` placeholders. */
 const STATION_RE = /^(?:[A-Z0-9]|\{flight\}|\{airline\})+$/i;
 export const SCENARIO_ID_RE = /^[a-z0-9_]{1,64}$/;
@@ -54,6 +56,7 @@ export function defaultSettings(locale: string): Settings {
     datalinkSatcom: true,
     aircraftIcaoHex: '',
     hubIcao: '',
+    massUnit: 'ofp',
     simTime: false,
     turnaround: true,
     datalinkHeaderInText: false,
@@ -96,6 +99,10 @@ export function validatePatch(patch: unknown): SettingsPatch {
       case 'simChoice':
         if (!SIM_CHOICES.includes(value as SimChoice)) throw bad(key, 'auto, msfs or xplane');
         out.simChoice = value as SimChoice;
+        break;
+      case 'massUnit':
+        if (!MASS_UNITS.includes(value as MassUnitOption)) throw bad(key, 'ofp, kg or lb');
+        out.massUnit = value as MassUnitOption;
         break;
       case 'stationTemplate':
         if (typeof value !== 'string' || value.length > 32 || !STATION_RE.test(value)) {
@@ -262,6 +269,7 @@ export function sanitize(raw: unknown, defaults: Settings): Settings {
     'datalinkSatcom',
     'aircraftIcaoHex',
     'hubIcao',
+    'massUnit',
     'simTime',
     'turnaround',
     'datalinkHeaderInText',

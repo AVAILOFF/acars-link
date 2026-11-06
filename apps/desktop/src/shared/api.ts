@@ -6,6 +6,7 @@ import type {
   FlightKindInfo,
   FlightPhase,
   FlightReport,
+  MassUnitOption,
   RescueTitles,
   ScenarioCategory,
 } from '@acars/core';
@@ -136,6 +137,11 @@ export interface Settings {
    * Empty = the OpenFlights hub of the airline. Stored upper case.
    */
   readonly hubIcao: string;
+  /**
+   * Mass unit of the airline's messages (T105): `ofp` = the unit the OFP was planned in
+   * (default), `kg` or `lb`. Big figures in tonnes / 1000 LBS, small ones in KG / LB.
+   */
+  readonly massUnit: MassUnitOption;
   /**
    * Time from the simulator: the flight's clock (STD/STA, delays, times in messages) is the sim's
    * UTC, not the PC's. Needs a bridge that sends `simUtcMs`; the flight waits for it. Default off.

@@ -16,6 +16,7 @@ import {
   type FlightKind,
   generateSyntheticFlight,
   latestLanding,
+  type MassUnitOption,
   MISSING,
   type Ofp,
   type OutboundMessage,
@@ -87,6 +88,8 @@ export interface Case {
   readonly name: string;
   readonly ofp: Ofp;
   readonly flight: SyntheticFlight;
+  /** Core `massUnit` (T105); absent = kg. */
+  readonly massUnit?: MassUnitOption;
 }
 export const normal = generateSyntheticFlight({ ofp: kg });
 const goAround = generateSyntheticFlight({ ofp: kg, goAroundAglFt: 400 });
@@ -106,8 +109,9 @@ export const FLIGHTS: readonly Case[] = [
     ),
   },
   {
-    name: 'lbs OFP, telemetry gap',
+    name: 'lbs OFP in LB (T105), telemetry gap',
     ofp: lbs,
+    massUnit: 'ofp',
     flight: withGap(lbsFlight, { atIndex: stageIndex(lbsFlight, 'CLIMB', 120), durationSec: 90 }),
   },
 ];
@@ -246,6 +250,7 @@ export function fly(
     ...(o.flags === undefined ? {} : { flags: o.flags }),
     ...(o.nextLegVersion === undefined ? {} : { nextLegVersion: o.nextLegVersion }),
     ...(o.flightKind === undefined ? {} : { flightKind: { override: o.flightKind } }),
+    ...(c.massUnit === undefined ? {} : { massUnit: c.massUnit }),
   });
   core.startFlight();
   const out: OutboundMessage[] = [];

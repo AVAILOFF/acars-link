@@ -95,6 +95,8 @@ export interface CoreOptions {
   readonly runwayNeeds?: ScenarioEngineOptions['runwayNeeds'];
   /** Generator of person names, see `ScenarioEngineOptions.namesVersion` (T43); default 2. */
   readonly namesVersion?: 1 | 2;
+  /** Mass unit of the messages, see `ScenarioEngineOptions.massUnit` (T105); default `kg`. */
+  readonly massUnit?: ScenarioEngineOptions['massUnit'];
   /** Next leg, see `ScenarioEngineOptions.nextLegVersion` (T53, T55); default 2. */
   readonly nextLegVersion?: 1 | 2 | 3;
   /** The user's hub airport (T53), see `ScenarioEngineOptions.hub`. */
@@ -485,6 +487,7 @@ function engineOptions(o: CoreOptions) {
       ? {}
       : { syntheticConnections: o.syntheticConnections }),
     ...(o.namesVersion === undefined ? {} : { namesVersion: o.namesVersion }),
+    ...(o.massUnit === undefined ? {} : { massUnit: o.massUnit }),
     ...(o.nextLegVersion === undefined ? {} : { nextLegVersion: o.nextLegVersion }),
     ...(o.hub === undefined ? {} : { hub: o.hub }),
     ...(o.lateStartVersion === undefined ? {} : { lateStartVersion: o.lateStartVersion }),

@@ -26,9 +26,9 @@ steps:
               STAR {ofp.star}
               ELEV {ofp.dest_elev_ft} FT
               TRANS LVL {ofp.dest_trans_level_ft} FT
-              LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
-              LDG FUEL {ofp.fuel_landing_kg|kg1}
-              ALTN {ofp.altn} FUEL {ofp.fuel_altn_kg|kg1}
+              LAW {load.ldw_kg|w1} MAX {ofp.max_ldw_kg|w1}
+              LDG FUEL {ofp.fuel_landing_kg|w1}
+              ALTN {ofp.altn} FUEL {ofp.fuel_altn_kg|w1}
       TIMEOUT:
         - send:
             header: LANDING DATA
@@ -37,7 +37,7 @@ steps:
               STAR {ofp.star}
               ELEV {ofp.dest_elev_ft} FT
               TRANS LVL {ofp.dest_trans_level_ft} FT
-              LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
+              LAW {load.ldw_kg|w1} MAX {ofp.max_ldw_kg|w1}
               FLAPS {ofp.ldg_flaps} VREF {ofp.vref}
-              LDG FUEL {ofp.fuel_landing_kg|kg1}
-              ALTN {ofp.altn} FUEL {ofp.fuel_altn_kg|kg1}
+              LDG FUEL {ofp.fuel_landing_kg|w1}
+              ALTN {ofp.altn} FUEL {ofp.fuel_altn_kg|w1}

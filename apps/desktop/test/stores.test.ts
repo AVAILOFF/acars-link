@@ -91,6 +91,7 @@ describe('settings', () => {
       datalinkSatcom: true,
       aircraftIcaoHex: '',
       hubIcao: '',
+      massUnit: 'ofp',
       simTime: false,
       turnaround: true,
       datalinkHeaderInText: false,
@@ -159,6 +160,12 @@ describe('settings', () => {
   it('my hub: four letters, stored upper case, or empty (T53)', () => {
     expect(validatePatch({ hubIcao: 'uuee' })).toEqual({ hubIcao: 'UUEE' });
     expect(validatePatch({ hubIcao: '' })).toEqual({ hubIcao: '' });
+    for (const massUnit of ['ofp', 'kg', 'lb']) {
+      expect(validatePatch({ massUnit })).toEqual({ massUnit });
+    }
+    for (const massUnit of ['KG', 'lbs', '', 1]) {
+      expect(() => validatePatch({ massUnit })).toThrow();
+    }
     for (const hubIcao of ['UUE', 'UUEE1', 'UU3E', 4]) {
       expect(() => validatePatch({ hubIcao })).toThrow();
     }

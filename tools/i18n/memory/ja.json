@@ -2314,6 +2314,31 @@
     "out": "無料の情報源（キー不要）：METAR/TAF（aviationweather.gov）、VATSIM ATC、NASA EONETイベント、宇宙ロケット打ち上げ（TheSpaceDevs）、OpenStreetMapのゲート情報。オフ：メッセージはOFPのみを使用します。",
     "engine": "deepl"
   },
+  "msg:set.massUnit": {
+    "src": "Weight units",
+    "out": "重量単位",
+    "engine": "deepl"
+  },
+  "msg:set.massUnit.kg": {
+    "src": "Kilograms (<x>KG</x>)",
+    "out": "キログラム（KG）",
+    "engine": "deepl"
+  },
+  "msg:set.massUnit.lb": {
+    "src": "Pounds (<x>LB</x>)",
+    "out": "ポンド（LB）",
+    "engine": "deepl"
+  },
+  "msg:set.massUnit.ofp": {
+    "src": "As in the <x>OFP</x>",
+    "out": "OFPと同様に",
+    "engine": "deepl"
+  },
+  "msg:set.massUnitHint": {
+    "src": "Units of loadsheets, fuel figures and other weights in airline messages: big figures in tonnes or thousands of pounds, small ones in <x>KG</x> or <x>LB</x>.",
+    "out": "航空会社のメッセージに含まれるロードシート、燃料量、その他の重量の単位：大きな数値はトンまたは千ポンド単位、小さな数値はKGまたはLB単位で表示されます。",
+    "engine": "deepl"
+  },
   "msg:set.memory": {
     "src": "Airline memory: <x>{names}</x>",
     "out": "航空会社リスト：{names}",
@@ -2541,8 +2566,8 @@
   },
   "msg:set.smokePkgForeign": {
     "src": "the Community folder already holds a folder acars-smoke from another add-on, and the app does not change it",
-    "out": "「Community」フォルダには、別のアドオンによる「acars-smoke」フォルダがすでに存在しており、本アプリはそれを変更しません",
-    "engine": "deepl"
+    "out": "「Community」フォルダには、別のアドオンによる「avail-acars-smoke」フォルダがすでに存在しており、本アプリはそれを変更しません",
+    "engine": "manual"
   },
   "msg:set.smokePkgHint": {
     "src": "The fire scenarios show a smoke column at the runway only with this package. Rescue vehicles are standard <x>MSFS</x> objects and need no package. The app copies it into Community only when you press the button; restart <x>MSFS</x> afterwards.",

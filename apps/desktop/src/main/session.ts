@@ -13,6 +13,7 @@ import {
   type FlightKindInfo,
   type FlightPhase,
   type FlightReport,
+  type MassUnitOption,
   type Ofp,
   type PilotMessage,
   type SimCommand,
@@ -80,6 +81,8 @@ export interface FlightSessionOptions {
   readonly minGapMs?: number;
   /** The user's hub (core `hub`, T53); absent = OpenFlights. */
   readonly hub?: string;
+  /** Mass unit of the messages (core `massUnit`, T105); absent = kg. Recorded in the header. */
+  readonly massUnit?: MassUnitOption;
   /**
    * Time from the sim: the flight's clock is the sim's (UTC), not the PC's. The core starts with
    * the first snapshot that has `simUtcMs`; the recording holds the shifted times.
@@ -232,6 +235,7 @@ export class FlightSession {
             nextLegVersion: NEXT_LEG_VERSION,
             lateStartVersion: LATE_START_VERSION,
             rescueVersion: RESCUE_VERSION,
+            ...(o.massUnit === undefined ? {} : { massUnit: o.massUnit }),
             ...(o.hub === undefined ? {} : { hub: o.hub }),
             ...(o.flightKind === undefined ? {} : { flightKind: o.flightKind }),
           },
@@ -282,6 +286,7 @@ export class FlightSession {
         nextLegVersion: NEXT_LEG_VERSION,
         lateStartVersion: LATE_START_VERSION,
         rescueVersion: RESCUE_VERSION,
+        ...(o.massUnit === undefined ? {} : { massUnit: o.massUnit }),
         ...(o.hub === undefined ? {} : { hub: o.hub }),
         simTime: this.simTime,
         ...(o.flightKind === undefined

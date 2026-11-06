@@ -22,9 +22,9 @@ steps:
       body: |
         FUEL PRICE AT {ofp.dest} HIGH
         TANKERING RECOMMENDED
-        EXTRA {irr.tanker_kg} KG
-        BLOCK FUEL {irr.tanker_block_kg|kg1} T
-        EST LDW {irr.tanker_ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
+        EXTRA {irr.tanker_kg|w} {units.mass}
+        BLOCK FUEL {irr.tanker_block_kg|wt}
+        EST LDW {irr.tanker_ldw_kg|w1} MAX {ofp.max_ldw_kg|w1}
         REPLY ACCEPT OR DECLINE
   - wait:
       reply:
@@ -42,7 +42,7 @@ steps:
             header: FUEL DISPATCH
             body: |
               TANKERING ACCEPTED
-              FUELLER ADVISED {irr.tanker_block_kg|kg1} T
+              FUELLER ADVISED {irr.tanker_block_kg|wt}
               LOADSHEET WILL FOLLOW
             hint: "Tankering accepted: the fueller is told the new block fuel and a loadsheet with it follows. No reply needed."
       DECLINE:
@@ -51,5 +51,5 @@ steps:
             header: FUEL DISPATCH
             body: |
               NOTED, PLANNED FUEL UNCHANGED
-              {ofp.fuel_ramp_kg|kg1} T
+              {ofp.fuel_ramp_kg|wt}
             hint: "Dispatch notes it: the planned fuel stays as in the flight plan. No reply needed."

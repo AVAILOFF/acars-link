@@ -2314,6 +2314,31 @@
     "out": "Kostenlose Quellen, keine Schlüssel: METAR/TAF (aviationweather.gov), VATSIM-ATC, NASA EONET-Ereignisse, Weltraumstarts (TheSpaceDevs), Gates aus OpenStreetMap. Aus: Nachrichten verwenden ausschließlich das OFP.",
     "engine": "deepl"
   },
+  "msg:set.massUnit": {
+    "src": "Weight units",
+    "out": "Gewichtseinheiten",
+    "engine": "deepl"
+  },
+  "msg:set.massUnit.kg": {
+    "src": "Kilograms (<x>KG</x>)",
+    "out": "Kilogramm (KG)",
+    "engine": "deepl"
+  },
+  "msg:set.massUnit.lb": {
+    "src": "Pounds (<x>LB</x>)",
+    "out": "Pfund (LB)",
+    "engine": "deepl"
+  },
+  "msg:set.massUnit.ofp": {
+    "src": "As in the <x>OFP</x>",
+    "out": "Wie im OFP",
+    "engine": "deepl"
+  },
+  "msg:set.massUnitHint": {
+    "src": "Units of loadsheets, fuel figures and other weights in airline messages: big figures in tonnes or thousands of pounds, small ones in <x>KG</x> or <x>LB</x>.",
+    "out": "Einheiten für Loadsheets, Kraftstoffangaben und andere Gewichte in Airline-Nachrichten: große Zahlen in Tonnen oder Tausend Pfund, kleine in KG oder LB.",
+    "engine": "deepl"
+  },
   "msg:set.memory": {
     "src": "Airline memory: <x>{names}</x>",
     "out": "Airline-Speicher: {names}",
@@ -2541,8 +2566,8 @@
   },
   "msg:set.smokePkgForeign": {
     "src": "the Community folder already holds a folder acars-smoke from another add-on, and the app does not change it",
-    "out": "Der Community-Ordner enthält bereits einen Ordner „acars-smoke“ aus einem anderen Add-on, und die App nimmt daran keine Änderungen vor",
-    "engine": "deepl"
+    "out": "Der Community-Ordner enthält bereits einen Ordner „avail-acars-smoke“ aus einem anderen Add-on, und die App nimmt daran keine Änderungen vor",
+    "engine": "manual"
   },
   "msg:set.smokePkgHint": {
     "src": "The fire scenarios show a smoke column at the runway only with this package. Rescue vehicles are standard <x>MSFS</x> objects and need no package. The app copies it into Community only when you press the button; restart <x>MSFS</x> afterwards.",

@@ -86,6 +86,20 @@ describe('compileTemplate', () => {
     expect(render('ALTN {ofp.altn} {ofp.altn|kg1}')).toBe(`ALTN ${MISSING} ${MISSING}`);
   });
 
+  it('T105: w1 / w / wt follow units.mass; kg1 stays tonnes', () => {
+    const at = (unit: string | undefined) => (p: string) =>
+      p === 'units.mass' ? (unit ?? null) : look(p);
+    const src = '{ofp.zfw_kg|w1} {ofp.zfw_kg|w} {ofp.zfw_kg|wt} {ofp.zfw_kg|kg1} {ofp.altn|w1}';
+    const t = compileTemplate(src);
+    expect(t.vars).toContain('units.mass');
+    expect(t.render(at('KG'), rng())).toBe(`180.2 180234 180.2 T 180.2 ${MISSING}`);
+    // 180 234 kg = 397 347.95 lb (1 lb = 0.45359237 kg exactly).
+    expect(t.render(at('LB'), rng())).toBe(`397.3 397348 397300 LB 180.2 ${MISSING}`);
+    const lmc = (p: string) => (p === 'x.lmc_kg' ? -200 : p === 'units.mass' ? 'LB' : null);
+    expect(compileTemplate('{x.lmc_kg|w|sign}').render(lmc, rng())).toBe('-441');
+    expect(() => compileTemplate('{ofp.zfw_kg|w1:2}')).toThrow(TemplateError);
+  });
+
   it('rand/pick/seat come from the seeded Rng: same seed, same text', () => {
     const src = '{rand:25-80} {rand:-5-5} {pick:[CHEST PAIN,FAINTED]} {seat}';
     const a = render(src);
