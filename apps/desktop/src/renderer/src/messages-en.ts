@@ -555,6 +555,12 @@ export const en = {
   'set.offDatalink': 'Turn on "Data link simulation" above.',
   'set.offRescue': 'Turn on "Rescue services in the simulator" above.',
   'set.offXplane': 'Not available with X-Plane.',
+  'set.massUnit': 'Weight units',
+  'set.massUnitHint':
+    'Units of loadsheets, fuel figures and other weights in airline messages: big figures in tonnes or thousands of pounds, small ones in KG or LB.',
+  'set.massUnit.ofp': 'As in the OFP',
+  'set.massUnit.kg': 'Kilograms (KG)',
+  'set.massUnit.lb': 'Pounds (LB)',
   'set.simulator': 'Simulator',
   'set.simulatorHint':
     'Automatic: the sim bridge connects to whichever of MSFS and X-Plane 12 is running (if both are, the first to answer) and looks again when it closes. X-Plane 12.1.1 or later, through its built-in web API on port 8086 (Settings > Network must allow incoming traffic). With X-Plane there is no sim time, smoke or rescue vehicles. The installed app restarts the sim bridge when this changes.',

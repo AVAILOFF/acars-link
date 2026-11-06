@@ -21,15 +21,15 @@ steps:
       header: FUEL SLIP
       body: |
         {ofp.callsign} {ofp.ac_reg} {ofp.orig}
-        PLAN RAMP {ofp.fuel_ramp_kg|kg1}
-        FOB {tm.fuel_kg|kg1}
-        UPLIFT {flight.fuel_uplift_kg|kg1}
-        DIFF {flight.fuel_diff_kg|sign} KG
-        TAXI {ofp.fuel_taxi_kg|kg1}
-        TRIP {ofp.fuel_burn_kg|kg1}
-        CONT {ofp.fuel_cont_kg|kg1}
-        ALTN {ofp.fuel_altn_kg|kg1}
-        FINRES {ofp.fuel_reserve_kg|kg1}
-        EXTRA {ofp.fuel_extra_kg|kg1}
-        FUEL IN TONNES
+        PLAN RAMP {ofp.fuel_ramp_kg|w1}
+        FOB {tm.fuel_kg|w1}
+        UPLIFT {flight.fuel_uplift_kg|w1}
+        DIFF {flight.fuel_diff_kg|w|sign} {units.mass}
+        TAXI {ofp.fuel_taxi_kg|w1}
+        TRIP {ofp.fuel_burn_kg|w1}
+        CONT {ofp.fuel_cont_kg|w1}
+        ALTN {ofp.fuel_altn_kg|w1}
+        FINRES {ofp.fuel_reserve_kg|w1}
+        EXTRA {ofp.fuel_extra_kg|w1}
+        FUEL IN {units.mass_big}
       footer: "FUELLER {name:ops}"

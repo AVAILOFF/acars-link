@@ -154,6 +154,25 @@ function BasicSettings({ s }: { s: Settings }) {
           </select>
           <SavedMark field="messageGapSec" />
         </Row>
+        <Row
+          htmlFor="mass-unit"
+          title={<Title text={t('set.massUnit')} next />}
+          hint={<Hint text={t('set.massUnitHint')} />}
+        >
+          <select
+            id="mass-unit"
+            value={s.massUnit}
+            disabled={off}
+            onChange={(e) =>
+              void update({ massUnit: e.currentTarget.value as Settings['massUnit'] })
+            }
+          >
+            <option value="ofp">{t('set.massUnit.ofp')}</option>
+            <option value="kg">{t('set.massUnit.kg')}</option>
+            <option value="lb">{t('set.massUnit.lb')}</option>
+          </select>
+          <SavedMark field="massUnit" />
+        </Row>
         <SettingSwitch
           s={s}
           k="turnaround"

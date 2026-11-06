@@ -19,6 +19,6 @@ steps:
       body: |
         {ofp.callsign} {ofp.orig}
         FUEL RELEASE ISSUED
-        OFP BLOCK FUEL {ofp.fuel_ramp_kg|kg1} T
+        OFP BLOCK FUEL {ofp.fuel_ramp_kg|wt}
         FUELLER ADVISED
       footer: "{name:ops}"

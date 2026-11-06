@@ -23,16 +23,16 @@ steps:
             body: |
               {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
               A/C {ofp.ac_reg} {ofp.ac_icao}
-              OEW {ofp.oew_kg|kg1}
-              ZFW {load.zfw_kg|kg1} MAX {ofp.max_zfw_kg|kg1}
-              TOF {ofp.fuel_takeoff_kg|kg1}
-              TOW {load.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
-              TIF {ofp.fuel_burn_kg|kg1}
-              LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
-              UNDERLOAD {load.underload_kg|kg1}
-              CGO {load.cargo_kg|kg1}
-              LMC CGO {load.cargo_lmc_kg|sign} KG
-              ALL WEIGHTS IN TONNES
+              OEW {ofp.oew_kg|w1}
+              ZFW {load.zfw_kg|w1} MAX {ofp.max_zfw_kg|w1}
+              TOF {ofp.fuel_takeoff_kg|w1}
+              TOW {load.tow_kg|w1} MAX {ofp.max_tow_kg|w1}
+              TIF {ofp.fuel_burn_kg|w1}
+              LAW {load.ldw_kg|w1} MAX {ofp.max_ldw_kg|w1}
+              UNDERLOAD {load.underload_kg|w1}
+              CGO {load.cargo_kg|w1}
+              LMC CGO {load.cargo_lmc_kg|w|sign} {units.mass}
+              ALL WEIGHTS IN {units.mass_big}
             footer: "LOAD CONTROL {name:ops}"
       TIMEOUT:
         - send:
@@ -41,14 +41,14 @@ steps:
               {ofp.callsign} {ofp.orig}-{ofp.dest} {flight.date|ddmmm}
               A/C {ofp.ac_reg} {ofp.ac_icao}
               CREW {ofp.crew_cockpit}/{ofp.crew_cabin}
-              OEW {ofp.oew_kg|kg1}
-              ZFW {load.zfw_kg|kg1} MAX {ofp.max_zfw_kg|kg1}
-              TOF {ofp.fuel_takeoff_kg|kg1}
-              TOW {load.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
-              TIF {ofp.fuel_burn_kg|kg1}
-              LAW {load.ldw_kg|kg1} MAX {ofp.max_ldw_kg|kg1}
-              UNDERLOAD {load.underload_kg|kg1}
-              CGO {load.cargo_kg|kg1}
-              LMC CGO {load.cargo_lmc_kg|sign} KG
-              ALL WEIGHTS IN TONNES
+              OEW {ofp.oew_kg|w1}
+              ZFW {load.zfw_kg|w1} MAX {ofp.max_zfw_kg|w1}
+              TOF {ofp.fuel_takeoff_kg|w1}
+              TOW {load.tow_kg|w1} MAX {ofp.max_tow_kg|w1}
+              TIF {ofp.fuel_burn_kg|w1}
+              LAW {load.ldw_kg|w1} MAX {ofp.max_ldw_kg|w1}
+              UNDERLOAD {load.underload_kg|w1}
+              CGO {load.cargo_kg|w1}
+              LMC CGO {load.cargo_lmc_kg|w|sign} {units.mass}
+              ALL WEIGHTS IN {units.mass_big}
             footer: "LOAD CONTROL {name:ops}"

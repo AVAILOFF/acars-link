@@ -24,7 +24,7 @@ steps:
               ON {flight.on|hhmm} IN {flight.in|hhmm}
               BLOCK {flight.block_min} MIN
               FLIGHT {flight.air_min} MIN
-              FOB {tm.fuel_kg|kg1}
+              FOB {tm.fuel_kg|w1}
       TIMEOUT:
         - send:
             header: BLOCK TIMES
@@ -34,5 +34,5 @@ steps:
               ON {flight.on|hhmm} IN {flight.in|hhmm}
               BLOCK {flight.block_min} MIN
               FLIGHT {flight.air_min} MIN
-              FOB {tm.fuel_kg|kg1}
+              FOB {tm.fuel_kg|w1}
               {flight.delay_codes}

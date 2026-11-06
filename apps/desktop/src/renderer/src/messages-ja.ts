@@ -561,6 +561,12 @@ export const ja: Readonly<Partial<Record<MessageKey, string>>> = {
   'set.offDatalink': '上記の「データリンクシミュレーター」を有効にしてください。',
   'set.offRescue': '上記の「シミュレーター内の救助サービス」を有効にしてください。',
   'set.offXplane': 'X-Planeではご利用いただけません。',
+  'set.massUnit': '重量単位',
+  'set.massUnitHint':
+    '航空会社のメッセージに含まれるロードシート、燃料量、その他の重量の単位：大きな数値はトンまたは千ポンド単位、小さな数値はKGまたはLB単位で表示されます。',
+  'set.massUnit.ofp': 'OFPと同様に',
+  'set.massUnit.kg': 'キログラム（KG）',
+  'set.massUnit.lb': 'ポンド（LB）',
   'set.simulator': 'シミュレーター',
   'set.simulatorHint':
     '自動：シミュレーターブリッジは、MSFS または X-Plane 12 のいずれかが実行されている場合に接続し（両方が実行されている場合は、最初に応答した方に接続）、終了時に再度確認します。X-Plane 12.1.1 以降では、ポート 8086 の組み込み Web API を通じて接続します（[設定] > [ネットワーク] で受信トラフィックを許可する必要があります）。X-Plane では、シミュレーター時間、煙、救助車両は表示されません。インストールされたアプリは、状況が変化した際にシミュレーターブリッジを再起動します。',

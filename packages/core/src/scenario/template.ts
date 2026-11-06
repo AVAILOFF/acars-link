@@ -12,7 +12,8 @@ import { NAME_KINDS, type NameKind, personName } from './names.js';
  * generators `{rand:10-35}`, `{rand:-5-5}`, `{pick:[A,B,C]}`, `{seat}` (`{seat:1-2}` — rows), `{hold}` (by the aircraft, T40), `{name:crew}`,
  * `{name:ops}` (`K. TANAKA`; surnames by the airline's country, see `names.ts`).
  *
- * Formatters: `kg1` (12345 → 12.3), `hhmm` and `ddmmm` (epoch ms, UTC), `pad:N`
+ * Formatters: `kg1` (12345 → 12.3, always tonnes), mass in the unit of `units.mass` (T105): `w1`
+ * (kg → tonnes or 1000 LB, 1 decimal), `w` (whole KG or LB), `wt` (`12.3 T` or `27100 LB`), `hhmm` and `ddmmm` (epoch ms, UTC), `pad:N`
  * (right-pad to N), `lpad:N` (left-pad), `int` (round), `sign` (+3, -120, 0), `upper`,
  * `plusmin:N` (epoch ms plus N minutes), `or:TEXT` (TEXT when the value is missing), `qnh` (the `Q1013` / `A2992` group of a METAR,
  * T13).
@@ -107,6 +108,26 @@ const FORMATTERS: Readonly<Record<string, (v: Value | string, f: Fmt) => Value |
 };
 
 const ARG_FORMATTERS = new Set(['pad', 'lpad', 'or', 'plusmin', 'else']);
+
+/** Exact, by definition of the international pound (1959). */
+const KG_PER_LB = 0.45359237;
+
+/**
+ * Mass formatters (T105), resolved in the render loop, which has the lookup: the value is kg, the
+ * unit is `units.mass` (`LB`, anything else = KG). Big figures: 1 decimal of a tonne / 1000 LB;
+ * `wt` in LB — whole pounds to the hundred (the same precision as `w1`) with the unit.
+ */
+const MASS_FORMATTERS = new Set(['w1', 'w', 'wt']);
+
+function massFormat(name: string, v: Value | string, unit: Value | undefined): Value | string {
+  const kg = asNumber(v, name);
+  if (kg === null) return null;
+  const lb = unit === 'LB';
+  const m = lb ? kg / KG_PER_LB : kg;
+  if (name === 'w') return Math.round(m);
+  if (name === 'w1') return (m / 1000).toFixed(1);
+  return lb ? `${Math.round(m / 100) * 100} LB` : `${(m / 1000).toFixed(1)} T`;
+}
 const VAR_PATH = /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/;
 
 function text(v: Value | string): string {
@@ -153,6 +174,10 @@ function parseSource(expr: string): Source {
 
 function parseFmt(s: string): Fmt {
   const [name = '', arg] = s.split(':', 2);
+  if (MASS_FORMATTERS.has(name)) {
+    if (arg !== undefined) throw new TemplateError(`formatter |${name} takes no argument`);
+    return { name, arg };
+  }
   if (!(name in FORMATTERS)) throw new TemplateError(`unknown formatter |${name}`);
   if (ARG_FORMATTERS.has(name) !== (arg !== undefined)) {
     throw new TemplateError(
@@ -236,6 +261,7 @@ function compileLine(source: string): CompiledTemplate {
     }
     const fmts = rest.map((s) => parseFmt(s.trim()));
     for (const f of fmts) if (f.name === 'else') vars.add(f.arg as string);
+    if (fmts.some((f) => MASS_FORMATTERS.has(f.name))) vars.add('units.mass');
     parts.push({ src, fmts });
     i = end + 1;
   }
@@ -251,7 +277,9 @@ function compileLine(source: string): CompiledTemplate {
             v =
               f.name === 'else'
                 ? (v ?? look(f.arg as string) ?? null)
-                : (FORMATTERS[f.name] as (typeof FORMATTERS)[string])(v, f);
+                : MASS_FORMATTERS.has(f.name)
+                  ? massFormat(f.name, v, look('units.mass'))
+                  : (FORMATTERS[f.name] as (typeof FORMATTERS)[string])(v, f);
           }
           return text(v);
         })

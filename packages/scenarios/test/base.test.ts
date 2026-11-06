@@ -13,6 +13,7 @@ import {
   DEFAULT_PROFILE,
   type DisplayProfile,
   generateSyntheticFlight,
+  type MassUnitOption,
   MISSING,
   type Ofp,
   type OutboundMessage,
@@ -48,6 +49,8 @@ interface Case {
   readonly ofp: Ofp;
   readonly flight: SyntheticFlight;
   readonly seed: string;
+  /** Core `massUnit` (T105); absent = kg. */
+  readonly massUnit?: MassUnitOption;
 }
 
 const kg = ofpOf('rctp-rjbb-a35k-kgs');
@@ -72,8 +75,9 @@ const FLIGHTS: readonly Case[] = [
     seed: 'go-around',
   },
   {
-    name: 'lbs OFP, no flight number, telemetry gap in climb',
+    name: 'lbs OFP in LB (T105), no flight number, telemetry gap in climb',
     ofp: lbs,
+    massUnit: 'ofp',
     flight: withGap(lbsFlight, { atIndex: stageIndex(lbsFlight, 'CLIMB', 120), durationSec: 90 }),
     seed: 'lbs',
   },
@@ -91,7 +95,13 @@ function fly(
   seed: string = c.seed,
   stands = true,
 ): Run {
-  const core = AcarsCore.create({ ofp: c.ofp, scenarios, seed, profile });
+  const core = AcarsCore.create({
+    ofp: c.ofp,
+    scenarios,
+    seed,
+    profile,
+    ...(c.massUnit === undefined ? {} : { massUnit: c.massUnit }),
+  });
   core.startFlight();
   const out: OutboundMessage[] = [];
   const events: CoreEvent[] = [];

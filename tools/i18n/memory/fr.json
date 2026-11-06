@@ -2314,6 +2314,31 @@
     "out": "Sources gratuites, sans clé : METAR/TAF (aviationweather.gov), VATSIM ATC, événements NASA EONET, lancements spatiaux (TheSpaceDevs), portes d’embarquement issues d’OpenStreetMap. Désactivé : les messages utilisent uniquement l’OFP.",
     "engine": "deepl"
   },
+  "msg:set.massUnit": {
+    "src": "Weight units",
+    "out": "Unités de poids",
+    "engine": "deepl"
+  },
+  "msg:set.massUnit.kg": {
+    "src": "Kilograms (<x>KG</x>)",
+    "out": "Kilogrammes (KG)",
+    "engine": "deepl"
+  },
+  "msg:set.massUnit.lb": {
+    "src": "Pounds (<x>LB</x>)",
+    "out": "Livres (LB)",
+    "engine": "deepl"
+  },
+  "msg:set.massUnit.ofp": {
+    "src": "As in the <x>OFP</x>",
+    "out": "Comme dans l’OFP",
+    "engine": "deepl"
+  },
+  "msg:set.massUnitHint": {
+    "src": "Units of loadsheets, fuel figures and other weights in airline messages: big figures in tonnes or thousands of pounds, small ones in <x>KG</x> or <x>LB</x>.",
+    "out": "Unités des devis de masse et centrage, des chiffres de carburant et autres poids dans les messages des compagnies aériennes : les grands chiffres en tonnes ou en milliers de livres, les petits en KG ou LB.",
+    "engine": "deepl"
+  },
   "msg:set.memory": {
     "src": "Airline memory: <x>{names}</x>",
     "out": "Mémoire des compagnies aériennes : {names}",
@@ -2541,8 +2566,8 @@
   },
   "msg:set.smokePkgForeign": {
     "src": "the Community folder already holds a folder acars-smoke from another add-on, and the app does not change it",
-    "out": "Le dossier « Community » contient déjà un dossier « acars-smoke » provenant d’un autre module complémentaire, et l’application ne le modifie pas",
-    "engine": "deepl"
+    "out": "Le dossier « Community » contient déjà un dossier « avail-acars-smoke » provenant d’un autre module complémentaire, et l’application ne le modifie pas",
+    "engine": "manual"
   },
   "msg:set.smokePkgHint": {
     "src": "The fire scenarios show a smoke column at the runway only with this package. Rescue vehicles are standard <x>MSFS</x> objects and need no package. The app copies it into Community only when you press the button; restart <x>MSFS</x> afterwards.",

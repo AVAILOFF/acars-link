@@ -575,6 +575,12 @@ export const fr: Readonly<Partial<Record<MessageKey, string>>> = {
   'set.offDatalink': 'Activez l’option « Simulation de liaison de données » ci-dessus.',
   'set.offRescue': 'Activez l’option « Services de secours dans le simulateur » ci-dessus.',
   'set.offXplane': 'Non disponible avec X-Plane.',
+  'set.massUnit': 'Unités de poids',
+  'set.massUnitHint':
+    'Unités des devis de masse et centrage, des chiffres de carburant et autres poids dans les messages des compagnies aériennes : les grands chiffres en tonnes ou en milliers de livres, les petits en KG ou LB.',
+  'set.massUnit.ofp': 'Comme dans l’OFP',
+  'set.massUnit.kg': 'Kilogrammes (KG)',
+  'set.massUnit.lb': 'Livres (LB)',
   'set.simulator': 'Simulateur',
   'set.simulatorHint':
     'Automatique : la passerelle de simulation se connecte à MSFS ou à X-Plane 12, selon le logiciel en cours d’exécution (si les deux sont en cours d’exécution, elle se connecte au premier qui répond) et effectue une nouvelle recherche lorsque celle-ci se ferme. X-Plane 12.1.1 ou version ultérieure, via son API Web intégrée sur le port 8086 (les paramètres > Réseau doivent autoriser le trafic entrant). Avec X-Plane, il n’y a ni temps de simulation, ni fumée, ni véhicules de secours. L’application installée redémarre la passerelle de simulation lorsque cela change.',

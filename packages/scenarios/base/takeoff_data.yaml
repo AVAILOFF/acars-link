@@ -26,8 +26,8 @@ steps:
               SID {ofp.sid}
               ELEV {ofp.orig_elev_ft} FT
               TRANS ALT {ofp.orig_trans_alt_ft} FT
-              TOW {ofp.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
-              TOF {ofp.fuel_takeoff_kg|kg1}
+              TOW {ofp.tow_kg|w1} MAX {ofp.max_tow_kg|w1}
+              TOF {ofp.fuel_takeoff_kg|w1}
               CRZ FL{ofp.cruise_fl} CI {ofp.cost_index}
               WX {wx.orig_metar}
             footer: VERIFY PERF ON EFB
@@ -39,8 +39,8 @@ steps:
               SID {ofp.sid}
               ELEV {ofp.orig_elev_ft} FT
               TRANS ALT {ofp.orig_trans_alt_ft} FT
-              TOW {ofp.tow_kg|kg1} MAX {ofp.max_tow_kg|kg1}
-              TOF {ofp.fuel_takeoff_kg|kg1}
+              TOW {ofp.tow_kg|w1} MAX {ofp.max_tow_kg|w1}
+              TOF {ofp.fuel_takeoff_kg|w1}
               FLAPS {ofp.to_flaps} {ofp.to_thrust}
               V1 {ofp.v1} VR {ofp.vr} V2 {ofp.v2}
               CRZ FL{ofp.cruise_fl} CI {ofp.cost_index}

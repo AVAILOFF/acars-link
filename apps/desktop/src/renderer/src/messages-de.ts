@@ -576,6 +576,12 @@ export const de: Readonly<Partial<Record<MessageKey, string>>> = {
   'set.offDatalink': 'Aktivieren Sie oben die Option „Datenverbindungssimulator“.',
   'set.offRescue': 'Aktivieren Sie oben die Option „Rettungsdienste im Simulator“.',
   'set.offXplane': 'Nicht verfügbar mit X-Plane.',
+  'set.massUnit': 'Gewichtseinheiten',
+  'set.massUnitHint':
+    'Einheiten für Loadsheets, Kraftstoffangaben und andere Gewichte in Airline-Nachrichten: große Zahlen in Tonnen oder Tausend Pfund, kleine in KG oder LB.',
+  'set.massUnit.ofp': 'Wie im OFP',
+  'set.massUnit.kg': 'Kilogramm (KG)',
+  'set.massUnit.lb': 'Pfund (LB)',
   'set.simulator': 'Simulator',
   'set.simulatorHint':
     'Automatisch: Die Sim-Bridge verbindet sich mit dem jeweils laufenden Programm (MSFS oder X-Plane 12; laufen beide, mit dem zuerst antwortenden) und sucht erneut, wenn dieses geschlossen wird. X-Plane 12.1.1 oder höher, über die integrierte Web-API am Port 8086 (Einstellungen > Netzwerk muss eingehenden Datenverkehr zulassen). Bei X-Plane gibt es keine Sim-Zeit, keinen Rauch und keine Rettungsfahrzeuge. Die installierte App startet die Sim-Bridge neu, sobald sich dies ändert.',

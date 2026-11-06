@@ -23,6 +23,6 @@ steps:
         {ofp.callsign} {ofp.orig}-{ofp.dest}
         WEIGHT CORRECTION
         ULD REWEIGHED AT BUILD-UP
-        LMC CGO {load.cargo_lmc_kg|sign} KG
+        LMC CGO {load.cargo_lmc_kg|w|sign} {units.mass}
         FINAL LOADSHEET TO FOLLOW
       footer: "LOAD CONTROL {name:ops}"
