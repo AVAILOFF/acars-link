@@ -4,6 +4,11 @@ ACARS Link releases: SemVer, an annotated tag `vX.Y.Z` on `master` for each (0.x
 public release, 1.0.0 — the first public one). `pnpm release <X.Y.Z>` adds a section from the `Merge task/…` commits since the
 previous tag; how to release — README.md, "Выпуски".
 
+## 1.1.1 — 2026-11-06
+
+- help explains how to turn off one kind of message (CTOT) (`task/T106-scenario-search`)
+- weight units of the messages (as in the OFP / KG / LB) (`task/T105-mass-units`)
+
 ## 1.1.0 — 2026-11-05
 
 ### New
