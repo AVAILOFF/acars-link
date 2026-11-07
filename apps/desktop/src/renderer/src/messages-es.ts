@@ -367,6 +367,8 @@ export const es: Readonly<Partial<Record<MessageKey, string>>> = {
     'Escenario {id}: no hay servicios de rescate en el simulador; la aeronave no se encuentra a menos de 5 NM de un aeropuerto de la ruta',
   'sys.reply_timeout': 'No hay respuesta a {id}: se asume {option}',
   'sys.transport_status': 'Red: {status} {reason}',
+  'sys.predep_flush':
+    'Remolque: los mensajes previos a la salida pendientes se envían ahora ({ids})',
   'sys.sim_command_failed': 'El comando de simulación {command} ha fallado: {error} {detail}',
   'sys.bridge_restarted': 'El puente del simulador se detuvo y se reinició; el vuelo continúa',
   'sys.sim_changed': 'Cambio en el simulador: {from} → {to}; el vuelo continúa',

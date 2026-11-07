@@ -200,8 +200,9 @@ describe('replay through the core', () => {
   it('late start: a short boarding is replayed as a delayed flight', () => {
     const late = syntheticRecording({ ofp, scenarios: enabled }, { boardingSec: 5 * 60 });
     const out = replay(late, { scenarios: all });
-    // 5 min left: under the 20 min of version 2 → delayed by 15, the rest fitted to 20 min.
-    expect(out.delayMs).toBe(15 * 60_000);
+    // 5 min left: under the 20 min of version 2 → delayed by 15 (version 4, T61: the slot, which
+    // now comes at the start, may raise it; the documents move with neither).
+    expect(out.delayMs).toBeGreaterThanOrEqual(15 * 60_000);
     expect(out.timeline[0]).toMatchObject({ kind: 'late_start', delayMin: 15 });
   });
 

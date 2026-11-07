@@ -75,6 +75,8 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
           ];
         case 'REPLY_TIMEOUT':
           return ['PILOT', `${ev.id}: no answer, takes ${ev.option}`];
+        case 'PREDEP_FLUSH':
+          return ['FLUSH', `pushback: pre-departure ${ev.ids.join(', ')} sent now`];
         case 'WAIT_UNTIL':
           return ['PILOT', `${ev.id}: wait until ${ev.result}`];
         case 'SET':

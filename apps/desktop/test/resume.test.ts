@@ -216,7 +216,8 @@ describe('restoring a flight (T64)', () => {
     let next = fly(first, clock, 0, undefined, (p) => p === 'PUSHBACK');
     const before = sent(first.app.state().feed).length;
     first.transports.at(-1)?.halt('network down');
-    next = fly(first, clock, next, undefined, (p) => p === 'CLIMB');
+    // T61: the documents are all out by pushback; the departure report (in the climb) gets stuck.
+    next = fly(first, clock, next, undefined, (p) => p === 'CRUISE');
     const stuck = first.app
       .state()
       .feed.flatMap((e) => (e.kind === 'outbound' && e.delivery === 'queued' ? [e.text] : []));

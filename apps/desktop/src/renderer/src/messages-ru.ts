@@ -362,6 +362,7 @@ export const ru: Record<MessageKey, string> = {
     'Сценарий {id}: аварийных служб в симуляторе не будет — в 5 NM от самолёта нет аэропорта рейса',
   'sys.reply_timeout': 'Нет ответа на {id}: принят вариант {option}',
   'sys.transport_status': 'Сеть: {status} {reason}',
+  'sys.predep_flush': 'Буксировка: оставшиеся предвылетные сообщения досылаются сейчас ({ids})',
   'sys.sim_command_failed': 'Команда симулятору {command} не выполнена: {error} {detail}',
   'sys.bridge_restarted': 'Мост к симулятору остановился и запущен снова; рейс продолжается',
   'sys.sim_changed': 'Сменился симулятор: {from} → {to}; рейс продолжается',

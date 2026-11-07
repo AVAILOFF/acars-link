@@ -349,8 +349,14 @@ describe('late start', () => {
       BASE_SCENARIOS_COMPILED.filter((c) => c.def.category === 'irregular').map((c) => c.id),
     );
     const docs = outbound(feed).filter((m) => !irregular.has(m.scenarioId));
-    expect(docs.filter((m) => m.t === start)).toEqual([]);
+    // T61 (late start version 4): crew info at the start, the rest one per gap, before STD.
+    expect(docs.filter((m) => m.t === start).map((m) => m.scenarioId)).toEqual(['crew_info']);
     expect(docs[0]?.scenarioId).toBe('crew_info');
+    for (let i = 1; i < docs.length; i++) {
+      expect((docs[i]?.t ?? 0) - (docs[i - 1]?.t ?? 0)).toBeGreaterThanOrEqual(60_000);
+    }
+    const base = ['crew_info', 'prelim_loadsheet', 'takeoff_data', 'fuel_slip', 'final_loadsheet'];
+    expect(docs.map((m) => m.scenarioId).filter((id) => base.includes(id))).toEqual(base);
   });
 
   it('on time: no late_start note', async () => {

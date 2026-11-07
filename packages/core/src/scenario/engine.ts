@@ -246,6 +246,15 @@ export type ScenarioEvent =
     }
   | {
       /**
+       * Pushback or OUT with pre-departure scenarios left (T61, late start version 4): they were
+       * started or their waits cut short on this tick, in the order of their triggers.
+       */
+      readonly type: 'PREDEP_FLUSH';
+      readonly t: number;
+      readonly ids: readonly string[];
+    }
+  | {
+      /**
        * A `rescue` step on the ground found no airport of the flight within 5 NM (T88,
        * `rescueVersion` 2): no command is given.
        */
@@ -302,10 +311,14 @@ export interface ScenarioEngineOptions {
    * earlier messages all at once (as recorded before), 2 = the `sched_out − N` messages are
    * fitted into the time left (e.g. 30 or 50 min before STD), delay only under 20 min, 3 = as 2,
    * but the longest `sched_out − N` counts only scenarios that can start in this flight (not the
-   * ones whose airline memory, OFP condition, cooldown or dice already rule them out).
-   * Default 1; the app asks for 3 and records it in the header.
+   * ones whose airline memory, OFP condition, cooldown or dice already rule them out), 4 (T61) =
+   * as 3, but the `sched_out − N` messages are fitted into `[start, STD − 2 min]` at any time left
+   * (the late-start delay moves the estimates only), the slot's `set: flight.delay_min` does not
+   * move them (a pilot `DELAY` does), they start in the order of their triggers (a document waits
+   * for an earlier one still running) and at pushback / OUT whatever is left of them is sent at
+   * once (`PREDEP_FLUSH`). Default 1; the app asks for 4 and records it in the header.
    */
-  readonly lateStartVersion?: 1 | 2 | 3;
+  readonly lateStartVersion?: 1 | 2 | 3 | 4;
   /**
    * Airport of the `rescue` step (T54, T88): 1 = `flight.divert`, else the destination (as recorded
    * before T88); 2 = the same in the air, but on the ground (before OFF, after ON) the airport of the
@@ -425,6 +438,14 @@ export interface ScenarioEngineState {
   readonly tobtDelayMs?: number;
   /** Factor of the pre-departure offsets (`sched_out` − N) fitted to the time left; absent = 1. */
   readonly preScale?: number;
+  /**
+   * Late start version 4 (T61): where the fitted pre-departure sequence ends against `sched_out`,
+   * ms (−2 min when fitted, else 0), and how far the pilot's `DELAY`s moved it; absent = 0.
+   */
+  readonly preEndMs?: number;
+  readonly preShiftMs?: number;
+  /** Late start version 4 (T61): the pushback / OUT flush is done; absent = not yet. */
+  readonly flushed?: boolean;
   /** The user's choice of the kind of flight (T89); absent in older states = the option's. */
   readonly kindOverride?: FlightKind | null;
 }
@@ -447,6 +468,11 @@ export const FIT_LATE_START_LEAD_MIN = 20;
 const DELAY_STEP_MS = 5 * 60_000;
 /** The last minute before the first compressed pre-departure message is kept free. */
 const PRE_SCALE_MARGIN_MS = 60_000;
+/**
+ * Late start version 4 (T61): the fitted pre-departure sequence ends this long before STD, so the
+ * final loadsheet is on board before the doors close (assumption 2 of T61, approved 2026-10-27).
+ */
+const PRE_END_MARGIN_MS = 2 * 60_000;
 /** Fuel readings within this of each other are one level (docs/04 `fuelStable`). */
 const FUEL_TOLERANCE_KG = 100;
 /** Weather fetched longer ago than this is refreshed for `REQ WX` (when the app fetches). */
@@ -454,6 +480,29 @@ const WX_FRESH_MS = 15 * 60_000;
 /** Limits of the airline memory (T14). */
 const MAX_FLAGS = 64;
 const MAX_FLAG_TEXT = 80;
+
+/** Offset of a pre-departure trigger (`time` at `sched_out − N`), minutes < 0; null = not one. */
+function preOffsetMin(sc: CompiledScenario): number | null {
+  const tr = sc.def.trigger;
+  return tr.on === 'time' && tr.at.rel === 'sched_out' && tr.at.offset_min < 0
+    ? tr.at.offset_min
+    : null;
+}
+
+/** Pushback begins or OUT is recorded on this tick (T61: the flush of late start version 4). */
+function departing(input: EngineTickInput): boolean {
+  return input.events.some(
+    (e) => e.type === 'OOOI_OUT' || (e.type === 'PHASE_CHANGE' && e.to === 'PUSHBACK'),
+  );
+}
+
+/** The phase before pushback on the flush tick (T61): what pre-departure conditions read. */
+function phaseBeforePush(input: EngineTickInput): FlightPhase {
+  for (const e of input.events) {
+    if (e.type === 'PHASE_CHANGE' && !phaseReached(e.from, 'PUSHBACK')) return e.from;
+  }
+  return phaseReached(input.phase, 'PUSHBACK') ? 'BOARDING' : input.phase;
+}
 
 /** Variables a condition may read to be judged on the first tick (late start version 3). */
 function isKnownAtStart(path: string): boolean {
@@ -534,6 +583,9 @@ export class ScenarioEngine {
     delayParts: DelayPart[];
     tobtDelayMs: number;
     preScale: number;
+    preEndMs: number;
+    preShiftMs: number;
+    flushed: boolean;
     kindOverride: FlightKind | null;
   };
   /** The kind filter is on (T89, option `flightKind`). */
@@ -545,6 +597,16 @@ export class ScenarioEngine {
   private readonly fitPre: boolean;
   /** Late start version 3: the span counts only scenarios that can start ({@link liveSpanMs}). */
   private readonly fitLive: boolean;
+  /** Late start version 4 (T61), see `ScenarioEngineOptions.lateStartVersion`. */
+  private readonly v4: boolean;
+  /** Pre-departure scenarios in the order of their triggers (earliest first, then priority). */
+  private readonly preOrdered: readonly CompiledScenario[];
+  /** Start order of version 4: the others as {@link ordered}, then {@link preOrdered}. */
+  private readonly v4Order: readonly CompiledScenario[];
+  /** The pushback / OUT flush is running (T61): waits of pre-departure runs end at once. */
+  private cutting = false;
+  /** Phase the conditions of pre-departure scenarios read on the flush tick (before pushback). */
+  private prePhase: FlightPhase | null = null;
   /** `rescueVersion` 2 (T88): rescue on the ground goes to the airport where the aircraft stands. */
   private readonly groundRescue: boolean;
   /** Context of the current tick; rebuilt when a command or a send changes it. */
@@ -568,8 +630,10 @@ export class ScenarioEngine {
     this.seed = options.seed;
     this.namesVersion = options.namesVersion ?? 2;
     this.massUnit = options.massUnit ?? 'kg';
-    this.fitPre = options.lateStartVersion === 2 || options.lateStartVersion === 3;
-    this.fitLive = options.lateStartVersion === 3;
+    const late = options.lateStartVersion ?? 1;
+    this.fitPre = late >= 2;
+    this.fitLive = late >= 3;
+    this.v4 = late === 4;
     this.groundRescue = options.rescueVersion === 2;
     this.leadMs =
       (options.lateStartLeadMin ??
@@ -614,6 +678,9 @@ export class ScenarioEngine {
       delayParts: [],
       tobtDelayMs: 0,
       preScale: 1,
+      preEndMs: 0,
+      preShiftMs: 0,
+      flushed: false,
       kindOverride: options.flightKind?.override ?? null,
     };
     this.kindFilter = options.flightKind !== undefined;
@@ -625,6 +692,10 @@ export class ScenarioEngine {
         span = Math.max(span, -tr.at.offset_min * 60_000);
     }
     this.preSpanMs = span;
+    this.preOrdered = this.ordered
+      .filter((s) => preOffsetMin(s) !== null)
+      .sort((a, b) => (preOffsetMin(a) as number) - (preOffsetMin(b) as number));
+    this.v4Order = [...this.ordered.filter((s) => preOffsetMin(s) === null), ...this.preOrdered];
     this.rebuildData();
   }
 
@@ -671,6 +742,10 @@ export class ScenarioEngine {
     e.st.tobtDelayMs =
       copy.tobtDelayMs ?? Math.max(0, (copy.delayMs ?? 0) - (copy.delayRaisedMs ?? 0));
     e.st.preScale = copy.preScale ?? 1;
+    // T61.
+    e.st.preEndMs = copy.preEndMs ?? 0;
+    e.st.preShiftMs = copy.preShiftMs ?? 0;
+    e.st.flushed = copy.flushed ?? false;
     // T89.
     if (copy.kindOverride !== undefined) e.st.kindOverride = copy.kindOverride;
     e.kindInfo = classifyFlight(options.ofp, e.st.kindOverride);
@@ -880,9 +955,18 @@ export class ScenarioEngine {
       this.st.tobtDelayMs = ms;
       // Less time than the whole pre-departure sequence: squeeze it into what is left, in the
       // same order and proportions, so every message still comes before the departure.
-      const left = this.ofp.times.schedOutMs + ms - input.now - PRE_SCALE_MARGIN_MS;
       const span = this.fitLive ? this.liveSpanMs(input) : this.preSpanMs;
-      this.st.preScale = this.fitPre && span > 0 && left < span ? Math.max(0, left) / span : 1;
+      if (this.v4) {
+        // T61: the documents do not wait for the delay; at any time left they fit into
+        // [now, STD − 2 min] (all at once from 2 min before STD on: the outbox spaces them).
+        const end = this.ofp.times.schedOutMs - PRE_END_MARGIN_MS;
+        const fit = span > 0 && this.ofp.times.schedOutMs - input.now < span;
+        this.st.preEndMs = fit ? -PRE_END_MARGIN_MS : 0;
+        this.st.preScale = fit ? Math.max(0, end - input.now) / span : 1;
+      } else {
+        const left = this.ofp.times.schedOutMs + ms - input.now - PRE_SCALE_MARGIN_MS;
+        this.st.preScale = this.fitPre && span > 0 && left < span ? Math.max(0, left) / span : 1;
+      }
     }
     if (input.data !== undefined) {
       const before = this.st.ext;
@@ -933,29 +1017,74 @@ export class ScenarioEngine {
       // 1b. Scenarios that wait for the random moment of their window (T51).
       this.dueWindows(input, outbound, events);
 
-      // 2. New candidates (`on: command` scenarios start in step 0 only).
-      for (const sc of this.ordered) {
+      // 1c. Late start version 4 (T61): pushback / OUT ends the waits of the pre-departure runs.
+      const flush = this.v4 && !this.st.flushed && departing(input);
+      const flushed: string[] = [];
+      if (flush) {
+        this.st.flushed = true;
+        this.prePhase = phaseBeforePush(input);
+        this.cutting = true;
+        for (const sc of this.preOrdered) {
+          const run = this.st.runs.find((r) => r.id === sc.id);
+          if (run === undefined || run.reply !== null) continue;
+          flushed.push(sc.id);
+          this.advance(run, input, outbound, events);
+        }
+      }
+
+      // 2. New candidates (`on: command` scenarios start in step 0 only). Version 4 (T61): the
+      // pre-departure ones after the others, in the order of their triggers.
+      for (const sc of this.v4 ? this.v4Order : this.ordered) {
         const s = this.st.scenarios[sc.id] as ScenarioState;
+        const pre = this.v4 && preOffsetMin(sc) !== null;
+        const look = pre && this.prePhase !== null ? this.prePhaseLook : this.look;
         const active =
-          this.triggered(sc, input, this.context) && sc.conditions.every((c) => c.test(this.look));
+          this.triggered(sc, input, this.context) && sc.conditions.every((c) => c.test(look));
+        // A document does not overtake an earlier one still running (T61: their order).
+        if (active && pre && !s.candidate && this.docWaits(sc)) continue;
         const fresh = active && !s.candidate;
         s.candidate = active;
         if (fresh) {
           if (sc.def.trigger.on === 'phase' && sc.def.trigger.window !== undefined) {
             this.defer(sc, input, events);
-          } else {
-            this.start(sc, {}, input, outbound, events);
+          } else if (this.start(sc, {}, input, outbound, events) && flush && pre) {
+            flushed.push(sc.id);
           }
         }
       }
+
+      // 2b. The flush (T61): pre-departure scenarios whose time has not come yet start now.
+      if (flush) {
+        for (const sc of this.preOrdered) {
+          if (this.triggered(sc, input, this.context)) continue;
+          if (!sc.conditions.every((c) => c.test(this.prePhaseLook))) continue;
+          if (this.start(sc, {}, input, outbound, events)) flushed.push(sc.id);
+        }
+        if (flushed.length > 0) events.push({ type: 'PREDEP_FLUSH', t: input.now, ids: flushed });
+      }
+      this.cutting = false;
+      this.prePhase = null;
 
       // 3. Forced by the user.
       for (const id of forced) this.forceStart(id, input, outbound, events);
     } finally {
       this.ctx = null;
       this.tickInput = null;
+      this.cutting = false;
+      this.prePhase = null;
     }
     return { outbound, commands, events };
+  }
+
+  /** An earlier document (category `docs`, T61) is still running: `sc`, a document, waits. */
+  private docWaits(sc: CompiledScenario): boolean {
+    if (sc.def.category !== 'docs') return false;
+    const own = preOffsetMin(sc) as number;
+    return this.st.runs.some((r) => {
+      const other = this.byId.get(r.id) as CompiledScenario;
+      const off = preOffsetMin(other);
+      return other.def.category === 'docs' && off !== null && off < own && r.reply === null;
+    });
   }
 
   /**
@@ -993,6 +1122,10 @@ export class ScenarioEngine {
   private get context(): ScenarioContext {
     return this.ctx as ScenarioContext;
   }
+
+  /** {@link look} with `phase` before pushback (T61, the flush tick). */
+  private readonly prePhaseLook: Lookup = (path) =>
+    path === 'phase' && this.prePhase !== null ? this.prePhase : this.look(path);
 
   private readonly look: Lookup = (path) => {
     if (path.startsWith('flags.')) return this.st.flags[path.slice(6)] ?? null;
@@ -1379,6 +1512,8 @@ export class ScenarioEngine {
         if (input.oooi.OUT !== null) return { hint: 'OFF BLOCK ALREADY' };
         this.setDelay((this.st.delayMs ?? 0) + (args.minutes as number) * 60_000);
         this.st.tobtDelayMs += (args.minutes as number) * 60_000;
+        // T61: the pilot's own delay moves the documents still to come (the slot's does not).
+        this.st.preShiftMs += (args.minutes as number) * 60_000;
         this.st.delayParts.push({
           code: reasonCode(args.reason as string | null),
           ms: (args.minutes as number) * 60_000,
@@ -1576,10 +1711,16 @@ export class ScenarioEngine {
         return false; // started by `receive`
       case 'time': {
         const ref = ctx[TIME_REF_VAR[tr.at.rel]];
+        const off = tr.at.offset_min;
+        const pre = tr.at.rel === 'sched_out' && off < 0;
+        if (pre && this.v4) {
+          // T61: STD, the end of the fitted window and the pilot's DELAYs; no late start, no slot.
+          const at = this.ofp.times.schedOutMs + this.st.preShiftMs + this.st.preEndMs;
+          return input.now >= at + off * this.st.preScale * 60_000;
+        }
         // `ofp.est_*` in the context already include the delay, `ofp.sched_*` do not.
         const shift = tr.at.rel.startsWith('sched_') ? (this.st.delayMs ?? 0) : 0;
-        const off = tr.at.offset_min;
-        const min = tr.at.rel === 'sched_out' && off < 0 ? off * this.st.preScale : off;
+        const min = pre ? off * this.st.preScale : off;
         return typeof ref === 'number' && input.now >= ref + shift + min * 60_000;
       }
       case 'distance': {
@@ -1713,15 +1854,17 @@ export class ScenarioEngine {
       };
       events.push({ type: 'REPLY_TIMEOUT', id: sc.id, t: input.now, option });
     }
+    // The pushback / OUT flush (T61): a pre-departure run waits no longer.
+    const cut = this.cutting && preOffsetMin(sc) !== null;
     if (run.until !== null) {
       const w = sc.steps[run.until.step] as Extract<CompiledStep, { kind: 'wait_until' }>;
       const met = w.cond.test(this.lookFor(run.vars));
-      if (!met && input.flightTimeMs < run.until.deadlineMs) return;
+      if (!met && !cut && input.flightTimeMs < run.until.deadlineMs) return;
       run.until = null;
       this.finishUntil(run, sc.id, met, input, events);
     }
     if (run.untilFlightMs !== null) {
-      if (input.flightTimeMs < run.untilFlightMs) return;
+      if (!cut && input.flightTimeMs < run.untilFlightMs) return;
       run.untilFlightMs = null;
     }
     if (run.untilPhase !== null) {
@@ -1732,6 +1875,7 @@ export class ScenarioEngine {
       const step = sc.steps[run.step] as CompiledScenario['steps'][number];
       run.step++;
       if (step.kind === 'wait_minutes') {
+        if (cut) continue;
         run.untilFlightMs = input.flightTimeMs + step.minutes * 60_000;
         return;
       }
@@ -1768,6 +1912,10 @@ export class ScenarioEngine {
       }
       if (step.kind === 'wait_until') {
         const met = step.cond.test(this.lookFor(run.vars));
+        if (!met && cut) {
+          this.finishUntil(run, sc.id, false, input, events);
+          continue;
+        }
         if (!met) {
           run.until = {
             step: run.step - 1,

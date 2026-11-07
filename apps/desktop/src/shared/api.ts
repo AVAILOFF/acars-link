@@ -378,6 +378,7 @@ export type SystemCode =
   | 'scenario_error'
   | 'rescue_no_airport'
   | 'reply_timeout'
+  | 'predep_flush'
   | 'data_failed'
   | 'memory'
   | 'forced_started'

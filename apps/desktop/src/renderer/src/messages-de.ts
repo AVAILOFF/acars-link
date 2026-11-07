@@ -369,6 +369,8 @@ export const de: Readonly<Partial<Record<MessageKey, string>>> = {
     'Szenario {id}: keine Rettungsdienste in der Simulation, das Flugzeug befindet sich nicht innerhalb von 5 NM eines Flughafens der Flugstrecke',
   'sys.reply_timeout': 'Keine Antwort auf {id}: {option} angenommen',
   'sys.transport_status': 'Netzwerk: {status} {reason}',
+  'sys.predep_flush':
+    'Pushback: Die noch ausstehenden Nachrichten vor dem Abflug werden jetzt gesendet ({ids})',
   'sys.sim_command_failed': 'Sim-Befehl {command} fehlgeschlagen: {error} {detail}',
   'sys.bridge_restarted':
     'Die Simulator-Bridge wurde angehalten und erneut gestartet; der Flug wird fortgesetzt',

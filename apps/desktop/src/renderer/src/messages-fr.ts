@@ -370,6 +370,8 @@ export const fr: Readonly<Partial<Record<MessageKey, string>>> = {
     'Scénario {id} : aucun service de secours n’est présent dans la simulation, l’aéronef ne se trouve pas à moins de 5 NM d’un aéroport de la liaison',
   'sys.reply_timeout': 'Aucune réponse à {id} : {option} présumée',
   'sys.transport_status': 'Réseau : {status} {reason}',
+  'sys.predep_flush':
+    'Repoussage : les messages avant départ encore attendus sont envoyés maintenant ({ids})',
   'sys.sim_command_failed': 'Échec de la commande de simulation {command} : {error} {detail}',
   'sys.bridge_restarted':
     'La passerelle du simulateur s’est arrêtée puis a redémarré ; le vol se poursuit',

@@ -22,6 +22,7 @@ const SENT: Readonly<Record<SystemCode, Readonly<Record<string, string>>>> = {
   scenario_error: { id: 's', error: 'e' },
   rescue_no_airport: { id: 's' },
   reply_timeout: { id: 's', option: 'A' },
+  predep_flush: { ids: 'final_loadsheet, fuel_slip' },
   data_failed: { source: 'metar', error: 'e' },
   memory: { names: 'a, b' },
   forced_started: { id: 's', detail: '' },
