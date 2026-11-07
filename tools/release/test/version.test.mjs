@@ -99,6 +99,43 @@ describe('CHANGELOG.md section', () => {
     expect(withSection('# Changelog\n', section)).toBe(`# Changelog\n\n${section}`);
   });
 
+  it('a hand-written Unreleased section becomes the version, the task lines below it', () => {
+    const section = '## 1.2.0 — 2026-11-08\n\n- NOTAM (`task/T95-company-notam`)\n';
+    const before =
+      '# Changelog\n\nIntro.\n\n## Unreleased\n\n### New\n\n- **NOTAM**: summary.\n\n## 1.1.1 — 2026-11-06\n\n- Old.\n';
+    expect(withSection(before, section)).toBe(
+      [
+        '# Changelog',
+        '',
+        'Intro.',
+        '',
+        '## 1.2.0 — 2026-11-08',
+        '',
+        '### New',
+        '',
+        '- **NOTAM**: summary.',
+        '',
+        '### Tasks',
+        '',
+        '- NOTAM (`task/T95-company-notam`)',
+        '',
+        '## 1.1.1 — 2026-11-06',
+        '',
+        '- Old.',
+        '',
+      ].join('\n'),
+    );
+    // The only section, and no task lines.
+    expect(withSection('# Changelog\n\n## Unreleased\n\n- Note.\n', '## 1.2.0 — d\n')).toBe(
+      '# Changelog\n\n## 1.2.0 — d\n\n- Note.\n',
+    );
+    // An "Unreleased" below the newest version is not touched.
+    const later = '# Changelog\n\n## 1.1.1 — x\n\n- Old.\n\n## Unreleased\n\n- Stale.\n';
+    expect(withSection(later, section)).toBe(
+      `# Changelog\n\n${section}\n## 1.1.1 — x\n\n- Old.\n\n## Unreleased\n\n- Stale.\n`,
+    );
+  });
+
   it('the CHANGELOG.md of the repository starts with the title and has 0.1.0', () => {
     const text = readFileSync(join(root, 'CHANGELOG.md'), 'utf8');
     expect(text.startsWith('# Changelog\n')).toBe(true);
