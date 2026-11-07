@@ -2,7 +2,38 @@
 
 ACARS Link releases: SemVer, an annotated tag `vX.Y.Z` on `master` for each (0.x until the
 public release, 1.0.0 — the first public one). `pnpm release <X.Y.Z>` adds a section from the `Merge task/…` commits since the
-previous tag; how to release — README.md, "Выпуски".
+previous tag; how to release — README.md, "Выпуски". A `## Unreleased` section written before
+the release becomes that version's section, with the task lines under `### Tasks`.
+
+## Unreleased
+
+### New
+
+- **Company NOTAM summary** (T95): about 200 NM before the top of descent `COMPANY NOTAM` lists
+  the NOTAM of the destination and the alternate that matter for the arrival — aerodrome and
+  runway closures, ILS and approach changes, approach and runway lights, aprons and stands — in
+  force within an hour of the ETA, up to 5 per airport, each with its number, end of validity,
+  text and, when it is active only at certain hours, its schedule (`SKED`). Taken from the
+  SimBrief OFP, as of its release (not live); no message when nothing matters.
+- **`REQ NOTAM [ICAO]`** (T95): the same summary for an airport of the flight plan (empty — the
+  destination); `NO NOTAM DATA` for other airports. Listed in `HELP` and in the app's help.
+- **Safety department FDM letter** (T94): 3 minutes after on-block, when flight data monitoring
+  saw events — sink rate over 1000 fpm below 1000 ft above the aerodrome, gear or flaps not in
+  landing configuration at 1000 ft, over 250 kt below 10 000 ft, go-around below 1000 ft (for
+  information) — `SAFETY DEPT FDM` lists them with value, height and UTC time. Facts only, no
+  score; reply `ACK` or `REPORT` (air safety report). No events — no letter.
+
+### Changed
+
+- The flight report and the logbook show the FDM events, one line each (T94).
+- Recording format: `fdm` in the header; older recordings replay as before (T94).
+
+### Known limits
+
+- US domestic NOTAM have no Q-code in the SimBrief OFP and are left out of the summary, runway
+  closures included.
+- NOTAM text is cut to two display lines: a long "trigger" NOTAM may lose its point.
+- FDM uses only the telemetry the bridge sends: no bank, pitch or approach speed checks.
 
 ## 1.1.1 — 2026-11-06
 

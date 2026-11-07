@@ -67,10 +67,27 @@ export function changelogSection(version, date, merges) {
   return `## ${version} — ${date}\n\n${lines.join('\n')}\n`;
 }
 
-/** `changelog` with `section` above the newest version (after the title and the introduction). */
+const UNRELEASED = /^## Unreleased[ \t]*\n/m;
+
+/**
+ * `changelog` with `section` above the newest version (after the title and the introduction). A
+ * `## Unreleased` section written by hand before the release becomes the new version: its text
+ * first, then the task lines of `section` under `### Tasks`.
+ */
 export function withSection(changelog, section) {
   const at = changelog.search(/^## /m);
   if (at < 0) return `${changelog.trimEnd()}\n\n${section}`;
+  const head = UNRELEASED.exec(changelog.slice(at));
+  if (head !== null && head.index === 0) {
+    const body = changelog.slice(at + head[0].length);
+    const end = body.search(/^## /m);
+    const notes = (end < 0 ? body : body.slice(0, end)).trim();
+    const rest = end < 0 ? '' : `\n${body.slice(end)}`;
+    const [title, ...lines] = section.trimEnd().split('\n');
+    const tasks = lines.join('\n').trim();
+    const merged = [title, '', notes, ...(tasks === '' ? [] : ['', '### Tasks', '', tasks])];
+    return `${changelog.slice(0, at)}${merged.join('\n')}\n${rest}`;
+  }
   return `${changelog.slice(0, at)}${section}\n${changelog.slice(at)}`;
 }
 
