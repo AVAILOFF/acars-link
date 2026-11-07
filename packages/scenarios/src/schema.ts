@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import {
+  CHARTER_TYPES,
   DISTANCE_TARGETS,
   FLIGHT_KINDS,
   FLIGHT_PHASES,
@@ -144,6 +145,14 @@ export const SCENARIO_SCHEMA = {
       uniqueItems: true,
       items: { enum: [...FLIGHT_KINDS] },
     },
+    // T107: types of charter the scenario is for, and its probability when the user chose the type.
+    charter: {
+      type: 'array',
+      minItems: 1,
+      uniqueItems: true,
+      items: { enum: [...CHARTER_TYPES] },
+    },
+    charter_probability: { type: 'number', minimum: 0, maximum: 1 },
     // T39: limit per flight is described in `groups.ts`.
     group: id,
     priority: { type: 'integer' },

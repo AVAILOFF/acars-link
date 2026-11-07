@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import type {
+  CharterType,
   FlightKind,
   FlightKindInfo,
   FlightPhase,
@@ -238,6 +239,8 @@ export interface ForceableScenario {
   readonly title: UiText;
   /** Kinds of flight it is for (T89); absent = every kind. */
   readonly operations?: readonly FlightKind[];
+  /** Types of charter it is for (T107); absent = every type. */
+  readonly charter?: readonly CharterType[];
 }
 
 /**
@@ -698,9 +701,10 @@ export interface AcarsApi {
   forceScenario(id: string): Promise<Result<null>>;
   /**
    * The kind of flight (T89) for this flight, `null` = automatic; answers the question after loading
-   * the OFP. Refused after OUT (`kind_locked`).
+   * the OFP. Refused after OUT (`kind_locked`). `charter` (T107): the type of a charter, `null` =
+   * the default (tour); absent = as chosen before.
    */
-  setFlightKind(kind: FlightKind | null): Promise<Result<null>>;
+  setFlightKind(kind: FlightKind | null, charter?: CharterType | null): Promise<Result<null>>;
   /** Goes on with the flight the app lost (T64, `AppState.resume`). */
   resumeFlight(): Promise<Result<null>>;
   /** Gives that flight up: it is not offered again, its recording stays (unless temporary). */

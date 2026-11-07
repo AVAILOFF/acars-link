@@ -4,10 +4,12 @@
 import { writeFile } from 'node:fs/promises';
 import {
   alignOfpDay,
+  type CharterType,
   type CompiledScenario,
   classifyFlight,
   type FlightKind,
   type FlightReport,
+  isCharterType,
   isFlightKind,
   type Ofp,
   type SimCommand,
@@ -204,6 +206,8 @@ export class AppController {
   private report: FlightReportView | null = null;
   /** T89: the user's kind of flight for the loaded OFP; null = automatic. */
   private kindOverride: FlightKind | null = null;
+  /** T107: the user's charter type for the loaded OFP; null = the default. */
+  private charterOverride: CharterType | null = null;
   /** T89: the question after loading the OFP waits for an answer. */
   private kindAsk = false;
 
@@ -350,15 +354,20 @@ export class AppController {
       return k === null ? null : { ...k, ask: this.kindAsk && !k.locked };
     }
     if (this.ofp === null) return null;
-    return { ...classifyFlight(this.ofp, this.kindOverride), locked: false, ask: this.kindAsk };
+    return {
+      ...classifyFlight(this.ofp, this.kindOverride, this.charterOverride),
+      locked: false,
+      ask: this.kindAsk,
+    };
   }
 
   /**
    * T89: the kind of flight for this flight (null = automatic); answers the question after loading
    * the OFP. Before the start it is kept for the core's options; in flight it goes to the core,
-   * which fixes it at OUT.
+   * which fixes it at OUT. T107: `charter` — the charter type (null = the default), absent = as
+   * chosen before.
    */
-  async setFlightKind(kind: unknown): Promise<null> {
+  async setFlightKind(kind: unknown, charter?: unknown): Promise<null> {
     if (kind !== null && !isFlightKind(kind)) {
       throw new AppFailure(
         'invalid_input',
@@ -366,6 +375,14 @@ export class AppController {
         'flight_kind',
       );
     }
+    if (charter !== undefined && charter !== null && !isCharterType(charter)) {
+      throw new AppFailure(
+        'invalid_input',
+        `unknown type of charter: ${String(charter)}`,
+        'flight_kind',
+      );
+    }
+    const type = charter === undefined ? this.charterOverride : charter;
     if (this.ofp === null)
       throw new AppFailure('bad_state', 'load the OFP first', 'load_ofp_first');
     const s = this.session;
@@ -374,9 +391,10 @@ export class AppController {
       if (k === null || k.locked) {
         throw new AppFailure('bad_state', 'the kind of flight is fixed after OUT', 'kind_locked');
       }
-      s.setFlightKind(kind);
+      s.setFlightKind(kind, type);
     }
     this.kindOverride = kind;
+    this.charterOverride = type;
     this.kindAsk = false;
     this.o.onChange();
     return null;
@@ -569,6 +587,7 @@ export class AppController {
       classifyFlight(before).auto === classifyFlight(ofp).auto;
     if (!same) {
       this.kindOverride = null;
+      this.charterOverride = null;
       this.kindAsk = settings.askFlightKind;
     }
     this.ofp = ofp;
@@ -665,7 +684,7 @@ export class AppController {
       ...(settings.hubIcao === '' ? {} : { hub: settings.hubIcao }),
       massUnit: settings.massUnit,
       ...(simTime ? { simTime: true } : {}),
-      flightKind: { override: this.kindOverride },
+      flightKind: { override: this.kindOverride, charter: this.charterOverride },
       simCommands: (c) => this.sendSimCommand(c),
       ...(settings.datalink
         ? {
@@ -796,6 +815,7 @@ export class AppController {
     this.ofp = h.ofp;
     // T89: the kind as recorded; the question was answered (or not) before the restart.
     this.kindOverride = this.session.flightKind?.override ?? null;
+    this.charterOverride = this.session.flightKind?.charterOverride ?? null;
     this.kindAsk = false;
     this.flight = this.summary(h.ofp, settings, h.station);
     this.log.info(`flight resumed (${settings.transport})`);

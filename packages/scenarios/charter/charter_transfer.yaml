@@ -1,5 +1,6 @@
 # Transfer at the destination of a charter (T91): coaches of the tour operator for the passengers;
 # an assumption approved by the user 2026-11-04 (60 % of charters). The number is the loadsheet's.
+# T107: only on a tour charter (coaches of the tour operator), probability unchanged.
 id: charter_transfer
 version: 1
 category: ops
@@ -8,6 +9,7 @@ description: "Before TOD on a charter: transfer coaches for the passengers wait 
 hint: "Charter handling at the destination: coaches of the tour operator wait for your passengers and a representative meets them in the arrivals hall. Useful for the cabin announcement. No reply needed."
 enabled_by_default: true
 operations: [charter_pax]
+charter: [tour]
 trigger:
   on: distance
   dist: { to: tod, lte_nm: 100 }

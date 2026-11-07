@@ -1,5 +1,6 @@
 # One-off VIP charter (T91): the principal comes by car to the aircraft, catering to order; an
 # assumption approved by the user 2026-11-04. One charter story per flight; not with vip_onboard.
+# T107: only on a VIP charter; every time when the user chose that type by hand.
 id: charter_vip
 version: 1
 category: ops
@@ -8,6 +9,8 @@ description: "Before departure of a charter: a VIP party arrives by car at the a
 hint: "Charter handling: this is a VIP charter. The party comes by car to the aircraft and boards last, and the catering is to their order. No reply needed."
 enabled_by_default: true
 operations: [charter_pax]
+charter: [vip]
+charter_probability: 1
 group: charter_story
 excludes: [vip_onboard]
 trigger:

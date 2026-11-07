@@ -1,5 +1,6 @@
 # Tour operator's representative on a charter (T91): roles of a package-holiday charter, an
 # assumption approved by the user 2026-11-04. One charter story per flight (group charter_story).
+# T107: only on a tour charter; every time when the user chose that type by hand.
 id: charter_tour_rep
 version: 1
 category: ops
@@ -8,6 +9,8 @@ description: "Before departure of a charter: the tour operator's representative 
 hint: "Charter handling: the tour operator's representative is at the gate, the group check-in is complete and the representative would like a short welcome on the public address after boarding. No reply needed."
 enabled_by_default: true
 operations: [charter_pax]
+charter: [tour]
+charter_probability: 1
 group: charter_story
 trigger:
   on: time

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
-import type { FlightKind } from '@acars/core';
+import type { CharterType, FlightKind } from '@acars/core';
 import { create } from 'zustand';
 import type {
   AboutInfo,
@@ -107,7 +107,7 @@ interface Store {
   setChance(id: string, percent: number | null): Promise<void>;
   forceScenario(id: string): Promise<void>;
   /** T89: the kind of flight for this flight, null = automatic; also answers the question. */
-  setFlightKind(kind: FlightKind | null): Promise<void>;
+  setFlightKind(kind: FlightKind | null, charter?: CharterType | null): Promise<void>;
   /** `field` names the row for the "saved" mark; default: the first key of the patch. */
   updateSettings(
     patch: Parameters<AcarsApi['updateSettings']>[0],
@@ -269,8 +269,8 @@ export const useStore = create<Store>()((set, get) => {
     async forceScenario(id) {
       await run('force', () => api().forceScenario(id));
     },
-    async setFlightKind(kind) {
-      await run('kind', () => api().setFlightKind(kind));
+    async setFlightKind(kind, charter) {
+      await run('kind', () => api().setFlightKind(kind, charter));
     },
     updateSettings: (patch, field) =>
       run(

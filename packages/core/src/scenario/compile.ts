@@ -13,7 +13,7 @@ import {
 } from '../sim/vdgs.js';
 import { isContextVariable, isFlagVariable, isRunVariable } from './context.js';
 import { type CompiledExpr, compileExpr, ExprError } from './expr.js';
-import { isFlightKind } from './flight-kind.js';
+import { isCharterType, isFlightKind } from './flight-kind.js';
 import { type CompiledTemplate, compileTemplate, TemplateError } from './template.js';
 import {
   DISTANCE_TARGETS,
@@ -170,6 +170,8 @@ export interface CompiledScenario {
   readonly conditions: readonly CompiledExpr[];
   readonly steps: readonly CompiledStep[];
   readonly probability: number;
+  /** `charter_probability` (T107); null = `probability` always. */
+  readonly charterProbability: number | null;
   readonly priority: number;
   /** Members of the group that may start in one flight; null = no limit (T39). */
   readonly groupMax: number | null;
@@ -264,6 +266,21 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
     for (const k of def.operations) {
       if (!isFlightKind(k)) fail('operations', `unknown kind of flight ${String(k)}`);
     }
+  }
+  // T107: types of charter.
+  if (def.charter !== undefined) {
+    if (def.operations?.length !== 1 || def.operations[0] !== 'charter_pax')
+      fail('charter', 'needs operations: [charter_pax]');
+    if (def.charter.length === 0) fail('charter', 'must name at least one type of charter');
+    for (const c of def.charter) {
+      if (!isCharterType(c)) fail('charter', `unknown type of charter ${String(c)}`);
+    }
+  }
+  const charterProbability = def.charter_probability;
+  if (charterProbability !== undefined) {
+    if (def.charter === undefined) fail('charter_probability', 'needs charter');
+    if (!(charterProbability >= 0 && charterProbability <= 1))
+      fail('charter_probability', 'must be 0..1');
   }
 
   const text = (en: string | undefined): LocalText | null => (en === undefined ? null : { en });
@@ -664,6 +681,7 @@ export function compileScenario(def: ScenarioDef): CompiledScenario {
     conditions,
     steps,
     probability,
+    charterProbability: charterProbability ?? null,
     priority: def.priority ?? 0,
     groupMax: null,
     texts,

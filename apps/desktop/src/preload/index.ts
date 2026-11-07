@@ -46,7 +46,7 @@ const api: AcarsApi = {
   removeSmokePackage: () => ipcRenderer.invoke(IPC.removeSmokePackage),
   setScenarioChance: (id, percent) => ipcRenderer.invoke(IPC.setScenarioChance, id, percent),
   forceScenario: (id) => ipcRenderer.invoke(IPC.forceScenario, id),
-  setFlightKind: (kind) => ipcRenderer.invoke(IPC.setFlightKind, kind),
+  setFlightKind: (kind, charter) => ipcRenderer.invoke(IPC.setFlightKind, kind, charter),
 };
 
 contextBridge.exposeInMainWorld('acars', api);

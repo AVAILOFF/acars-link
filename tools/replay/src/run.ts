@@ -102,7 +102,14 @@ export function recordedCoreOptions(
     ...(h.hub === undefined ? {} : { hub: h.hub }),
     ...(h.xatc === undefined ? {} : { xatc: h.xatc }),
     ...(h.datalink === undefined ? {} : { datalink: h.datalink }),
-    ...(h.flightKind === undefined ? {} : { flightKind: { override: h.flightKind.override } }),
+    ...(h.flightKind === undefined
+      ? {}
+      : {
+          flightKind: {
+            override: h.flightKind.override,
+            ...(h.flightKind.charter === undefined ? {} : { charter: h.flightKind.charter }),
+          },
+        }),
     ...(o.phaseConfig === undefined ? {} : { phaseConfig: o.phaseConfig }),
   };
 }

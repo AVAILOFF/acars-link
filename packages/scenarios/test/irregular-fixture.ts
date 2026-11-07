@@ -7,6 +7,7 @@ import {
   AcarsCore,
   B77X_PROFILE,
   B78X_PROFILE,
+  type CharterType,
   type CompiledScenario,
   type CoreEvent,
   checkText,
@@ -238,6 +239,8 @@ export function fly(
     until?: (r: Run) => boolean;
     /** Core `flightKind` (T89): the kind filter on, with this choice (null = recognized). */
     flightKind?: FlightKind | null;
+    /** T107: the charter type with the kind filter (null = the default); absent = none. */
+    charter?: CharterType | null;
   } = {},
 ): Run {
   const core = AcarsCore.create({
@@ -249,7 +252,14 @@ export function fly(
     syntheticConnections: o.synthetic ?? true,
     ...(o.flags === undefined ? {} : { flags: o.flags }),
     ...(o.nextLegVersion === undefined ? {} : { nextLegVersion: o.nextLegVersion }),
-    ...(o.flightKind === undefined ? {} : { flightKind: { override: o.flightKind } }),
+    ...(o.flightKind === undefined
+      ? {}
+      : {
+          flightKind: {
+            override: o.flightKind,
+            ...(o.charter === undefined ? {} : { charter: o.charter }),
+          },
+        }),
     ...(c.massUnit === undefined ? {} : { massUnit: c.massUnit }),
   });
   core.startFlight();

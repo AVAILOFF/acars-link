@@ -22,6 +22,29 @@ export type FlightKind = (typeof FLIGHT_KINDS)[number];
 export const isFlightKind = (v: unknown): v is FlightKind =>
   typeof v === 'string' && (FLIGHT_KINDS as readonly string[]).includes(v);
 
+/**
+ * Type of a charter (T107): `tour` — a package-holiday charter of a tour operator (the default when
+ * the user did not choose one), `sports` — a sports team, `vip` — a one-off VIP party. Scenarios of
+ * a charter name their types in `charter` (`types.ts`); without it a scenario is for every type.
+ */
+export const CHARTER_TYPES = ['tour', 'sports', 'vip'] as const;
+export type CharterType = (typeof CHARTER_TYPES)[number];
+
+export const isCharterType = (v: unknown): v is CharterType =>
+  typeof v === 'string' && (CHARTER_TYPES as readonly string[]).includes(v);
+
+/** The type of a charter the user did not choose (T107, approved by the user 2026-11-07). */
+export const DEFAULT_CHARTER_TYPE: CharterType = 'tour';
+
+/**
+ * The user's choice of the kind of flight (T89, null = automatic) and of the type of charter (T107,
+ * null = the default type). `charter` absent = no charter type, as in recordings before T107.
+ */
+export interface KindChoice {
+  readonly override: FlightKind | null;
+  readonly charter?: CharterType | null;
+}
+
 /** The kinds that carry passengers in a cabin (the passenger scenarios, T89). */
 export const PASSENGER_KINDS: readonly FlightKind[] = ['sched_pax', 'charter_pax'];
 
@@ -60,6 +83,13 @@ export interface FlightKindInfo {
   readonly sts: string | null;
   /** ICAO type designator of the OFP (rule `aircraft_type`, T92); null = not in the OFP. */
   readonly aircraftType: string | null;
+  /**
+   * Type of the charter in force (T107): the user's choice, else {@link DEFAULT_CHARTER_TYPE};
+   * null when the kind is not `charter_pax` or without the type (recordings before T107).
+   */
+  readonly charter: CharterType | null;
+  /** The user's choice of the charter type; null = not chosen (the default type). */
+  readonly charterOverride: CharterType | null;
 }
 
 /**
@@ -71,7 +101,11 @@ export interface FlightKindInfo {
  * is not used, decision of 2026-11-04): only the user's choice makes one. `M` and `X` follow the
  * same rules.
  */
-export function classifyFlight(ofp: Ofp, override: FlightKind | null = null): FlightKindInfo {
+export function classifyFlight(
+  ofp: Ofp,
+  override: FlightKind | null = null,
+  charterOverride?: CharterType | null,
+): FlightKindInfo {
   const w = ofp.weights;
   const freightKg = w.freightKg ?? w.cargoKg;
   const flightType = ofp.flightType ?? null;
@@ -88,8 +122,9 @@ export function classifyFlight(ofp: Ofp, override: FlightKind | null = null): Fl
             : isBizAviationType(ofp.aircraft.icao)
               ? ['bizav', 'aircraft_type']
               : ['sched_pax', 'default'];
+  const kind = override ?? auto;
   return {
-    kind: override ?? auto,
+    kind,
     auto,
     override,
     rule,
@@ -98,5 +133,11 @@ export function classifyFlight(ofp: Ofp, override: FlightKind | null = null): Fl
     flightType,
     sts,
     aircraftType: ofp.aircraft.icao ?? null,
+    // T107: `charterOverride` absent = no charter type (recordings before T107).
+    charter:
+      kind === 'charter_pax' && charterOverride !== undefined
+        ? (charterOverride ?? DEFAULT_CHARTER_TYPE)
+        : null,
+    charterOverride: charterOverride ?? null,
   };
 }
