@@ -22,8 +22,23 @@ the release becomes that version's section, with the task lines under `### Tasks
   landing configuration at 1000 ft, over 250 kt below 10 000 ft, go-around below 1000 ft (for
   information) — `SAFETY DEPT FDM` lists them with value, height and UTC time. Facts only, no
   score; reply `ACK` or `REPORT` (air safety report). No events — no letter.
+- **Ground services by GSX Pro** (T98, MSFS): the bridge reads the state of GSX. With GSX in use
+  the final loadsheet waits for the end of GSX boarding (at most 10 minutes past its time, then
+  as scheduled), the fuel slip for the end of GSX refuelling, and the gate sends
+  `BOARDING COMPLETED` with the passengers of the OFP and the LMC. Without GSX or in X-Plane —
+  by the schedule, as before.
+- **Type of charter** (T107): on a charter flight, a second list next to "Kind of flight" —
+  tour (the default), sports team or VIP. A tour charter gets no sports team or VIP messages;
+  the tour group change and the transfer coaches come only on a tour charter. Chosen by hand,
+  the story of the type comes every time. Fixed at pushback.
 
 ### Changed
+
+- All pre-departure messages (loadsheets, take-off data, fuel slip) come before pushback, also
+  on a flight started late or with a slot; what is still waiting is sent at pushback (T61,
+  late start version 4). Before, a slot could push some of them past pushback or drop them.
+- Recording format: `flightKind.charter` in the header and the `tick` lines; older recordings
+  replay as before (T107).
 
 - The flight report and the logbook show the FDM events, one line each (T94).
 - Recording format: `fdm` in the header; older recordings replay as before (T94).
