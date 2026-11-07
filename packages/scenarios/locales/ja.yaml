@@ -270,6 +270,10 @@ cmd_req_loadsheet_none:
   title: パイロットコマンド：REQ LOADSHEET、まだありません
   description: ロードシートがまだ存在しない状態での「REQ LOADSHEET」コマンド。
   hint: REQ LOADSHEETへの回答：このフライトのロードシートはまだ発行されていません。予備のロードシートが発行された際は、その旨がメッセージで通知されます。返信は不要です。
+cmd_req_notam:
+  title: パイロットコマンド：REQ NOTAM
+  description: REQ NOTAM [ICAO]：OFPに含まれる空港の重要なNOTAM（ICAOなしは目的地）。その他の空港にはNO NOTAM DATAと回答。
+  hint: REQ NOTAM <ICAO> は、飛行計画に含まれる空港（空欄の場合は目的地）の重要なNOTAMを照会するものです。降下開始点（TOD）以前と同様の概要となります。NOTAMは、飛行計画作成時点のものであり、ライブデータではありません。飛行計画に含まれていない空港については、OPSはNO NOTAM DATAと回答します。返信は不要です。
 cmd_req_wx:
   title: パイロットコマンド：REQ WX
   description: REQ WXコマンド：OFPのMETARに基づく気象情報。
@@ -282,6 +286,10 @@ cmd_req_wx_no_data:
   title: パイロットコマンド：REQ WX、データなし
   description: 空港の気象データがない場合のREQ WXコマンド。
   hint: REQ WXへの回答：OPSにはその空港の気象情報がありません。ICAOコードを確認するか、後で再度お問い合わせください。返信は不要です。
+company_notam:
+  title: 降下開始点（TOD）前のNOTAM
+  description: 降下開始点（TOD）の前に、OFPから目的地および代替空港の重要なNOTAM（滑走路、ILS、進入方式、照明、駐機スポット）。
+  hint: 到着に関連するNOTAMの会社による要約：滑走路および飛行場の閉鎖、ILSおよび進入経路の変更、目的地および代替空港の照明および駐機スポットについて、ETA前後で有効なもの。各項目について：NOTAM番号と有効期限、その本文、および特定の時間帯にのみ有効な場合はそのスケジュール（SKED）。これらのNOTAMは、飛行計画作成時点のものであり、ライブデータではありません。返信は不要です。
 connection_held:
   title: 接続便の待機
   description: 乗り継ぎ時間が15～40分残っている短時間の乗り継ぎ後、待機中：乗客のために次の便が待機しています。

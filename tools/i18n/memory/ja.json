@@ -15,8 +15,13 @@
     "engine": "deepl"
   },
   "help:flight.commands.a1.10": {
+    "src": "<x>DIVERT</x> &lt;<x>ICAO</x>&gt;: diversion; <x>OPS</x> warns handling there and asks for the reason.",
+    "out": "DIVERT <ICAO>：ダイバート；OPSは当該空港でのハンドリングについて警告し、理由を尋ねます。",
+    "engine": "deepl"
+  },
+  "help:flight.commands.a1.11": {
     "src": "<x>MEDICAL</x> &lt;text&gt;: a medical case on board; <x>OPS</x> connects MedLink.",
-    "out": "MEDICAL <text>：機内で医療事案が発生しました。OPSがMedLinkに接続します。",
+    "out": "MEDICAL <text>：機内で医療上の事態が発生しました。OPSがMedLinkに接続します。",
     "engine": "deepl"
   },
   "help:flight.commands.a1.2": {
@@ -25,38 +30,38 @@
     "engine": "deepl"
   },
   "help:flight.commands.a1.3": {
-    "src": "<x>REQ GATE</x>: the expected arrival gate or stand, baggage belt and <x>STA</x>.",
-    "out": "REQ GATE：予定到着ゲートまたはスポット、手荷物受取所、およびSTA。",
+    "src": "<x>REQ NOTAM</x> [<x>ICAO</x>]: significant <x>NOTAM</x> of an airport of the flight plan (empty means the destination), as of the <x>OFP</x> release.",
+    "out": "REQ NOTAM [ICAO]：OFPの公開時点における、飛行計画に含まれる空港の重要なNOTAM（空欄の場合は目的地を指します）。",
     "engine": "deepl"
   },
   "help:flight.commands.a1.4": {
+    "src": "<x>REQ GATE</x>: the expected arrival gate or stand, baggage belt and <x>STA</x>.",
+    "out": "REQ GATE：到着予定のゲートまたはスポット、手荷物受取所、およびSTA。",
+    "engine": "deepl"
+  },
+  "help:flight.commands.a1.5": {
     "src": "<x>REQ GATE CHANGE</x> [gate] [reason]: ask for another arrival gate.",
     "out": "REQ GATE CHANGE [ゲート] [理由]：別の到着ゲートを要求します。",
     "engine": "deepl"
   },
-  "help:flight.commands.a1.5": {
-    "src": "<x>REQ LOADSHEET</x>: the latest loadsheet of the flight once more.",
-    "out": "REQ LOADSHEET：当該フライトの最新のロードシートを再度表示します。",
-    "engine": "deepl"
-  },
   "help:flight.commands.a1.6": {
-    "src": "<x>DELAY</x> &lt;min&gt; &lt;reason&gt;: report a departure delay; <x>OPS</x> replies with the new <x>EOBT</x>.",
-    "out": "DELAY <分> <理由>: 出発遅延を報告します。OPSは新しいEOBTを返信します。",
+    "src": "<x>REQ LOADSHEET</x>: the latest loadsheet of the flight once more.",
+    "out": "REQ LOADSHEET：当該フライトの最新のロードシートを再度読み込みます。",
     "engine": "deepl"
   },
   "help:flight.commands.a1.7": {
+    "src": "<x>DELAY</x> &lt;min&gt; &lt;reason&gt;: report a departure delay; <x>OPS</x> replies with the new <x>EOBT</x>.",
+    "out": "DELAY <分> <理由>：出発遅延を報告します。OPSは新しいEOBTを返信します。",
+    "engine": "deepl"
+  },
+  "help:flight.commands.a1.8": {
     "src": "<x>ETA</x>: estimated arrival against the schedule, gate and transfer passengers.",
     "out": "ETA：スケジュールに基づく到着予定時刻、ゲート、および乗り継ぎ乗客。",
     "engine": "deepl"
   },
-  "help:flight.commands.a1.8": {
-    "src": "<x>RDY</x>: ready to depart before the slot (<x>CTOT</x>), passed on to flow control.",
-    "out": "RDY：スロット（CTOT）前に出発準備が整い、フローコントロールに引き継がれます。",
-    "engine": "deepl"
-  },
   "help:flight.commands.a1.9": {
-    "src": "<x>DIVERT</x> &lt;<x>ICAO</x>&gt;: diversion; <x>OPS</x> warns handling there and asks for the reason.",
-    "out": "DIVERT <ICAO>：ダイバート；OPSは現地でのハンドリングについて警告し、理由を尋ねます。",
+    "src": "<x>RDY</x>: ready to depart before the slot (<x>CTOT</x>), passed on to flow control.",
+    "out": "RDY：スロット（CTOT）前に出発準備が整い、フローコントロールに引き継がれました。",
     "engine": "deepl"
   },
   "help:flight.commands.a2": {
@@ -4664,6 +4669,21 @@
     "out": "パイロットコマンド：REQ LOADSHEET、まだありません",
     "engine": "deepl"
   },
+  "scn:cmd_req_notam.description": {
+    "src": "<x>REQ NOTAM</x> [<x>ICAO</x>]: significant <x>NOTAM</x> of an airport of the <x>OFP</x> (destination without <x>ICAO</x>); <x>NO NOTAM DATA</x> for other airports.",
+    "out": "REQ NOTAM [ICAO]：OFP（ICAOコードのない目的地）の空港に関する重要なNOTAM；その他の空港についてはNO NOTAM DATAはありません。",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_notam.hint": {
+    "src": "<x>REQ NOTAM</x> &lt;<x>ICAO</x>&gt; asks for the significant <x>NOTAM</x> of an airport of your flight plan (empty: the destination): the same summary as before the top of descent (<x>TOD</x>). The <x>NOTAM</x> are those of the flight plan when it was made, not live data. For an airport that is not in the plan, <x>OPS</x> answers <x>NO NOTAM DATA</x>. No reply needed.",
+    "out": "REQ NOTAM <ICAO> は、飛行計画に含まれる空港（空欄の場合は目的地）の重要なNOTAMを照会するものです。降下開始点（TOD）以前と同様の概要となります。NOTAMは、飛行計画作成時点のものであり、ライブデータではありません。飛行計画に含まれていない空港については、OPSはNO NOTAM DATAと回答します。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_notam.title": {
+    "src": "Pilot command: <x>REQ NOTAM</x>",
+    "out": "パイロットコマンド：REQ NOTAM",
+    "engine": "deepl"
+  },
   "scn:cmd_req_wx.description": {
     "src": "<x>REQ WX</x> command: weather from the <x>OFP</x> <x>METAR</x>.",
     "out": "REQ WXコマンド：OFPのMETARに基づく気象情報。",
@@ -4707,6 +4727,21 @@
   "scn:cmd_req_wx_no_data.title": {
     "src": "Pilot command: <x>REQ WX</x>, no data",
     "out": "パイロットコマンド：REQ WX、データなし",
+    "engine": "deepl"
+  },
+  "scn:company_notam.description": {
+    "src": "Significant <x>NOTAM</x> of the destination and the alternate from the <x>OFP</x> (runway, <x>ILS</x>, approach, lights, stands) before the top of descent (<x>TOD</x>).",
+    "out": "降下開始点（TOD）到達前に、OFP（OFP）から得た目的地および代替空港の重要なNOTAM（滑走路、ILS、進入方式、照明、駐機スポット）について。",
+    "engine": "deepl"
+  },
+  "scn:company_notam.hint": {
+    "src": "Company summary of the <x>NOTAM</x> that matter for your arrival: runway and aerodrome closures, <x>ILS</x> and approach changes, lights and stands at the destination and the alternate, in force around your <x>ETA</x>. Each item: <x>NOTAM</x> number and end of validity, its text and, when it is active only at certain hours, its schedule (<x>SKED</x>). The <x>NOTAM</x> are those of the flight plan when it was made, not live data. No reply needed.",
+    "out": "到着に関連するNOTAMの会社による要約：滑走路および飛行場の閉鎖、ILSおよび進入経路の変更、目的地および代替空港の照明および駐機スポットについて、ETA前後で有効なもの。各項目について：NOTAM番号と有効期限、その本文、および特定の時間帯にのみ有効な場合はそのスケジュール（SKED）。これらのNOTAMは、飛行計画作成時点のものであり、ライブデータではありません。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:company_notam.title": {
+    "src": "Company <x>NOTAM</x> before top of descent",
+    "out": "降下開始点（TOD）前のNOTAM",
     "engine": "deepl"
   },
   "scn:connection_held.description": {

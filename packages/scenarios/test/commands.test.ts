@@ -191,6 +191,7 @@ describe('pilot command scenarios', () => {
         'REQ_GATE',
         'REQ_GATE_CHANGE',
         'REQ_LOADSHEET',
+        'REQ_NOTAM',
         'REQ_WX',
       ].sort(),
     );

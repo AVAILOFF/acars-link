@@ -87,6 +87,12 @@ export function parseCommand(normalized: string): ParsedCommand | null {
           return ICAO.test(w2)
             ? ok('REQ_ATIS', { icao: w2 })
             : { ok: false, command: 'REQ_ATIS', hint: 'REQ ATIS ICAO' };
+        case 'NOTAM':
+          // T95; without an airport: the destination (the engine fills it in).
+          if (w2 === undefined) return ok('REQ_NOTAM');
+          return ICAO.test(w2)
+            ? ok('REQ_NOTAM', { icao: w2 })
+            : { ok: false, command: 'REQ_NOTAM', hint: 'REQ NOTAM ICAO' };
         case 'LOADSHEET':
         case 'LS':
           return ok('REQ_LOADSHEET');

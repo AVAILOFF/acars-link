@@ -246,6 +246,35 @@ export interface Ofp {
    * with. Absent when the OFP has none (`tracks: []`) and in recordings made before T72.
    */
   readonly natTracks?: readonly NatTrack[];
+  /**
+   * NOTAM of the origin, destination and alternates as SimBrief put them into the OFP (T95), in
+   * OFP order. Absent when the OFP has none and in recordings made before T95: readers treat
+   * `undefined` as an empty list.
+   */
+  readonly notams?: readonly OfpNotam[];
+}
+
+/**
+ * One entry of `origin/destination/alternate.notam[]` of the SimBrief OFP (T95). Fields checked
+ * on the OFPs of `reference/ofp/raw` (2026-11-07): `notam_qcode` is a string or `[]`,
+ * `date_expire` a time or `false` (PERM), `notam_schedule` a string or `{}`.
+ */
+export interface OfpNotam {
+  /** `notam_id`, e.g. `B2655/26`. */
+  readonly id: string;
+  /** `location_icao`. */
+  readonly icao: string;
+  /** `notam_qcode`, five letters `Q…`; null when SimBrief gives none. */
+  readonly qcode: string | null;
+  readonly startMs: number;
+  /** Null = permanent (`date_expire: false`, `C) PERM`). */
+  readonly endMs: number | null;
+  /** `date_expire_is_estimated` (`C) … EST`). */
+  readonly endEstimated: boolean;
+  /** `notam_schedule` (item D, hours of activity), not parsed; null when empty. */
+  readonly schedule: string | null;
+  /** Item E: `notam_text` without the schedule line SimBrief puts first, lines joined by spaces. */
+  readonly text: string;
 }
 
 /** An ETOPS airport of the OFP: entry, exit or en-route suitable airport. */

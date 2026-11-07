@@ -15,6 +15,7 @@ import type {
   OfpItem18,
   OfpLandingPerf,
   OfpMassUnit,
+  OfpNotam,
   OfpStage,
   OfpStepClimb,
   OfpTakeoffPerf,
@@ -68,6 +69,11 @@ class Reader {
   }
 
   private raw(key: string): unknown {
+    return this.obj[key];
+  }
+
+  /** The value as JSON gives it, for fields whose type varies (`[]`, `{}`, `false` for none). */
+  rawValue(key: string): unknown {
     return this.obj[key];
   }
 
@@ -348,6 +354,72 @@ function parseEtops(root: Reader): OfpEtops | null {
       lon: a.coord('pos_long', 180),
     })),
   };
+}
+
+/** A non-empty trimmed string, else null (`[]`, `{}`, `false` and `""` are SimBrief's "none"). */
+function looseStr(v: unknown): string | null {
+  return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
+}
+
+/**
+ * One NOTAM of an airport (T95); null when it does not read (no id, no start). NOTAM are an extra
+ * of the OFP: one that does not read must not refuse the plan.
+ */
+function parseNotam(n: Reader, airport: string): OfpNotam | null {
+  try {
+    const id = n.optStr('notam_id');
+    const startMs = n.optTimeMs('date_effective');
+    if (id === null || startMs === null) return null;
+    const raw = (key: string) => n.rawValue(key);
+    const q = looseStr(raw('notam_qcode'));
+    const expire = looseStr(raw('date_expire'));
+    const endMs = expire === null ? null : n.optTimeMs('date_expire');
+    const est = raw('date_expire_is_estimated');
+    const schedule = looseStr(raw('notam_schedule'));
+    let lines = (looseStr(raw('notam_text')) ?? '').split(/\r?\n/).map((l) => l.trim());
+    // SimBrief writes item D (the schedule) as the first line of the text.
+    if (schedule !== null && lines[0] === schedule) lines = lines.slice(1);
+    const text = lines
+      .filter((l) => l !== '')
+      .join(' ')
+      .replace(/\s+/g, ' ');
+    return {
+      id,
+      icao: (looseStr(raw('location_icao')) ?? airport).toUpperCase(),
+      qcode: q !== null && /^Q[A-Z]{4}$/.test(q.toUpperCase()) ? q.toUpperCase() : null,
+      startMs,
+      endMs,
+      endEstimated: est === true || est === '1' || est === 'true',
+      schedule,
+      text,
+    };
+  } catch (e) {
+    if (e instanceof OfpParseError) return null;
+    throw e;
+  }
+}
+
+/** `notam[]` of the origin, destination and alternates (T95), in OFP order, without repeats. */
+function parseNotams(root: Reader): OfpNotam[] {
+  const airports = [
+    ...root.objects('origin'),
+    ...root.objects('destination'),
+    ...root.objects('alternate'),
+  ];
+  const seen = new Set<string>();
+  const out: OfpNotam[] = [];
+  for (const a of airports) {
+    const icao = (a.optStr('icao_code') ?? '').toUpperCase();
+    for (const n of a.objects('notam')) {
+      const parsed = parseNotam(n, icao);
+      if (parsed === null) continue;
+      const key = `${parsed.icao} ${parsed.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(parsed);
+    }
+  }
+  return out;
 }
 
 /** `fuel_plan_onboard` of a fix (the plan's fuel on board there, OFP units), kg; null if absent. */
@@ -635,6 +707,7 @@ export function parseSimbriefOfp(json: unknown): Ofp {
   const general = root.section('general');
   const atc = root.section('atc');
   const natTracks = parseNatTracks(root);
+  const notams = parseNotams(root);
 
   return {
     source: {
@@ -669,6 +742,7 @@ export function parseSimbriefOfp(json: unknown): Ofp {
     crew: parseCrew(root.optSection('crew')),
     etops: parseEtops(root),
     ...(natTracks.length === 0 ? {} : { natTracks }),
+    ...(notams.length === 0 ? {} : { notams }),
   };
 }
 

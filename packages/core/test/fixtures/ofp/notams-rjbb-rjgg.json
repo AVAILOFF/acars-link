@@ -1,0 +1,149 @@
+{
+  "_comment": "T95: real NOTAM from SimBrief OFPs of 2026-10 (reference/ofp/raw, not in git), fields the parser reads. destination/alternate of rctp-rjbb-a35k-kgs; other = shapes of other airports (no Q-code, PERM, estimated end as {} or \"1\").",
+  "destination": [
+    {
+      "notam_id": "B2651/26",
+      "location_icao": "RJBB",
+      "date_effective": "2026-10-07T15:30:00Z",
+      "date_expire": "2026-10-14T22:00:00Z",
+      "date_expire_is_estimated": {},
+      "notam_schedule": "07 09 13-14 1530/2200",
+      "notam_text": "07 09 13-14 1530/2200\nTWY J4(BTN L AND SPOT 203) CLSD DUE TO MAINT",
+      "notam_qcode": "QMXLC"
+    },
+    {
+      "notam_id": "B2655/26",
+      "location_icao": "RJBB",
+      "date_effective": "2026-10-07T15:00:00Z",
+      "date_expire": "2026-10-30T21:30:00Z",
+      "date_expire_is_estimated": {},
+      "notam_schedule": "07 09 13-14 16 20-21 23 27-28 30 1500/2130",
+      "notam_text": "07 09 13-14 16 20-21 23 27-28 30 1500/2130\nRWY 06R/24L CLSD DUE TO MAINT",
+      "notam_qcode": "QMRLC"
+    },
+    {
+      "notam_id": "B2496/26",
+      "location_icao": "RJBB",
+      "date_effective": "2026-09-30T15:00:00Z",
+      "date_expire": "2026-10-14T15:00:00Z",
+      "date_expire_is_estimated": {},
+      "notam_schedule": {},
+      "notam_text": "TRIGGER NOTAM-AIRAC AIP SUP 218/26\nWEF 01 OCT 2026 TIL 29 SEP 2027\nUNSERVICEABILITY OF KANSAI ILS",
+      "notam_qcode": "QFATT"
+    },
+    {
+      "notam_id": "B2568/26",
+      "location_icao": "RJBB",
+      "date_effective": "2026-09-30T20:30:00Z",
+      "date_expire": "2026-10-31T20:30:00Z",
+      "date_expire_is_estimated": {},
+      "notam_schedule": {},
+      "notam_text": "TWY-CL-LGT FOR TWY J4(BTN L AND S1),S1(BTN J3 AND J4) U/S DUE TO\nMAINT",
+      "notam_qcode": "QLXAS"
+    },
+    {
+      "notam_id": "B2043/26",
+      "location_icao": "RJBB",
+      "date_effective": "2026-08-04T02:01:00Z",
+      "date_expire": "2026-10-28T14:59:00Z",
+      "date_expire_is_estimated": {},
+      "notam_schedule": {},
+      "notam_text": "RWY INCURSION WARNING OPERATION SUSPENDED DUE TO MAINT",
+      "notam_qcode": "QXXXX"
+    },
+    {
+      "notam_id": "B2543/26",
+      "location_icao": "RJBB",
+      "date_effective": "2026-09-27T12:31:00Z",
+      "date_expire": "2026-12-27T12:00:00Z",
+      "date_expire_is_estimated": {},
+      "notam_schedule": {},
+      "notam_text": "OBST LGT U/S\nTYPE: CHIMNEY\nPSN: 343251.8N1352556.8E ELEV: 325FT AMSL\n(SAKAI-SHI IN OSAKA)",
+      "notam_qcode": "QOLAS"
+    },
+    {
+      "notam_id": "B2647/26",
+      "location_icao": "RJBB",
+      "date_effective": "2026-10-06T08:52:00Z",
+      "date_expire": "2026-10-06T10:30:00Z",
+      "date_expire_is_estimated": "1",
+      "notam_schedule": {},
+      "notam_text": "TWY L(BTN E3 AND E5) CLSD DUE TO CRACK",
+      "notam_qcode": "QMXLC"
+    }
+  ],
+  "alternate": [
+    {
+      "notam_id": "G2431/26",
+      "location_icao": "RJGG",
+      "date_effective": "2026-10-03T14:50:00Z",
+      "date_expire": "2026-10-18T20:45:00Z",
+      "date_expire_is_estimated": {},
+      "notam_schedule": "03 10-11 17-18 1450/2045",
+      "notam_text": "03 10-11 17-18 1450/2045\nRWY 18/36 CLSD DUE TO CONST",
+      "notam_qcode": "QMRLC"
+    },
+    {
+      "notam_id": "G2359/26",
+      "location_icao": "RJGG",
+      "date_effective": "2026-09-30T15:00:00Z",
+      "date_expire": "2026-10-28T15:00:00Z",
+      "date_expire_is_estimated": {},
+      "notam_schedule": {},
+      "notam_text": "STOP-BAR-LGT FOR A1 THRU A10 U/S\nRMK:(1)REF AIP SUP 225/26 ITEM TWY:3\n(2)THE EXACT TIME OF NEXT PERIOD WILL BE NOTIFIED BY FURTHER NOTAM",
+      "notam_qcode": "QLRAS"
+    },
+    {
+      "notam_id": "G2218/26",
+      "location_icao": "RJGG",
+      "date_effective": "2026-09-09T20:31:00Z",
+      "date_expire": "2026-11-30T09:08:00Z",
+      "date_expire_is_estimated": {},
+      "notam_schedule": "2031/0908",
+      "notam_text": "2031/0908\nBEYOND VISUAL LINE OF SIGHT UNMANNED ACFT:\nAREA: BOUNDED BY FLW POINTS\n345646N1364123E - 350124N1364600E - 345900N1365012E -\n345407N1364548E - 345646N1364123E\n(YATOMI-SHI, AMA-GUN, TOKONAME-SHI, CHITA-SHI IN AICHI,\nYOKKAICHI-SHI, MIE-GUN, KUWANA-SHI, KUWANA-GUN IN MIE)\nWT: 95KG\nFLT TIME: HJ\nCONTACT INFORMATION: 0859-44-0935\nF) SFC  G) 296FT AMSL",
+      "notam_qcode": "QWULW"
+    }
+  ],
+  "other": [
+    {
+      "notam_id": "10/132",
+      "location_icao": "KLAX",
+      "date_effective": "2026-10-15T14:15:00Z",
+      "date_expire": "2026-10-22T13:30:00Z",
+      "date_expire_is_estimated": false,
+      "notam_schedule": "",
+      "notam_text": "RWY 24L 6000FT DIST REMAINING SIGN LGT U/S",
+      "notam_qcode": []
+    },
+    {
+      "notam_id": "A5472/26",
+      "location_icao": "EDDF",
+      "date_effective": "2026-10-22T06:45:00Z",
+      "date_expire": false,
+      "date_expire_is_estimated": false,
+      "notam_schedule": "",
+      "notam_text": "HLDG POINT T8 RELOCATED. USE OF TWY T MAY BE RESTRICTED BY ATC\nFOR A380 ACFT TYPES TAXIING NORTHBOUND DUE TO PARALLEL APCH\nOPERATION 25L.",
+      "notam_qcode": "QMXLT"
+    },
+    {
+      "notam_id": "U2508/26",
+      "location_icao": "RCTP",
+      "date_effective": "2026-10-05T22:00:00Z",
+      "date_expire": "2026-11-20T13:00:00Z",
+      "date_expire_is_estimated": {},
+      "notam_schedule": "2200-1300",
+      "notam_text": "2200-1300\nUNMANNED ACFT WILL BE RELEASED:\n1.CASE NR:AB260914000702\n2.LCA:DAYUAN DISTRICT, TAOYUAN CITY\n3.THE AREA OVERLAPS PART OF VFR HEL RTE H1, ACFT ARE CTN ADZ.\n4.COOR TEL:0939-600675, 0912-218136\n5.AREA AS FLW:\n250328N 1210924E\n250343N 1211019E\n250309N 1211033E\n250249N 1210940E\n250328N 1210924E\nF) SFC  G) 2000FT AMSL",
+      "notam_qcode": "QWULW"
+    },
+    {
+      "notam_id": "A3470/26",
+      "location_icao": "RCTP",
+      "date_effective": "2026-09-19T08:57:00Z",
+      "date_expire": "2026-11-30T09:00:00Z",
+      "date_expire_is_estimated": "1",
+      "notam_schedule": {},
+      "notam_text": "PORTION OF TWY S BTN S4(EXCLUDED) AND S5(EXCLUDED)\nCLSD DUE TO WIP.",
+      "notam_qcode": "QMXLC"
+    }
+  ]
+}
