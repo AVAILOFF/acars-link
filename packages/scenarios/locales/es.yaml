@@ -270,6 +270,10 @@ cmd_req_loadsheet_none:
   title: "Comando del piloto: «REQ LOADSHEET», aún no hay ninguna"
   description: Comando REQ LOADSHEET antes de que exista ninguna hoja de carga.
   hint: "Respuesta a «REQ LOADSHEET»: aún no se ha emitido ninguna hoja de carga para este vuelo; el mensaje indicará cuándo estará disponible la preliminar. No es necesario responder."
+cmd_req_notam:
+  title: "Comando del piloto: REQ NOTAM"
+  description: "REQ NOTAM [ICAO]: NOTAM significativos de un aeropuerto del OFP (destino sin código ICAO); NO NOTAM DATA para otros aeropuertos."
+  hint: "REQ NOTAM <ICAO> solicita los NOTAM significativos de un aeropuerto incluido en su plan de vuelo (si se deja en blanco: el destino): el mismo resumen que antes del inicio del descenso (TOD). Los NOTAM son los del plan de vuelo en el momento de su elaboración, no datos en vivo. Para un aeropuerto que no figure en el plan, OPS responde NO NOTAM DATA. No es necesaria ninguna respuesta."
 cmd_req_wx:
   title: "Comando del piloto: «REQ WX»"
   description: "Comando REQ WX: información de meteorología del OFP METAR."
@@ -282,6 +286,10 @@ cmd_req_wx_no_data:
   title: "Comando del piloto: «REQ WX», sin datos"
   description: Comando REQ WX cuando no hay datos de meteorología para el aeropuerto.
   hint: "Respuesta a «REQ WX»: OPS no dispone de datos de meteorología para ese aeropuerto. Compruebe el código ICAO o vuelva a preguntar más tarde. No es necesario responder."
+company_notam:
+  title: NOTAM de la compañía antes de la cima de descenso
+  description: NOTAM significativos del destino y del aeropuerto alternativo según el OFP (pista, ILS, aproximación, luces, puestos de estacionamiento) antes del inicio del descenso (TOD).
+  hint: "Resumen de la compañía sobre los NOTAM relevantes para su llegada: cierres de pistas y aeródromos, cambios en el ILS y en las aproximaciones, luces y puestos de estacionamiento en el destino y en el aeropuerto alternativo, vigentes en torno a su ETA. Para cada elemento: número del NOTAM y fecha de caducidad, su texto y, cuando esté activo solo en determinadas horas, su horario (SKED). Los NOTAM son los del plan de vuelo en el momento de su elaboración, no datos en vivo. No es necesaria ninguna respuesta."
 connection_held:
   title: Conexión en espera
   description: "En espera tras una conexión corta con un margen de entre 15 y 40 minutos: el vuelo de conexión se retiene para los pasajeros."

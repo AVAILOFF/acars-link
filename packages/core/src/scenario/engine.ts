@@ -13,6 +13,7 @@ import {
   type ParkingStand,
   RoutePolyline,
 } from '../ext/data.js';
+import { notamText, notamTime, selectNotams } from '../ext/notam.js';
 import { FormatError, type FormattedMessage, formatMessage } from '../format/formatter.js';
 import { DEFAULT_PROFILE, type DisplayProfile } from '../format/profile.js';
 import { distanceNm } from '../geo/geo.js';
@@ -1344,6 +1345,15 @@ export class ScenarioEngine {
             'cmd.atis_code': station?.atisCode ?? null,
           };
         }
+        break;
+      }
+      case 'REQ_NOTAM': {
+        // T95: the company summary of an airport of the OFP, picked for its time (departure or ETA).
+        icao ??= this.ofp.destination.icao;
+        const at = notamTime(this.ofp, icao, input.oooi.OFF, this.st.delayMs ?? 0);
+        const o = this.ofp;
+        const known = [o.origin, o.destination, ...o.alternates].some((a) => a.icao === icao);
+        extra = { 'cmd.notam': known ? notamText(selectNotams(o.notams, icao, at)) : null };
         break;
       }
       case 'MEDICAL':

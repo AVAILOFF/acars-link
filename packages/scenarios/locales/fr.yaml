@@ -270,6 +270,10 @@ cmd_req_loadsheet_none:
   title: "Commande pilote : « REQ LOADSHEET », aucune pour l’instant"
   description: Commande « REQ LOADSHEET » avant l’existence d’un devis de masse et centrage.
   hint: "Réponse à « REQ LOADSHEET » : aucun devis de masse et centrage n’a encore été émis pour ce vol ; le message indiquera quand la version préliminaire sera disponible. Aucune réponse n’est nécessaire."
+cmd_req_notam:
+  title: "Commande pilote : REQ NOTAM"
+  description: "REQ NOTAM [ICAO] : NOTAM significatif concernant un aéroport de l’OFP (destination sans code ICAO) ; NO NOTAM DATA pour les autres aéroports."
+  hint: "REQ NOTAM <ICAO> demande les NOTAM significatifs d’un aéroport figurant dans votre plan de vol (si laissé vide : la destination) : le même récapitulatif qu’avant le début de la descente (TOD). Les NOTAM correspondent à ceux du plan de vol au moment de son établissement, et non à des données en direct. Pour un aéroport ne figurant pas dans le plan, OPS répond NO NOTAM DATA. Aucune réponse n’est nécessaire."
 cmd_req_wx:
   title: "Commande pilote : REQ WX"
   description: "Commande REQ WX : météo issue du METAR de l’OFP."
@@ -282,6 +286,10 @@ cmd_req_wx_no_data:
   title: "Commande pilote : « REQ WX », aucune donnée"
   description: Commande REQ WX lorsqu’il n’y a pas de données de météo pour l’aéroport.
   hint: "Réponse à « REQ WX » : OPS ne dispose d’aucune donnée météorologique pour cet aéroport. Vérifiez le code ICAO ou réessayez plus tard. Aucune réponse n’est nécessaire."
+company_notam:
+  title: NOTAM de la compagnie avant le début de la descente
+  description: NOTAM importants concernant la destination et l’aérodrome de dégagement, issus de l’OFP (piste, ILS, approche, balisage lumineux, postes de stationnement) avant le début de la descente (TOD).
+  hint: "Résumé par la compagnie des NOTAM pertinents pour votre arrivée : fermetures de pistes et d’aérodromes, modifications de l’ILS et des procédures d’approche, balisage lumineux et postes de stationnement à l’aérodrome de destination et à l’aérodrome de dégagement, en vigueur aux alentours de votre ETA. Pour chaque élément : numéro du NOTAM et date de fin de validité, son texte et, lorsqu’il n’est actif qu’à certaines heures, son horaire (SKED). Les NOTAM sont ceux du plan de vol au moment de son établissement, et non des données en direct. Aucune réponse n’est requise."
 connection_held:
   title: Correspondance en attente
   description: "En attente après une correspondance courte avec un délai restant de 15 à 40 minutes : le vol en correspondance est retenu pour les passagers."

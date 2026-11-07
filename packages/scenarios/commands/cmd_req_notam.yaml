@@ -1,0 +1,19 @@
+# REQ NOTAM [ICAO] (T95): the company NOTAM summary of an airport of the OFP (the destination
+# without an airport), picked for the departure (origin before take-off) or the ETA. Other
+# airports: the OFP has no NOTAM of them.
+id: cmd_req_notam
+version: 1
+category: ops
+title: "Pilot command: REQ NOTAM"
+description: "REQ NOTAM [ICAO]: significant NOTAM of an airport of the OFP (destination without ICAO); NO NOTAM DATA for other airports."
+hint: "REQ NOTAM <ICAO> asks for the significant NOTAM of an airport of your flight plan (empty: the destination): the same summary as before the top of descent (TOD). The NOTAM are those of the flight plan when it was made, not live data. For an airport that is not in the plan, OPS answers NO NOTAM DATA. No reply needed."
+enabled_by_default: true
+trigger:
+  on: command
+  command: REQ_NOTAM
+steps:
+  - send:
+      header: "NOTAM {cmd.icao}"
+      body: |
+        {cmd.notam|or:NO NOTAM DATA}
+      footer: AS OF OFP RELEASE {ofp.release|hhmm}Z

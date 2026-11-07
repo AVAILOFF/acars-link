@@ -1,0 +1,27 @@
+# Company NOTAM summary before TOD (T95): the NOTAM SimBrief put into the OFP that matter for the
+# arrival at the destination and the alternate, picked by their Q-code and in force within one
+# hour of the ETA (`packages/core/src/ext/notam.ts`). Not live: as of the OFP release.
+id: company_notam
+version: 1
+category: ops
+title: Company NOTAM before top of descent
+description: "Significant NOTAM of the destination and the alternate from the OFP (runway, ILS, approach, lights, stands) before the top of descent (TOD)."
+hint: "Company summary of the NOTAM that matter for your arrival: runway and aerodrome closures, ILS and approach changes, lights and stands at the destination and the alternate, in force around your ETA. Each item: NOTAM number and end of validity, its text and, when it is active only at certain hours, its schedule (SKED). The NOTAM are those of the flight plan when it was made, not live data. No reply needed."
+enabled_by_default: true
+trigger:
+  on: distance
+  dist: { to: tod, lte_nm: 200 }
+conditions:
+  - "flight.divert == null"
+  - "phase in ['CLIMB','CRUISE']"
+  - "ofp.notam_count > 0"
+priority: 3
+steps:
+  - send:
+      header: COMPANY NOTAM
+      body: |
+        {ofp.dest}
+        {ofp.notam_dest}
+        ~ALTN {ofp.altn}
+        ~{ofp.notam_altn}
+      footer: AS OF OFP RELEASE {ofp.release|hhmm}Z

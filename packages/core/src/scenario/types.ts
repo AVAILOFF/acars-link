@@ -52,6 +52,7 @@ export const PILOT_COMMANDS = [
   'REQ_ATIS',
   'RDY',
   'REQ_GATE_CHANGE',
+  'REQ_NOTAM',
 ] as const;
 export type PilotCommand = (typeof PILOT_COMMANDS)[number];
 

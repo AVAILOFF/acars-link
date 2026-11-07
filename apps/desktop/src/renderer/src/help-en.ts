@@ -10,6 +10,7 @@ const COMMANDS_EN = [
   'HELP: the list of commands OPS understands.',
   'REQ WX [ICAO]: METAR (and TAF with live data) of an airport; empty means the destination.',
   'REQ ATIS [ICAO]: the ATIS on air on VATSIM; without one, the latest METAR.',
+  'REQ NOTAM [ICAO]: significant NOTAM of an airport of the flight plan (empty means the destination), as of the OFP release.',
   'REQ GATE: the expected arrival gate or stand, baggage belt and STA.',
   'REQ GATE CHANGE [gate] [reason]: ask for another arrival gate.',
   'REQ LOADSHEET: the latest loadsheet of the flight once more.',

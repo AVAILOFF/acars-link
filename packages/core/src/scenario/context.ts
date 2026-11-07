@@ -18,6 +18,7 @@ import {
   type RoutePolyline,
   sortStations,
 } from '../ext/data.js';
+import { notamText, notamTime, selectNotams } from '../ext/notam.js';
 import { distanceNm, type LatLon } from '../geo/geo.js';
 import type { Ofp, OfpFix } from '../ofp/types.js';
 import type { FlightPhase, OooiKind } from '../phase/fsm.js';
@@ -58,6 +59,13 @@ export const CONTEXT_VARIABLES = [
   'ofp.orig_metar',
   'ofp.dest_metar',
   'ofp.altn_metar',
+  // company NOTAM summary (T95, ext/notam.ts): items in force at the ETA or `NIL SIGNIFICANT`
+  // (`ofp.notam_altn` null without an alternate); `ofp.notam_count` items of both
+  'ofp.notam_dest',
+  'ofp.notam_altn',
+  'ofp.notam_count',
+  // when SimBrief made the OFP (epoch ms): the NOTAM are as of then
+  'ofp.release',
   'ofp.orig_rwy',
   'ofp.dest_rwy',
   'ofp.altn',
@@ -212,6 +220,9 @@ export const CONTEXT_VARIABLES = [
   'cmd.wx_obs',
   'cmd.atis',
   'cmd.atis_code',
+  // `REQ NOTAM [ICAO]` (T95): the summary of an airport of the OFP or `NIL SIGNIFICANT`; null
+  // for any other airport
+  'cmd.notam',
   'cmd.gate',
   'cmd.new_gate',
   'cmd.divert_nm',
@@ -470,6 +481,7 @@ export const RUN_VARIABLES = [
   'cmd.wx_obs',
   'cmd.atis',
   'cmd.atis_code',
+  'cmd.notam',
   'cmd.gate',
   'cmd.new_gate',
   'cmd.divert_nm',
@@ -661,10 +673,12 @@ export function buildContext(input: ContextInput): ScenarioContext {
       'cmd.wx_obs': null,
       'cmd.atis': null,
       'cmd.atis_code': null,
+      'cmd.notam': null,
       'cmd.gate': null,
       'cmd.new_gate': null,
       'cmd.divert_nm': null,
       'cmd.divert_eta': null,
+      ...notamVariables(input),
       ...extVariables(input),
       ...specialVariables(input),
       ...aircraftVariables(ofp.aircraft.icao),
@@ -844,6 +858,23 @@ function extVariables(input: ContextInput): Record<ExtVariable, Value> {
     'ext.launch_ahead_nm': ln?.ahead ?? null,
     'ext.launch_off_nm': ln?.offNm ?? null,
     ...connexVariables(input),
+  };
+}
+
+/** `ofp.notam_*` (T95): the company NOTAM summary of the destination and the first alternate. */
+function notamVariables(
+  input: ContextInput,
+): Record<'ofp.notam_dest' | 'ofp.notam_altn' | 'ofp.notam_count' | 'ofp.release', Value> {
+  const { ofp } = input;
+  const at = notamTime(ofp, ofp.destination.icao, input.oooi.OFF, input.delayMs ?? 0);
+  const altn = ofp.alternates[0]?.icao;
+  const dest = selectNotams(ofp.notams, ofp.destination.icao, at);
+  const alt = altn === undefined ? [] : selectNotams(ofp.notams, altn, at);
+  return {
+    'ofp.notam_dest': notamText(dest),
+    'ofp.notam_altn': altn === undefined ? null : notamText(alt),
+    'ofp.notam_count': dest.length + alt.length,
+    'ofp.release': ofp.source.generatedAtMs,
   };
 }
 

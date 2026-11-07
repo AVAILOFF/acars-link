@@ -28,5 +28,7 @@ export function alignOfpDay(ofp: Ofp, now: number): { readonly ofp: Ofp; readonl
     estOnMs: shift(t.estOnMs),
     estInMs: t.estInMs + d,
   };
-  return { ofp: { ...ofp, times }, days };
+  // NOTAM (T95) move with the plan: the summary stays the picture as of the OFP release.
+  const notams = ofp.notams?.map((n) => ({ ...n, startMs: n.startMs + d, endMs: shift(n.endMs) }));
+  return { ofp: { ...ofp, times, ...(notams === undefined ? {} : { notams }) }, days };
 }

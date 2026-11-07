@@ -270,6 +270,10 @@ cmd_req_loadsheet_none:
   title: "Pilotenbefehl: „REQ LOADSHEET“, noch keine vorhanden"
   description: Befehl „REQ LOADSHEET“, bevor ein Loadsheet vorliegt.
   hint: "Antwort auf „REQ LOADSHEET“: Für diesen Flug wurde noch kein Loadsheet ausgestellt; in der Nachricht wird mitgeteilt, wann der vorläufige Loadsheet eintrifft. Keine Antwort erforderlich."
+cmd_req_notam:
+  title: "Pilotenbefehl: REQ NOTAM"
+  description: "REQ NOTAM [ICAO]: Wichtige NOTAMs eines Flughafens des OFP (Zielflughafen ohne ICAO); NO NOTAM DATA für andere Flughäfen."
+  hint: "REQ NOTAM <ICAO> fragt nach den wesentlichen NOTAMs eines Flughafens in Ihrem Flugplan (leer: der Zielflughafen): dieselbe Zusammenfassung wie vor dem Beginn des Sinkflugs (TOD). Die NOTAMs entsprechen denen des Flugplans zum Zeitpunkt seiner Erstellung, es handelt sich nicht um Live-Daten. Für einen Flughafen, der nicht im Plan enthalten ist, antwortet OPS mit NO NOTAM DATA. Eine Antwort ist nicht erforderlich."
 cmd_req_wx:
   title: "Pilotenbefehl: „REQ WX“"
   description: "REQ WX-Befehl: Wetterangaben aus dem OFP-METAR."
@@ -282,6 +286,10 @@ cmd_req_wx_no_data:
   title: "Pilotenbefehl: „REQ WX“, keine Daten"
   description: REQ WX-Befehl, wenn kein Wetter für den Flughafen vorhanden ist.
   hint: "Antwort auf „REQ WX“: OPS verfügt über keine Wetterdaten für diesen Flughafen. Überprüfen Sie den ICAO-Code oder fragen Sie später erneut nach. Eine Antwort ist nicht erforderlich."
+company_notam:
+  title: NOTAMs des Unternehmens vor Erreichen des Top of Descent
+  description: Wichtige NOTAM zum Zielflughafen und zum Ausweichflughafen aus dem OFP (Piste, ILS, Anflug, Befeuerung, Parkpositionen) vor Erreichen des Sinkflughöhenpunkts (TOD).
+  hint: "Zusammenfassung der für Ihre Ankunft relevanten NOTAMs durch das Unternehmen: Sperrungen von Pisten und Flugplätzen sowie Änderungen bei ILS und Anflügen, Befeuerung und Parkpositionen am Zielflughafen und am Ausweichflughafen, gültig rund um Ihre ETA. Zu jedem Punkt: NOTAM-Nummer und Gültigkeitsende, der Text sowie – falls das NOTAM nur zu bestimmten Zeiten aktiv ist – der Zeitplan (SKED). Die NOTAMs entsprechen denen des Flugplans zum Zeitpunkt seiner Erstellung und sind keine Live-Daten. Eine Antwort ist nicht erforderlich."
 connection_held:
   title: Anschlussflug zurückgehalten
   description: "Auf Halteposition nach einem kurzen Anschlussflug mit einer verbleibenden Zeit von 15 bis 40 Minuten: Der Anschlussflug wird für die Passagiere aufgehalten."

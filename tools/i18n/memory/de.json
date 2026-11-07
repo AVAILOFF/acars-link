@@ -15,8 +15,13 @@
     "engine": "deepl"
   },
   "help:flight.commands.a1.10": {
+    "src": "<x>DIVERT</x> &lt;<x>ICAO</x>&gt;: diversion; <x>OPS</x> warns handling there and asks for the reason.",
+    "out": "DIVERT <ICAO>: Ausweichlandung; OPS warnt die Abfertigung vor Ort und fragt nach dem Grund.",
+    "engine": "deepl"
+  },
+  "help:flight.commands.a1.11": {
     "src": "<x>MEDICAL</x> &lt;text&gt;: a medical case on board; <x>OPS</x> connects MedLink.",
-    "out": "MEDICAL <Text>: ein medizinischer Notfall an Bord; OPS stellt eine Verbindung zu MedLink her.",
+    "out": "MEDICAL <text>: Ein medizinischer Notfall an Bord; OPS stellt eine Verbindung zu MedLink her.",
     "engine": "deepl"
   },
   "help:flight.commands.a1.2": {
@@ -25,38 +30,38 @@
     "engine": "deepl"
   },
   "help:flight.commands.a1.3": {
+    "src": "<x>REQ NOTAM</x> [<x>ICAO</x>]: significant <x>NOTAM</x> of an airport of the flight plan (empty means the destination), as of the <x>OFP</x> release.",
+    "out": "REQ NOTAM [ICAO]: Wesentliches NOTAM eines Flughafens des Flugplans (leer bedeutet den Zielflughafen), Stand zum Zeitpunkt der OFP-Freigabe.",
+    "engine": "deepl"
+  },
+  "help:flight.commands.a1.4": {
     "src": "<x>REQ GATE</x>: the expected arrival gate or stand, baggage belt and <x>STA</x>.",
     "out": "REQ GATE: das voraussichtliche Gate oder die Parkposition, das Gepäckband und die STA.",
     "engine": "deepl"
   },
-  "help:flight.commands.a1.4": {
-    "src": "<x>REQ GATE CHANGE</x> [gate] [reason]: ask for another arrival gate.",
-    "out": "REQ GATE CHANGE [Gate] [Grund]: Beantragen Sie ein anderes Gate für die Ankunft.",
-    "engine": "deepl"
-  },
   "help:flight.commands.a1.5": {
-    "src": "<x>REQ LOADSHEET</x>: the latest loadsheet of the flight once more.",
-    "out": "REQ LOADSHEET: noch einmal das aktuellste Loadsheet des Fluges.",
+    "src": "<x>REQ GATE CHANGE</x> [gate] [reason]: ask for another arrival gate.",
+    "out": "REQ GATE CHANGE [Gate] [Grund]: Beantragung eines anderen Gates für die Ankunft.",
     "engine": "deepl"
   },
   "help:flight.commands.a1.6": {
-    "src": "<x>DELAY</x> &lt;min&gt; &lt;reason&gt;: report a departure delay; <x>OPS</x> replies with the new <x>EOBT</x>.",
-    "out": "DELAY <MIN> <REASON>: Melden Sie eine Verspätung beim Abflug; OPS antwortet mit der neuen EOBT.",
+    "src": "<x>REQ LOADSHEET</x>: the latest loadsheet of the flight once more.",
+    "out": "REQ LOADSHEET: das aktuellste Loadsheet des Fluges noch einmal.",
     "engine": "deepl"
   },
   "help:flight.commands.a1.7": {
+    "src": "<x>DELAY</x> &lt;min&gt; &lt;reason&gt;: report a departure delay; <x>OPS</x> replies with the new <x>EOBT</x>.",
+    "out": "DELAY <MIN> <GRUND>: Melden Sie eine Abflug-Verspätung; OPS antwortet mit der neuen EOBT.",
+    "engine": "deepl"
+  },
+  "help:flight.commands.a1.8": {
     "src": "<x>ETA</x>: estimated arrival against the schedule, gate and transfer passengers.",
     "out": "ETA: voraussichtliche Ankunftszeit gemäß Flugplan, Gate und Umsteigepassagiere.",
     "engine": "deepl"
   },
-  "help:flight.commands.a1.8": {
-    "src": "<x>RDY</x>: ready to depart before the slot (<x>CTOT</x>), passed on to flow control.",
-    "out": "RDY: startbereit vor dem Slot (CTOT), an die Flugstraßenleitung weitergeleitet.",
-    "engine": "deepl"
-  },
   "help:flight.commands.a1.9": {
-    "src": "<x>DIVERT</x> &lt;<x>ICAO</x>&gt;: diversion; <x>OPS</x> warns handling there and asks for the reason.",
-    "out": "DIVERT <ICAO>: Ausweichlandung; OPS warnt die Abfertigung vor Ort und fragt nach dem Grund.",
+    "src": "<x>RDY</x>: ready to depart before the slot (<x>CTOT</x>), passed on to flow control.",
+    "out": "RDY: Startbereit vor dem Slot (CTOT), an die Fließkontrolle weitergeleitet.",
     "engine": "deepl"
   },
   "help:flight.commands.a2": {
@@ -4664,6 +4669,21 @@
     "out": "Pilotenbefehl: „REQ LOADSHEET“, noch keine vorhanden",
     "engine": "deepl"
   },
+  "scn:cmd_req_notam.description": {
+    "src": "<x>REQ NOTAM</x> [<x>ICAO</x>]: significant <x>NOTAM</x> of an airport of the <x>OFP</x> (destination without <x>ICAO</x>); <x>NO NOTAM DATA</x> for other airports.",
+    "out": "REQ NOTAM [ICAO]: Wichtige NOTAMs eines Flughafens des OFP (Zielflughafen ohne ICAO); NO NOTAM DATA für andere Flughäfen.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_notam.hint": {
+    "src": "<x>REQ NOTAM</x> &lt;<x>ICAO</x>&gt; asks for the significant <x>NOTAM</x> of an airport of your flight plan (empty: the destination): the same summary as before the top of descent (<x>TOD</x>). The <x>NOTAM</x> are those of the flight plan when it was made, not live data. For an airport that is not in the plan, <x>OPS</x> answers <x>NO NOTAM DATA</x>. No reply needed.",
+    "out": "REQ NOTAM <ICAO> fragt nach den wesentlichen NOTAMs eines Flughafens in Ihrem Flugplan (leer: der Zielflughafen): dieselbe Zusammenfassung wie vor dem Beginn des Sinkflugs (TOD). Die NOTAMs entsprechen denen des Flugplans zum Zeitpunkt seiner Erstellung, es handelt sich nicht um Live-Daten. Für einen Flughafen, der nicht im Plan enthalten ist, antwortet OPS mit NO NOTAM DATA. Eine Antwort ist nicht erforderlich.",
+    "engine": "deepl"
+  },
+  "scn:cmd_req_notam.title": {
+    "src": "Pilot command: <x>REQ NOTAM</x>",
+    "out": "Pilotenbefehl: REQ NOTAM",
+    "engine": "deepl"
+  },
   "scn:cmd_req_wx.description": {
     "src": "<x>REQ WX</x> command: weather from the <x>OFP</x> <x>METAR</x>.",
     "out": "REQ WX-Befehl: Wetterangaben aus dem OFP-METAR.",
@@ -4707,6 +4727,21 @@
   "scn:cmd_req_wx_no_data.title": {
     "src": "Pilot command: <x>REQ WX</x>, no data",
     "out": "Pilotenbefehl: „REQ WX“, keine Daten",
+    "engine": "deepl"
+  },
+  "scn:company_notam.description": {
+    "src": "Significant <x>NOTAM</x> of the destination and the alternate from the <x>OFP</x> (runway, <x>ILS</x>, approach, lights, stands) before the top of descent (<x>TOD</x>).",
+    "out": "Wichtige NOTAM zum Zielflughafen und zum Ausweichflughafen aus dem OFP (Piste, ILS, Anflug, Befeuerung, Parkpositionen) vor Erreichen des Sinkflughöhenpunkts (TOD).",
+    "engine": "deepl"
+  },
+  "scn:company_notam.hint": {
+    "src": "Company summary of the <x>NOTAM</x> that matter for your arrival: runway and aerodrome closures, <x>ILS</x> and approach changes, lights and stands at the destination and the alternate, in force around your <x>ETA</x>. Each item: <x>NOTAM</x> number and end of validity, its text and, when it is active only at certain hours, its schedule (<x>SKED</x>). The <x>NOTAM</x> are those of the flight plan when it was made, not live data. No reply needed.",
+    "out": "Zusammenfassung der für Ihre Ankunft relevanten NOTAMs durch das Unternehmen: Sperrungen von Pisten und Flugplätzen sowie Änderungen bei ILS und Anflügen, Befeuerung und Parkpositionen am Zielflughafen und am Ausweichflughafen, gültig rund um Ihre ETA. Zu jedem Punkt: NOTAM-Nummer und Gültigkeitsende, der Text sowie – falls das NOTAM nur zu bestimmten Zeiten aktiv ist – der Zeitplan (SKED). Die NOTAMs entsprechen denen des Flugplans zum Zeitpunkt seiner Erstellung und sind keine Live-Daten. Eine Antwort ist nicht erforderlich.",
+    "engine": "deepl"
+  },
+  "scn:company_notam.title": {
+    "src": "Company <x>NOTAM</x> before top of descent",
+    "out": "NOTAMs des Unternehmens vor Erreichen des Top of Descent",
     "engine": "deepl"
   },
   "scn:connection_held.description": {
