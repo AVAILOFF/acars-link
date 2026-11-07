@@ -96,8 +96,8 @@ describe('scenario UI texts', () => {
       }
     }
     // 23 scenarios ask, some of them twice (the question again in a holding loop); T90: cargo
-    // NOTOC and special load; T91: ferry permit.
-    expect(replies).toBe(26);
+    // NOTOC and special load; T91: ferry permit; T94: the FDM letter.
+    expect(replies).toBe(27);
   });
 
   it('the commands of the request window say what they do in the first sentence (T57)', () => {

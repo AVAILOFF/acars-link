@@ -59,6 +59,8 @@ async function setup(o: { savePath?: string | null } = {}) {
   await app.init();
   sockets.last().hello();
   await app.setSimbriefUsername('pilot42');
+  // T94: the synthetic flight has FDM events; the letter (on-block + 3 min) would hold the close.
+  await app.setScenarioEnabled('fdm_letter', false);
   await app.updateSettings({ transport: 'offline' });
   await app.loadOfp();
   await app.startFlight();

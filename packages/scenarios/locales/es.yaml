@@ -469,6 +469,19 @@ f1_result:
   title: Resultado de Fórmula 1
   description: "Un Gran Premio que ha concluido durante el vuelo: el podio (Jolpica)."
   hint: "Información OPS: el resultado de un Gran Premio de Fórmula 1 que ha concluido durante su vuelo. No es necesario responder."
+fdm_letter:
+  title: Carta del seguimiento de datos de vuelo (FDM)
+  description: "3 min después de llegar al puesto de estacionamiento, si el seguimiento de datos de vuelo encontró eventos (régimen de descenso, tren o flaps a 1000 ft, velocidad superior a 250 kt por debajo de 10 000 ft, motor y al aire): el departamento de seguridad operacional los enumera. ACK o REPORT (informe de seguridad)."
+  hint: "Departamento de seguridad operacional: el seguimiento de datos de vuelo (FDM) encontró estos eventos en su vuelo, con el valor, la altura y la hora UTC de cada uno. Es información para usted, no una culpa. Responda ACK, o REPORT si va a presentar un informe de seguridad (ASR)."
+  steps:
+    reply:
+      reply_hints:
+        ACK: La tripulación ha leído los eventos.
+        REPORT: La tripulación presentará un informe de seguridad (ASR) sobre los eventos.
+    ack:
+      hint: El departamento de seguridad operacional toma nota de que ha leído los eventos. No es necesario responder.
+    report:
+      hint: El departamento de seguridad operacional espera su informe de seguridad (ASR) y se pondrá en contacto con usted. No es necesario responder.
 ferry_after_mx:
   title: Vuelo de traslado tras el mantenimiento (ferry)
   description: "Antes de un vuelo de traslado: la aeronave sale del mantenimiento y ha sido autorizada para el servicio; compruebe el registro técnico."

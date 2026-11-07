@@ -998,6 +998,13 @@ input.short {
   overflow-wrap: anywhere;
 }
 
+/* T94: FDM events, one per line. */
+.report-fdm {
+  margin: 0;
+  padding: 0;
+  list-style-position: inside;
+}
+
 /* FMS panel: bezel, screen filling the panel height, PREV/NEXT keys. */
 .fms-panel {
   display: flex;

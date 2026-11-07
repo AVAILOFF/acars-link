@@ -1699,6 +1699,41 @@
     "out": "Enregistrer au format JSON…",
     "engine": "deepl"
   },
+  "msg:report.fdm": {
+    "src": "Flight data monitoring (<x>FDM</x>)",
+    "out": "Suivi des données de vol (FDM)",
+    "engine": "deepl"
+  },
+  "msg:report.fdm.flaps": {
+    "src": "flaps <x>{value}</x> at <x>{alt}</x> ft above the airfield (landing flaps <x>{ldg}</x>), <x>{time}</x>",
+    "out": "volets {value} à {alt} ft au-dessus de l’aérodrome (volets d’atterrissage {ldg}), {time}",
+    "engine": "deepl"
+  },
+  "msg:report.fdm.gear_up": {
+    "src": "gear up at <x>{alt}</x> ft above the airfield, <x>{time}</x>",
+    "out": "retrait du train d'atterrissage à {alt} ft au-dessus de l'aérodrome, {time}",
+    "engine": "deepl"
+  },
+  "msg:report.fdm.go_around": {
+    "src": "go-around at <x>{alt}</x> ft above the airfield (information), <x>{time}</x>",
+    "out": "remise des gaz à {alt} ft au-dessus de l’aérodrome (information), {time}",
+    "engine": "deepl"
+  },
+  "msg:report.fdm.sink_rate": {
+    "src": "sink rate <x>{value}</x> ft/min at <x>{alt}</x> ft above the airfield, <x>{time}</x>",
+    "out": "taux de descente {value} ft/min à {alt} ft au-dessus de l’aérodrome, {time}",
+    "engine": "deepl"
+  },
+  "msg:report.fdm.speed": {
+    "src": "speed <x>{value}</x> kt at <x>{alt}</x> ft <x>MSL</x>, <x>{time}</x>",
+    "out": "vitesse {value} kt à {alt} ft MSL, {time}",
+    "engine": "deepl"
+  },
+  "msg:report.fdmNone": {
+    "src": "no events",
+    "out": "aucun événement",
+    "engine": "deepl"
+  },
   "msg:report.fpm": {
     "src": "<x>{fpm}</x> ft/min",
     "out": "{fpm} ft/min",
@@ -2570,9 +2605,9 @@
     "engine": "deepl"
   },
   "msg:set.smokePkgForeign": {
-    "src": "the Community folder already holds a folder acars-smoke from another add-on, and the app does not change it",
+    "src": "the Community folder already holds a folder avail-acars-smoke from another add-on, and the app does not change it",
     "out": "Le dossier « Community » contient déjà un dossier « avail-acars-smoke » provenant d’un autre module complémentaire, et l’application ne le modifie pas",
-    "engine": "manual"
+    "engine": "deepl"
   },
   "msg:set.smokePkgHint": {
     "src": "The fire scenarios show a smoke column at the runway only with this package. Rescue vehicles are standard <x>MSFS</x> objects and need no package. The app copies it into Community only when you press the button; restart <x>MSFS</x> afterwards.",
@@ -5267,6 +5302,41 @@
   "scn:f1_result.title": {
     "src": "Formula 1 result",
     "out": "Résultat de Formule 1",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.description": {
+    "src": "3 min after on-block, if flight data monitoring found events (sink rate, gear or flaps at 1000 ft, speed above 250 kt below 10 000 ft, go-around): the safety department lists them. <x>ACK</x> or <x>REPORT</x> (air safety report).",
+    "out": "3 minutes après l’arrêt sur le bloc, si la surveillance des données de vol a détecté des événements (taux de descente, train d’atterrissage ou volets à 1 000 pieds, vitesse supérieure à 250 nœuds en dessous de 10 000 pieds, remise des gaz) : le service de sécurité les répertorie. Répondez par ACK ou REPORT (rapport de sécurité aérienne).",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.hint": {
+    "src": "Safety department: flight data monitoring (<x>FDM</x>) found these events in your flight: value, height and <x>UTC</x> time of each. It is information for you, not a blame. Reply <x>ACK</x>, or <x>REPORT</x> if you will file an air safety report (<x>ASR</x>).",
+    "out": "Service de la sécurité : le système de surveillance des données de vol (FDM) a détecté les événements suivants lors de votre vol : valeur, altitude et heure UTC de chacun d’entre eux. Il s’agit d’informations qui vous sont destinées, et non d’un reproche. Répondez par ACK ou REPORT si vous comptez déposer un rapport de sécurité aérienne (ASR).",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.steps.ack.hint": {
+    "src": "The safety department noted that you read the events. No reply needed.",
+    "out": "Le service de la sécurité a pris note que vous avez pris connaissance des événements. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.steps.reply.reply_hints.ACK": {
+    "src": "The crew has read the events.",
+    "out": "L'équipage a pris connaissance des événements.",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.steps.reply.reply_hints.REPORT": {
+    "src": "The crew will file an air safety report (<x>ASR</x>) on the events.",
+    "out": "L’équipage va remplir un rapport de sécurité aérienne (ASR) concernant ces événements.",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.steps.report.hint": {
+    "src": "The safety department expects your air safety report (<x>ASR</x>) and will contact you. No reply needed.",
+    "out": "Le service de la sécurité attend votre rapport de sécurité aérienne (ASR) et vous contactera. Aucune réponse n’est nécessaire.",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.title": {
+    "src": "Flight data monitoring letter (<x>FDM</x>)",
+    "out": "Lettre relative à la surveillance des données de vol (FDM)",
     "engine": "deepl"
   },
   "scn:ferry_after_mx.description": {

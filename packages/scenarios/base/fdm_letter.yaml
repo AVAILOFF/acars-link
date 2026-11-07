@@ -1,0 +1,61 @@
+# Flight data monitoring (T94, FDM/FOQA): 3 min after on-block the safety department lists the
+# events the core found in the telemetry (`packages/core/src/fdm/monitor.ts`): unstabilised
+# approach at 1000 ft above the aerodrome (sink rate, gear, landing flaps), more than 250 kt below
+# 10 000 ft, a go-around below 1000 ft (information). Facts only, no grade (T69). No event, no
+# letter. Criteria: FSF ALAR Briefing Note 7.1, 14 CFR 91.117(a), SERA.6001; thresholds and
+# assumptions approved by the user 2026-11-07. The hard landing is `hard_landing_check`.
+id: fdm_letter
+version: 1
+category: ops
+title: Flight data monitoring letter (FDM)
+description: "3 min after on-block, if flight data monitoring found events (sink rate, gear or flaps at 1000 ft, speed above 250 kt below 10 000 ft, go-around): the safety department lists them. ACK or REPORT (air safety report)."
+hint: "Safety department: flight data monitoring (FDM) found these events in your flight: value, height and UTC time of each. It is information for you, not a blame. Reply ACK, or REPORT if you will file an air safety report (ASR)."
+enabled_by_default: true
+trigger:
+  on: phase_enter
+  phase: ON_BLOCK
+conditions:
+  - "fdm.count != null"
+  - "fdm.count > 0"
+steps:
+  - wait: { minutes: 3 }
+  - send:
+      header: SAFETY DEPT FDM
+      body: |
+        EVENTS THIS FLIGHT:
+        ~{fdm.line1}
+        ~{fdm.line2}
+        ~{fdm.line3}
+        ~{fdm.line4}
+        ~{fdm.line5}
+        ~{fdm.line6}
+        ~{fdm.line7}
+        ~{fdm.line8}
+        ~AND {fdm.more} MORE
+        INFO ONLY, NO BLAME
+        REPLY ACK OR REPORT
+  - wait:
+      reply:
+        id: reply
+        options: [ACK, REPORT]
+        timeout_min: 15
+        default: ACK
+        reply_hints:
+          ACK: "The crew has read the events."
+          REPORT: "The crew will file an air safety report (ASR) on the events."
+  - branch:
+      ACK:
+        # No answer: nothing more is sent.
+        - if: "reply.timeout != true"
+          steps:
+            - send:
+                id: ack
+                header: SAFETY DEPT FDM
+                body: NOTED
+                hint: "The safety department noted that you read the events. No reply needed."
+      REPORT:
+        - send:
+            id: report
+            header: SAFETY DEPT FDM
+            body: ASR NOTED, SAFETY DEPT WILL CONTACT YOU
+            hint: "The safety department expects your air safety report (ASR) and will contact you. No reply needed."

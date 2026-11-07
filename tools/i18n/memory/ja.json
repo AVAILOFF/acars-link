@@ -1699,6 +1699,41 @@
     "out": "JSONとして保存…",
     "engine": "deepl"
   },
+  "msg:report.fdm": {
+    "src": "Flight data monitoring (<x>FDM</x>)",
+    "out": "フライトデータモニタリング（FDM）",
+    "engine": "deepl"
+  },
+  "msg:report.fdm.flaps": {
+    "src": "flaps <x>{value}</x> at <x>{alt}</x> ft above the airfield (landing flaps <x>{ldg}</x>), <x>{time}</x>",
+    "out": "飛行場上空{alt}フィートでのフラップ{value}（着陸フラップ{ldg}）、{time}",
+    "engine": "deepl"
+  },
+  "msg:report.fdm.gear_up": {
+    "src": "gear up at <x>{alt}</x> ft above the airfield, <x>{time}</x>",
+    "out": "飛行場上空{alt}フィートで着陸装置を格納、{time}",
+    "engine": "deepl"
+  },
+  "msg:report.fdm.go_around": {
+    "src": "go-around at <x>{alt}</x> ft above the airfield (information), <x>{time}</x>",
+    "out": "飛行場上空{alt}フィートでのゴーアラウンド（情報）、{time}",
+    "engine": "deepl"
+  },
+  "msg:report.fdm.sink_rate": {
+    "src": "sink rate <x>{value}</x> ft/min at <x>{alt}</x> ft above the airfield, <x>{time}</x>",
+    "out": "飛行場上空{alt} ftでの降下率{value} ft/min、{time}",
+    "engine": "deepl"
+  },
+  "msg:report.fdm.speed": {
+    "src": "speed <x>{value}</x> kt at <x>{alt}</x> ft <x>MSL</x>, <x>{time}</x>",
+    "out": "{alt} ft MSL での速度 {value} kt、{time}",
+    "engine": "deepl"
+  },
+  "msg:report.fdmNone": {
+    "src": "no events",
+    "out": "イベントなし",
+    "engine": "deepl"
+  },
   "msg:report.fpm": {
     "src": "<x>{fpm}</x> ft/min",
     "out": "{fpm} ft/min",
@@ -2570,9 +2605,9 @@
     "engine": "deepl"
   },
   "msg:set.smokePkgForeign": {
-    "src": "the Community folder already holds a folder acars-smoke from another add-on, and the app does not change it",
+    "src": "the Community folder already holds a folder avail-acars-smoke from another add-on, and the app does not change it",
     "out": "「Community」フォルダには、別のアドオンによる「avail-acars-smoke」フォルダがすでに存在しており、本アプリはそれを変更しません",
-    "engine": "manual"
+    "engine": "deepl"
   },
   "msg:set.smokePkgHint": {
     "src": "The fire scenarios show a smoke column at the runway only with this package. Rescue vehicles are standard <x>MSFS</x> objects and need no package. The app copies it into Community only when you press the button; restart <x>MSFS</x> afterwards.",
@@ -4671,8 +4706,8 @@
   },
   "scn:cmd_req_notam.description": {
     "src": "<x>REQ NOTAM</x> [<x>ICAO</x>]: significant <x>NOTAM</x> of an airport of the <x>OFP</x> (destination without <x>ICAO</x>); <x>NO NOTAM DATA</x> for other airports.",
-    "out": "REQ NOTAM [ICAO]：OFP（ICAOコードのない目的地）の空港に関する重要なNOTAM；その他の空港についてはNO NOTAM DATAはありません。",
-    "engine": "deepl"
+    "out": "REQ NOTAM [ICAO]：OFPに含まれる空港の重要なNOTAM（ICAOなしは目的地）。その他の空港にはNO NOTAM DATAと回答。",
+    "engine": "manual"
   },
   "scn:cmd_req_notam.hint": {
     "src": "<x>REQ NOTAM</x> &lt;<x>ICAO</x>&gt; asks for the significant <x>NOTAM</x> of an airport of your flight plan (empty: the destination): the same summary as before the top of descent (<x>TOD</x>). The <x>NOTAM</x> are those of the flight plan when it was made, not live data. For an airport that is not in the plan, <x>OPS</x> answers <x>NO NOTAM DATA</x>. No reply needed.",
@@ -4731,8 +4766,8 @@
   },
   "scn:company_notam.description": {
     "src": "Significant <x>NOTAM</x> of the destination and the alternate from the <x>OFP</x> (runway, <x>ILS</x>, approach, lights, stands) before the top of descent (<x>TOD</x>).",
-    "out": "降下開始点（TOD）到達前に、OFP（OFP）から得た目的地および代替空港の重要なNOTAM（滑走路、ILS、進入方式、照明、駐機スポット）について。",
-    "engine": "deepl"
+    "out": "降下開始点（TOD）の前に、OFPから目的地および代替空港の重要なNOTAM（滑走路、ILS、進入方式、照明、駐機スポット）。",
+    "engine": "manual"
   },
   "scn:company_notam.hint": {
     "src": "Company summary of the <x>NOTAM</x> that matter for your arrival: runway and aerodrome closures, <x>ILS</x> and approach changes, lights and stands at the destination and the alternate, in force around your <x>ETA</x>. Each item: <x>NOTAM</x> number and end of validity, its text and, when it is active only at certain hours, its schedule (<x>SKED</x>). The <x>NOTAM</x> are those of the flight plan when it was made, not live data. No reply needed.",
@@ -5267,6 +5302,41 @@
   "scn:f1_result.title": {
     "src": "Formula 1 result",
     "out": "F1の結果",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.description": {
+    "src": "3 min after on-block, if flight data monitoring found events (sink rate, gear or flaps at 1000 ft, speed above 250 kt below 10 000 ft, go-around): the safety department lists them. <x>ACK</x> or <x>REPORT</x> (air safety report).",
+    "out": "駐機後3分経過時点で、フライトデータモニタリングにより事象（降下率、高度1,000フィートでの着陸装置またはフラップの展開、高度10,000フィート未満での速度250 kt超、ゴーアラウンド）が検出された場合：安全部門がそれらを列挙します。ACKまたはREPORT（航空安全報告）をご返信ください。",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.hint": {
+    "src": "Safety department: flight data monitoring (<x>FDM</x>) found these events in your flight: value, height and <x>UTC</x> time of each. It is information for you, not a blame. Reply <x>ACK</x>, or <x>REPORT</x> if you will file an air safety report (<x>ASR</x>).",
+    "out": "安全部門：フライトデータモニタリング（FDM）により、ご搭乗便で以下の事象が検出されました：各事象の値、高度、およびUTC時刻です。これは非難ではなく、ご参考のための情報です。ACKと返信してください。航空安全報告書（ASR）を提出される場合は、REPORTと返信してください。",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.steps.ack.hint": {
+    "src": "The safety department noted that you read the events. No reply needed.",
+    "out": "安全部門は、お客様が事象を確認されたことを確認いたしました。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.steps.reply.reply_hints.ACK": {
+    "src": "The crew has read the events.",
+    "out": "乗務員は当該事象を確認いたしました。",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.steps.reply.reply_hints.REPORT": {
+    "src": "The crew will file an air safety report (<x>ASR</x>) on the events.",
+    "out": "乗務員は、これらの事象について航空安全報告書（ASR）を提出いたします。",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.steps.report.hint": {
+    "src": "The safety department expects your air safety report (<x>ASR</x>) and will contact you. No reply needed.",
+    "out": "安全部門は、皆様からの航空安全報告書（ASR）の提出を待っており、後日ご連絡いたします。返信は不要です。",
+    "engine": "deepl"
+  },
+  "scn:fdm_letter.title": {
+    "src": "Flight data monitoring letter (<x>FDM</x>)",
+    "out": "フライトデータモニタリング通知書（FDM）",
     "engine": "deepl"
   },
   "scn:ferry_after_mx.description": {

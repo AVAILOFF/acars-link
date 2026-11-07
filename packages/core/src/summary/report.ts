@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import type { DivertAirport } from '../ext/data.js';
+import type { FdmEvent } from '../fdm/monitor.js';
 import type { Ofp } from '../ofp/types.js';
 import type { OooiKind, OooiSample } from '../phase/fsm.js';
 import type { DelayPart } from '../scenario/delay-codes.js';
@@ -92,6 +93,11 @@ export interface FlightReport {
   };
   /** Irregular scenarios that started in the flight, oldest first (ids). */
   readonly irregular: readonly string[];
+  /**
+   * Flight data monitoring events (T94), oldest first, facts without grades; absent with FDM off
+   * and in reports made before T94.
+   */
+  readonly fdm?: readonly FdmEvent[];
 }
 
 /** Counters the core keeps over a flight for the report. */
@@ -118,6 +124,8 @@ export interface ReportInput {
   /** Kind of flight (T89); absent = no kind filter. */
   readonly flightKind?: FlightKind;
   readonly started: readonly { readonly id: string; readonly category: ScenarioCategory }[];
+  /** Flight data monitoring events (T94); absent = FDM off. */
+  readonly fdm?: readonly FdmEvent[];
 }
 
 const OOOI: readonly OooiKind[] = ['OUT', 'OFF', 'ON', 'IN'];
@@ -178,6 +186,7 @@ export function flightReport(i: ReportInput): FlightReport {
     },
     messages: { ...i.counts },
     irregular: i.started.filter((s) => s.category === 'irregular').map((s) => s.id),
+    ...(i.fdm === undefined ? {} : { fdm: i.fdm.map((e) => ({ ...e })) }),
   };
 }
 
