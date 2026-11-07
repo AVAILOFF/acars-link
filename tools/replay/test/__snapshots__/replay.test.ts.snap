@@ -18,14 +18,19 @@ exports[`replay through the core > phase sequence of the normal synthetic flight
 
 exports[`replay through the core > timeline report (brief) 1`] = `
 "07:10:00Z +00:00:00  PHASE      PREFLIGHT → BOARDING
-07:11:00Z +00:01:00  TELEX      crew_info  OPS822 → SJX822  (10 lines)
-07:22:20Z +00:12:20  SET        slot_ctot: flight.delay_min = 25
-07:22:20Z +00:12:20  TELEX      slot_ctot  OPS822 → SJX822  (7 lines)
+07:10:00Z +00:00:00  TELEX      crew_info  OPS822 → SJX822  (10 lines)
+07:21:00Z +00:11:00  SET        slot_ctot: flight.delay_min = 25
+07:21:00Z +00:11:00  TELEX      slot_ctot  OPS822 → SJX822  (7 lines)
+07:24:40Z +00:14:40  TELEX      prelim_loadsheet  OPS822 → SJX822  (13 lines)
+07:28:20Z +00:18:20  PILOT      takeoff_data: wait until MET
+07:28:20Z +00:18:20  TELEX      takeoff_data  OPS822 → SJX822  (14 lines)
+07:31:54Z +00:21:54  PILOT      fuel_slip: wait until MET
+07:31:54Z +00:21:54  TELEX      fuel_slip  OPS822 → SJX822  (16 lines)
+07:37:52Z +00:27:52  PILOT      final_loadsheet: wait until MET
+07:37:52Z +00:27:52  TELEX      final_loadsheet  OPS822 → SJX822  (16 lines)
 07:45:04Z +00:35:04  OOOI       OUT at 07:45:01Z
 07:45:05Z +00:35:05  PHASE      BOARDING → PUSHBACK
 07:47:43Z +00:37:43  PHASE      PUSHBACK → TAXI_OUT
-08:04:43Z +00:54:43  PILOT      final_loadsheet: wait until MET
-08:04:43Z +00:54:43  TELEX      final_loadsheet  OPS822 → SJX822  (16 lines)
 08:10:17Z +01:00:17  PHASE      TAXI_OUT → TAKEOFF
 08:11:16Z +01:01:16  PHASE      TAKEOFF → CLIMB
 08:11:16Z +01:01:16  OOOI       OFF at 08:10:50Z
@@ -50,6 +55,6 @@ exports[`replay through the core > timeline report (brief) 1`] = `
 10:31:27Z +03:21:27  PILOT      welcome_turnaround: wait until TIMEOUT
 10:31:27Z +03:21:27  TELEX      welcome_turnaround  OPS822 → SJX822  (9 lines)
 
-12224 ticks over 03:23:43, final phase ON_BLOCK, 10 telexes
+12224 ticks over 03:23:43, final phase ON_BLOCK, 13 telexes
 "
 `;

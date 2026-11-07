@@ -359,6 +359,7 @@ export const ja: Readonly<Partial<Record<MessageKey, string>>> = {
     'シナリオ{id}：シミュレーション内に救助サービスは存在せず、航空機は当該フライトの空港から5NM圏内にありません',
   'sys.reply_timeout': '{id} への応答なし：{option} とみなされます',
   'sys.transport_status': 'ネットワーク：{status} {reason}',
+  'sys.predep_flush': 'プッシュバック：未送信の出発前メッセージを今送信します（{ids}）',
   'sys.sim_command_failed': 'Simコマンド {command} が失敗しました：{error} {detail}',
   'sys.bridge_restarted': 'シミュレーターのブリッジが停止し、再起動されました。飛行は続行されます',
   'sys.sim_changed': 'シミュレーターが変更されました：{from} → {to}；飛行は続行されます',

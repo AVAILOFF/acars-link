@@ -91,7 +91,7 @@ export interface RecordingHeader {
   /** Core `nextLegVersion` (T53, T55); absent = 1, the next leg of recordings made before it. */
   readonly nextLegVersion?: 1 | 2 | 3;
   /** Core `lateStartVersion`; absent = 1, the late start of recordings made before it. */
-  readonly lateStartVersion?: 1 | 2 | 3;
+  readonly lateStartVersion?: 1 | 2 | 3 | 4;
   /** Core `rescueVersion` (T88); absent = 1, the rescue airport of recordings made before it. */
   readonly rescueVersion?: 1 | 2;
   /** Core `fdm` (T94): flight data monitoring on; absent = off, as in recordings made before it. */
@@ -264,7 +264,10 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     throw bad('namesVersion');
   if (x['nextLegVersion'] !== undefined && ![1, 2, 3].includes(x['nextLegVersion'] as number))
     throw bad('nextLegVersion');
-  if (x['lateStartVersion'] !== undefined && ![1, 2, 3].includes(x['lateStartVersion'] as number))
+  if (
+    x['lateStartVersion'] !== undefined &&
+    ![1, 2, 3, 4].includes(x['lateStartVersion'] as number)
+  )
     throw bad('lateStartVersion');
   if (x['massUnit'] !== undefined && !['ofp', 'kg', 'lb'].includes(x['massUnit'] as string))
     throw bad('massUnit');

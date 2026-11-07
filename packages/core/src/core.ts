@@ -103,7 +103,7 @@ export interface CoreOptions {
   /** The user's hub airport (T53), see `ScenarioEngineOptions.hub`. */
   readonly hub?: string;
   /** Start close to the departure, see `ScenarioEngineOptions.lateStartVersion`; default 1. */
-  readonly lateStartVersion?: 1 | 2 | 3;
+  readonly lateStartVersion?: 1 | 2 | 3 | 4;
   /** Rescue on the ground, see `ScenarioEngineOptions.rescueVersion` (T88); default 1. */
   readonly rescueVersion?: 1 | 2;
   /**

@@ -358,6 +358,7 @@ export const en = {
     'Scenario {id}: no rescue services in the sim, the aircraft is not within 5 NM of an airport of the flight',
   'sys.reply_timeout': 'No reply to {id}: {option} assumed',
   'sys.transport_status': 'Network: {status} {reason}',
+  'sys.predep_flush': 'Pushback: the pre-departure messages still due are sent now ({ids})',
   'sys.sim_command_failed': 'Sim command {command} failed: {error} {detail}',
   'sys.bridge_restarted': 'The simulator bridge stopped and was started again; the flight goes on',
   'sys.sim_changed': 'Simulator changed: {from} → {to}; the flight goes on',

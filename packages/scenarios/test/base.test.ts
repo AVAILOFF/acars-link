@@ -585,6 +585,146 @@ describe('late start (docs/05 "Поздний старт")', () => {
   });
 });
 
+describe('late start version 4 (T61): every pre-departure document before OUT', () => {
+  const MIN = 60_000;
+  const STD = kg.times.schedOutMs;
+  const DOCS = ['crew_info', 'prelim_loadsheet', 'takeoff_data', 'fuel_slip', 'final_loadsheet'];
+  const all = base.map((s) => ({ ...s, probability: 1 }));
+  const noSlot = all.filter((s) => s.id !== 'slot_ctot');
+
+  interface Flown {
+    readonly out: OutboundMessage[];
+    readonly events: CoreEvent[];
+    readonly outAt: number;
+  }
+
+  /** Started `minBefore` min before STD and boarded until STD (`replay synth --boarding`). */
+  function flyLate(
+    minBefore: number,
+    scenarios: readonly CompiledScenario[],
+    o: {
+      version?: 3 | 4;
+      inbound?: { at: number; text: string };
+      resumeAt?: number;
+      boardingMin?: number;
+    } = {},
+  ): Flown {
+    const opts = {
+      ofp: kg,
+      scenarios,
+      seed: 't61',
+      minGapMs: MIN,
+      lateStartVersion: o.version ?? 4,
+    } as const;
+    let core = AcarsCore.create(opts);
+    core.startFlight();
+    const flight = generateSyntheticFlight({
+      ofp: kg,
+      startMs: STD - minBefore * MIN,
+      boardingSec: (o.boardingMin ?? minBefore) * 60,
+    });
+    const out: OutboundMessage[] = [];
+    const events: CoreEvent[] = [];
+    let resumed = false;
+    for (const s of flight.snapshots) {
+      if (!resumed && o.resumeAt !== undefined && s.t >= o.resumeAt) {
+        core = AcarsCore.fromState(JSON.parse(JSON.stringify(core.getState())), opts);
+        resumed = true;
+      }
+      const inbound =
+        o.inbound !== undefined && s.t >= o.inbound.at && s.t < o.inbound.at + 1000
+          ? [{ from: kg.callsign, type: 'telex' as const, text: o.inbound.text }]
+          : [];
+      const r = core.tick({ now: s.t, telemetry: s, inbound });
+      out.push(...r.outbound);
+      events.push(...r.events);
+      if (s.t > STD + 60 * MIN) break;
+    }
+    const outEv = events.find((e) => e.type === 'OOOI_OUT');
+    return { out, events, outAt: outEv?.t ?? Number.POSITIVE_INFINITY };
+  }
+
+  const docs = (r: Flown) => r.out.filter((m) => DOCS.includes(m.scenarioId));
+
+  it.each([30, 20, 10, 5])(
+    'started %i min before STD: the 5 documents in order before OUT',
+    (min) => {
+      for (const set of [noSlot, all]) {
+        const r = flyLate(min, set);
+        expect(docs(r).map((m) => m.scenarioId)).toEqual(DOCS);
+        expect(docs(r).every((m) => m.t < r.outAt)).toBe(true);
+        // One telex per minute (`minGapMs`), the first at the start.
+        expect(r.out[0]?.t).toBe(STD - min * MIN);
+        for (let i = 1; i < r.out.length; i++) {
+          expect((r.out[i]?.t ?? 0) - (r.out[i - 1]?.t ?? 0)).toBeGreaterThanOrEqual(MIN);
+        }
+        expect(r.events.filter((e) => e.type === 'SCENARIO_ERROR')).toEqual([]);
+      }
+    },
+  );
+
+  it('started 2 min before STD: all 5 documents, in order, the rest sent at pushback', () => {
+    for (const set of [noSlot, all]) {
+      const r = flyLate(2, set);
+      expect(docs(r).map((m) => m.scenarioId)).toEqual(DOCS);
+      const flush = r.events.find((e) => e.type === 'PREDEP_FLUSH');
+      expect(flush).toBeDefined();
+      // The fuel slip stops waiting for the fuel at pushback; the final loadsheet follows it.
+      expect(flush?.type === 'PREDEP_FLUSH' && flush.ids).toContain('fuel_slip');
+      expect(docs(r).every((m) => m.t <= r.outAt + 5 * MIN)).toBe(true);
+    }
+  });
+
+  it('the slot does not move the documents; its CTOT and the departure report stay', () => {
+    const r = flyLate(40, all);
+    const slot = textOf(r, 'slot_ctot');
+    expect(slot).toMatch(/DELAY \d+ MIN/);
+    expect(docs(r).every((m) => m.t < STD - 2 * MIN + 1000)).toBe(true);
+    // CTOT, the delay and the departure report as in version 3.
+    const v3 = flyLate(40, all, { version: 3 });
+    expect(/CTOT (\d{4})Z/.exec(slot)?.[1]).toBe(
+      /CTOT (\d{4})Z/.exec(textOf(v3, 'slot_ctot'))?.[1],
+    );
+    expect(textOf(r, 'departure_report')).not.toBe('');
+    expect(textOf(r, 'departure_report')).toBe(textOf(v3, 'departure_report'));
+  });
+
+  it('JAL523 (2026-10-27): start 40 min before STD, slot, pushback at STD + 1 → final loadsheet before OUT', () => {
+    // The recording itself is gone (the app keeps the last 20); the same shape synthetically.
+    const v4 = flyLate(40, all, { boardingMin: 41 });
+    const v3 = flyLate(40, all, { version: 3, boardingMin: 41 });
+    const final = (r: Flown) => r.out.find((m) => m.scenarioId === 'final_loadsheet')?.t;
+    expect(final(v4)).toBeLessThan(v4.outAt);
+    // Version 3 (as recorded then): the slot pushed the final loadsheet past OUT.
+    expect(final(v3) ?? Number.POSITIVE_INFINITY).toBeGreaterThan(v3.outAt);
+  });
+
+  it('a pilot DELAY 20 moves the documents, as before', () => {
+    const at = { at: STD - 59 * MIN, text: 'DELAY 20' };
+    const v4 = flyLate(60, noSlot, { inbound: at, boardingMin: 85 });
+    const v3 = flyLate(60, noSlot, { version: 3, inbound: at, boardingMin: 85 });
+    const final = (r: Flown) => r.out.find((m) => m.scenarioId === 'final_loadsheet')?.t;
+    expect(final(v4)).toBe(STD + 13 * MIN);
+    expect(final(v4)).toBe(final(v3));
+  });
+
+  it('the state saved in the middle of the window gives the same messages', () => {
+    const whole = flyLate(10, all);
+    const resumed = flyLate(10, all, { resumeAt: STD - 6 * MIN });
+    expect(resumed.out.map((m) => [m.t, m.scenarioId, m.message.text])).toEqual(
+      whole.out.map((m) => [m.t, m.scenarioId, m.message.text]),
+    );
+  });
+
+  it('on time (60 min before STD): the documents at their published offsets, no flush', () => {
+    const r = flyLate(60, noSlot);
+    const at = (id: string) => r.out.find((m) => m.scenarioId === id)?.t;
+    expect(at('crew_info')).toBe(STD - 45 * MIN);
+    expect(at('final_loadsheet')).toBe(STD - 7 * MIN);
+    expect(r.events.some((e) => e.type === 'PREDEP_FLUSH')).toBe(false);
+  });
+});
+
 function hhmm(ms: number): string {
   const d = new Date(ms);
   return `${String(d.getUTCHours()).padStart(2, '0')}${String(d.getUTCMinutes()).padStart(2, '0')}`;

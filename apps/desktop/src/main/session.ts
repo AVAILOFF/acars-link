@@ -146,7 +146,7 @@ const NAMES_VERSION = 2;
 /** Next leg of new flights (core `nextLegVersion`, T53); recorded in the header. */
 const NEXT_LEG_VERSION = 3;
 /** Start close to the departure (core `lateStartVersion`): messages fitted to the time left. */
-const LATE_START_VERSION = 3;
+const LATE_START_VERSION = 4;
 /** Rescue on the ground at the airport where the aircraft stands (core `rescueVersion`, T88). */
 const RESCUE_VERSION = 2;
 /** Flight data monitoring of new flights (core `fdm`, T94); recorded in the header. */
@@ -743,6 +743,9 @@ export class FlightSession {
           break;
         case 'REPLY_TIMEOUT':
           this.feed.system(e.t, 'reply_timeout', { id: e.id, option: e.option });
+          break;
+        case 'PREDEP_FLUSH':
+          this.feed.system(e.t, 'predep_flush', { ids: e.ids.join(', ') });
           break;
         case 'ATC_STATION':
           this.feed.system(e.t, 'atc_station', { fir: e.fir, station: e.station, unit: e.unit });
