@@ -41,6 +41,7 @@ const everything = loadScenarios(
 
 /** Passengers in the cabin (docs/07, T89; `cmd_medical` stays for all: a crew member may fall ill). */
 const PASSENGER_SCENARIOS = [
+  'boarding_completed',
   'connection_held',
   'connection_made',
   'connection_missed',

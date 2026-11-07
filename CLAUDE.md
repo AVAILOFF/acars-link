@@ -84,6 +84,8 @@ pnpm bridge:smoke     # дымовая проверка ОПУБЛИКОВАНН
 
 Логи (T67): `<userData>/logs/main.log` (main-процесс) и `bridge.log` (stdout/stderr моста), по 5 файлов × 5 МБ, время UTC — `apps/desktop/src/main/log.ts`; каждая строка проходит `Redactor` (logon-код, ключ RapidAPI, имя SimBrief, токен моста → `***`; секреты он узнаёт из `SecretStore`). «Экспорт диагностики» (Расширенные настройки → Диагностика) — один .zip: логи, версии, настройки без секретов, по галочке — последняя запись полёта (`diagnostics.ts`, свой zip — `zip.ts`).
 
+Наземное обслуживание по GSX (T98): мост читает `L:FSDT_GSX_*_STATE` в необязательное поле телеметрии `ground` (`SimVars.cs`, `Protocol.cs`), ядро — `packages/core/src/scenario/ground.ts` (`ground.*`, события `GSX_BOARDING_DONE`/`GSX_REFUEL_DONE`), сценарии — `final_loadsheet`, `fuel_slip`, `boarding_completed`.
+
 Мониторинг полётных данных (T94): детекторы — `packages/core/src/fdm/monitor.ts` (опция ядра `fdm`, поле `fdm` в заголовке записи; без него выключено), письмо — `packages/scenarios/base/fdm_letter.yaml`, события — `FlightReport.fdm`.
 
 Сводка рейса (T69): расчёт — `packages/core/src/summary/report.ts` (`AcarsCore.report()`, только цифры данных, без оценок; аэропорт посадки — ближайший в пределах 5 NM), снимается при закрытии рейса у гейта (`FlightSession.endFlight`), пишется строкой `summary` после `end` в запись и в журнал рейсов `<userData>/logbook.json` (`main/logbook.ts`, без ограничения); в UI — `ReportPanel.tsx` до загрузки следующего OFP, «Сохранить в JSON» — `AppController.exportReport`.

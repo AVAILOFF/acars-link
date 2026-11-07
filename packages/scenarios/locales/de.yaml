@@ -73,6 +73,10 @@ block_report:
   title: Blockzeiten (OOOI)
   description: Blockzeiten und Codes für Verspätungen nach dem Einparken.
   hint: "Blockbericht nach dem Parken: OUT-, OFF-, ON- und IN-Zeiten (Off-Block, Start, Landung, On-Block), Block- und Flugzeit sowie Kraftstoff an Bord; nach einer Verspätung zusätzlich die IATA-Verspätungscodes für die Ursachen. Für die Unterlagen der Airline; keine Antwort erforderlich."
+boarding_completed:
+  title: "Boarding abgeschlossen"
+  description: "Mit GSX: Das Gate meldet das Ende des Boardings mit der Zahl der Passagiere an Bord."
+  hint: "Das Gate meldet, dass das Boarding abgeschlossen ist (GSX hat es beendet), und wie viele Passagiere an Bord sind – die Zahl des endgültigen Loadsheets. Schließen Sie die Türen, wenn Sie bereit sind; keine Antwort erforderlich."
 cargo_act_failure:
   title: Ausfall eines Temperaturcontainers (Fracht)
   description: "Vor dem Abflug eines Frachtfluges: Ein aktiver temperaturgeregelter Container mit Arzneimitteln fällt aus und wird ersetzt, wodurch es zu einer Verspätung von 15–30 Minuten kommt."

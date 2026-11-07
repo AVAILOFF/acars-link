@@ -75,6 +75,11 @@ function describe(e: TimelineEntry, o: ReportOptions): [string, string] | null {
           ];
         case 'REPLY_TIMEOUT':
           return ['PILOT', `${ev.id}: no answer, takes ${ev.option}`];
+        case 'GROUND':
+          return [
+            'GSX',
+            ev.event === 'GSX_BOARDING_DONE' ? 'boarding completed' : 'refuelling completed',
+          ];
         case 'PREDEP_FLUSH':
           return ['FLUSH', `pushback: pre-departure ${ev.ids.join(', ')} sent now`];
         case 'WAIT_UNTIL':

@@ -103,6 +103,7 @@ Clock: интерфейс `now(): number` (мс UTC). В ядре только `
 | `paused` | системное событие Pause | bool |
 | `aircraftTitle` | TITLE | string |
 | `touchdownFpm` | PLANE TOUCHDOWN NORMAL VELOCITY (T46) | **feet per second** × 60 → ft/мин; сим держит значение до следующего касания; в TS поле необязательное (старые записи) |
+| `ground` | L:FSDT_GSX_BOARDING_STATE, _DEBOARDING_STATE, _REFUELING_STATE, _CATERING_STATE, _DEPARTURE_STATE, L:FSDT_GSX_BOARDING_CARGO (T98) | number → `{ boarding, deboarding, refuel, catering, departure: 0..6, cargo: bool }`; 1 можно вызвать, 2 недоступна, 3 пропущена, 4 запрошена, 5 выполняется, 6 выполнена (GSX Pro for MSFS manual 4.0.9 Pro, с. 106, сверено 2026-11-07); необязательное: нет, если все шесть L:var равны 0 (GSX не запущен; L:var, которую никто не ставил, читается как 0), в X-Plane и в старых записях. Совместимое добавление, `telemetryVersion` и версия протокола моста не меняются (как у `simUtcMs`) |
 
 Пример — `reference/telemetry.sample.json`.
 

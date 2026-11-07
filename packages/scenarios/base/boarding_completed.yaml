@@ -1,0 +1,23 @@
+# T98: GSX Pro reported the boarding completed. The passenger figure is the airline's (OFP with the
+# LMC, assumption Д3 approved 2026-11-07), not GSX's own count. Without GSX the scenario never starts.
+id: boarding_completed
+version: 1
+category: ops
+title: Boarding completed
+description: "With GSX: the gate reports the end of boarding with the passengers on board."
+hint: "The gate reports that boarding is completed (GSX finished it) and how many passengers are on board, the figure of the final loadsheet. Close the doors when you are ready; no reply needed."
+enabled_by_default: true
+operations: [sched_pax, charter_pax]
+trigger:
+  on: event
+  event: GSX_BOARDING_DONE
+conditions:
+  - "phase in ['PREFLIGHT','BOARDING']"
+priority: 3
+steps:
+  - send:
+      header: BOARDING COMPLETED
+      body: |
+        {ofp.callsign} {ofp.orig}-{ofp.dest}
+        PAX {load.pax}
+      footer: "GATE {name:ops}"

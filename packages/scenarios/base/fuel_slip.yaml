@@ -16,6 +16,11 @@ conditions:
   - "tm.fuel_kg != null"
 priority: 2
 steps:
+  # T98: while GSX refuels (requested or in progress) the slip waits for the end of it, at most
+  # 10 min (the game number approved for the final loadsheet, 2026-11-07), then as without GSX.
+  - if: "ground.refuel_busy"
+    steps:
+      - wait: { until: "not ground.refuel_busy", timeout_min: 10 }
   - wait: { until: "flight.fuel_stable", timeout_min: 6 }
   - send:
       header: FUEL SLIP

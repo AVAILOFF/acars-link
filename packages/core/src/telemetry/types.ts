@@ -59,6 +59,41 @@ export interface TelemetrySnapshot {
    * sources without a date. The app may use it as the flight's clock (setting "time from the sim").
    */
   readonly simUtcMs?: number;
+  /**
+   * GSX Pro ground services (T98), from its LVars (MSFS bridge). Absent without GSX (GSX not
+   * running, X-Plane) and in older recordings.
+   */
+  readonly ground?: GroundServices;
+}
+
+/**
+ * A GSX service state, `L:FSDT_GSX_*_STATE` (GSX Pro for MSFS manual 4.0.9 Pro, p. 106, checked
+ * 2026-11-07): 1 can be called, 2 not available, 3 bypassed, 4 requested, 5 being performed,
+ * 6 completed; 0 = not reported.
+ */
+export type GsxState = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export interface GroundServices {
+  readonly boarding: GsxState;
+  readonly deboarding: GsxState;
+  readonly refuel: GsxState;
+  readonly catering: GsxState;
+  /** Pushback (GSX "departure"). */
+  readonly departure: GsxState;
+  /** GSX is loading luggage / cargo (`L:FSDT_GSX_BOARDING_CARGO`). */
+  readonly cargo: boolean;
+}
+
+const GSX_SERVICES = ['boarding', 'deboarding', 'refuel', 'catering', 'departure'] as const;
+
+function isGround(x: unknown): x is GroundServices {
+  if (typeof x !== 'object' || x === null) return false;
+  const g = x as Record<string, unknown>;
+  return (
+    GSX_SERVICES.every(
+      (k) => Number.isInteger(g[k]) && (g[k] as number) >= 0 && (g[k] as number) <= 6,
+    ) && typeof g['cargo'] === 'boolean'
+  );
 }
 
 const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
@@ -96,6 +131,7 @@ export function isTelemetrySnapshot(x: unknown): x is TelemetrySnapshot {
     isArr(s['doorsOpen'], isNum) &&
     typeof s['aircraftTitle'] === 'string' &&
     (s['touchdownFpm'] === undefined || isNum(s['touchdownFpm'])) &&
-    (s['simUtcMs'] === undefined || isNum(s['simUtcMs']))
+    (s['simUtcMs'] === undefined || isNum(s['simUtcMs'])) &&
+    (s['ground'] === undefined || isGround(s['ground']))
   );
 }
