@@ -18,6 +18,7 @@ import {
   type RoutePolyline,
   sortStations,
 } from '../ext/data.js';
+import { FDM_LINE_VARS, FDM_LINES, type FdmEvent, fdmEventText } from '../fdm/monitor.js';
 import { distanceNm, type LatLon } from '../geo/geo.js';
 import type { Ofp, OfpFix } from '../ofp/types.js';
 import type { FlightPhase, OooiKind } from '../phase/fsm.js';
@@ -308,6 +309,11 @@ export const CONTEXT_VARIABLES = [
   'flight.fuel_below_plan_kg',
   'flight.fuel_plan_tol_kg',
   'flight.touchdown_fpm',
+  // flight data monitoring (T94, fdm/monitor.ts): number of events (null = FDM off), the events as
+  // numbered lines of the letter in time order (null = no such line), events beyond the last line
+  'fdm.count',
+  ...FDM_LINE_VARS,
+  'fdm.more',
   'ops.turn_avail_min',
   'ops.ctot_ready',
   'ops.slot_missed',
@@ -429,6 +435,8 @@ export interface ContextInput {
   readonly fuel?: FuelTrack | null;
   /** Descent rate at the touchdown of this flight, ft/min (T46); null = none seen. */
   readonly touchdownFpm?: number | null;
+  /** Flight data monitoring events, oldest first (T94); absent = FDM off. */
+  readonly fdm?: readonly FdmEvent[];
   /** Irregular-scenario data and the gate a reassignment would move to (T14). */
   readonly irr?: IrregularData & {
     readonly newGate: string | null;
@@ -673,6 +681,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       ...gateVariables(input),
       ...fuelVariables(input),
       ...t46Variables(input),
+      ...fdmVariables(input.fdm),
       ...perfVariables(ofp),
       ...nameVariables(input),
       ...unitVariables(input),
@@ -1138,6 +1147,25 @@ function t46Variables(
     'flight.fuel_plan_tol_kg': Math.round(Math.max(plan * FUEL_PLAN_TOL_SHARE, FUEL_PLAN_TOL_KG)),
     'flight.touchdown_fpm': input.touchdownFpm ?? null,
   };
+}
+
+/**
+ * T94: the events of the flight data monitoring as lines of the letter, `1 SINK RATE 1400 FPM AT
+ * 800 FT 1432Z`; the lines after {@link FDM_LINES} are counted in `fdm.more`.
+ */
+function fdmVariables(
+  events: readonly FdmEvent[] | undefined,
+): Record<'fdm.count' | 'fdm.more' | (typeof FDM_LINE_VARS)[number], Value> {
+  const out: Record<string, Value> = {
+    'fdm.count': events === undefined ? null : events.length,
+    'fdm.more':
+      events !== undefined && events.length > FDM_LINES ? events.length - FDM_LINES : null,
+  };
+  FDM_LINE_VARS.forEach((name, i) => {
+    const e = events?.[i];
+    out[name] = e === undefined ? null : `${i + 1} ${fdmEventText(e)}`;
+  });
+  return out as Record<'fdm.count' | 'fdm.more' | (typeof FDM_LINE_VARS)[number], Value>;
 }
 
 /**

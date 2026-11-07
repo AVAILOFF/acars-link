@@ -10,6 +10,7 @@ import {
 } from './atc/xatc.js';
 import { type DatalinkState, LinkChannel, type LinkView } from './datalink/link.js';
 import type { ExtDataUpdate, ExtState } from './ext/data.js';
+import { type FdmEvent, FdmMonitor, type FdmState } from './fdm/monitor.js';
 import { linkHeaderLines, withLinkHeader } from './format/formatter.js';
 import { DEFAULT_PROFILE, type DisplayProfile } from './format/profile.js';
 import type { Ofp } from './ofp/types.js';
@@ -105,6 +106,11 @@ export interface CoreOptions {
   readonly lateStartVersion?: 1 | 2 | 3;
   /** Rescue on the ground, see `ScenarioEngineOptions.rescueVersion` (T88); default 1. */
   readonly rescueVersion?: 1 | 2;
+  /**
+   * Flight data monitoring (T94, `fdm/monitor.ts`): events for the safety department's letter
+   * (`fdm.*` variables) and the flight report. Absent = off, as in recordings made before T94.
+   */
+  readonly fdm?: boolean;
   /** `flags.*` left by earlier flights (T14); read back with {@link AcarsCore.flags}. */
   readonly flags?: Readonly<Record<string, Value>>;
   /**
@@ -150,6 +156,8 @@ export interface CoreState {
   readonly emergencies?: readonly string[];
   /** Message counters of the flight report (T69); absent in states saved before it = zero. */
   readonly counts?: ReportCounts;
+  /** Flight data monitoring (T94); absent without it or in states saved before it. */
+  readonly fdm?: FdmState;
 }
 
 export interface OutboxState {
@@ -179,6 +187,7 @@ export class AcarsCore {
     options: CoreOptions,
     private readonly xatc: XatcStation | null,
     private link: LinkChannel | null,
+    private readonly fdm: FdmMonitor | null,
   ) {
     this.ofp = options.ofp;
     this.headerInText = options.datalink?.headerInText === true;
@@ -199,6 +208,7 @@ export class AcarsCore {
       options,
       xatcOf(options, undefined),
       linkOf(options, undefined),
+      fdmOf(options, undefined),
     );
   }
 
@@ -215,6 +225,7 @@ export class AcarsCore {
       options,
       xatcOf(options, state.xatc ?? state.rops),
       linkOf(options, state.link),
+      fdmOf(options, state.fdm),
     );
     if (state.outbox !== undefined) {
       const copy = JSON.parse(JSON.stringify(state.outbox)) as OutboxState;
@@ -288,7 +299,13 @@ export class AcarsCore {
       ...(this.link === null ? {} : { link: this.link.getState() }),
       ...(this.emergencies.length === 0 ? {} : { emergencies: [...this.emergencies] }),
       counts: { ...this.counts },
+      ...(this.fdm === null ? {} : { fdm: this.fdm.getState() }),
     };
+  }
+
+  /** Flight data monitoring events so far, oldest first (T94); null = FDM off. */
+  get fdmEvents(): readonly FdmEvent[] | null {
+    return this.fdm?.events ?? null;
   }
 
   /**
@@ -312,6 +329,7 @@ export class AcarsCore {
       counts: this.counts,
       ...(this.engine.flightKind === null ? {} : { flightKind: this.engine.flightKind.kind }),
       started: data.started,
+      ...(this.fdm === null ? {} : { fdm: this.fdm.events }),
     });
   }
 
@@ -334,12 +352,14 @@ export class AcarsCore {
   }
 
   tick(input: CoreInput): CoreOutput {
+    const phaseEvents = [
+      ...(input.telemetry === null ? [] : this.fsm.push(input.telemetry, input.now)),
+      ...this.fsm.tick(input.now),
+    ];
+    this.fdm?.push(input.now, input.telemetry, this.fsm.phase, phaseEvents);
     return this.run(
       input.now,
-      [
-        ...(input.telemetry === null ? [] : this.fsm.push(input.telemetry, input.now)),
-        ...this.fsm.tick(input.now),
-      ],
+      phaseEvents,
       input.inbound ?? [],
       input.data,
       input.force,
@@ -372,6 +392,7 @@ export class AcarsCore {
       ...(data === undefined ? {} : { data }),
       ...(forceAll.length === 0 ? {} : { force: forceAll }),
       ...(flightKind === undefined ? {} : { flightKind }),
+      ...(this.fdm === null ? {} : { fdm: this.fdm.events }),
     });
     // ATC uplinks are not airline telexes: they skip the outbox gap.
     const atc = this.xatc?.tick({
@@ -459,6 +480,10 @@ function linkOf(o: CoreOptions, state: DatalinkState | undefined): LinkChannel |
     ...(o.datalink.icaoHex === undefined ? {} : { icaoHex: o.datalink.icaoHex }),
     reg: o.ofp.aircraft.reg,
   });
+}
+
+function fdmOf(o: CoreOptions, state: FdmState | undefined): FdmMonitor | null {
+  return o.fdm === true ? new FdmMonitor(o.ofp.destination.elevationFt, state) : null;
 }
 
 function xatcOf(o: CoreOptions, state: XatcState | undefined): XatcStation | null {

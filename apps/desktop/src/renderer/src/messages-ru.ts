@@ -319,6 +319,15 @@ export const ru: Record<MessageKey, string> = {
   'report.messagesValue': 'авиакомпании {airline}, пилота {pilot} (ответов {replies})',
   'report.irregular': 'Нестандартные ситуации',
   'report.kind': 'Вид рейса',
+  'report.fdm': 'Мониторинг полётных данных (FDM)',
+  'report.fdmNone': 'событий нет',
+  'report.fdm.sink_rate': 'снижение {value} фут/мин на высоте {alt} фут над аэродромом, {time}',
+  'report.fdm.gear_up': 'шасси убрано на высоте {alt} фут над аэродромом, {time}',
+  'report.fdm.flaps':
+    'закрылки {value} на высоте {alt} фут над аэродромом (посадочные — {ldg}), {time}',
+  'report.fdm.speed': 'скорость {value} уз на высоте {alt} фут MSL, {time}',
+  'report.fdm.go_around':
+    'уход на второй круг на высоте {alt} фут над аэродромом (информация), {time}',
   'report.hint':
     'Цифры симулятора и OFP, без оценок. Сводка видна до загрузки следующего OFP и сохраняется в журнал рейсов (logbook.json в папке данных приложения).',
   'report.export': 'Сохранить в JSON…',

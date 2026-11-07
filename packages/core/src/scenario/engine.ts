@@ -13,6 +13,7 @@ import {
   type ParkingStand,
   RoutePolyline,
 } from '../ext/data.js';
+import type { FdmEvent } from '../fdm/monitor.js';
 import { FormatError, type FormattedMessage, formatMessage } from '../format/formatter.js';
 import { DEFAULT_PROFILE, type DisplayProfile } from '../format/profile.js';
 import { distanceNm } from '../geo/geo.js';
@@ -269,6 +270,8 @@ export interface EngineTickInput {
   readonly force?: readonly string[];
   /** The user's choice of the kind of flight (T89): null = automatic. Ignored after OUT. */
   readonly flightKind?: { readonly override: FlightKind | null };
+  /** Flight data monitoring events so far (T94, the core's `FdmMonitor`); absent = FDM off. */
+  readonly fdm?: readonly FdmEvent[];
 }
 
 export interface EngineTickOutput {
@@ -1049,6 +1052,7 @@ export class ScenarioEngine {
       seed: this.seed,
       fuel: this.st.fuel,
       touchdownFpm: this.st.touchdown?.fpm ?? null,
+      ...(input.fdm === undefined ? {} : { fdm: input.fdm }),
       irr: {
         ...this.irr,
         onwardRoute: this.onwardRoute(),

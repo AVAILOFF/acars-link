@@ -94,6 +94,8 @@ export interface RecordingHeader {
   readonly lateStartVersion?: 1 | 2 | 3;
   /** Core `rescueVersion` (T88); absent = 1, the rescue airport of recordings made before it. */
   readonly rescueVersion?: 1 | 2;
+  /** Core `fdm` (T94): flight data monitoring on; absent = off, as in recordings made before it. */
+  readonly fdm?: boolean;
   /** Core `massUnit` (T105); absent = `kg`, the messages of recordings made before it. */
   readonly massUnit?: 'ofp' | 'kg' | 'lb';
   /** Core `hub` (T53): the user's hub; absent = OpenFlights. */
@@ -268,6 +270,7 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
     throw bad('massUnit');
   if (x['rescueVersion'] !== undefined && x['rescueVersion'] !== 1 && x['rescueVersion'] !== 2)
     throw bad('rescueVersion');
+  if (x['fdm'] !== undefined && typeof x['fdm'] !== 'boolean') throw bad('fdm');
   if (x['hub'] !== undefined && !(isStr(x['hub']) && /^[A-Z]{4}$/.test(x['hub']))) throw bad('hub');
   const p = x['probabilities'];
   if (p !== undefined && !(isObj(p) && Object.values(p).every((v) => isNum(v) && v >= 0 && v <= 1)))

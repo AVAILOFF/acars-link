@@ -1,0 +1,11 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`FDM letter (T94) > VS -1400 fpm at 800 ft: the letter 3 min after on-block, the event in the report 1`] = `
+"SAFETY DEPT FDM
+------------------------
+EVENTS THIS FLIGHT:
+1 SINK RATE 1400 FPM AT
+800 FT 1018Z
+INFO ONLY, NO BLAME
+REPLY ACK OR REPORT"
+`;

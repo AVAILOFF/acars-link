@@ -461,6 +461,19 @@ f1_result:
   title: Formel-1-Ergebnis
   description: "Ein Grand Prix, der während des Fluges zu Ende ging: das Podium (Jolpica)."
   hint: "OPS-Informationen: das Ergebnis eines Formel-1-Grand-Prix, der während Ihres Fluges zu Ende ging. Keine Antwort erforderlich."
+fdm_letter:
+  title: Schreiben der Flugdatenüberwachung (FDM)
+  description: "3 Min. nach Erreichen der Parkposition, wenn die Flugdatenüberwachung Ereignisse gefunden hat (Sinkrate, Fahrwerk oder Klappen bei 1000 ft, Geschwindigkeit über 250 kt unter 10 000 ft, Durchstarten): Die Abteilung für Flugsicherheit listet sie auf. ACK oder REPORT (Sicherheitsbericht)."
+  hint: "Abteilung für Flugsicherheit: Die Flugdatenüberwachung (FDM) hat diese Ereignisse in Ihrem Flug gefunden – Wert, Höhe und UTC-Zeit jedes Ereignisses. Dies ist eine Information für Sie, keine Schuldzuweisung. Antworten Sie mit ACK oder mit REPORT, wenn Sie einen Sicherheitsbericht (ASR) einreichen."
+  steps:
+    reply:
+      reply_hints:
+        ACK: Die Besatzung hat die Ereignisse zur Kenntnis genommen.
+        REPORT: Die Besatzung reicht einen Sicherheitsbericht (ASR) zu den Ereignissen ein.
+    ack:
+      hint: Die Abteilung für Flugsicherheit vermerkt, dass Sie die Ereignisse zur Kenntnis genommen haben. Keine Antwort erforderlich.
+    report:
+      hint: Die Abteilung für Flugsicherheit erwartet Ihren Sicherheitsbericht (ASR) und wird sich bei Ihnen melden. Keine Antwort erforderlich.
 ferry_after_mx:
   title: Überführungsflug nach der Wartung (Ferry)
   description: "Vor einem Überführungsflug: Das Flugzeug kommt aus der Wartung und ist wieder flugtauglich; überprüfen Sie das technische Logbuch."

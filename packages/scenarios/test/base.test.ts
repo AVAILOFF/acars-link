@@ -94,12 +94,14 @@ function fly(
   profile: DisplayProfile = DEFAULT_PROFILE,
   seed: string = c.seed,
   stands = true,
+  fdm = false,
 ): Run {
   const core = AcarsCore.create({
     ofp: c.ofp,
     scenarios,
     seed,
     profile,
+    ...(fdm ? { fdm } : {}),
     ...(c.massUnit === undefined ? {} : { massUnit: c.massUnit }),
   });
   core.startFlight();
@@ -124,8 +126,8 @@ const missing = new RegExp(`(^|[^-])${MISSING}($|[^-])`, 'm');
 const num = (text: string, re: RegExp) => Number(re.exec(text)?.[1]);
 
 describe('base scenario set', () => {
-  it('has 17 scenarios, file name = id, all enabled by default', () => {
-    expect(base).toHaveLength(17);
+  it('has 18 scenarios, file name = id, all enabled by default', () => {
+    expect(base).toHaveLength(18);
     expect(base.map((s) => `${s.id}.yaml`)).toEqual(files.map((f) => f.file));
     expect(base.every((s) => s.def.enabled_by_default)).toBe(true);
   });
@@ -135,7 +137,8 @@ describe.each(FLIGHTS)('each scenario alone on $name', (c) => {
   // probability forced to 1: the content is checked, not the dice.
   it.each(base.map((s) => [s.id, s] as const))('%s', (_, s) => {
     for (const profile of [DEFAULT_PROFILE, B77X_PROFILE, B78X_PROFILE]) {
-      const r = fly(c, [{ ...s, probability: 1 }], profile);
+      // T94: the synthetic flights have FDM events (flaps 3 at 1000 ft, 4 at the touchdown).
+      const r = fly(c, [{ ...s, probability: 1 }], profile, c.seed, true, s.id === 'fdm_letter');
       expect(errors(r)).toEqual([]);
       // slot_missed needs a late take-off after a slot: its own test below. connex_list needs
       // AeroDataBox data: external.test.ts.

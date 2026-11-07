@@ -73,6 +73,8 @@ async function setup(h: FakeHttp = http()) {
 type Setup = Awaited<ReturnType<typeof setup>>;
 
 async function startOffline(s: Setup, patch: Parameters<AppController['updateSettings']>[0] = {}) {
+  // T94: the synthetic flight has FDM events; the letter (on-block + 3 min) would hold the close.
+  await s.app.setScenarioEnabled('fdm_letter', false);
   await s.app.updateSettings({ transport: 'offline', ...patch });
   await s.app.loadOfp();
   s.sockets.last().hello();

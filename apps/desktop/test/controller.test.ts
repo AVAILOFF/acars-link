@@ -288,7 +288,7 @@ describe('AppController', () => {
     // + 4 irregular (T46) + connex_list (T30) + hold_fuel_watch (T50) + dep_fire
     // + 10 cargo (T90: 2 loadsheets, REQ LOADSHEET, 7 irregular) + 5 charter and 6 ferry (T91)
     // + 7 business aviation (T92) + vdgs_departure (T102) + vdgs_departure_etd (T103)
-    expect(list).toHaveLength(121);
+    expect(list).toHaveLength(122);
     expect(list.every((x) => x.enabled === x.enabledByDefault)).toBe(true);
     const off = list.find((x) => x.enabled);
     if (off === undefined) throw new Error('no enabled scenario');

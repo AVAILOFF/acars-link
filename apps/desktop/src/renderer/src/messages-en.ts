@@ -316,6 +316,13 @@ export const en = {
   'report.messagesValue': 'airline {airline}, pilot {pilot} (replies {replies})',
   'report.irregular': 'Irregular events',
   'report.kind': 'Kind of flight',
+  'report.fdm': 'Flight data monitoring (FDM)',
+  'report.fdmNone': 'no events',
+  'report.fdm.sink_rate': 'sink rate {value} ft/min at {alt} ft above the airfield, {time}',
+  'report.fdm.gear_up': 'gear up at {alt} ft above the airfield, {time}',
+  'report.fdm.flaps': 'flaps {value} at {alt} ft above the airfield (landing flaps {ldg}), {time}',
+  'report.fdm.speed': 'speed {value} kt at {alt} ft MSL, {time}',
+  'report.fdm.go_around': 'go-around at {alt} ft above the airfield (information), {time}',
   'report.hint':
     'Figures from the simulator and the OFP, no grades. The report stays until the next OFP is loaded and is kept in the logbook (logbook.json in the app data folder).',
   'report.export': 'Save as JSON…',

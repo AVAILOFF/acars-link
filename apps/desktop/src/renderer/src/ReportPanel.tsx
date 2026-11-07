@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
-import type { FlightReport, OooiKind, PlanFigure } from '@acars/core';
+import type { FdmEvent, FlightReport, OooiKind, PlanFigure } from '@acars/core';
 import type { FlightReportView } from '../../shared/api.js';
 import { useStore } from './store.js';
 import { num, useT, useUiText, zulu } from './ui.js';
@@ -128,6 +128,22 @@ export function ReportPanel({ view }: { view: FlightReportView }) {
         <dd>
           {view.irregular.length === 0 ? '—' : view.irregular.map((s) => text(s.title)).join(', ')}
         </dd>
+        {r.fdm !== undefined && (
+          <>
+            <dt>{t('report.fdm')}</dt>
+            <dd>
+              {r.fdm.length === 0 ? (
+                t('report.fdmNone')
+              ) : (
+                <ol className="report-fdm">
+                  {r.fdm.map((e) => (
+                    <li key={`${e.kind}-${e.t}`}>{fdmLine(e, t)}</li>
+                  ))}
+                </ol>
+              )}
+            </dd>
+          </>
+        )}
       </dl>
 
       <p className="hint">{t('report.hint')}</p>
@@ -171,6 +187,16 @@ function Line({
       <td>{f.diff === null ? '' : diff(f.diff)}</td>
     </tr>
   );
+}
+
+/** One FDM event (T94): value, height, UTC time; facts only. */
+function fdmLine(e: FdmEvent, t: ReturnType<typeof useT>): string {
+  return t(`report.fdm.${e.kind}`, {
+    value: e.value === null ? '' : num(e.value),
+    alt: num(e.altFt),
+    ldg: String(e.landingFlaps ?? ''),
+    time: zulu(e.t),
+  });
 }
 
 function landed(r: FlightReport, t: ReturnType<typeof useT>): string {

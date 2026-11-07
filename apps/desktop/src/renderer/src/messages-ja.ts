@@ -320,6 +320,13 @@ export const ja: Readonly<Partial<Record<MessageKey, string>>> = {
   'report.messagesValue': '航空会社{airline}、パイロット{pilot}（返信{replies}）',
   'report.irregular': '不測の事態',
   'report.kind': 'フライトの種類',
+  'report.fdm': '飛行データモニタリング（FDM）',
+  'report.fdmNone': 'イベントなし',
+  'report.fdm.sink_rate': '降下率 {value} ft/min、飛行場上 {alt} ft、{time}',
+  'report.fdm.gear_up': '脚上げ状態、飛行場上 {alt} ft、{time}',
+  'report.fdm.flaps': 'フラップ {value}、飛行場上 {alt} ft（着陸フラップ {ldg}）、{time}',
+  'report.fdm.speed': '速度 {value} kt、{alt} ft MSL、{time}',
+  'report.fdm.go_around': 'ゴーアラウンド、飛行場上 {alt} ft（情報）、{time}',
   'report.hint':
     'シミュレーターおよびOFPからの数値で、評価は含まれません。このレポートは、次のOFPが読み込まれるまで表示され、ログブック（アプリデータフォルダ内のlogbook.json）に保存されます。',
   'report.export': 'JSONとして保存…',

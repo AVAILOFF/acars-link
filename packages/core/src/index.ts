@@ -33,6 +33,7 @@ export * from './ext/data.js';
 export * from './ext/eclipses.js';
 export * from './ext/routes.js';
 export * from './ext/special.js';
+export * from './fdm/monitor.js';
 export * from './format/formatter.js';
 export * from './format/profile.js';
 export * from './geo/geo.js';

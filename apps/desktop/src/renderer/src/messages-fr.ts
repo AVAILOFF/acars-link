@@ -327,6 +327,16 @@ export const fr: Readonly<Partial<Record<MessageKey, string>>> = {
   'report.messagesValue': 'compagnie aérienne {airline}, pilote {pilot} (réponses {replies})',
   'report.irregular': 'Événements exceptionnels',
   'report.kind': 'Type de vol',
+  'report.fdm': 'Suivi des données de vol (FDM)',
+  'report.fdmNone': 'aucun événement',
+  'report.fdm.sink_rate':
+    'taux de descente {value} ft/min à {alt} ft au-dessus de l’aérodrome, {time}',
+  'report.fdm.gear_up': 'train rentré à {alt} ft au-dessus de l’aérodrome, {time}',
+  'report.fdm.flaps':
+    'volets {value} à {alt} ft au-dessus de l’aérodrome (volets atterrissage {ldg}), {time}',
+  'report.fdm.speed': 'vitesse {value} kt à {alt} ft MSL, {time}',
+  'report.fdm.go_around':
+    'remise des gaz à {alt} ft au-dessus de l’aérodrome (information), {time}',
   'report.hint':
     'Données issues du simulateur et de l’OFP, sans notes. Le rapport reste disponible jusqu’au chargement du prochain OFP et est conservé dans le Carnet de vol (logbook.json, dans le dossier « AppData »).',
   'report.export': 'Enregistrer au format JSON…',

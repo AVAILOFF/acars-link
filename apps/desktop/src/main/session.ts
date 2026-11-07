@@ -149,6 +149,8 @@ const NEXT_LEG_VERSION = 3;
 const LATE_START_VERSION = 3;
 /** Rescue on the ground at the airport where the aircraft stands (core `rescueVersion`, T88). */
 const RESCUE_VERSION = 2;
+/** Flight data monitoring of new flights (core `fdm`, T94); recorded in the header. */
+const FDM = true;
 
 /** How long `REQ WX` waits for the data service to fetch an airport (core `dataWaitMs`). */
 export const DATA_WAIT_MS = 60_000;
@@ -235,6 +237,7 @@ export class FlightSession {
             nextLegVersion: NEXT_LEG_VERSION,
             lateStartVersion: LATE_START_VERSION,
             rescueVersion: RESCUE_VERSION,
+            fdm: FDM,
             ...(o.massUnit === undefined ? {} : { massUnit: o.massUnit }),
             ...(o.hub === undefined ? {} : { hub: o.hub }),
             ...(o.flightKind === undefined ? {} : { flightKind: o.flightKind }),
@@ -286,6 +289,7 @@ export class FlightSession {
         nextLegVersion: NEXT_LEG_VERSION,
         lateStartVersion: LATE_START_VERSION,
         rescueVersion: RESCUE_VERSION,
+        fdm: FDM,
         ...(o.massUnit === undefined ? {} : { massUnit: o.massUnit }),
         ...(o.hub === undefined ? {} : { hub: o.hub }),
         simTime: this.simTime,
