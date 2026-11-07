@@ -73,6 +73,10 @@ block_report:
   title: Temps de bloc (OOOI)
   description: Temps de stationnement et codes de retard après la mise en place.
   hint: "Rapport de blocage après stationnement : heures « OUT », « OFF », « ON » et « IN » (départ du blocage, décollage, atterrissage, retour au blocage), durée du blocage et du vol, ainsi que la quantité de carburant à bord ; en cas de retard, les codes de retard IATA correspondant à ses causes sont également indiqués. À des fins d’archivage par la compagnie aérienne ; aucune réponse n’est requise."
+boarding_completed:
+  title: "Embarquement terminé"
+  description: "Avec GSX : la porte annonce la fin de l’embarquement et le nombre de passagers à bord."
+  hint: "La porte annonce que l’embarquement est terminé (GSX l’a achevé) et le nombre de passagers à bord, celui du devis de masse et centrage définitif. Fermez les portes lorsque vous êtes prêt ; aucune réponse n’est requise."
 cargo_act_failure:
   title: Défaillance d’un conteneur réfrigéré (fret)
   description: "Avant le départ d’un vol de fret : un conteneur à température contrôlée actif contenant des produits pharmaceutiques tombe en panne et est remplacé, ce qui entraîne un retard de 15 à 30 minutes."

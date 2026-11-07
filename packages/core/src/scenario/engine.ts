@@ -48,6 +48,7 @@ import { airportPlace, type RunwayNeed } from './divert.js';
 import type { Lookup, Value } from './expr.js';
 import { pruneExpiredFlags } from './flags-expiry.js';
 import { classifyFlight, type FlightKind, type FlightKindInfo } from './flight-kind.js';
+import { type GroundEvent, type GroundTrack, trackGround } from './ground.js';
 import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
 import { buildFlightData, type FlightData, type NextLegOptions } from './ops-data.js';
 import {
@@ -243,6 +244,12 @@ export type ScenarioEvent =
       readonly id: string;
       readonly t: number;
       readonly error: string;
+    }
+  | {
+      /** A GSX service of this flight was completed (T98, `ground.ts`). */
+      readonly type: 'GROUND';
+      readonly t: number;
+      readonly event: GroundEvent;
     }
   | {
       /**
@@ -446,6 +453,8 @@ export interface ScenarioEngineState {
   readonly preShiftMs?: number;
   /** Late start version 4 (T61): the pushback / OUT flush is done; absent = not yet. */
   readonly flushed?: boolean;
+  /** GSX in this flight (T98, `ground.ts`); absent in older states = none seen. */
+  readonly ground?: GroundTrack | null;
   /** The user's choice of the kind of flight (T89); absent in older states = the option's. */
   readonly kindOverride?: FlightKind | null;
 }
@@ -586,6 +595,7 @@ export class ScenarioEngine {
     preEndMs: number;
     preShiftMs: number;
     flushed: boolean;
+    ground: GroundTrack | null;
     kindOverride: FlightKind | null;
   };
   /** The kind filter is on (T89, option `flightKind`). */
@@ -614,6 +624,8 @@ export class ScenarioEngine {
   /** Inside `receive`: messages are answers to the pilot. */
   private answering = false;
   private tickInput: EngineTickInput | null = null;
+  /** GSX events of the tick in progress (T98), for `on: event` triggers. */
+  private groundEvents: readonly GroundEvent[] = [];
   /** Commands of the tick in progress (`vdgs` steps). */
   private commands: SimCommand[] = [];
 
@@ -681,6 +693,7 @@ export class ScenarioEngine {
       preEndMs: 0,
       preShiftMs: 0,
       flushed: false,
+      ground: null,
       kindOverride: options.flightKind?.override ?? null,
     };
     this.kindFilter = options.flightKind !== undefined;
@@ -746,6 +759,8 @@ export class ScenarioEngine {
     e.st.preEndMs = copy.preEndMs ?? 0;
     e.st.preShiftMs = copy.preShiftMs ?? 0;
     e.st.flushed = copy.flushed ?? false;
+    // T98.
+    e.st.ground = copy.ground ?? null;
     // T89.
     if (copy.kindOverride !== undefined) e.st.kindOverride = copy.kindOverride;
     e.kindInfo = classifyFlight(options.ofp, e.st.kindOverride);
@@ -991,6 +1006,11 @@ export class ScenarioEngine {
     }
     this.st.inbox = [];
     this.st.forced = [];
+    // T98: GSX states of this sample.
+    const gsx = trackGround(this.st.ground, input.telemetry, input.now);
+    this.st.ground = gsx.track;
+    this.groundEvents = gsx.events;
+    for (const event of gsx.events) events.push({ type: 'GROUND', t: input.now, event });
     this.tickInput = input;
     this.refresh();
     try {
@@ -1186,6 +1206,7 @@ export class ScenarioEngine {
       seed: this.seed,
       fuel: this.st.fuel,
       touchdownFpm: this.st.touchdown?.fpm ?? null,
+      ground: this.st.ground,
       ...(input.fdm === undefined ? {} : { fdm: input.fdm }),
       irr: {
         ...this.irr,
@@ -1706,7 +1727,10 @@ export class ScenarioEngine {
       case 'phase':
         return input.phase === tr.phase;
       case 'event':
-        return input.events.some((e) => e.type === tr.event);
+        return (
+          input.events.some((e) => e.type === tr.event) ||
+          this.groundEvents.includes(tr.event as GroundEvent)
+        );
       case 'command':
         return false; // started by `receive`
       case 'time': {

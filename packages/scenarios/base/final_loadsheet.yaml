@@ -17,6 +17,13 @@ conditions:
   - "phase in ['PREFLIGHT','BOARDING','PUSHBACK','TAXI_OUT']"
 priority: 3
 steps:
+  # T98: with GSX active the final loadsheet follows the end of the GSX boarding, at most 10 min
+  # (a game number, approved 2026-11-07) after its time; then as without GSX.
+  - if: "ground.active and not ground.boarding_done"
+    steps:
+      - wait: { until: "ground.boarding_done", timeout_min: 10 }
+      # After the gate's BOARDING COMPLETED, not on the same tick.
+      - wait: { minutes: 1 }
   # Without the OFP crew first: the message keeps its trigger time (TIMEOUT comes a tick later).
   - wait: { until: "ofp.crew_cockpit == null", timeout_min: 0.02 }
   - branch:

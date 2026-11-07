@@ -126,8 +126,8 @@ const missing = new RegExp(`(^|[^-])${MISSING}($|[^-])`, 'm');
 const num = (text: string, re: RegExp) => Number(re.exec(text)?.[1]);
 
 describe('base scenario set', () => {
-  it('has 19 scenarios, file name = id, all enabled by default', () => {
-    expect(base).toHaveLength(19);
+  it('has 20 scenarios, file name = id, all enabled by default', () => {
+    expect(base).toHaveLength(20);
     expect(base.map((s) => `${s.id}.yaml`)).toEqual(files.map((f) => f.file));
     expect(base.every((s) => s.def.enabled_by_default)).toBe(true);
   });
@@ -142,7 +142,9 @@ describe.each(FLIGHTS)('each scenario alone on $name', (c) => {
       expect(errors(r)).toEqual([]);
       // slot_missed needs a late take-off after a slot: its own test below. connex_list needs
       // AeroDataBox data: external.test.ts. company_notam needs NOTAM in the OFP: t95.test.ts.
-      if (s.id === 'slot_missed' || s.id === 'connex_list' || s.id === 'company_notam') continue;
+      // boarding_completed needs GSX (T98): t98.test.ts.
+      if (['slot_missed', 'connex_list', 'company_notam', 'boarding_completed'].includes(s.id))
+        continue;
       expect(r.out.length, `${s.id} sent nothing on ${profile.id}`).toBeGreaterThan(0);
       for (const m of r.out) {
         expect(checkText(m.message.text, profile)).toEqual([]);

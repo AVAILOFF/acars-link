@@ -73,6 +73,10 @@ block_report:
   title: Tiempos de bloque (OOOI)
   description: Tiempos de bloque y códigos de retraso tras la llegada al bloque.
   hint: "Informe de bloque tras el estacionamiento: tiempos de OUT, OFF, ON e IN (salida del bloque, despegue, aterrizaje, entrada en el bloque), tiempo de bloque y de vuelo, y combustible a bordo; tras un retraso, también los códigos de retraso de la IATA que indican sus causas. Para los registros de la aerolínea; no es necesaria respuesta."
+boarding_completed:
+  title: "Embarque completado"
+  description: "Con GSX: la puerta informa del fin del embarque y del número de pasajeros a bordo."
+  hint: "La puerta informa de que el embarque ha terminado (GSX lo ha completado) y de cuántos pasajeros hay a bordo, la cifra de la hoja de carga final. Cierre las puertas cuando esté listo; no es necesaria respuesta."
 cargo_act_failure:
   title: Fallo en un contenedor termorregulado (carga)
   description: "Antes de la salida de un vuelo de carga: un contenedor activo con control de temperatura que transporta productos farmacéuticos presenta un fallo y se sustituye, lo que provoca un retraso de 15 a 30 minutos."

@@ -34,6 +34,11 @@ public sealed record SimVarDef(string Name, string Unit);
 /// 2026-10-23: the LVar follows the lever 1 → 0 → 1, B_HYD_PARKING_BRAKE_SET stays 0 with the engines off.
 /// Approved 2026-10-23: for a TITLE starting with "Fenix" the brake is set when the LVar or the SimVar is.
 /// TITLE is requested separately as STRING256 (see SimConnectSource).
+/// GSX Pro (T98): L:FSDT_GSX_BOARDING_STATE, _DEBOARDING_STATE, _REFUELING_STATE, _CATERING_STATE,
+/// _DEPARTURE_STATE — 1 can be called, 2 not available, 3 bypassed, 4 requested, 5 being performed,
+/// 6 completed; L:FSDT_GSX_BOARDING_CARGO — 1 while GSX loads luggage/cargo; all read-only for add-ons
+/// (GSX Pro for MSFS manual, version 4.0.9 Pro, page 106 "DEVELOPERS - Interfacing with GSX", checked
+/// 2026-11-07). An LVar nobody set reads 0, so all six 0 = GSX not running (or X-Plane): no <c>ground</c>.
 /// </summary>
 public static class SimVars
 {
@@ -63,7 +68,13 @@ public static class SimVars
     public const int Touchdown = SimRate + 1; // 29
     public const int AbsTime = Touchdown + 1; // 30
     public const int FenixParkBrake = AbsTime + 1; // 31
-    public const int Count = FenixParkBrake + 1;
+    public const int GsxBoarding = FenixParkBrake + 1; // 32
+    public const int GsxDeboarding = GsxBoarding + 1;
+    public const int GsxRefuel = GsxDeboarding + 1;
+    public const int GsxCatering = GsxRefuel + 1;
+    public const int GsxDeparture = GsxCatering + 1;
+    public const int GsxCargo = GsxDeparture + 1; // 37
+    public const int Count = GsxCargo + 1;
 
     /// <summary>LVar of the Fenix A320 parking brake lever (see the summary).</summary>
     public const string FenixParkBrakeLvar = "L:S_MIP_PARKING_BRAKE";
@@ -101,6 +112,12 @@ public static class SimVars
         d.Add(new("PLANE TOUCHDOWN NORMAL VELOCITY", "feet per second"));
         d.Add(new("ABSOLUTE TIME", "seconds"));
         d.Add(new(FenixParkBrakeLvar, "number"));
+        d.Add(new("L:FSDT_GSX_BOARDING_STATE", "number"));
+        d.Add(new("L:FSDT_GSX_DEBOARDING_STATE", "number"));
+        d.Add(new("L:FSDT_GSX_REFUELING_STATE", "number"));
+        d.Add(new("L:FSDT_GSX_CATERING_STATE", "number"));
+        d.Add(new("L:FSDT_GSX_DEPARTURE_STATE", "number"));
+        d.Add(new("L:FSDT_GSX_BOARDING_CARGO", "number"));
         return d;
     }
 }
@@ -157,11 +174,29 @@ public static class TelemetryMapper
             Paused = paused,
             TouchdownFpm = Round(Math.Abs(f[SimVars.Touchdown]) * 60, 0),
             SimUtcMs = SimUtc(f[SimVars.AbsTime]),
+            Ground = Gsx(f),
             AircraftTitle = CString(f.Title),
         };
     }
 
     private static bool Flag(double v) => v >= 0.5;
+
+    /// <summary>GSX service states (T98); null when every GSX LVar reads 0 (GSX not running).</summary>
+    public static GroundServices? Gsx(SimFrame f)
+    {
+        int State(int i) => double.IsFinite(f[i]) ? Math.Clamp((int)Math.Round(f[i]), 0, 6) : 0;
+        var g = new GroundServices
+        {
+            Boarding = State(SimVars.GsxBoarding),
+            Deboarding = State(SimVars.GsxDeboarding),
+            Refuel = State(SimVars.GsxRefuel),
+            Catering = State(SimVars.GsxCatering),
+            Departure = State(SimVars.GsxDeparture),
+            Cargo = Flag(f[SimVars.GsxCargo]),
+        };
+        var running = g.Boarding + g.Deboarding + g.Refuel + g.Catering + g.Departure > 0 || g.Cargo;
+        return running ? g : null;
+    }
 
     /// <summary>BRAKE PARKING POSITION, or for a Fenix (TITLE starts with "Fenix") also its lever LVar.</summary>
     public static bool ParkingBrakeSet(double simVar, double fenixLever, string title) =>

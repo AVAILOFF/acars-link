@@ -43,6 +43,23 @@ public sealed record TelemetrySnapshot
     [JsonPropertyName("touchdownFpm")] public double TouchdownFpm { get; init; }
     /// <summary>Sim clock (zulu), epoch ms UTC, from ABSOLUTE TIME; omitted when the sim gives none.</summary>
     [JsonPropertyName("simUtcMs")] public long? SimUtcMs { get; init; }
+    /// <summary>GSX Pro service states (T98); omitted without GSX (X-Plane, GSX not running).</summary>
+    [JsonPropertyName("ground")] public GroundServices? Ground { get; init; }
+}
+
+/// <summary>
+/// GSX Pro services (T98), the raw L:FSDT_GSX_*_STATE values: 1 can be called, 2 not available,
+/// 3 bypassed, 4 requested, 5 being performed, 6 completed (0 = not reported). See SimVars.
+/// </summary>
+public sealed record GroundServices
+{
+    [JsonPropertyName("boarding")] public int Boarding { get; init; }
+    [JsonPropertyName("deboarding")] public int Deboarding { get; init; }
+    [JsonPropertyName("refuel")] public int Refuel { get; init; }
+    [JsonPropertyName("catering")] public int Catering { get; init; }
+    [JsonPropertyName("departure")] public int Departure { get; init; }
+    /// <summary>GSX is loading luggage/cargo (L:FSDT_GSX_BOARDING_CARGO).</summary>
+    [JsonPropertyName("cargo")] public bool Cargo { get; init; }
 }
 
 /// <summary>Connection state of the bridge towards the simulator.</summary>

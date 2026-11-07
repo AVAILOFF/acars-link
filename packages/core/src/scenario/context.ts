@@ -29,6 +29,7 @@ import { type DelayPart, delayLine } from './delay-codes.js';
 import { airportHere, airportPlace, pickDivert, type RunwayNeed } from './divert.js';
 import type { Value } from './expr.js';
 import { classifyFlight, type FlightKind } from './flight-kind.js';
+import { GROUND_VARIABLES, type GroundTrack, groundVariables } from './ground.js';
 import type { IrregularData } from './irregular-data.js';
 import { countryRegion, MULTINATIONAL_AIRLINES } from './names.js';
 import type { FlightData } from './ops-data.js';
@@ -320,6 +321,8 @@ export const CONTEXT_VARIABLES = [
   'flight.fuel_below_plan_kg',
   'flight.fuel_plan_tol_kg',
   'flight.touchdown_fpm',
+  // GSX Pro ground services (T98, ground.ts)
+  ...GROUND_VARIABLES,
   // flight data monitoring (T94, fdm/monitor.ts): number of events (null = FDM off), the events as
   // numbered lines of the letter in time order (null = no such line), events beyond the last line
   'fdm.count',
@@ -446,6 +449,8 @@ export interface ContextInput {
   readonly fuel?: FuelTrack | null;
   /** Descent rate at the touchdown of this flight, ft/min (T46); null = none seen. */
   readonly touchdownFpm?: number | null;
+  /** GSX in this flight (T98, `ground.ts`); null = no GSX seen. */
+  readonly ground?: GroundTrack | null;
   /** Flight data monitoring events, oldest first (T94); absent = FDM off. */
   readonly fdm?: readonly FdmEvent[];
   /** Irregular-scenario data and the gate a reassignment would move to (T14). */
@@ -694,6 +699,7 @@ export function buildContext(input: ContextInput): ScenarioContext {
       ...t4344Variables(input, toDest, gs),
       ...gateVariables(input),
       ...fuelVariables(input),
+      ...groundVariables(input.ground ?? null, input.telemetry),
       ...t46Variables(input),
       ...fdmVariables(input.fdm),
       ...perfVariables(ofp),

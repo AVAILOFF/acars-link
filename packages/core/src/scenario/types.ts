@@ -4,6 +4,7 @@
 import type { FlightPhase, PhaseEvent } from '../phase/fsm.js';
 import type { VdgsReplaces } from '../sim/vdgs.js';
 import type { FlightKind } from './flight-kind.js';
+import { GROUND_EVENTS, type GroundEvent } from './ground.js';
 
 /**
  * A scenario as the engine runs it (docs/05-scenario-engine.md). `@acars/scenarios`
@@ -343,7 +344,8 @@ export interface ScenarioDef {
 
 /**
  * Phase-machine events a scenario may trigger on. TELEMETRY_LOST is left out: scenarios
- * are paused while telemetry is lost (docs/04), so such a scenario could never run.
+ * are paused while telemetry is lost (docs/04), so such a scenario could never run. The GSX events
+ * of the engine (T98, `ground.ts`) are triggers too.
  */
 export const TRIGGER_EVENTS = [
   'PHASE_CHANGE',
@@ -356,5 +358,6 @@ export const TRIGGER_EVENTS = [
   'TELEMETRY_RESTORED',
   'SIM_PAUSED',
   'SIM_RESUMED',
-] as const satisfies readonly PhaseEvent['type'][];
+  ...GROUND_EVENTS,
+] as const satisfies readonly (PhaseEvent['type'] | GroundEvent)[];
 export type TriggerEvent = (typeof TRIGGER_EVENTS)[number];
