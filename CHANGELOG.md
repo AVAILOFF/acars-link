@@ -39,7 +39,6 @@ the release becomes that version's section, with the task lines under `### Tasks
   late start version 4). Before, a slot could push some of them past pushback or drop them.
 - Recording format: `flightKind.charter` in the header and the `tick` lines; older recordings
   replay as before (T107).
-
 - The flight report and the logbook show the FDM events, one line each (T94).
 - Recording format: `fdm` in the header; older recordings replay as before (T94).
 
@@ -49,6 +48,9 @@ the release becomes that version's section, with the task lines under `### Tasks
   closures included.
 - NOTAM text is cut to two display lines: a long "trigger" NOTAM may lose its point.
 - FDM uses only the telemetry the bridge sends: no bank, pitch or approach speed checks.
+- GSX with aircraft that board through their own EFB (Fenix and others) is not checked yet: if
+  the aircraft does not set the GSX boarding to "completed", the final loadsheet comes up to
+  10 minutes late (T98).
 
 ## 1.1.1 — 2026-11-06
 
