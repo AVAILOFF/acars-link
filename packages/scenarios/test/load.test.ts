@@ -62,9 +62,30 @@ describe('parseScenario / loadScenario', () => {
     // T89: kinds of flight.
     ['unknown kind of flight', `${minimal}operations: [cargo, tanker]\n`, /operations\/1/],
     ['empty operations', `${minimal}operations: []\n`, /operations/],
+    // T107: types of charter.
+    [
+      'unknown charter type',
+      `${minimal}operations: [charter_pax]\ncharter: [cruise]\n`,
+      /charter\/0/,
+    ],
+    [
+      'charter_probability',
+      `${minimal}operations: [charter_pax]\ncharter: [tour]\ncharter_probability: 2\n`,
+      /charter_probability/,
+    ],
   ])('schema/YAML error: %s', (_, src, re) => {
     expect(() => parseScenario(src, 'x.yaml')).toThrow(ScenarioLoadError);
     expect(() => parseScenario(src, 'x.yaml')).toThrow(re);
+  });
+
+  it('charter (T107): needs operations [charter_pax]; charter_probability needs charter', () => {
+    expect(() => loadScenario(`${minimal}charter: [tour]\n`)).toThrow(/needs operations/);
+    expect(() =>
+      loadScenario(`${minimal}operations: [charter_pax]\ncharter_probability: 1\n`),
+    ).toThrow(/needs charter/);
+    expect(
+      loadScenario(`${minimal}operations: [charter_pax]\ncharter: [sports, vip]\n`).def.charter,
+    ).toEqual(['sports', 'vip']);
   });
 
   it('operations (T89): the kinds of flight a scenario is for', () => {

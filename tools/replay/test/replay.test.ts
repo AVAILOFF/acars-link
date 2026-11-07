@@ -578,8 +578,11 @@ describe('kind of flight in a recording (T89)', () => {
   const texts = (r: Recording) => replay(r, { scenarios }).outbound.map((m) => m.message.text);
 
   it('a synthetic flight records the filter and the recognized kind', () => {
-    expect(normal.header.flightKind).toEqual({ override: null, kind: 'sched_pax' });
-    expect(recordedCoreOptions(normal.header, scenarios).flightKind).toEqual({ override: null });
+    expect(normal.header.flightKind).toEqual({ override: null, charter: null, kind: 'sched_pax' });
+    expect(recordedCoreOptions(normal.header, scenarios).flightKind).toEqual({
+      override: null,
+      charter: null,
+    });
     expect(texts(normal)).toEqual(['PAX ON BOARD']);
   });
 

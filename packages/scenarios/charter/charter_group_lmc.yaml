@@ -1,6 +1,7 @@
 # Tour group change on a charter (T91): some passengers of the tour group do not show, or a late
 # group is added. Only when the passenger LMC (ops-data.ts) is not 0, with that same number, so
 # the final loadsheet agrees (approved by the user 2026-11-04).
+# T107: only on a tour charter (a tour group), probability unchanged.
 id: charter_group_lmc
 version: 1
 category: irregular
@@ -9,6 +10,7 @@ description: "Before departure of a charter: passengers of the tour group do not
 hint: "Charter handling: the tour operator reports a change in its group, passengers who did not show or late ones added. The number is the last-minute change (LMC) the final loadsheet will show. No reply needed."
 enabled_by_default: true
 operations: [charter_pax]
+charter: [tour]
 trigger:
   on: time
   at: { rel: sched_out, offset_min: -12 }

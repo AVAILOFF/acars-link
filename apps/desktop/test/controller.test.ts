@@ -1848,14 +1848,54 @@ describe('kind of flight (T89)', () => {
     );
     await s.app.stopFlight();
     const rec = await readRecording(s.recordings);
-    expect(rec.header.flightKind).toEqual({ override: 'sched_pax', kind: 'sched_pax' });
+    expect(rec.header.flightKind).toEqual({
+      override: 'sched_pax',
+      charter: null,
+      kind: 'sched_pax',
+    });
     expect(rec.events.filter((e) => e.type === 'tick' && e.flightKind !== undefined)).toEqual([
-      expect.objectContaining({ flightKind: { override: 'ferry' } }),
+      expect.objectContaining({ flightKind: { override: 'ferry', charter: null } }),
     ]);
     const r = replay(rec, {
       scenarios: BASE_SCENARIOS_COMPILED.filter((c) => rec.header.scenarios.includes(c.id)),
     });
     expect(compareOutbound(r.recorded, r.outbound)).toEqual([]);
+  });
+
+  it('charter type (T107): tour by default, chosen before OUT, in the recording; unknown refused', async () => {
+    const s = await ready(rawOfp);
+    await s.app.loadOfp();
+    expect(s.app.state().flightKind).toMatchObject({ charter: null, charterOverride: null });
+    await s.app.setFlightKind('charter_pax');
+    expect(s.app.state().flightKind).toMatchObject({ charter: 'tour', charterOverride: null });
+    expect(await guard(() => s.app.setFlightKind('charter_pax', 'cruise'))).toMatchObject({
+      ok: false,
+      error: { code: 'invalid_input', reason: 'flight_kind' },
+    });
+    await s.app.setFlightKind('charter_pax', 'sports');
+    await s.app.startFlight();
+    expect(s.app.state().flightKind).toMatchObject({
+      charter: 'sports',
+      charterOverride: 'sports',
+    });
+    fly(s, 0, 10);
+    // In flight, the kind alone keeps the type; then VIP.
+    await s.app.setFlightKind('charter_pax');
+    expect(s.app.state().flightKind).toMatchObject({ charter: 'sports' });
+    await s.app.setFlightKind('charter_pax', 'vip');
+    expect(s.app.state().flightKind).toMatchObject({ charter: 'vip', locked: false });
+    fly(s, 10, 12);
+    expect(s.app.state().flightKind).toMatchObject({ charter: 'vip', charterOverride: 'vip' });
+    await s.app.stopFlight();
+    const rec = await readRecording(s.recordings);
+    expect(rec.header.flightKind).toEqual({
+      override: 'charter_pax',
+      charter: 'sports',
+      kind: 'charter_pax',
+    });
+    expect(
+      rec.events.filter((e) => e.type === 'tick' && e.flightKind !== undefined).at(-1),
+    ).toMatchObject({ flightKind: { override: 'charter_pax', charter: 'vip' } });
   });
 
   it('"run now" of a passenger scenario on a cargo flight is refused by the core', async () => {

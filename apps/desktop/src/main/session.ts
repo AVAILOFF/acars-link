@@ -4,6 +4,7 @@
 import { basename } from 'node:path';
 import {
   AcarsCore,
+  type CharterType,
   type CompiledScenario,
   type CoreOutput,
   classifyFlight,
@@ -107,8 +108,14 @@ export interface FlightSessionOptions {
   readonly log?: Log;
   /** Version of the app for the recording header (T77); absent = not recorded. */
   readonly appVersion?: string;
-  /** Kind of flight (T89): the user's choice at the start (null = automatic); the filter is on. */
-  readonly flightKind?: { readonly override: FlightKind | null };
+  /**
+   * Kind of flight (T89): the user's choice at the start (null = automatic); the filter is on.
+   * `charter` (T107): the user's charter type (null = the default); absent = no charter type.
+   */
+  readonly flightKind?: {
+    readonly override: FlightKind | null;
+    readonly charter?: CharterType | null;
+  };
 }
 
 /** The recorded flight does not run the same way again (other scenarios, another app version). */
@@ -174,7 +181,9 @@ export class FlightSession {
   /** Scenarios started by hand, for the next core tick. */
   private forced: string[] = [];
   /** The user's choice of the kind of flight (T89), for the next core tick; null = none. */
-  private kindChoice: { override: FlightKind | null } | null = null;
+  private kindChoice: { override: FlightKind | null; charter: CharterType | null } | null = null;
+  /** The core has the charter type (T107): not in a flight recorded before T107. */
+  private readonly charterOn: boolean;
   /** Irregular scenarios of this flight, for "run now". */
   readonly irregular: readonly ForceableScenario[];
   private readonly callsign: string;
@@ -252,9 +261,13 @@ export class FlightSession {
         id: c.id,
         title: uiText(c.texts.title),
         ...(c.def.operations === undefined ? {} : { operations: c.def.operations }),
+        ...(c.def.charter === undefined ? {} : { charter: c.def.charter }),
       }))
       .sort((a, b) => a.title.en.localeCompare(b.title.en));
     this.ofp = o.resume?.header.ofp ?? o.ofp;
+    this.charterOn =
+      (o.resume === undefined ? o.flightKind?.charter : o.resume.header.flightKind?.charter) !==
+      undefined;
     this.callsign = o.ofp.callsign;
     this.station = stationCallsign(o.stationTemplate, o.ofp);
     this.transport = o.transport;
@@ -298,6 +311,7 @@ export class FlightSession {
           : {
               flightKind: {
                 override: o.flightKind.override,
+                ...(o.flightKind.charter === undefined ? {} : { charter: o.flightKind.charter }),
                 kind: classifyFlight(o.ofp, o.flightKind.override).kind,
               },
             }),
@@ -453,12 +467,22 @@ export class FlightSession {
     // A choice waiting for the next tick shows at once (the core takes it unless OUT came first).
     return k === null || this.kindChoice === null || k.locked
       ? k
-      : { ...classifyFlight(this.ofp, this.kindChoice.override), locked: false };
+      : {
+          ...classifyFlight(
+            this.ofp,
+            this.kindChoice.override,
+            this.charterOn ? this.kindChoice.charter : undefined,
+          ),
+          locked: false,
+        };
   }
 
-  /** The user's choice of the kind (T89): goes to the core with the next tick. */
-  setFlightKind(override: FlightKind | null): void {
-    if (!this.stopped) this.kindChoice = { override };
+  /**
+   * The user's choice of the kind (T89) and of the charter type (T107; ignored in a flight recorded
+   * before T107): goes to the core with the next tick.
+   */
+  setFlightKind(override: FlightKind | null, charter: CharterType | null = null): void {
+    if (!this.stopped) this.kindChoice = { override, charter };
   }
 
   force(id: string): void {
@@ -515,7 +539,9 @@ export class FlightSession {
       const inbound = i === 0 ? this.inbound.splice(0) : [];
       const data = i === 0 ? fetched.update : null;
       const force = i === 0 ? this.forced.splice(0) : [];
-      const flightKind = i === 0 ? this.kindChoice : null;
+      const choice = i === 0 ? this.kindChoice : null;
+      const flightKind =
+        choice === null ? null : this.charterOn ? choice : { override: choice.override };
       if (i === 0) this.kindChoice = null;
       const more = {
         ...(inbound.length > 0 ? { inbound } : {}),

@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: LicenseRef-ACARS-Link-Proprietary
 // Copyright (c) 2026 AVAILOFF
 
-import { FLIGHT_KINDS, type FlightKind } from '@acars/core';
+import {
+  CHARTER_TYPES,
+  type CharterType,
+  DEFAULT_CHARTER_TYPE,
+  FLIGHT_KINDS,
+  type FlightKind,
+} from '@acars/core';
 import type { CSSProperties } from 'react';
 import { type FormEvent, useRef, useState } from 'react';
 import type {
@@ -436,6 +442,30 @@ function KindBlock({ k }: { k: FlightKindView }) {
       <p className="hint">
         {k.override === null ? kindBasis(t, k, lang) : t('kind.manual', { kind: name(k.auto) })}
       </p>
+      {k.charter !== null && (
+        // T107: the type of a charter; the default is a tour charter.
+        <label className="kind-row">
+          <span className="kind-label">{t('charter.title')}</span>
+          <select
+            value={k.charterOverride ?? 'default'}
+            disabled={k.locked || busy !== null}
+            title={k.locked ? t('kind.locked') : t('charter.hint')}
+            onChange={(e) => {
+              const v = e.currentTarget.value;
+              void setFlightKind(k.override, v === 'default' ? null : (v as CharterType));
+            }}
+          >
+            <option value="default">
+              {t('charter.default', { type: t(`charter.${DEFAULT_CHARTER_TYPE}`) })}
+            </option>
+            {CHARTER_TYPES.map((c) => (
+              <option key={c} value={c}>
+                {t(`charter.${c}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       {k.locked && <p className="hint">{t('kind.locked')}</p>}
       {ask !== null && (
         <fieldset className="kind-ask">

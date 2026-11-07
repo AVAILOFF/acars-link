@@ -2,6 +2,7 @@
 // Copyright (c) 2026 AVAILOFF
 
 import {
+  type CharterType,
   checkExtDataUpdate,
   type DisplayProfile,
   ExtDataError,
@@ -9,6 +10,7 @@ import {
   FLIGHT_REPORT_VERSION,
   type FlightKind,
   type FlightReport,
+  isCharterType,
   isFlightKind,
   isTelemetrySnapshot,
   type Ofp,
@@ -28,8 +30,9 @@ import {
  *                                                                      one core tick (+ pilot telexes, T12;
  *                                                                      + external data fetched, T13;
  *                                                                      + "force": [id] started by hand;
- *                                                                      + "flightKind": {override} the user's
- *                                                                      choice of the kind of flight, T89)
+ *                                                                      + "flightKind": {override[,charter]} the
+ *                                                                      user's choice of the kind of flight, T89,
+ *                                                                      and of the charter type, T107)
  * {"type":"end","now":…,"to":"DONE"}                                   user closed the flight
  * {"type":"out","t":…,"scenarioId":…,"from":…,"to":…,"text":…[,"packet":…]}
  *                                                                      telex the core produced live
@@ -117,9 +120,14 @@ export interface RecordingHeader {
   /**
    * Core `flightKind` (T89): the kind filter is on; `override` = the user's choice at the start
    * (null = automatic), `kind` = the kind in force then (for reading; the core works it out
-   * again). Absent = no filter, as in recordings made before T89.
+   * again). Absent = no filter, as in recordings made before T89. `charter` (T107): the user's
+   * choice of the charter type at the start (null = the default); absent = no charter type.
    */
-  readonly flightKind?: { readonly override: FlightKind | null; readonly kind?: FlightKind };
+  readonly flightKind?: {
+    readonly override: FlightKind | null;
+    readonly charter?: CharterType | null;
+    readonly kind?: FlightKind;
+  };
 }
 
 export type RecordingEvent =
@@ -134,8 +142,11 @@ export type RecordingEvent =
       readonly data?: ExtDataUpdate;
       /** Scenarios the user started by hand with this tick; absent = none. */
       readonly force?: readonly string[];
-      /** The user's choice of the kind of flight with this tick (T89); absent = none. */
-      readonly flightKind?: { readonly override: FlightKind | null };
+      /** The user's choice of the kind of flight (T89) and charter type (T107); absent = none. */
+      readonly flightKind?: {
+        readonly override: FlightKind | null;
+        readonly charter?: CharterType | null;
+      };
     }
   | { readonly type: 'end'; readonly now: number; readonly to: 'TURNAROUND' | 'DONE' }
   | {
@@ -320,9 +331,13 @@ function checkHeader(x: Record<string, unknown>): RecordingHeader {
   return x as unknown as RecordingHeader;
 }
 
-/** `{ override: FlightKind | null }` (T89). */
+/** `{ override: FlightKind | null, charter?: CharterType | null }` (T89, T107). */
 function isKindChoice(x: unknown): x is Record<string, unknown> {
-  return isObj(x) && (x['override'] === null || isFlightKind(x['override']));
+  return (
+    isObj(x) &&
+    (x['override'] === null || isFlightKind(x['override'])) &&
+    (x['charter'] === undefined || x['charter'] === null || isCharterType(x['charter']))
+  );
 }
 
 /** Spot check: the OFP was normalized by the app that wrote the file. */
@@ -386,7 +401,7 @@ function checkEvent(x: unknown, no: number): RecordingEvent {
       }
       if (x['force'] !== undefined && !isStrArr(x['force'])) throw bad('force must be [id]');
       if (x['flightKind'] !== undefined && !isKindChoice(x['flightKind']))
-        throw bad('flightKind must be {override: kind | null}');
+        throw bad('flightKind must be {override: kind | null, charter?: type | null}');
       if (x['data'] !== undefined) {
         try {
           checkExtDataUpdate(x['data']);

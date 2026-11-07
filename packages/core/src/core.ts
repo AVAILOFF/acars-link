@@ -33,7 +33,7 @@ import {
   stationCallsign,
 } from './scenario/engine.js';
 import type { Value } from './scenario/expr.js';
-import type { FlightKind, FlightKindInfo } from './scenario/flight-kind.js';
+import type { FlightKindInfo, KindChoice } from './scenario/flight-kind.js';
 import type { PilotMessage } from './scenario/pilot.js';
 import type { SimCommand } from './sim/commands.js';
 import { type FlightReport, flightReport, type ReportCounts } from './summary/report.js';
@@ -56,8 +56,11 @@ export interface CoreInput {
   readonly data?: ExtDataUpdate;
   /** Scenario ids the user starts by hand ("run now"): see `ScenarioEngine`. */
   readonly force?: readonly string[];
-  /** The user's choice of the kind of flight (T89, null = automatic); ignored after OUT. */
-  readonly flightKind?: { readonly override: FlightKind | null };
+  /**
+   * The user's choice of the kind of flight (T89, null = automatic) and of the charter type (T107);
+   * ignored after OUT.
+   */
+  readonly flightKind?: KindChoice;
 }
 
 /** Everything a tick reports: phase, scenario and ATC (T23) events. */
@@ -125,7 +128,7 @@ export interface CoreOptions {
    * Kind of flight (T89), see `ScenarioEngineOptions.flightKind`: present = scenarios filtered by
    * their `operations`, `override` = the user's choice. Absent = no filter (recordings before T89).
    */
-  readonly flightKind?: { readonly override: FlightKind | null };
+  readonly flightKind?: KindChoice;
   /**
    * Simulation of the data link (T31, `datalink/link.ts`): each outgoing message waits for the
    * delay of the VHF station or satellite in reach, or for any link at all. `satcom`: the

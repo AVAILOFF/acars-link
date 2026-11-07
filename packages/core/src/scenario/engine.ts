@@ -47,7 +47,13 @@ import { airportPlace, type RunwayNeed } from './divert.js';
 
 import type { Lookup, Value } from './expr.js';
 import { pruneExpiredFlags } from './flags-expiry.js';
-import { classifyFlight, type FlightKind, type FlightKindInfo } from './flight-kind.js';
+import {
+  type CharterType,
+  classifyFlight,
+  type FlightKind,
+  type FlightKindInfo,
+  type KindChoice,
+} from './flight-kind.js';
 import { type GroundEvent, type GroundTrack, trackGround } from './ground.js';
 import { buildIrregularData, type IrregularData, reassignedGate } from './irregular-data.js';
 import { buildFlightData, type FlightData, type NextLegOptions } from './ops-data.js';
@@ -215,6 +221,8 @@ export type ScenarioEvent =
       readonly t: number;
       readonly kind: FlightKind;
       readonly override: FlightKind | null;
+      /** Type of the charter in force (T107); absent without the charter type. */
+      readonly charter?: CharterType | null;
       readonly applied: boolean;
     }
   | {
@@ -286,7 +294,7 @@ export interface EngineTickInput {
   /** Scenario ids the user starts by hand. */
   readonly force?: readonly string[];
   /** The user's choice of the kind of flight (T89): null = automatic. Ignored after OUT. */
-  readonly flightKind?: { readonly override: FlightKind | null };
+  readonly flightKind?: KindChoice;
   /** Flight data monitoring events so far (T94, the core's `FdmMonitor`); absent = FDM off. */
   readonly fdm?: readonly FdmEvent[];
 }
@@ -366,9 +374,10 @@ export interface ScenarioEngineOptions {
   /**
    * Kind of flight (T89, `flight-kind.ts`): present = scenarios start only on the kinds of their
    * `operations`; `override` is the user's choice (null = recognized from the OFP). Absent = no
-   * filter, as in recordings made before T89.
+   * filter, as in recordings made before T89. `charter` (T107): present = scenarios of a charter
+   * start only on the types of their `charter`; null = the default type. Absent = no charter type.
    */
-  readonly flightKind?: { readonly override: FlightKind | null };
+  readonly flightKind?: KindChoice;
 }
 
 interface ScenarioState {
@@ -457,6 +466,8 @@ export interface ScenarioEngineState {
   readonly ground?: GroundTrack | null;
   /** The user's choice of the kind of flight (T89); absent in older states = the option's. */
   readonly kindOverride?: FlightKind | null;
+  /** The user's choice of the charter type (T107); absent = no charter type (before T107). */
+  readonly charterOverride?: CharterType | null;
 }
 
 interface PendingWx {
@@ -597,9 +608,12 @@ export class ScenarioEngine {
     flushed: boolean;
     ground: GroundTrack | null;
     kindOverride: FlightKind | null;
+    charterOverride?: CharterType | null;
   };
   /** The kind filter is on (T89, option `flightKind`). */
   private readonly kindFilter: boolean;
+  /** The charter type is on (T107, `flightKind.charter` in the options). */
+  private readonly charterFilter: boolean;
   /** Kind of flight now (T89), from the OFP and `st.kindOverride`. */
   private kindInfo: FlightKindInfo;
   /** Longest `sched_out − N` offset among the scenarios, ms (0 = none). */
@@ -695,9 +709,13 @@ export class ScenarioEngine {
       flushed: false,
       ground: null,
       kindOverride: options.flightKind?.override ?? null,
+      ...(options.flightKind?.charter === undefined
+        ? {}
+        : { charterOverride: options.flightKind.charter }),
     };
     this.kindFilter = options.flightKind !== undefined;
-    this.kindInfo = classifyFlight(options.ofp, this.st.kindOverride);
+    this.charterFilter = this.kindFilter && options.flightKind?.charter !== undefined;
+    this.kindInfo = this.classify();
     let span = 0;
     for (const s of this.ordered) {
       const tr = s.def.trigger;
@@ -763,7 +781,10 @@ export class ScenarioEngine {
     e.st.ground = copy.ground ?? null;
     // T89.
     if (copy.kindOverride !== undefined) e.st.kindOverride = copy.kindOverride;
-    e.kindInfo = classifyFlight(options.ofp, e.st.kindOverride);
+    // T107.
+    if (e.charterFilter && copy.charterOverride !== undefined)
+      e.st.charterOverride = copy.charterOverride;
+    e.kindInfo = e.classify();
     // States saved before the late-start rule have no `delayMs`: no delay, as before.
     e.setDelay(copy.delayMs === undefined ? 0 : copy.delayMs);
     return e;
@@ -790,6 +811,27 @@ export class ScenarioEngine {
     return this.kindFilter ? this.kindInfo : null;
   }
 
+  /** Kind of flight from the OFP and the user's choices (T89, T107). */
+  private classify(): FlightKindInfo {
+    return classifyFlight(
+      this.ofp,
+      this.st.kindOverride,
+      this.charterFilter ? (this.st.charterOverride ?? null) : undefined,
+    );
+  }
+
+  /**
+   * `probability` of the scenario now: `charter_probability` on a charter whose type the user
+   * chose (T107).
+   */
+  private probability(sc: CompiledScenario): number {
+    return sc.charterProbability !== null &&
+      this.kindInfo.charter !== null &&
+      this.kindInfo.charterOverride !== null
+      ? sc.charterProbability
+      : sc.probability;
+  }
+
   /** The user's choice of the kind (T89): applied before OUT, with the filter; an event either way. */
   private chooseKind(input: EngineTickInput, events: ScenarioEvent[]): void {
     const choice = input.flightKind;
@@ -797,7 +839,9 @@ export class ScenarioEngine {
     const applied = this.kindFilter && input.oooi.OUT === null;
     if (applied) {
       this.st.kindOverride = choice.override;
-      this.kindInfo = classifyFlight(this.ofp, choice.override);
+      if (this.charterFilter && choice.charter !== undefined)
+        this.st.charterOverride = choice.charter;
+      this.kindInfo = this.classify();
       // The LMC depends on the kind (T90/T91).
       this.rebuildData();
     }
@@ -806,14 +850,21 @@ export class ScenarioEngine {
       t: input.now,
       kind: this.kindInfo.kind,
       override: choice.override,
+      ...(this.charterFilter ? { charter: this.kindInfo.charter } : {}),
       applied,
     });
   }
 
-  /** The scenario is not for the kind of this flight (T89; never without the filter). */
+  /**
+   * The scenario is not for the kind of this flight (T89; never without the filter) or for the type
+   * of this charter (T107; never without the charter type).
+   */
   private wrongKind(sc: CompiledScenario): boolean {
     const ops = sc.def.operations;
-    return this.kindFilter && ops !== undefined && !ops.includes(this.kindInfo.kind);
+    if (this.kindFilter && ops !== undefined && !ops.includes(this.kindInfo.kind)) return true;
+    const types = sc.def.charter;
+    const charter = this.kindInfo.charter;
+    return types !== undefined && charter !== null && !types.includes(charter);
   }
 
   /** Holding the airline announced (`flight.hold`, T48), null = none. */
@@ -1129,7 +1180,7 @@ export class ScenarioEngine {
         const s = this.st.scenarios[sc.id] as ScenarioState;
         if (this.blocker(sc, s, input.now) !== null) continue;
         const dice = rngFromState((this.rngs.get(sc.id) as Rng).getState());
-        if (!dice.chance(sc.probability)) continue;
+        if (!dice.chance(this.probability(sc))) continue;
         span = ms;
       }
     } finally {
@@ -1232,7 +1283,7 @@ export class ScenarioEngine {
     const blocked = this.blocker(sc, s, input.now);
     if (blocked !== null) return void skip(blocked);
     const rng = this.rngs.get(sc.id) as Rng;
-    if (!rng.chance(sc.probability)) return void skip('probability');
+    if (!rng.chance(this.probability(sc))) return void skip('probability');
     const t0 = this.context['flight.minutes_to_tod'];
     if (typeof t0 !== 'number' || t0 - w.after_min <= w.before_tod_min) return void skip('window');
     s.pending = { t0, f: rng.next() };
@@ -1310,7 +1361,7 @@ export class ScenarioEngine {
       events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason: skip });
       return false;
     }
-    if (!(forced || rolled) && !(this.rngs.get(sc.id) as Rng).chance(sc.probability)) {
+    if (!(forced || rolled) && !(this.rngs.get(sc.id) as Rng).chance(this.probability(sc))) {
       events.push({ type: 'SCENARIO_SKIPPED', id: sc.id, t: input.now, reason: 'probability' });
       return false;
     }

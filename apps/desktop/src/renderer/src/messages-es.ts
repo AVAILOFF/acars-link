@@ -291,6 +291,14 @@ export const es: Readonly<Partial<Record<MessageKey, string>>> = {
   'kind.basis.aircraft_type': 'Tipo de aeronave: {type}',
   'kind.basis.default': 'Del OFP: {pax} PAX',
   'kind.manual': 'Elegido por usted; reconocido: {kind}',
+  'charter.title': 'Tipo de chárter',
+  'charter.default': 'Por defecto: {type}',
+  'charter.tour': 'Turístico (turoperador)',
+  'charter.sports': 'Equipo deportivo',
+  'charter.vip': 'Grupo VIP',
+  'charter.hint':
+    'Qué chárter es: solo llegan sus propios mensajes de chárter (turoperador, equipo deportivo o VIP). Elegido a mano, la historia de ese tipo llega siempre. Se fija en el pushback (OUT).',
+  'charter.notFor': '{title} — no para este tipo de chárter',
   'kind.yes': 'Sí',
   'kind.other': 'Otro tipo…',
   'kind.locked':

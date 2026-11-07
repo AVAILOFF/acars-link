@@ -3,7 +3,7 @@
 
 import type { FlightPhase, PhaseEvent } from '../phase/fsm.js';
 import type { VdgsReplaces } from '../sim/vdgs.js';
-import type { FlightKind } from './flight-kind.js';
+import type { CharterType, FlightKind } from './flight-kind.js';
 import { GROUND_EVENTS, type GroundEvent } from './ground.js';
 
 /**
@@ -332,6 +332,17 @@ export interface ScenarioDef {
    * another kind is skipped, a start by hand ("run now") too.
    */
   readonly operations?: readonly FlightKind[];
+  /**
+   * Types of charter the scenario is for (T107, `flight-kind.ts`); absent = every type. Needs
+   * `operations: [charter_pax]`. A start on a charter of another type is skipped (by hand too);
+   * without the charter type (recordings before T107) the field is not checked.
+   */
+  readonly charter?: readonly CharterType[];
+  /**
+   * `probability` when the user chose the type of charter by hand (T107); absent = `probability`.
+   * Not used before T107 or with the default type.
+   */
+  readonly charter_probability?: number;
   /**
    * Scenario group (T39): the group's `max_per_flight` (described in `@acars/scenarios`)
    * limits how many of its members start in one flight.

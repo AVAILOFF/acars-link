@@ -1,5 +1,6 @@
 # Sports team charter (T91): oversize sports equipment in the hold and catering ordered by the
 # charterer; an assumption approved by the user 2026-11-04. One charter story per flight.
+# T107: only on a sports charter; every time when the user chose that type by hand.
 id: charter_sports_team
 version: 1
 category: ops
@@ -8,6 +9,8 @@ description: "Before departure of a charter: a sports team on board with oversiz
 hint: "Charter handling: a sports team flies with you. Their oversize equipment is loaded in the hold given and the charterer ordered its own catering. No reply needed."
 enabled_by_default: true
 operations: [charter_pax]
+charter: [sports]
+charter_probability: 1
 group: charter_story
 trigger:
   on: time
