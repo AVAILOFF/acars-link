@@ -257,9 +257,11 @@ function parseUnit(params: Reader): OfpMassUnit {
 }
 
 function parseAirport(r: Reader): OfpAirport {
-  const atis: OfpAtis[] = r.list('atis', true).flatMap((a) => {
-    const letter = a.optStr('letter');
-    return letter === null ? [] : [{ network: a.optStr('network') ?? '', letter }];
+  // ATIS is informational: SimBrief's XML-to-JSON gives an empty element as `[]` / `{}`
+  // (no ATIS on the network) and one entry without the array, so read it loosely.
+  const atis: OfpAtis[] = r.objects('atis').flatMap((a) => {
+    const letter = a.strings('letter')[0]?.trim();
+    return letter ? [{ network: a.strings('network')[0]?.trim() ?? '', letter }] : [];
   });
   return {
     icao: r.str('icao_code').toUpperCase(),
