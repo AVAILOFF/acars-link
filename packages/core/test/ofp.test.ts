@@ -152,6 +152,29 @@ describe('parseSimbriefOfp — synthetic variant planned in lbs', () => {
   });
 });
 
+describe('parseSimbriefOfp — ATIS as SimBrief XML-to-JSON gives it', () => {
+  it('skips an entry whose letter is an empty element ([] or {})', () => {
+    const o = load(KGS);
+    o.origin.atis = [
+      { network: 'VATSIM', letter: [] },
+      { network: [], letter: 'C' },
+    ];
+    o.destination.atis = [{ network: 'IVAO', letter: {} }];
+    const ofp = parseSimbriefOfp(o);
+    expect(ofp.origin.atis).toEqual([{ network: '', letter: 'C' }]);
+    expect(ofp.destination.atis).toEqual([]);
+  });
+
+  it('reads one entry without the array and an empty atis element', () => {
+    const o = load(KGS);
+    o.origin.atis = { network: 'VATSIM', letter: 'D' };
+    o.destination.atis = {};
+    const ofp = parseSimbriefOfp(o);
+    expect(ofp.origin.atis).toEqual([{ network: 'VATSIM', letter: 'D' }]);
+    expect(ofp.destination.atis).toEqual([]);
+  });
+});
+
 describe('parseSimbriefOfp — format errors', () => {
   const cases: Array<[string, (o: RawOfp) => void, string, RegExp]> = [
     ['missing callsign', (o) => delete o.atc.callsign, 'atc.callsign', /missing/],
