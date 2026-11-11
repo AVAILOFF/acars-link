@@ -19,7 +19,7 @@ import {
  * tracks from the real NAT track NOTAMs (`TracksService::getTracks`, github.com/vatsimnetwork/
  * nattrak). Kept: active tracks that are not natTrak's own Concorde tracks (`concorde` 1).
  * `last_routeing` is the track message route: `RATSU 63/20 64/30 64/40 63/50 MAXAR`. No key.
- * The service's terms of use are not published (`[ПРОВЕРИТЬ]` before a public release).
+ * The service's terms of use are not published (`[VERIFY]` before a public release).
  */
 
 export const NATTRAK_TRACKS_URL = 'https://nattrak.vatsim.net/api/tracks';

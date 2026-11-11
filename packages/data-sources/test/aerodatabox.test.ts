@@ -19,7 +19,7 @@ import {
 
 /**
  * T30: AeroDataBox FIDS with the user's key (docs/07 C1, C5, C10, C11). The fixture is built
- * from the OpenAPI spec v1.15.4.0 (no live answer without a key: `[ПРОВЕРИТЬ]`, C6).
+ * from the OpenAPI spec v1.15.4.0 (no live answer without a key: `[VERIFY]`, C6).
  */
 
 const fixture = readFileSync(

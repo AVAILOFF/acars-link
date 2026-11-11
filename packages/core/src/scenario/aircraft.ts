@@ -10,24 +10,24 @@ import type { Rng } from '../random/rng.js';
  * Sources and checks (docs/07 T40, 2026-10-14):
  * - The designator → family table is NOT checked against ICAO Doc 8643 (no machine-readable
  *   export was available); the codes are written from the designators' usual meaning and are
- *   `[ПРОВЕРИТЬ]` on real OFPs. An unknown designator gives `null` everywhere.
+ *   `[VERIFY]` on real OFPs. An unknown designator gives `null` everywhere.
  * - Hold names (`FWD`, `AFT`, `BULK`) and the ULD kinds (`LD3`, `PALLET`) of the wide-bodies are
  *   from the manufacturers' airport-planning documents (Airbus AC A320 Rev. 44, A330 Rev. 32;
  *   Boeing 737NG D6-58325-7 Rev C). Those documents carry no ULD position codes, so none are
  *   generated. Other families (777, 787, 350, 380, 747, regionals) are assumed to match.
  * - Seat letters are an approved assumption: the layout depends on the airline.
  * - B757 (T60, approved by the user 2026-10-25): narrow 3-3 and EICAS are common knowledge, no
- *   dated primary source for EICAS `[ПРОВЕРИТЬ]`. Holds: FAA AD 2024-13014 names only the
+ *   dated primary source for EICAS `[VERIFY]`. Holds: FAA AD 2024-13014 names only the
  *   "forward and aft lower lobe cargo compartments" (the 757 airport-planning document was not
  *   read), so no bulk hold.
  * - A300, B767, MD-11 (T90, approved by the user 2026-11-04): designators checked against ICAO
  *   Doc 8643 (doc8643.icao.int data, 2026-11-04): A306 A-300B4/C4/F4-600, A30B A-300B2/B4,
  *   B762/B763/B764 767-200/-300/-400, MD11 MD-11. Holds as the other wide-bodies (no airport-
- *   planning document read). EICAS of the 767 is common knowledge like the 757's `[ПРОВЕРИТЬ]`;
+ *   planning document read). EICAS of the 767 is common knowledge like the 757's `[VERIFY]`;
  *   the A300 (classic and -600 differ) and the MD-11 get no alerting system name.
  * - Business aviation (T92, approved by the user 2026-11-04): business jets and turboprops by ICAO
  *   Doc 8643 (doc8643.icao.int data, 2026-11-04), the maker as Doc 8643 names it. No alerting
- *   system name (CAS of Garmin / Collins avionics `[ПРОВЕРИТЬ]`), no seats and holds of their own:
+ *   system name (CAS of Garmin / Collins avionics `[VERIFY]`), no seats and holds of their own:
  *   `{seat}` / `{hold}` as for an unknown type. These types make a flight business aviation
  *   (`flight-kind.ts`); BBJ / ACJ share the airliners' designators and are recognized by FPL
  *   type `G` only.

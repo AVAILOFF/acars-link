@@ -1,1 +1,1 @@
-Сюда положить PNG артбордов из холста Claude Design (ScreenMain, FmsWindow, DsComponents и др.) — визуальный эталон для сверки.
+Put here the PNG artboards from the Claude Design canvas (ScreenMain, FmsWindow, DsComponents and others) — the visual reference for comparison.

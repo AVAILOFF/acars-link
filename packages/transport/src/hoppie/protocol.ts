@@ -33,7 +33,7 @@ export interface HoppieParams {
 }
 
 /** Callsign check before anything goes on the wire. Hoppie defines no formal format
- * `[ПРОВЕРИТЬ]` max length; we accept what its responses can carry: `A–Z0–9`. */
+ * `[VERIFY]` max length; we accept what its responses can carry: `A–Z0–9`. */
 const CALLSIGN = /^[A-Z0-9]{2,16}$/;
 
 export function isValidCallsign(cs: string): boolean {

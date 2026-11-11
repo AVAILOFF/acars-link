@@ -1,11 +1,11 @@
-# Логотип ACARS Link — «Даталинк»
+# ACARS Link logo — "Datalink"
 
-Самолёт (белый) и дуги связи у носа (`--active`) на плашке `--shell-1`, радиус 14/64. Плоско: без градиентов и теней (`spec.md`, §1).
+An aircraft (white) and link arcs at the nose (`--active`) on a `--shell-1` plate, radius 14/64. Flat: no gradients or shadows (`spec.md`, §1).
 
-| Файл | Где |
+| File | Where |
 |---|---|
-| `icon.svg` | иконка приложения, сетка 64; размеры от 32 px |
-| `icon-small.svg` | упрощённая (одна дуга, самолёт крупнее), сетка 16; для 16–24 px |
-| `mark.svg` | знак без плашки в `currentColor` — верхний бар (`App.tsx`, 24 px) |
+| `icon.svg` | app icon, 64 grid; sizes from 32 px |
+| `icon-small.svg` | simplified (one arc, larger aircraft), 16 grid; for 16–24 px |
+| `mark.svg` | mark without the plate in `currentColor` — top bar (`App.tsx`, 24 px) |
 
-`pnpm icon` рисует `apps/desktop/build/icon.ico` (16–256) и `icon.png` (512); их берёт `electron-builder.yml`. После правки SVG — перегенерировать.
+`pnpm icon` draws `apps/desktop/build/icon.ico` (16–256) and `icon.png` (512); `electron-builder.yml` takes them. After editing the SVG — regenerate.

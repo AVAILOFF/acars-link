@@ -35,7 +35,7 @@ describe('buildFlightData', () => {
     expect(distinct.size).toBeGreaterThan(15);
   });
 
-  it('LMC: ±5 pax and ±200 kg cargo (docs/01), weights follow it', () => {
+  it('LMC: ±5 pax and ±200 kg cargo, weights follow it', () => {
     const w = kg.weights;
     let withLmc = 0;
     for (const seed of seeds) {

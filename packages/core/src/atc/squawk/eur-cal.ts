@@ -11,7 +11,7 @@
  * empty), en-route (`ENR`). Row: first code, last code (octal, inclusive), participating area,
  * assigning units (state prefixes, ICAO units, CCAMS states), destinations, via, protection —
  * the last three as space-separated tokens (`ALL`, prefixes, PA names, 1-letter regions).
- * Reuse terms of the CAL are not stated on the page: [ПРОВЕРИТЬ] before a public release
+ * Reuse terms of the CAL are not stated on the page: [VERIFY] before a public release
  * (docs/08, decision 9; approved for personal use 2026-10-09, docs/07 T24).
  */
 

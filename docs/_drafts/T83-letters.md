@@ -1,10 +1,10 @@
-# T83 — черновики писем (2026-11-01)
+# T83 — draft letters (2026-11-01)
 
-Отправляет пользователь, со своего адреса. Ответы — в `THIRD-PARTY-NOTICES.md` и docs/08 с датой;
-ответ «нет» — отдельная карточка (что убрать из публичной сборки). Решение пользователя 2026-11-01:
-установщик можно давать другим людям, не дожидаясь ответов (docs/08).
+Sent by the user, from their own address. Replies go into `THIRD-PARTY-NOTICES.md` and docs/08 with a date;
+a "no" reply becomes a separate card (what to remove from the public build). User decision 2026-11-01:
+the installer may be given to other people without waiting for replies (docs/08).
 
-## 1. Владельцу Hoppie's ACARS — hoppie@hoppie.nl
+## 1. To the owner of Hoppie's ACARS — hoppie@hoppie.nl
 
 **Subject:** ACARS Link — a free airline-ops client for Hoppie: callsign questions
 
@@ -37,13 +37,13 @@ it with Hoppie support.
 Thank you for running the network all these years.
 
 Best regards,
-<имя>
-<ссылка на страницу проекта, если будет>
+<name>
+<link to the project page, if there is one>
 
 ## 2. Microsoft / Asobo — MSFS SDK, SimConnect
 
-Куда: ответ в темах 18233 и 18295 на devsupport.flightsimulator.com (без ответа на 2026-10-31) или
-новая тема в разделе SDK / Legal; если на форуме ответа нет — через support.microsoft.com
+Where to: a reply in topics 18233 and 18295 on devsupport.flightsimulator.com (unanswered as of 2026-10-31) or
+a new topic in the SDK / Legal section; if there is no reply on the forum — via support.microsoft.com
 (Microsoft Flight Simulator → Developer).
 
 **Subject:** Redistributing a program that links the SimConnect static library (SimConnect.lib)
@@ -71,14 +71,14 @@ Questions:
 Earlier topics 18233 and 18295 asked about the same thing and are still without an answer.
 
 Thank you,
-<имя>
+<name>
 
-## 3. По желанию — для публичной сборки (T72: таблицы и natTrak только по письменному разрешению)
+## 3. Optional — for the public build (T72: tables and natTrak only with written permission)
 
-- **EUROCONTROL** (SSR Code Allocation List v4.13): просьба разрешить включить в бесплатное
-  некоммерческое приложение таблицу кодов SSR по ICAO EUR Doc 023 / CAL, с указанием источника.
-- **ICAO** (APAC eANP Vol II Part IV, Table ATM II-APAC-2): запрос разрешения на воспроизведение
-  (`icao.int/pages/copyright.aspx` — только с письменного разрешения).
-- **VATSIM Tech Team** (natTrak, `nattrak.vatsim.net/api/tracks`): можно ли бесплатному приложению
-  раз в час читать треки NAT из API и есть ли условия (User-Agent, частота). Данные VATSIM в целом
-  сверены 2026-11-01 (Commercial Use Policy v2.0, §3.5) — отдельного письма не требуют.
+- **EUROCONTROL** (SSR Code Allocation List v4.13): a request to allow including in a free
+  non-commercial app the SSR code table per ICAO EUR Doc 023 / CAL, with the source credited.
+- **ICAO** (APAC eANP Vol II Part IV, Table ATM II-APAC-2): a request for permission to reproduce
+  (`icao.int/pages/copyright.aspx` — only with written permission).
+- **VATSIM Tech Team** (natTrak, `nattrak.vatsim.net/api/tracks`): may a free app read the NAT tracks
+  from the API once an hour, and are there conditions (User-Agent, frequency). VATSIM data in general
+  was checked on 2026-11-01 (Commercial Use Policy v2.0, §3.5) — it needs no separate letter.

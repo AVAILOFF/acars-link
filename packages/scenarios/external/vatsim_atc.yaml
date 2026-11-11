@@ -1,4 +1,4 @@
-# Online VATSIM ATC at the destination, 80 NM before TOD as in the original (docs/01).
+# Online VATSIM ATC at the destination, 80 NM before TOD.
 # Needs VATSIM data (T13); without it nothing is sent.
 id: vatsim_atc
 version: 1

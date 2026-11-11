@@ -1,7 +1,7 @@
 # Squawk tables (T24)
 
 Regenerates `packages/core/src/atc/squawk/{eur-cal,faa-nbcap,icao-apac}.ts` from the sources
-(docs/06 "Таблицы сквоков"). Python 3 with `xlrd` and `pypdf`; not part of `pnpm check`.
+(docs/06 "Squawk tables"). Python 3 with `xlrd` and `pypdf`; not part of `pnpm check`.
 
 Download into one folder `<dir>`:
 

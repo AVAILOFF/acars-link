@@ -213,7 +213,7 @@ export interface Ofp {
   /**
    * Step climbs after the initial level, from `general.stepclimb_string`
    * (`RCTP/0390 MADOG/0410`: fix / flight level; the first pair is the origin and the
-   * initial level). Format of several steps `[ПРОВЕРИТЬ]` on a real OFP with step climbs.
+   * initial level). Format of several steps `[VERIFY]` on a real OFP with step climbs.
    */
   readonly stepClimbs: readonly OfpStepClimb[];
   readonly route: string;

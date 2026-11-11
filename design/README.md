@@ -1,67 +1,67 @@
-# design/ — пакет макета для перестилизации `apps/desktop`
+# design/ — mockup package for restyling `apps/desktop`
 
-Дата: 2026-10-15. Источник: холст Claude Design «ACARS для MSFS 2024» (страница «Дизайн-система»).
+Date: 2026-10-15. Source: the Claude Design canvas "ACARS for MSFS 2024" (the "Design system" page).
 
-## Что здесь
+## What is here
 
-| Файл | Назначение |
+| File | Purpose |
 |---|---|
-| `spec.md` | Визуальная спецификация: концепция, типографика, размеры, компоненты и состояния, поведение |
-| `tokens.css` | UI-токены (тёмная оболочка + светлые листы) |
-| `fms.css` | Изолированные токены экрана FMS + `@font-face` |
-| `fonts/` | B612 Mono (Regular/Bold, woff2, latin) и `OFL.txt` — лицензия SIL OFL 1.1, источник: npm `@fontsource/b612-mono` |
-| `artboards/*.dc.html` | Исходники артбордов холста — эталон разметки и значений. Это шаблоны холста (`<x-dc>`, `{{…}}`), в браузере сами не открываются; читать как текст |
-| `screens/` | (пусто) — сюда положить PNG артбордов, выгруженные из холста |
-| `T-UI-card.md` | Черновик карточки задачи для `docs/07-roadmap-tasks.md` |
+| `spec.md` | Visual specification: concept, typography, sizes, components and states, behaviour |
+| `tokens.css` | UI tokens (dark shell + light sheets) |
+| `fms.css` | Isolated tokens of the FMS screen + `@font-face` |
+| `fonts/` | B612 Mono (Regular/Bold, woff2, latin) and `OFL.txt` — SIL OFL 1.1 licence, source: npm `@fontsource/b612-mono` |
+| `artboards/*.dc.html` | Canvas artboard sources — the reference for markup and values. These are canvas templates (`<x-dc>`, `{{…}}`), they do not open in a browser by themselves; read them as text |
+| `screens/` | (empty) — put the artboard PNGs exported from the canvas here |
+| `T-UI-card.md` | Draft of a task card for `docs/07-roadmap-tasks.md` |
 
-## Важно: макет ≠ модель приложения
+## Important: mockup ≠ app model
 
-Макет рисовался до анализа кода и предполагал, что приложение — терминал пилота. На деле это пульт «авиакомпании/УВД»: сообщения уходят в MCDU самолёта через Hoppie, пилот отвечает из кабины. Поэтому **из макета берётся визуальный стиль**, а состав экранов — из существующего кода.
+The mockup was drawn before the code was analysed and assumed the app is a pilot terminal. In fact it is an "airline/ATC" console: messages go to the aircraft's MCDU through Hoppie, the pilot answers from the cockpit. So **only the visual style is taken from the mockup**, and the set of screens comes from the existing code.
 
-### Не реализовывать (данных нет в `AppState` / нет в API)
+### Do not implement (no data in `AppState` / no API)
 
-- Кнопки WILCO / UNABLE / STANDBY и боковые клавиши LSK — пилот отвечает в самолёте.
-- Окно «Запрос METAR / TAF / ATIS / PDC» — такого API нет. Допустимая замена: подсказки-команды для `sendPilotMessage` (`REQ WX`, `REQ ATIS`, `REQ GATE`, `REQ LOADSHEET`, `ETA`, `DELAY`, `DIVERT`, `RDY`, `HELP` — см. `packages/scenarios/commands/`), только как вставку текста в поле.
-- CLR ALT, ETA (живой), следующая точка, полоса прогресса по маршруту — нет в `TelemetryView`/`FlightSummary`.
-- Разделы CPDLC / Погода / NOTAM / Журнал из макета — в приложении три вкладки: `flight`, `scenarios`, `settings`.
-- Отдельное окно FMS (второй `BrowserWindow`) — это изменение main-процесса, вне рамок перестилизации.
+- WILCO / UNABLE / STANDBY buttons and LSK side keys — the pilot answers in the aircraft.
+- The "METAR / TAF / ATIS / PDC request" window — there is no such API. An acceptable replacement: command hints for `sendPilotMessage` (`REQ WX`, `REQ ATIS`, `REQ GATE`, `REQ LOADSHEET`, `ETA`, `DELAY`, `DIVERT`, `RDY`, `HELP` — see `packages/scenarios/commands/`), only as text inserted into the field.
+- CLR ALT, ETA (live), next waypoint, route progress bar — not in `TelemetryView`/`FlightSummary`.
+- The CPDLC / Weather / NOTAM / Log sections of the mockup — the app has three tabs: `flight`, `scenarios`, `settings`.
+- A separate FMS window (a second `BrowserWindow`) — that is a main-process change, outside the scope of the restyle.
 
-Если для элемента макета не хватает данных — не придумывать, оставить пометку в отчёте и спросить (CLAUDE.md).
+If the data for a mockup element is missing — do not invent it, leave a note in the report and ask (CLAUDE.md).
 
-## Сопоставление: макет → код
+## Mapping: mockup → code
 
-| Макет | Код | Что сделать |
+| Mockup | Code | What to do |
 |---|---|---|
-| Верхний бар 52 (`ScreenMain`) | `App.tsx` `.topbar` | Бренд + заголовок раздела; вкладки `flight/scenarios/settings` — плашки `--btn`, активная `--active` (стиль вкладок `DsComponents`) |
-| Баннер NOTAM | `ErrorBanner` | Вариант «Ошибка» баннера (`--shell-2`, красное слово + кнопка «Скрыть») |
-| Блок «Рейс» (панель `--shell-2`) | `FlightCard` + `Summary` | Шапка: позывной + тип; строка «ORIG — DEST» (без маркера положения); строка фактов (sched, station, profile); кнопки Load/Start/Stop/Turnaround/Done в стиле кнопок оболочки |
-| Строка статусов SIM/NET/CPDLC (без кружков) | `StatusCard` → `StatusRow`, `PhaseStrip` | Метка `--on-shell-2` + значение; тон через цвет текста (`--ok`/`--caution`/`--warning-dot`). Фазы — сегментированная полоса, текущая `--active` |
-| Таблица сообщений на светлом листе | `FeedList` | Лист `--sheet-*`, строка: время, чип `from → to`, тег сценария, статус доставки пилюлей (`sent` → ok, `queued/retry` → caution, `failed/dropped` → warning) |
-| Блок FMS | `.telex` в `FeedList` | Экран `fms.css`, `--fms-cols` = `lineWidth`. Входящие от пилота — тоже зелёные (метка «PILOT» вне экрана) |
-| Scratchpad `[ … ]` | `PilotForm` | Поле в стиле `.fms__scratch` или поле оболочки + кнопка |
-| — | `ForceForm` | Select (меню-лист) + кнопка оболочки |
-| Сценарии (нет артборда) | `ScenariosView` | Группы — светлые листы; строка 64: заголовок 17/600 + описание 15 `--on-sheet-2`; чекбокс → переключатель; шанс — поле справа |
-| Настройки (нет артборда) | `SettingsView` | Сгруппированные листы как в iOS-настройках; чекбоксы → переключатели; подсказки 13 `--on-sheet-2` |
-| Модалка-лист | `window.confirm` (Stop) | По желанию — лист-модалка; можно оставить confirm |
+| Top bar 52 (`ScreenMain`) | `App.tsx` `.topbar` | Brand + section title; the `flight/scenarios/settings` tabs are `--btn` plates, the active one `--active` (the tab style of `DsComponents`) |
+| NOTAM banner | `ErrorBanner` | The "Error" variant of the banner (`--shell-2`, red word + a "Hide" button) |
+| "Flight" block (`--shell-2` panel) | `FlightCard` + `Summary` | Header: callsign + type; an "ORIG — DEST" row (no position marker); a facts row (sched, station, profile); Load/Start/Stop/Turnaround/Done buttons in the shell button style |
+| SIM/NET/CPDLC status row (no circles) | `StatusCard` → `StatusRow`, `PhaseStrip` | `--on-shell-2` label + value; the tone through the text colour (`--ok`/`--caution`/`--warning-dot`). Phases are a segmented strip, the current one `--active` |
+| Message table on a light sheet | `FeedList` | `--sheet-*` sheet, row: time, `from → to` chip, scenario tag, delivery status as a pill (`sent` → ok, `queued/retry` → caution, `failed/dropped` → warning) |
+| FMS block | `.telex` in `FeedList` | `fms.css` screen, `--fms-cols` = `lineWidth`. Incoming from the pilot are green too (the "PILOT" label outside the screen) |
+| Scratchpad `[ … ]` | `PilotForm` | A field in the `.fms__scratch` style or a shell field + a button |
+| — | `ForceForm` | Select (menu sheet) + a shell button |
+| Scenarios (no artboard) | `ScenariosView` | Groups are light sheets; row 64: title 17/600 + description 15 `--on-sheet-2`; checkbox → switch; chance — a field on the right |
+| Settings (no artboard) | `SettingsView` | Grouped sheets as in iOS settings; checkboxes → switches; hints 13 `--on-sheet-2` |
+| Modal sheet | `window.confirm` (Stop) | Optionally a modal sheet; confirm may stay |
 
-## Токены: старые → новые (`styles.css`)
+## Tokens: old → new (`styles.css`)
 
-| Было | Стало |
+| Was | Becomes |
 |---|---|
 | `--bg` | `--shell-0` |
-| `--panel` | `--shell-1` (бары) / `--shell-2` (панели) |
+| `--panel` | `--shell-1` (bars) / `--shell-2` (panels) |
 | `--panel-2` | `--btn` |
-| `--line` | `--shell-line` (на оболочке) / `--sheet-line` (на листе) |
-| `--text` / `--muted` | `--on-shell-1` / `--on-shell-2` (на листе — `--on-sheet-1/2`) |
+| `--line` | `--shell-line` (on the shell) / `--sheet-line` (on a sheet) |
+| `--text` / `--muted` | `--on-shell-1` / `--on-shell-2` (on a sheet — `--on-sheet-1/2`) |
 | `--accent` / `--accent-ink` | `--active` / `#fff` |
-| `--ok` `--warn` `--bad` | `--ok` `--caution` `--warning-dot` (на листе — `*-text`) |
+| `--ok` `--warn` `--bad` | `--ok` `--caution` `--warning-dot` (on a sheet — `*-text`) |
 | `--telex` | `--fms-text` (`fms.css`) |
 | `--radius` 8 | `--r-sheet` 10 / `--r-ctl` 6 |
-| `--mono`, `--sans` | `--fms-font` (только экран), `--font-ui` |
+| `--mono`, `--sans` | `--fms-font` (screen only), `--font-ui` |
 
-## Ограничения проекта
+## Project constraints
 
-- CSP в `renderer/index.html` не пускает внешние шрифты — B612 Mono только из `fonts/` (скопировать в `renderer/src/assets/fonts/`).
-- Renderer не импортирует Node/Electron; без бизнес-логики на таймерах (CLAUDE.md, инвариант 5).
-- Все тексты — через `i18n.ts`, EN и RU; русские строки длиннее — плашки и кнопки не фиксировать по ширине.
-- Не менять: `store.ts`, `shared/api.ts`, `preload`, `main`, `packages/*`.
+- The CSP in `renderer/index.html` does not allow external fonts — B612 Mono only from `fonts/` (copy to `renderer/src/assets/fonts/`).
+- The renderer does not import Node/Electron; no business logic on timers (CLAUDE.md, invariant 5).
+- All texts go through `i18n.ts`, EN and RU; Russian strings are longer — do not fix the width of plates and buttons.
+- Do not change: `store.ts`, `shared/api.ts`, `preload`, `main`, `packages/*`.

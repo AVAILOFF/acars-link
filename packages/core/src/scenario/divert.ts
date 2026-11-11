@@ -17,7 +17,7 @@ import { type AircraftFamily, aircraftInfo } from './aircraft.js';
  *   nearest suitable reserve airport when that one is closer (PAN, medical, unruly passenger);
  * - `any`: the nearest of all, the reserve included (MAYDAY, fire in the cabin: time matters).
  *
- * `[ПРОВЕРИТЬ]` the OFP's en-route alternates (ERA) and take-off alternate are not read yet: in the
+ * `[VERIFY]` the OFP's en-route alternates (ERA) and take-off alternate are not read yet: in the
  * one real OFP checked (RJTT–KLAX A35K ETOPS, 2026-10-15) `enroute_altn` / `takeoff_altn` were
  * empty arrays, so the structure of their elements is unverified. They join
  * {@link ofpCandidates} once parsed.

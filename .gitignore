@@ -12,10 +12,6 @@ coverage/
 .env
 .env.*
 
-# RealAcars extraction output (tools/extract-asar-sources.js) — never commit (invariant 1)
-asar/
-src_out/
-
 # OS / editors
 .DS_Store
 Thumbs.db

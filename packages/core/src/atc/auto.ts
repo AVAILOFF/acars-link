@@ -17,7 +17,7 @@ import { type RoutePosition, starEntryIndex } from './route.js';
  *   nothing new until the given fix is passed;
  * - step climbs of the OFP: `CLIMB TO` 2 min before the step fix, unless the pilot already
  *   asked for that level or it is not a cruising level there (T25 table);
- * - the descent clearance 20 NM before TOD (as the original did): the highest of the OFP
+ * - the descent clearance 20 NM before TOD: the highest of the OFP
  *   altitude at the STAR entry and the remaining route's MORA + 1000 ft, rounded up to
  *   1000 ft; a flight level at or above the destination's transition level, else feet.
  * The phrases are the FANS-A uplinks of T25 (`PROCEED DIRECT TO`, `CLIMB TO`, `DESCEND TO`).

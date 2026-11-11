@@ -5,7 +5,7 @@
  * How a cockpit display shows a telex (docs/03-architecture.md "Профили дисплеев").
  *
  * Widths of real add-ons are unknown and are collected by "Проверка человеком" (T15).
- * The original only distinguishes a base width, B77x (+3) and B78x (+6).
+ * Built-in profiles: a base width, B77x (+3) and B78x (+6).
  */
 export interface DisplayProfile {
   readonly id: string;
@@ -30,7 +30,7 @@ export interface DisplayProfile {
  */
 export const DEFAULT_ALLOWED_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 .,:;/-+()'?!=%#*&@";
 
-/** `[ПРОВЕРИТЬ]` base width: 24 = MCDU/CDU columns; the original's base value is unknown. */
+/** `[VERIFY]` base width: 24 = MCDU/CDU columns. */
 export const BASE_LINE_WIDTH = 24;
 
 export const DEFAULT_PROFILE: DisplayProfile = {
@@ -42,7 +42,7 @@ export const DEFAULT_PROFILE: DisplayProfile = {
 };
 
 /**
- * Boeing 737 NG/MAX (PMDG 737 for MSFS 2024, T52). `[ПРОВЕРИТЬ]` the CDU width:
+ * Boeing 737 NG/MAX (PMDG 737 for MSFS 2024, T52). `[VERIFY]` the CDU width:
  * base width until "Проверка человеком" (approved by the user 2026-10-15).
  */
 export const B73X_PROFILE: DisplayProfile = {
@@ -55,7 +55,7 @@ export const B73X_PROFILE: DisplayProfile = {
 };
 
 /**
- * Boeing 757 (BlueBird 757, T60). `[ПРОВЕРИТЬ]` the CDU width: base width until
+ * Boeing 757 (BlueBird 757, T60). `[VERIFY]` the CDU width: base width until
  * "Проверка человеком" (approved by the user 2026-10-25).
  */
 export const B75X_PROFILE: DisplayProfile = {
@@ -67,7 +67,7 @@ export const B75X_PROFILE: DisplayProfile = {
   allowedChars: DEFAULT_ALLOWED_CHARS,
 };
 
-/** Boeing 777 family: base + 3 (as in the original). */
+/** Boeing 777 family: base + 3. */
 export const B77X_PROFILE: DisplayProfile = {
   id: 'b77x',
   matchIcao: ['B77*'],
@@ -77,7 +77,7 @@ export const B77X_PROFILE: DisplayProfile = {
   allowedChars: DEFAULT_ALLOWED_CHARS,
 };
 
-/** Boeing 787 family: base + 6 (as in the original). */
+/** Boeing 787 family: base + 6. */
 export const B78X_PROFILE: DisplayProfile = {
   id: 'b78x',
   matchIcao: ['B78*'],

@@ -2200,7 +2200,7 @@ export class ScenarioEngine {
   }
 }
 
-/** `OPS{flight}` → `OPS822`. Uppercase A–Z0–9 only. `[ПРОВЕРИТЬ]` Hoppie callsign length. */
+/** `OPS{flight}` → `OPS822`. Uppercase A–Z0–9 only. `[VERIFY]` Hoppie callsign length. */
 export function stationCallsign(
   template: string,
   ofp: Pick<Ofp, 'flightNumber' | 'airlineIcao' | 'callsign'>,

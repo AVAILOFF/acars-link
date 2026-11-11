@@ -7,20 +7,18 @@ ACARS-Link-Setup-<X.Y.Z>.exe.sha256. Requirements change only by a decision reco
 
 # ACARS Link {{version}} — {{date}}
 
-## English
-
-### What's new
+## What's new
 
 {{changes}}
 
-### Requirements
+## Requirements
 
 - Windows 10 or 11, 64-bit.
 - Microsoft Flight Simulator 2024 or X-Plane 12. **MSFS 2020 is not supported.**
 - An aircraft that receives Hoppie ACARS telex (for example Fenix A320, PMDG 737/777, iniBuilds A350/A380).
 - A Hoppie ACARS logon code (hoppie.nl) and a SimBrief account.
 
-### Install
+## Install
 
 1. Download `ACARS-Link-Setup-{{version}}.exe` and `ACARS-Link-Setup-{{version}}.exe.sha256`.
 2. Check the file (optional, recommended). In PowerShell, in the download folder:
@@ -40,37 +38,3 @@ ACARS-Link-Setup-<X.Y.Z>.exe.sha256. Requirements change only by a decision reco
 
 ACARS Link is free for non-commercial flight simulation (licence agreement in the installer).
 Messages are simulated and must never be used for real flight.
-
-## Русский
-
-### Что нового
-
-{{changes}}
-
-### Требования
-
-- Windows 10 или 11, 64-разрядная.
-- Microsoft Flight Simulator 2024 или X-Plane 12. **MSFS 2020 не поддерживается.**
-- Самолёт, принимающий telex Hoppie ACARS (например, Fenix A320, PMDG 737/777, iniBuilds A350/A380).
-- Logon-код Hoppie ACARS (hoppie.nl) и учётная запись SimBrief.
-
-### Установка
-
-1. Скачайте `ACARS-Link-Setup-{{version}}.exe` и `ACARS-Link-Setup-{{version}}.exe.sha256`.
-2. Проверьте файл (по желанию, рекомендуется). В PowerShell, в папке загрузки:
-
-   ```
-   (Get-FileHash .\ACARS-Link-Setup-{{version}}.exe -Algorithm SHA256).Hash
-   ```
-
-   Результат должен совпасть с суммой ниже и с первым словом файла `.sha256` (регистр букв не
-   важен). Не совпадает — не запускайте установщик.
-
-   SHA-256: `{{sha256}}`
-3. Запустите установщик. Он без цифровой подписи, поэтому Windows SmartScreen покажет «Система
-   Windows защитила ваш компьютер»: нажмите **Подробнее**, затем **Выполнить в любом случае**.
-4. Предыдущая версия обновляется на месте; настройки, записи полётов и журнал рейсов сохраняются.
-   Автообновления нет: новая версия — новый установщик.
-
-ACARS Link бесплатен для некоммерческих авиасимуляторов (лицензионное соглашение — в установщике).
-Сообщения имитируются, для реальных полётов их использовать нельзя.
