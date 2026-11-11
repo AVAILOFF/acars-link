@@ -25,7 +25,7 @@ import { splitCsv } from './ourairports.js';
  * Holidays: Nager.Date `GET https://date.nager.at/api/v3/PublicHolidays/{year}/{CC}` → `[{date,
  * localName, name, countryCode, global, counties, types}]`; 204 (no content) for a country it
  * does not cover, 404 for an unknown code. No key; "free for private and non-commercial use",
- * commercial use — sponsorship `[ПРИ РЕЛИЗЕ]`. Only nationwide (`global: true`) holidays are kept.
+ * commercial use — sponsorship `[AT RELEASE]`. Only nationwide (`global: true`) holidays are kept.
  */
 
 export const OURAIRPORTS_AIRPORTS_URL =

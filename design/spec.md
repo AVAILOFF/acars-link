@@ -1,74 +1,74 @@
-# Спецификация визуального стиля
+# Visual style specification
 
-Источник: холст Claude Design «ACARS для MSFS 2024», страница «Дизайн-система». Значения — в `tokens.css` и `fms.css`. Исходники артбордов — `artboards/*.dc.html` (HTML-шаблоны; читаются как текст, без рантайма холста не рендерятся).
+Source: the Claude Design canvas "ACARS for MSFS 2024", the "Design system" page. The values are in `tokens.css` and `fms.css`. The artboard sources are `artboards/*.dc.html` (HTML templates; read them as text, they do not render without the canvas runtime).
 
-## 1. Концепция
+## 1. Concept
 
-- **Оболочка** — тёмный графит: верхний бар, вкладки, панели статуса. Кнопки — плоские графитовые плашки `--btn`, радиус 6, без обводки.
-- **Активное** — сплошная синяя заливка `--active` с белым текстом (вкладка, сегмент, основная кнопка). Один выбранный элемент на группу.
-- **Содержимое** — светлые листы `--sheet-*` (радиус 10): лента сообщений, сценарии, настройки, формы.
-- **Экран FMS** — отдельная система (`fms.css`): чёрный фон, только зелёный текст, B612 Mono.
-- Цвет только по смыслу. Маджента/синий маршрута/NOTAM — только для навигационной семантики, не для состояний UI.
-- Без градиентов, свечения, декоративных теней. Тень — только у плавающих элементов (меню, модалка, подсказка).
+- **Shell** — dark graphite: top bar, tabs, status panels. Buttons are flat graphite `--btn` plates, radius 6, no outline.
+- **Active** — a solid blue `--active` fill with white text (tab, segment, primary button). One selected element per group.
+- **Content** — light `--sheet-*` sheets (radius 10): the message feed, scenarios, settings, forms.
+- **FMS screen** — a separate system (`fms.css`): black background, green text only, B612 Mono.
+- Colour only by meaning. Magenta / route blue / NOTAM are only for navigation semantics, not for UI states.
+- No gradients, glow, decorative shadows. A shadow only on floating elements (menu, modal, tooltip).
 
-## 2. Типографика
+## 2. Typography
 
-Системный гротеск (`--font-ui`), `font-variant-numeric: tabular-nums` для времени, эшелонов, частот, весов.
+System grotesque (`--font-ui`), `font-variant-numeric: tabular-nums` for time, flight levels, frequencies, weights.
 
-| Роль | Размер / интерлиньяж | Начертание |
+| Role | Size / line height | Weight |
 |---|---|---|
 | title-lg | 22 / 28 | 600 |
-| title (заголовок листа, строки) | 17 / 22 | 600 |
+| title (sheet heading, rows) | 17 / 22 | 600 |
 | subtitle | 13 / 18 | 400, `--on-*-2` |
-| control (кнопки, вкладки) | 15 / 20 | 500 |
+| control (buttons, tabs) | 15 / 20 | 500 |
 | body | 15 / 20 | 400 |
 | label-caps | 12 / 16 | 500, caps, +0.02em, `--on-sheet-2` |
 | value | 17 / 22 | 500, tabular |
-| FMS large / small | 15 / 21 и 12 / 21 | B612 Mono 400 |
+| FMS large / small | 15 / 21 and 12 / 21 | B612 Mono 400 |
 
-Заголовки не больше 22 px. Отдельный моноширинный шрифт в UI не нужен — только на экране FMS.
+Headings no larger than 22 px. A separate monospaced font is not needed in the UI — only on the FMS screen.
 
-## 3. Сетка и размеры
+## 3. Grid and sizes
 
-- Шаг 4 px: 4 · 6 · 8 · 12 · 16 · 24 · 32.
-- Контрол 34 (малый 30), строка листа 44, двухстрочная 64, верхний бар 52, нижний 48, кнопка-иконка 40×40.
-- Радиусы: 4 (экран FMS), 6 (контролы), 10 (листы, панели, модалки), pill (чипы ICAO).
-- Окно приложения по умолчанию 1180×820 → правая/левая колонка не шире 360, лента — остальное. Ниже 1024 колонки складываются в одну.
+- 4 px step: 4 · 6 · 8 · 12 · 16 · 24 · 32.
+- Control 34 (small 30), sheet row 44, two-line 64, top bar 52, bottom 48, icon button 40×40.
+- Radii: 4 (FMS screen), 6 (controls), 10 (sheets, panels, modals), pill (ICAO chips).
+- Default app window 1180×820 → the right/left column no wider than 360, the feed takes the rest. Below 1024 the columns stack into one.
 
-## 4. Компоненты (артборд `DsComponents`)
+## 4. Components (`DsComponents` artboard)
 
-| Компонент | Размеры | Обычное | Hover | Активное/нажато | Фокус | Отключено | Ошибка |
+| Component | Sizes | Normal | Hover | Active/pressed | Focus | Disabled | Error |
 |---|---|---|---|---|---|---|---|
-| Кнопка оболочки | h34, pad 0 14, r6 | `--btn`, белый | `--btn-hover` | `--btn-pressed` | `--focus` | `--btn-disabled`, `--on-shell-off` | — |
-| Основная кнопка | то же | `--active` 600 | `--active-hover` | `--active-pressed` | `--focus` | как выше | — |
-| Кнопка на листе | то же | `--sheet-btn`, `--on-sheet-1` | #E2E3E7 | #D6D8DD | `--focus` | `--on-sheet-off` | — |
-| Опасная (Stop) | то же | `--btn`, текст #FF7A70 | #4A3436 | `--warning` + белый | `--focus` | как выше | — |
-| Вкладка | плашка h34, gap 8, r6 | `--btn` | `--btn-hover` | `--active` | `--focus` | `--btn-disabled` | — |
-| Переключатель | 44×26, ручка 22 | трек #4A505A | — | трек `--ok` | `--focus` | трек `--shell-2` | — |
-| Сегменты | трек `--field` r8, сегмент h30 r6 | прозрачный | — | `--active` | `--focus` | `--on-shell-off` | — |
-| Поле на листе | строка 52, метка caps слева | `--on-sheet-1` 17 | — | — | inset 2px `--focus-ring` | `--on-sheet-off` | фон `--warning-tint`, метка/подсказка `--warning` |
-| Поле на оболочке | h34 r6 `--field` | placeholder `--on-shell-3` | — | — | `--focus` | `--shell-2` | — |
-| Строка листа/таблицы | h44, линия `--sheet-line` | `--sheet-row` | `--sheet-row-hover` | `--sheet-select` + inset 4px `--active` слева | `--focus` | текст `--on-sheet-off` | `--warning-tint` |
-| Чип ICAO | h26 pill | `--chip`, белый 14/500 | — | — | — | #A3A7AF | — |
-| Статус-пилюля | h22 r11 13/600 | светлый тон + тёмный текст (VFR #E3F5EA/#1E7A43, IFR #FDF0DC/#8F5600, ошибка #FDE7E5/#B3261E) | — | — | — | — | — |
-| Баннер | r8 `--shell-2`, pad 8 10 | точка/иконка цвета статуса + слово (Инфо/Внимание/Ошибка) + кнопка `--btn` h30 | — | — | — | — | — |
-| Модалка/лист | r10 `--sheet-bg`, шапка 52 `--sheet-header`, заголовок 17 по центру, ✕ круг 30 #A3A7AF | тень `--shadow-float`, подложка rgb(0 0 0/.6) | — | — | ловушка фокуса, Esc | — | — |
-| Подсказка | r8 `--btn`, 13/18, pad 8 10 | задержка 400 мс | — | — | — | — | — |
-| Загрузка | сегменты 8×6 r1, полоса 4 px с ручкой 18, skeleton #ECEDF0 на листе | без спиннеров | — | — | — | — | — |
+| Shell button | h34, pad 0 14, r6 | `--btn`, white | `--btn-hover` | `--btn-pressed` | `--focus` | `--btn-disabled`, `--on-shell-off` | — |
+| Primary button | same | `--active` 600 | `--active-hover` | `--active-pressed` | `--focus` | as above | — |
+| Button on a sheet | same | `--sheet-btn`, `--on-sheet-1` | #E2E3E7 | #D6D8DD | `--focus` | `--on-sheet-off` | — |
+| Danger (Stop) | same | `--btn`, text #FF7A70 | #4A3436 | `--warning` + white | `--focus` | as above | — |
+| Tab | plate h34, gap 8, r6 | `--btn` | `--btn-hover` | `--active` | `--focus` | `--btn-disabled` | — |
+| Switch | 44×26, knob 22 | track #4A505A | — | track `--ok` | `--focus` | track `--shell-2` | — |
+| Segments | track `--field` r8, segment h30 r6 | transparent | — | `--active` | `--focus` | `--on-shell-off` | — |
+| Field on a sheet | row 52, caps label on the left | `--on-sheet-1` 17 | — | — | inset 2px `--focus-ring` | `--on-sheet-off` | background `--warning-tint`, label/hint `--warning` |
+| Field on the shell | h34 r6 `--field` | placeholder `--on-shell-3` | — | — | `--focus` | `--shell-2` | — |
+| Sheet/table row | h44, line `--sheet-line` | `--sheet-row` | `--sheet-row-hover` | `--sheet-select` + inset 4px `--active` on the left | `--focus` | text `--on-sheet-off` | `--warning-tint` |
+| ICAO chip | h26 pill | `--chip`, white 14/500 | — | — | — | #A3A7AF | — |
+| Status pill | h22 r11 13/600 | light tone + dark text (VFR #E3F5EA/#1E7A43, IFR #FDF0DC/#8F5600, error #FDE7E5/#B3261E) | — | — | — | — | — |
+| Banner | r8 `--shell-2`, pad 8 10 | dot/icon in the status colour + word (Info/Warning/Error) + `--btn` button h30 | — | — | — | — | — |
+| Modal/sheet | r10 `--sheet-bg`, header 52 `--sheet-header`, title 17 centred, ✕ circle 30 #A3A7AF | shadow `--shadow-float`, backdrop rgb(0 0 0/.6) | — | — | focus trap, Esc | — | — |
+| Tooltip | r8 `--btn`, 13/18, pad 8 10 | delay 400 ms | — | — | — | — | — |
+| Loading | segments 8×6 r1, 4 px bar with an 18 knob, skeleton #ECEDF0 on a sheet | no spinners | — | — | — | — | — |
 
-Статус всегда дублируется словом, не только цветом. Кружки-индикаторы в строке статусов верхнего бара **не используются** (решение пользователя) — состояние передаётся цветом текста значения.
+Status is always duplicated by a word, not only by colour. Indicator circles in the status row of the top bar are **not used** (user's decision) — the state is conveyed by the colour of the value text.
 
-## 5. Экран FMS (`fms.css`, артборд `FmsWindow`)
+## 5. FMS screen (`fms.css`, `FmsWindow` artboard)
 
-- Фон `#000`, текст `--fms-text`, вторичное — `--fms-text-dim`. Других цветов на экране нет.
-- Ширина в символах = `FlightSummary.lineWidth` профиля (24 / 27 / 30), а не фиксированная.
-- Иерархия: крупный/мелкий шрифт, приглушённый зелёный, синтаксис CDU (`<PROMPT`, `PROMPT>`, `[ ]`, пунктир-разделитель).
-- Рамка вокруг экрана — `--fms-bezel`; подписи на рамке нейтральные (это корпус, не экран).
-- Фокус клавиатуры — кольцо на элементе рамки, экран не перекрашивается.
+- Background `#000`, text `--fms-text`, secondary `--fms-text-dim`. There are no other colours on the screen.
+- Width in characters = the profile's `FlightSummary.lineWidth` (24 / 27 / 30), not a fixed one.
+- Hierarchy: large/small font, muted green, CDU syntax (`<PROMPT`, `PROMPT>`, `[ ]`, dashed separator).
+- The frame around the screen is `--fms-bezel`; the labels on the frame are neutral (it is the casing, not the screen).
+- Keyboard focus is a ring on the frame element, the screen is not recoloured.
 
-## 6. Поведение
+## 6. Behaviour
 
-- Уведомления — только в баннере над контентом или в нижнем баре; сдвигают контент, не перекрывают его. Без всплывающих тостов.
-- Обновление данных: фиксированные ширины колонок + tabular-nums, значения не «прыгают»; новая запись ленты подсвечивается `--sheet-select` 1 с; позиция прокрутки сохраняется.
-- Анимация — только функциональная (120–160 мс), отключается при `prefers-reduced-motion`.
-- Фокус: двойное кольцо `--focus` на всех интерактивных элементах; порядок: верхний бар → вкладки → левая колонка → лента → форма пилота.
+- Notifications only in a banner above the content or in the bottom bar; they push the content, they do not cover it. No pop-up toasts.
+- Data refresh: fixed column widths + tabular-nums, values do not "jump"; a new feed entry is highlighted with `--sheet-select` for 1 s; the scroll position is kept.
+- Animation only functional (120–160 ms), disabled under `prefers-reduced-motion`.
+- Focus: a double `--focus` ring on all interactive elements; order: top bar → tabs → left column → feed → pilot form.

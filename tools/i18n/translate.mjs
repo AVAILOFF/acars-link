@@ -66,10 +66,10 @@ function readGlossary() {
     const end = md.indexOf('\n## ', start + 3);
     return md.slice(start, end < 0 ? md.length : end);
   };
-  const keep = [...section('Не переводятся').matchAll(/`([^`]+)`/g)]
+  const keep = [...section('Do not translate').matchAll(/`([^`]+)`/g)]
     .map((m) => m[1])
     .filter((t) => !t.includes('{') && !t.includes('%') && !t.includes('…'));
-  const rows = section('Термины')
+  const rows = section('Terms')
     .split('\n')
     .filter((l) => l.startsWith('|') && !l.startsWith('|---') && !l.startsWith('| EN'));
   const terms = rows.map((l) => {

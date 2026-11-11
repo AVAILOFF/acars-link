@@ -18,7 +18,7 @@ import {
  * with `data=<query>`, `[out:json]` → `{elements: [{type, id, tags: {aeroway, ref}}]}`.
  * Usage policy: < 10 000 queries and < 1 GB a day, identify the client; the public server is
  * often busy (504) — the result is cached for 30 days and a failure only means the
- * placeholder gate. `[ПРОВЕРИТЬ]` on a live answer: the server was overloaded during T13.
+ * placeholder gate. `[VERIFY]` on a live answer: the server was overloaded during T13.
  */
 
 export const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';

@@ -6,7 +6,7 @@
  * Table ATM II-APAC-2 "SSR Codes Allocation Plan of the Asia and Pacific Regions", pages IV-28
  * to IV-31 (amendments up to APAC-II 24/04, February 2026), document of July 2026:
  * https://www.icao.int/sites/default/files/APAC/APAC-ANP/APAC-new-eANP-Vol-II_July-2026.pdf,
- * taken 2026-10-09. GENERATED — do not edit by hand. © ICAO: [ПРОВЕРИТЬ] reuse terms before a
+ * taken 2026-10-09. GENERATED — do not edit by hand. © ICAO: [VERIFY] reuse terms before a
  * public release (docs/08, decision 9; approved for personal use 2026-10-09, docs/07 T24).
  *
  * Block: first code, last code (octal), `I` international or `D` domestic, restriction note

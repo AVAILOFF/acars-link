@@ -19,7 +19,7 @@ import {
  * `coordinates` is `[lon, lat]` for a Point, rings of `[lon, lat]` for a Polygon. Without
  * `days` the open list has thousands of years-old wildfires, so: storms, wildfires,
  * earthquakes and man-made events of the last 30 days, volcanoes of the last year (an
- * eruption stays "open" for months). Categories as in the original (docs/01). No key.
+ * eruption stays "open" for months). Fixed category list. No key.
  */
 
 export const EONET_EVENTS_URL = 'https://eonet.gsfc.nasa.gov/api/v3/events';

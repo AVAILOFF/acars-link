@@ -26,7 +26,7 @@ import { DataSourceError, type FetchContext, ICAO_RE, isObj, parseJson } from '.
  * units), cached on disk by the service for 7 days (R5).
  */
 
-/** C11: the only gateway for now; API.Market and the direct one — `[ПРИ РЕЛИЗЕ]`. */
+/** C11: the only gateway for now; API.Market and the direct one — `[AT RELEASE]`. */
 export const AERODATABOX_GATEWAY = {
   base: 'https://aerodatabox.p.rapidapi.com',
   keyHeader: 'X-RapidAPI-Key',

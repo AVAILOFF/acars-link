@@ -1,87 +1,87 @@
-# 03 — Архитектура
+# 03 — Architecture
 
-> Решения этапа 0 (см. `08`): оболочка — **Electron**, мост — **C# / .NET 10 LTS** (T79; раньше .NET 8), бэкенд на старте не нужен, UI — EN + RU, с T85 — список языков (`LANGUAGES`, docs/08 реш. 7).
+> Stage 0 decisions (see `08`): shell — **Electron**, bridge — **C# / .NET 10 LTS** (T79; .NET 8 before), no backend needed at the start, UI — EN + RU, since T85 a list of languages (`LANGUAGES`, docs/08 decision 7).
 
-## Компоненты
+## Components
 
 ```
 ┌──────────────┐  named pipe/SimConnect  ┌───────────────────────┐
 │  MSFS        │ ───────────────────────>│ sim-bridge (C#/.NET)  │
 └──────────────┘                         │ WebSocket 127.0.0.1   │
                                          └──────────┬────────────┘
-                                                    │ TelemetrySnapshot, 1 Гц
+                                                    │ TelemetrySnapshot, 1 Hz
 ┌──────────────┐  OFP JSON                ┌─────────v──────────────────────────┐
 │  SimBrief    │ ────────────────────────>│ app (Electron)                     │
-└──────────────┘                          │  ├─ packages/core   (чистый TS)    │
-                                          │  │   FSM фаз · планировщик ·        │
-┌──────────────┐  telex/poll              │  │   движок сценариев · форматтер  │
+└──────────────┘                          │  ├─ packages/core   (pure TS)      │
+                                          │  │   phase FSM · scheduler ·       │
+┌──────────────┐  telex/poll              │  │   scenario engine · formatter   │
 │ Hoppie / SI  │ <───────────────────────>│  ├─ adapters: transport, data,     │
 └──────────────┘                          │  │   storage, clock, rng           │
                                           │  └─ ui (React)                     │
-┌──────────────┐  HTTPS (опц.)            └────────────────────────────────────┘
-│ backend      │ <── LLM-прокси, платные API (ключи только здесь)
+┌──────────────┐  HTTPS (opt.)            └────────────────────────────────────┘
+│ backend      │ <── LLM proxy, paid APIs (keys only here)
 └──────────────┘
 ```
 
-## Монорепо (предложение)
+## Monorepo (proposal)
 
 ```
-apps/desktop            оболочка Electron + UI React (языки — `LANGUAGES`, T85)
-apps/backend            (опц.) LLM-прокси, кэш внешних данных
-bridge/msfs             C# консольный мост SimConnect → WebSocket
-packages/core           FSM, планировщик, сценарии, форматтер — чистый TS
-packages/scenarios      YAML-сценарии + JSON Schema + валидатор
-packages/data-sources   METAR/TAF, VATSIM, EONET, OSM-стоянки (адаптеры)
+apps/desktop            Electron shell + React UI (languages — `LANGUAGES`, T85)
+apps/backend            (opt.) LLM proxy, external data cache
+bridge/msfs             C# console bridge SimConnect → WebSocket
+packages/core           FSM, scheduler, scenarios, formatter — pure TS
+packages/scenarios      YAML scenarios + JSON Schema + validator
+packages/data-sources   METAR/TAF, VATSIM, EONET, OSM stands (adapters)
 packages/transport      Hoppie, SayIntentions, Mock
-tools/replay            запись и воспроизведение телеметрии для тестов
+tools/replay            recording and replay of telemetry for tests
 ```
 
-Процесс моста (T75, решения пользователя 2026-10-31): установленное приложение запускает `acars-msfs-bridge.exe` само и следит за ним (`apps/desktop/src/main/bridge-supervisor.ts`). Выход, о котором приложение не просило, — повторный запуск через 1, 2, 4 … 30 с, не больше 5 раз за 5 минут; затем остановка до перезапуска приложения или смены порта/симулятора в настройках, статус «мост не запускается» с последними строками `bridge.log`. Рейс не останавливается; в ленте — строка «Мост перезапущен» (`bridge_restarted`). Код выхода 4 — порт занят другой программой (`ExitCodes.PortInUse`): мост не перезапускается, статус «порт занят» с подсказкой. Код ответа WebSocket при отказе по токену (403) клиент Node не отдаёт — 403 и «соединение отклонено» неотличимы (проверено 2026-10-31, Node 24 / undici 7.28: событие `error` без полей и `close` 1006 с пустой причиной), поэтому «порт занят» показывается по признаку «наш процесс вышел с кодом 4, а связь с мостом не открылась»; если на порту мост без токена (запущенный вручную) и связь открылась, приложение с ним работает и ничего не показывает. Протокол моста (v2) не менялся. Мост завершается вместе с приложением (T80, решение 2026-10-31): приложение передаёт `--parent-pid` с PID main-процесса; мост держит дескриптор этого процесса и, когда тот завершился (в том числе жёстко — диспетчер задач, падение), закрывает сессию симулятора и сервер и выходит с кодом 0; родителя нет уже при старте — выход сразу. Без аргумента (ручной запуск) — как раньше.
+Bridge process (T75, user decisions 2026-10-31): the installed app starts `acars-msfs-bridge.exe` itself and supervises it (`apps/desktop/src/main/bridge-supervisor.ts`). An exit the app did not ask for is followed by a restart after 1, 2, 4 … 30 s, at most 5 times in 5 minutes; then it stops until the app is restarted or the port/simulator is changed in the settings, with the status "does not start" and the last lines of `bridge.log`. The flight does not stop; the feed shows a line "The simulator bridge stopped and was started again; the flight goes on" (`bridge_restarted`). Exit code 4 means the port is taken by another program (`ExitCodes.PortInUse`): the bridge is not restarted, the status is "port busy" with a hint. The Node client does not expose the WebSocket response code when the token is refused (403) — 403 and "connection refused" are indistinguishable (checked 2026-10-31, Node 24 / undici 7.28: an `error` event without fields and `close` 1006 with an empty reason), so "port busy" is shown on the basis "our process exited with code 4 and the connection to the bridge was not opened"; if a bridge without a token is on the port (started manually) and the connection opened, the app works with it and shows nothing. The bridge protocol (v2) did not change. The bridge exits together with the app (T80, decision 2026-10-31): the app passes `--parent-pid` with the PID of the main process; the bridge holds a handle to that process and, when it ends (including a hard end — task manager, crash), closes the simulator session and the server and exits with code 0; if the parent is already gone at startup, it exits immediately. Without the argument (manual start) it works as before.
 
-Стек по умолчанию (как в других проектах пользователя): pnpm, TypeScript strict, React, Zustand, Vitest, Biome, Playwright для UI. Мост — C# (.NET 10 LTS, T79); SimConnect — через `acars_simconnect.dll` (C++, `bridge/msfs/native`, статическая линковка клиента из официального MSFS SDK; P/Invoke из C#, T73). Управляемая обёртка SDK и `SimConnect.dll` не используются и не поставляются.
+Default stack (as in the user's other projects): pnpm, TypeScript strict, React, Zustand, Vitest, Biome, Playwright for UI. The bridge is C# (.NET 10 LTS, T79); SimConnect goes through `acars_simconnect.dll` (C++, `bridge/msfs/native`, static linking of the client from the official MSFS SDK; P/Invoke from C#, T73). The SDK's managed wrapper and `SimConnect.dll` are not used and not shipped.
 
-**Electron или Tauri:** выбран Electron (08, решение 1): проще и в экосистеме оригинала; цена — установщик ~100 МБ.
+**Electron or Tauri:** Electron was chosen (08, decision 1): simpler and with a mature ecosystem; the cost is a ~100 MB installer.
 
-## Ядро: контракт
+## Core: contract
 
 ```ts
 interface CoreInput {
-  ofp: Ofp;                       // нормализованный SimBrief
-  telemetry: TelemetrySnapshot;   // последний снимок
-  inbound: InboundMessage[];      // ответы пилота с прошлого тика
-  now: number;                    // от Clock, мс UTC
+  ofp: Ofp;                       // normalized SimBrief
+  telemetry: TelemetrySnapshot;   // latest snapshot
+  inbound: InboundMessage[];      // pilot replies since the previous tick
+  now: number;                    // from Clock, ms UTC
 }
 interface CoreOutput {
-  outbound: OutboundMessage[];    // { to, from, text, kind: telex | cpdlc (+ заголовок /data2/) }
-  commands: SimCommand[];         // команды симулятору (T21)
+  outbound: OutboundMessage[];    // { to, from, text, kind: telex | cpdlc (+ /data2/ header) }
+  commands: SimCommand[];         // commands to the simulator (T21)
   phase: FlightPhase;
-  events: CoreEvent[];            // для UI и лога (фазы, сценарии, УВД XATC)
-  listen: string[];               // позывные станций УВД XATC для опроса (T23)
+  events: CoreEvent[];            // for the UI and the log (phases, scenarios, XATC ATC)
+  listen: string[];               // XATC ATC station callsigns to poll (T23)
 }
-// core.tick(input) → output. Состояние — внутри экземпляра, сериализуемо (resume после рестарта).
-// core.report() → FlightReport — сводка рейса (T69), см. ниже.
+// core.tick(input) → output. State lives inside the instance, serializable (resume after a restart).
+// core.report() → FlightReport — flight summary (T69), see below.
 ```
 
-### Сводка рейса (T69)
+### Flight summary (T69)
 
-Решения пользователя 2026-10-30 (`07`, T69). `AcarsCore.report()` — чистый расчёт `flightReport` (`packages/core/src/summary/report.ts`) из данных ядра: OOOI машины фаз и топливо/позиция снимка ровно в момент каждого OOOI (`PhaseMachine.oooiAt`), план OFP (`sched_out…sched_in`, `sched_block`, `est_time_enroute`, `plan_ramp`/`plan_takeoff`/`plan_landing`, `taxi`, `enroute_burn`), скорость касания из симулятора (T46; нет — `null`, «нет данных»), уходы на второй круг (входы в `GO_AROUND`), задержка с кодами IATA (T43), аэропорт диверсии (T50), счётчики сообщений (авиакомпании — выданные сценариями; пилота — телексы авиакомпании, кроме `ignored`; из них ответы на `wait: reply`) и сработавшие нестандартные сценарии. Только цифры, без оценок; разница — «факт − план». Аэропорт посадки — ближайший к точке касания из аэропортов OFP (назначение, вылет, запасные, ETOPS) и аэропорта диверсии в пределах `LANDED_WITHIN_NM` = 5 NM; дальше — неизвестный аэропорт с координатами; диверсия — посадка не в аэропорту назначения. Сводка снимается в момент закрытия рейса у гейта (`endFlight` → TURNAROUND/DONE): сообщения разворота после этого относятся к следующему рейсу. Приложение пишет её строкой `summary` сразу после `end` в запись полёта и добавляет в журнал рейсов `<userData>/logbook.json` (без ограничения числа рейсов); `pnpm replay summary <запись>` считает её заново тем же кодом (`--check` сверяет со строкой `summary`).
+User decisions 2026-10-30 (`07`, T69). `AcarsCore.report()` is a pure calculation of `flightReport` (`packages/core/src/summary/report.ts`) from core data: the phase machine's OOOI and the fuel/position of the snapshot exactly at the moment of each OOOI (`PhaseMachine.oooiAt`), the OFP plan (`sched_out…sched_in`, `sched_block`, `est_time_enroute`, `plan_ramp`/`plan_takeoff`/`plan_landing`, `taxi`, `enroute_burn`), the touchdown rate from the simulator (T46; none — `null`, "no data"), go-arounds (entries into `GO_AROUND`), the delay with IATA codes (T43), the diversion airport (T50), message counters (airline — issued by scenarios; pilot — telexes to the airline, except `ignored`; of them replies to `wait: reply`) and the non-standard scenarios that fired. Numbers only, no assessments; the difference is "actual − plan". The landing airport is the one nearest to the touchdown point among the OFP airports (destination, departure, alternates, ETOPS) and the diversion airport within `LANDED_WITHIN_NM` = 5 NM; farther away it is an unknown airport with coordinates; a diversion is a landing somewhere other than the destination airport. The summary is taken at the moment the flight is closed at the gate (`endFlight` → TURNAROUND/DONE): turnaround messages after that belong to the next flight. The app writes it as a `summary` line right after `end` in the flight recording and adds it to the flight logbook `<userData>/logbook.json` (no limit on the number of flights); `pnpm replay summary <recording>` calculates it again with the same code (`--check` compares with the `summary` line).
 
-### Восстановление рейса после закрытия или падения приложения (T64)
+### Flight resume after the app is closed or crashes (T64)
 
-Решения пользователя 2026-10-29 (`07`, T64). Рейс восстанавливается из записи полёта (T11), отдельного файла состояния нет: при запуске приложение находит последнюю запись (по имени — времени старта) и предлагает продолжить, если в ней есть `start`, нет `end` и `stop`, заголовок записан после T64 (есть поле `simTime`) и файл менялся не больше 24 ч назад (`RESUME_MAX_AGE_MS`, `apps/desktop/src/main/recording.ts`). «Продолжить» — `FlightSession` с `resume`: ядро создаётся из заголовка (`recordedCoreOptions`, `tools/replay/src/run.ts` — те же опции, что у `pnpm replay run`), все события записи прогоняются через ядро заново (инвариант 4), лента собирается из того же прогона; транспорт, мост, данные и файл при этом не трогаются. Каждый телекс прогона сверяется со строкой `out` записи; расхождение (другие сценарии, другая версия приложения) — отказ `resume_mismatch`, рейс не загружается. Затем телексы без строки `sent` отправляются заново (решение 5), транспорт снова слушает станции XATC, запись дописывается в тот же файл (`resume`, решение 3). Прогон быстрый: синтетический RJTT–KLAX 12 ч (43 580 тиков, 18 МБ) — 1,7 с вместе с запуском Node (замер 2026-10-29). «Отказаться» — в конец записи пишется `stop`, рейс больше не предлагается; новый рейс делает то же с прежним. Закрытие окна и выход приложения рейс не останавливают (`FlightSession.suspend`: файл закрывается без `stop`). При выключенной настройке «Записывать полёты» запись всё равно пишется — во временную папку `<userData>/flight-temp`, и удаляется, когда рейс остановлен или от него отказались (решение 6). Не восстанавливаются: эффекты в симуляторе, бывшие в момент падения (дым, машины — приложение убирает их при запуске, `SimEffects.clear`), закрытие рейса, начатое в TURNAROUND/DONE (`end` уже записан).
+User decisions 2026-10-29 (`07`, T64). The flight is restored from the flight recording (T11), there is no separate state file: at startup the app finds the latest recording (by name — the start time) and offers to continue if it has `start`, has no `end` and `stop`, the header was written after T64 (it has the `simTime` field) and the file changed no more than 24 h ago (`RESUME_MAX_AGE_MS`, `apps/desktop/src/main/recording.ts`). "Continue" is a `FlightSession` with `resume`: the core is created from the header (`recordedCoreOptions`, `tools/replay/src/run.ts` — the same options as in `pnpm replay run`), all recording events are run through the core again (invariant 4), the feed is rebuilt from the same run; the transport, bridge, data and file are not touched meanwhile. Each telex of the run is compared with the `out` line of the recording; a mismatch (different scenarios, a different app version) is a `resume_mismatch` refusal, the flight is not loaded. Then telexes without a `sent` line are sent again (decision 5), the transport listens to the XATC stations again, and the recording is appended to the same file (`resume`, decision 3). The run is fast: a synthetic RJTT–KLAX 12 h (43,580 ticks, 18 MB) takes 1.7 s including the Node startup (measured 2026-10-29). "Discard" writes `stop` at the end of the recording, the flight is no longer offered; a new flight does the same with the previous one. Closing the window and exiting the app do not stop the flight (`FlightSession.suspend`: the file is closed without `stop`). With the "Record flights" setting off, the recording is still written — to the temporary folder `<userData>/flight-temp` — and deleted when the flight is stopped or discarded (decision 6). Not restored: simulator effects that were active at the moment of the crash (smoke, vehicles — the app removes them at startup, `SimEffects.clear`), and a flight close that started in TURNAROUND/DONE (`end` is already written).
 
-Rng: xoshiro128** (`packages/core/src/random/rng.ts`), seed = `"<callsign>/<OFP request_id>"` или задаётся пользователем. Строка → FNV-1a 32 → расширение до 128 бит (SplitMix32-подобный миксер). Схема сидирования — часть контракта replay, закреплена golden-тестами. Состояние сериализуется (`getState`/`rngFromState`).
+Rng: xoshiro128** (`packages/core/src/random/rng.ts`), seed = `"<callsign>/<OFP request_id>"` or set by the user. String → FNV-1a 32 → expansion to 128 bits (a SplitMix32-like mixer). The seeding scheme is part of the replay contract, fixed by golden tests. The state is serialized (`getState`/`rngFromState`).
 
-Clock: интерфейс `now(): number` (мс UTC). В ядре только `ManualClock`; реальные часы передаёт приложение.
+Clock: the interface `now(): number` (ms UTC). The core has only `ManualClock`; the app supplies the real clock.
 
 ## TelemetrySnapshot (v1)
 
-Имена SimVar и единицы — `[ПРОВЕРИТЬ]` по документации MSFS SDK перед реализацией моста.
+SimVar names and units are `[VERIFY]` against the MSFS SDK documentation before the bridge is implemented.
 
-| Поле | SimVar | Единицы |
+| Field | SimVar | Units |
 |---|---|---|
-| `v` | — | версия схемы, `1` |
-| `t` | — | время снимка, мс UTC (часы моста) |
+| `v` | — | schema version, `1` |
+| `t` | — | snapshot time, ms UTC (bridge clock) |
 | `lat`, `lon` | PLANE LATITUDE / PLANE LONGITUDE | degrees |
 | `altFt` | PLANE ALTITUDE | feet |
 | `aglFt` | PLANE ALT ABOVE GROUND | feet |
@@ -90,27 +90,27 @@ Clock: интерфейс `now(): number` (мс UTC). В ядре только `
 | `vsFpm` | VERTICAL SPEED | feet per minute |
 | `hdgTrue` | PLANE HEADING DEGREES TRUE | degrees |
 | `onGround` | SIM ON GROUND | bool |
-| `parkingBrake` | BRAKE PARKING POSITION; у Fenix (TITLE начинается с `Fenix`) — ещё `L:S_MIP_PARKING_BRAKE` ≥ 0.5 (одно из двух) | bool |
+| `parkingBrake` | BRAKE PARKING POSITION; for Fenix (TITLE starts with `Fenix`) also `L:S_MIP_PARKING_BRAKE` ≥ 0.5 (either one) | bool |
 | `beacon` | LIGHT BEACON | bool |
 | `engRunning[n]` | GENERAL ENG COMBUSTION:n | bool |
-| `engN2[n]` | ENG N2 RPM:n или TURB ENG N2:n | percent |
-| `fuelKg` | FUEL TOTAL QUANTITY WEIGHT | **запрашивать в kilograms** |
+| `engN2[n]` | ENG N2 RPM:n or TURB ENG N2:n | percent |
+| `fuelKg` | FUEL TOTAL QUANTITY WEIGHT | **request in kilograms** |
 | `gearDown` | GEAR HANDLE POSITION | bool |
 | `flapsIdx` | FLAPS HANDLE INDEX | number |
-| `doorsOpen[n]` | EXIT OPEN:n | percent (у многих аддонов не работает) |
+| `doorsOpen[n]` | EXIT OPEN:n | percent (does not work in many add-ons) |
 | `xpdrState` | TRANSPONDER STATE:1 | enum |
 | `simRate` | SIMULATION RATE | number |
-| `paused` | системное событие Pause | bool |
+| `paused` | system event Pause | bool |
 | `aircraftTitle` | TITLE | string |
-| `touchdownFpm` | PLANE TOUCHDOWN NORMAL VELOCITY (T46) | **feet per second** × 60 → ft/мин; сим держит значение до следующего касания; в TS поле необязательное (старые записи) |
-| `ground` | L:FSDT_GSX_BOARDING_STATE, _DEBOARDING_STATE, _REFUELING_STATE, _CATERING_STATE, _DEPARTURE_STATE, L:FSDT_GSX_BOARDING_CARGO (T98) | number → `{ boarding, deboarding, refuel, catering, departure: 0..6, cargo: bool }`; 1 можно вызвать, 2 недоступна, 3 пропущена, 4 запрошена, 5 выполняется, 6 выполнена (GSX Pro for MSFS manual 4.0.9 Pro, с. 106, сверено 2026-11-07); необязательное: нет, если все шесть L:var равны 0 (GSX не запущен; L:var, которую никто не ставил, читается как 0), в X-Plane и в старых записях. Совместимое добавление, `telemetryVersion` и версия протокола моста не меняются (как у `simUtcMs`) |
+| `touchdownFpm` | PLANE TOUCHDOWN NORMAL VELOCITY (T46) | **feet per second** × 60 → ft/min; the sim holds the value until the next touchdown; optional in TS (old recordings) |
+| `ground` | L:FSDT_GSX_BOARDING_STATE, _DEBOARDING_STATE, _REFUELING_STATE, _CATERING_STATE, _DEPARTURE_STATE, L:FSDT_GSX_BOARDING_CARGO (T98) | number → `{ boarding, deboarding, refuel, catering, departure: 0..6, cargo: bool }`; 1 can be called, 2 unavailable, 3 skipped, 4 requested, 5 in progress, 6 completed (GSX Pro for MSFS manual 4.0.9 Pro, p. 106, checked 2026-11-07); optional: absent if all six L:vars are 0 (GSX not running; an L:var nobody has set reads as 0), in X-Plane and in old recordings. A compatible addition, `telemetryVersion` and the bridge protocol version do not change (as with `simUtcMs`) |
 
-Пример — `reference/telemetry.sample.json`.
+Example — `reference/telemetry.sample.json`.
 
-Стояночный тормоз Fenix A320 (2026-10-23, баг: приложение «рулило» на стоянке): Fenix 3.0.0.7438 (обновление 2026-10-21) не ведёт BRAKE PARKING POSITION — во всех полётах с 22.10 она 0. **Проверено человеком** (MSFS 2024, Fenix A320, LIRF, стоянка, двигатели выключены, 2026-10-23, проба SimConnect): `L:S_MIP_PARKING_BRAKE` идёт за рукояткой 1 → 0 → 1, `L:B_HYD_PARKING_BRAKE_SET` всё время 0, BRAKE PARKING POSITION — 0. Чтение L-переменной: `AddToDataDefinition("L:NAME", "number")`, только FLOAT64 (SDK, SimConnect_AddToDataDefinition, сверено 2026-10-23). **Одобрено пользователем 2026-10-23:** Fenix определяется по TITLE с префикса `Fenix`, тормоз = SimVar или LVar; у остальных самолётов — только SimVar. Тормоз в машинах аварийных служб (T54) — по тому же правилу.
+Fenix A320 parking brake (2026-10-23, bug: the app "taxied" at the stand): Fenix 3.0.0.7438 (update of 2026-10-21) does not drive BRAKE PARKING POSITION — it is 0 in all flights since 22.10. **Checked by a human** (MSFS 2024, Fenix A320, LIRF, stand, engines off, 2026-10-23, SimConnect probe): `L:S_MIP_PARKING_BRAKE` follows the handle 1 → 0 → 1, `L:B_HYD_PARKING_BRAKE_SET` is 0 all the time, BRAKE PARKING POSITION is 0. Reading an L-variable: `AddToDataDefinition("L:NAME", "number")`, FLOAT64 only (SDK, SimConnect_AddToDataDefinition, checked 2026-10-23). **Approved by the user 2026-10-23:** Fenix is detected by the TITLE prefix `Fenix`, brake = SimVar or LVar; for other aircraft — SimVar only. The brake in the rescue vehicles (T54) follows the same rule.
 
-## Профили дисплеев
+## Display profiles
 
-`DisplayProfile { id, matchIcao[], matchTitleRegex?, lineWidth, maxLines?, uppercase, allowedChars, pageBreak? }`. Значения ширины для конкретных аддонов неизвестны — собираются «Проверкой человеком». Оригинал: базовая ширина + 3 для B77x и + 6 для B78x.
+`DisplayProfile { id, matchIcao[], matchTitleRegex?, lineWidth, maxLines?, uppercase, allowedChars, pageBreak? }`. Line widths for specific add-ons are unknown — they are collected through the "Human check".
 
-Реализация — `packages/core/src/format/` (T05). По умолчанию 24 символа (колонки MCDU/CDU; базовая ширина оригинала неизвестна `[ПРОВЕРИТЬ]`), B77x — 27, B78x — 30. Символы по умолчанию: `A–Z 0–9`, пробел и `.,:;/-+()'?!=%#*&@`; `{}` (разделители пакета Hoppie), кавычки, `\`, `<>`, `|` запрещены. Раскладка: заголовок, линия дефисов, тело, линия точек, подвал; строка тела из `-`/`.`/`=`/`*` (≥ 3) растягивается на всю ширину. Перенос по пробелу или после `/`/`-` внутри слова, иначе жёсткий.
+Implementation — `packages/core/src/format/` (T05). The default is 24 characters (MCDU/CDU columns; the base width is unknown `[VERIFY]`), B77x — 27, B78x — 30. Default characters: `A–Z 0–9`, space and `.,:;/-+()'?!=%#*&@`; `{}` (Hoppie packet delimiters), quotes, `\`, `<>`, `|` are forbidden. Layout: header, a line of hyphens, body, a line of dots, footer; a body line of `-`/`.`/`=`/`*` (≥ 3) is stretched to the full width. Wrapping at a space or after `/`/`-` inside a word, otherwise a hard wrap.

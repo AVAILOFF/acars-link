@@ -13,7 +13,7 @@ import {
 
 /**
  * NOAA SWPC space weather (T29, docs/06; checked 2026-10-09). No key; data of the US
- * government (licence text `[ПРИ РЕЛИЗЕ]`).
+ * government (licence text `[AT RELEASE]`).
  *
  * `GET https://services.swpc.noaa.gov/products/noaa-scales.json` → `{"-1": …, "0": …, "1": …,
  * "2": …, "3": …}`, each `{DateStamp: "2026-10-09", TimeStamp: "13:52:00", R: {Scale, Text,

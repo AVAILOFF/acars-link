@@ -21,7 +21,7 @@ import type { VatsimCenter } from './vatspy.js';
  *
  * Which airport a station serves is not in the feed: the callsign prefix (before the first
  * `_`) is matched against the ICAO code, the IATA code and, for US airports (`K…`), the
- * ICAO code without the `K` (`MCI_TWR`) `[ПРОВЕРИТЬ]` other local conventions.
+ * ICAO code without the `K` (`MCI_TWR`) `[VERIFY]` other local conventions.
  */
 
 export const VATSIM_DATA_URL = 'https://data.vatsim.net/v3/vatsim-data.json';

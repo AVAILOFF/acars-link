@@ -1,6 +1,6 @@
 # Onward departures of the airline from the destination (T30, docs/07 C8): a standard ops message
 # (base set) on AeroDataBox FIDS with the user's key; without the key or the data nothing is sent.
-# 120 NM before TOD as the arrival schedule of the original (docs/01). Source as the last line (C4: attribution, free channel).
+# 120 NM before TOD (arrival schedule). Source as the last line (C4: attribution, free channel).
 id: connex_list
 version: 1
 category: ops

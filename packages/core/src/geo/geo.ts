@@ -3,7 +3,7 @@
 
 /** Spherical-earth helpers. Distances in nautical miles, angles in degrees. */
 
-/** Mean earth radius in NM (same constant as the original, docs/01). */
+/** Mean earth radius in NM. */
 export const EARTH_RADIUS_NM = 3440.065;
 
 export interface LatLon {

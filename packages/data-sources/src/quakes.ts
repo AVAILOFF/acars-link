@@ -16,7 +16,7 @@ import {
  * Earthquakes (T29, docs/06; checked 2026-10-09): USGS real-time feed "M4.5+, past day"
  * `GET https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_day.geojson` (refreshed
  * every minute) → GeoJSON `{features: [{id, properties: {mag, place, time (epoch ms), type},
- * geometry: {coordinates: [lon, lat, depth km]}}]}`. No key; USGS terms `[ПРИ РЕЛИЗЕ]`.
+ * geometry: {coordinates: [lon, lat, depth km]}}]}`. No key; USGS terms `[AT RELEASE]`.
  */
 
 export const USGS_FEED_URL =

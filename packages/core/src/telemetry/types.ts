@@ -5,7 +5,7 @@
  * One telemetry sample from the sim bridge (~1 Hz), docs/03-architecture.md "TelemetrySnapshot (v1)".
  * Example: reference/telemetry.sample.json.
  *
- * SimVar names and units are listed in docs/03 and are still `[ПРОВЕРИТЬ]` against the
+ * SimVar names and units are listed in docs/03 and are still `[VERIFY]` against the
  * MSFS SDK; they matter for the bridge (T08), not for this type.
  */
 export const TELEMETRY_VERSION = 1;
@@ -41,7 +41,7 @@ export interface TelemetrySnapshot {
   readonly flapsIdx: number;
   /** Per exit, percent open (0..100). Many add-ons do not report it. */
   readonly doorsOpen: readonly number[];
-  /** TRANSPONDER STATE:1 raw enum value (meaning `[ПРОВЕРИТЬ]` in the SDK docs). */
+  /** TRANSPONDER STATE:1 raw enum value (meaning `[VERIFY]` in the SDK docs). */
   readonly xpdrState: number;
   /** 1 = real time, 4 = ×4 … */
   readonly simRate: number;

@@ -1,22 +1,22 @@
-# Глоссарий перевода интерфейса (T86, T87)
+# Interface translation glossary (T86, T87)
 
-Переводится только то, что пилот видит в приложении: строки (`apps/desktop/src/renderer/src/messages-<lang>.ts`), справка (`help-<lang>.ts`), тексты сценариев (`packages/scenarios/locales/<lang>.yaml`). ACARS-сообщения, FMS и телексы — всегда английский (docs/08, реш. 7).
+Only what the pilot sees in the app is translated: strings (`apps/desktop/src/renderer/src/messages-<lang>.ts`), help (`help-<lang>.ts`), scenario texts (`packages/scenarios/locales/<lang>.yaml`). ACARS messages, FMS and telexes are always English (docs/08, decision 7).
 
-Перевод делает `pnpm i18n translate` (`tools/i18n`): DeepL API с глоссарием из этого файла, запасной вариант — локальная модель Ollama. Инструмент читает два раздела ниже, поэтому их формат менять нельзя: список терминов в обратных кавычках и таблица с колонками `EN | DE | FR | ES | JA`. Остальной текст файла инструмент не читает.
+Translation is done by `pnpm i18n translate` (`tools/i18n`): the DeepL API with the glossary from this file, with a local Ollama model as a fallback. The tool reads the two sections below, so their format must not change: a list of terms in backticks and a table with the columns `EN | DE | FR | ES | JA`. The tool does not read the rest of the file.
 
-Правила:
-- Обращение вежливое: DE *Sie*, FR *vous*, ES *usted*, JA です・ます調.
-- Испанский — европейский (`es-ES`, решение T86 п. 2).
-- Подписи кнопок и настроек в справке берутся из строк интерфейса того же языка, а не переводятся заново (инструмент подставляет их сам).
-- Перевод машинный, пока его не проверил носитель языка (решение T86 п. 1): в списке языков пометка «машинный перевод» (`machine: true` в `LANGUAGES`).
+Rules:
+- Polite form of address: DE *Sie*, FR *vous*, ES *usted*, JA です・ます調.
+- Spanish is European (`es-ES`, T86 decision 2).
+- Button and setting labels in the help are taken from the interface strings of the same language, not translated again (the tool substitutes them itself).
+- The translation is machine-made until a native speaker has checked it (T86 decision 1): the language list carries a "machine translation" mark (`machine: true` in `LANGUAGES`).
 
-## Не переводятся
+## Do not translate
 
-То, что пилот видит в FMS, в ACARS-сообщениях, в SimBrief и в названиях сервисов. Инструмент закрывает эти слова от перевода. Слова целиком в верхнем регистре (`REQ WX`, `EDDF`, `A320`, `OUT`), плейсхолдеры `{station}` и пути `%APPDATA%\…` он закрывает и без списка.
+What the pilot sees in the FMS, in ACARS messages, in SimBrief and in service names. The tool protects these words from translation. Fully upper-case words (`REQ WX`, `EDDF`, `A320`, `OUT`), `{station}` placeholders and `%APPDATA%\…` paths it protects even without the list.
 
 `ACARS` `ACARS Link` `CPDLC` `FMS` `MCDU` `EFB` `OFP` `SimBrief` `Hoppie` `logon code` `SayIntentions` `VATSIM` `IVAO` `VATSpy` `MSFS` `X-Plane` `X-Plane 12` `SimConnect` `GSX` `VDGS` `Fenix` `PMDG` `iniBuilds` `Navigraph` `OpenStreetMap` `OSM` `AeroDataBox` `RapidAPI` `NOAA` `EUROCONTROL` `ICAO` `IATA` `EOBT` `TOBT` `CTOT` `STD` `STA` `ETD` `ETA` `TOD` `OOOI` `METAR` `TAF` `ATIS` `NOTAM` `SIGMET` `PDC` `DCL` `CLD` `CLX` `RCL` `NAT` `XATC` `FIR` `OPS` `ATC` `MEL` `NOTOC` `WILCO` `UNABLE` `ROGER` `STANDBY` `HELP` `F-PLN` `Direct To` `step climb` `squawk` `Shanwick` `Windows` `JSON` `ZIP` `UTC`
 
-## Термины
+## Terms
 
 | EN | DE | FR | ES | JA |
 |---|---|---|---|---|
@@ -64,4 +64,4 @@
 | turnaround | Turnaround | rotation | rotación | ターンアラウンド |
 | weather | Wetter | météo | meteorología | 気象 |
 
-Происхождение таблицы (допущение, 2026-11-01): термины составил Claude по общепринятой авиационной терминологии этих языков (*clairance*, *déroutement*, *aérodrome de dégagement*, *Ausweichflughafen*, 管制承認, 代替空港, スポット). С конкретными документами (ICAO/EASA, JCAB, интерфейсы аддонов) таблица **не сверялась**. Поправки носителя языка вносятся сюда, затем `pnpm i18n translate` пересобирает переводы (решение T86 п. 1: пока проверки нет — пометка «машинный перевод»).
+Origin of the table (assumption, 2026-11-01): the terms were compiled by Claude from the common aviation terminology of these languages (*clairance*, *déroutement*, *aérodrome de dégagement*, *Ausweichflughafen*, 管制承認, 代替空港, スポット). The table was **not checked** against specific documents (ICAO/EASA, JCAB, add-on interfaces). A native speaker's corrections go here, then `pnpm i18n translate` rebuilds the translations (T86 decision 1: until there is a check, the "machine translation" mark stays).

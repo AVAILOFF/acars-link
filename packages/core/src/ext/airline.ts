@@ -51,7 +51,7 @@ export function airlineCountry(airline: string | null): string | null {
 /**
  * Low-cost carriers (T43): ICAO "List of Low-Cost-Carriers (LCCs) based on ICAO definition", as of
  * 2017-06-13 (icao.int/sustainability, LCC-List.pdf, checked 2026-10-15; only codes of carriers
- * still flying taken). Terms of use of the list are not stated [ПРОВЕРИТЬ].
+ * still flying taken). Terms of use of the list are not stated [VERIFY].
  */
 const LCC_ICAO = [
   ...['RYR', 'EZY', 'EZS', 'WZZ', 'VLG', 'NAX', 'TRA', 'TVF', 'PGT', 'EWG'],

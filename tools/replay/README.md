@@ -1,6 +1,6 @@
 # @acars/replay
 
-Flight recordings and their replay through the core (T11, docs/04 «Тестирование»).
+Flight recordings and their replay through the core (T11, docs/04 "Testing").
 
 ## Recording format (JSONL, v1)
 

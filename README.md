@@ -2,8 +2,6 @@
 
 An airline ACARS simulator for flight simulators (MSFS 2024, X-Plane 12; MSFS 2020 is not supported — decision of 2026-11-01, T84). It reads the simulator's telemetry and the SimBrief OFP, detects the flight phase and, following scenarios, sends "airline" messages to the cockpit over the Hoppie ACARS network: loadsheets, slots, gate, weather, irregular situations. The pilot replies and requests data with telex commands. It also simulates an XATC ATC station (CPDLC logon, DCL/PDC, level requests, oceanic clearance).
 
-Ideas come from RealAcars 7.3.2; the code is written from scratch (CLAUDE.md, invariant 1).
-
 ## Status
 
 | Area | State |
@@ -77,4 +75,3 @@ Release notes for users (what's new, requirements, SHA-256 check with `Get-FileH
 6. [docs/06-integrations.md](docs/06-integrations.md) — Hoppie, SimBrief, SimConnect, X-Plane, external APIs.
 7. [docs/07-roadmap-tasks.md](docs/07-roadmap-tasks.md) — task cards.
 8. [docs/08-risks-open-questions.md](docs/08-risks-open-questions.md) — decisions, risks, items deferred until release.
-9. [docs/01-realacars-teardown.md](docs/01-realacars-teardown.md) — notes on the original (ideas, not code).

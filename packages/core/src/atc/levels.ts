@@ -11,9 +11,9 @@
  * - ICAO / SERA: magnetic track 000–179 odd, 180–359 even;
  * - Spain (AIP ENR 1.7-3, AMDT 403/26, 19-FEB-26) and Portugal (ENR 1.7.5, 01 OCT 2026):
  *   090–269 odd, 270–089 even; France the same for IFR in the UTA only (AIC A 06/20, from
- *   2020-05-21; the UTA lower limit FL195 is `[ПРОВЕРИТЬ]` against AIP France ENR 1.3.5);
+ *   2020-05-21; the UTA lower limit FL195 is `[VERIFY]` against AIP France ENR 1.3.5);
  * - New Zealand FIR (CAA NZ Part 91, amdt 12): 270–089 odd, 090–269 even.
- * Approved (2026-10-09): Italy — ICAO until its ENR 1.7 is read (`[ПРОВЕРИТЬ]`); metric
+ * Approved (2026-10-09): Italy — ICAO until its ENR 1.7 is read (`[VERIFY]`); metric
  * areas (China, DPRK) — the feet table too.
  */
 
@@ -31,7 +31,7 @@ const PORTUGAL: LevelRule = { id: 'SOUTH_ODD', source: 'AIP Portugal ENR 1.7.5' 
 const FRANCE_UTA: LevelRule = { id: 'SOUTH_ODD', source: 'AIC France A 06/20 (UTA)' };
 const NEW_ZEALAND: LevelRule = { id: 'NORTH_ODD', source: 'CAA NZ Part 91' };
 
-/** Lower limit of the French UTA, ft (`[ПРОВЕРИТЬ]` AIP France ENR 1.3.5 / ENR 2.1). */
+/** Lower limit of the French UTA, ft (`[VERIFY]` AIP France ENR 1.3.5 / ENR 2.1). */
 export const FRANCE_UTA_FLOOR_FT = 19_500;
 
 /** RVSM band (Doc 4444; SERA App. 3): non-RVSM aircraft are not cleared into it. */

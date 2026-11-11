@@ -396,7 +396,7 @@ export class RouteGeometry {
       ...ofp.navlog.map((f) => ({ lat: f.lat, lon: f.lon, rest: this.totalNm - f.cumDistNm })),
       { lat: ofp.destination.lat, lon: ofp.destination.lon, rest: 0 },
     ];
-    // `[ПРОВЕРИТЬ]` docs/04: TOD is the navlog fix with ident "TOD" (type ltlg) in json=v2.
+    // `[VERIFY]` docs/04: TOD is the navlog fix with ident "TOD" (type ltlg) in json=v2.
     const tod = ofp.navlog.find((f) => f.ident === 'TOD');
     this.todToDestNm = tod === undefined ? null : this.totalNm - tod.cumDistNm;
   }

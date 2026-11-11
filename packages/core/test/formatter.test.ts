@@ -151,7 +151,7 @@ describe('checkText', () => {
 });
 
 describe('DisplayProfile', () => {
-  it('built-ins: base, B77x = base + 3, B78x = base + 6 (as in the original)', () => {
+  it('built-ins: base, B77x = base + 3, B78x = base + 6', () => {
     expect(DEFAULT_PROFILE.lineWidth).toBe(BASE_LINE_WIDTH);
     expect(B77X_PROFILE.lineWidth).toBe(BASE_LINE_WIDTH + 3);
     expect(B78X_PROFILE.lineWidth).toBe(BASE_LINE_WIDTH + 6);

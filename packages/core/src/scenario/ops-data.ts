@@ -111,7 +111,7 @@ export function buildFlightData(
   const f = ofp.fuel;
   const t = ofp.times;
 
-  // LMC (docs/01: ±5 pax at p = 0.5, ±200 kg cargo at p = 0.5).
+  // LMC (±5 pax at p = 0.5, ±200 kg cargo at p = 0.5).
   const maxPax = ofp.aircraft.maxPax ?? Number.POSITIVE_INFINITY;
   const noPax = kind === 'cargo' || kind === 'ferry';
   const paxDraw = rng.chance(0.5) ? rng.int(-5, 5) : 0;

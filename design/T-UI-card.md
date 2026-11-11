@@ -1,24 +1,24 @@
-# Черновик карточки — перенести в docs/07-roadmap-tasks.md
+# Card draft — move to docs/07-roadmap-tasks.md
 
-## T-UI — Новый визуальный стиль приложения
+## T-UI — New visual style of the app
 
-**Цель:** перестилизовать `apps/desktop` (renderer) по макету из `design/` без изменения логики и контракта main ↔ renderer.
+**Goal:** restyle `apps/desktop` (renderer) according to the mockup in `design/` without changing the logic or the main ↔ renderer contract.
 
-**Входит:**
-- Токены `design/tokens.css` в `styles.css` (замена переменных по таблице в `design/README.md`).
-- Экран FMS для telex: `design/fms.css`, шрифт B612 Mono локально, ширина = `FlightSummary.lineWidth`.
-- `App.tsx` (верхний бар, вкладки, баннер ошибки), `FlightView.tsx`, `FeedList.tsx`, `ScenariosView.tsx`, `SettingsView.tsx` — разметка и классы под спецификацию `design/spec.md`.
-- Переключатели вместо чекбоксов (с `role="switch"` / нативный checkbox со стилем).
-- Новые подписи — ключи `i18n.ts` (EN + RU).
+**In scope:**
+- The `design/tokens.css` tokens in `styles.css` (replace the variables per the table in `design/README.md`).
+- The FMS screen for telex: `design/fms.css`, B612 Mono font locally, width = `FlightSummary.lineWidth`.
+- `App.tsx` (top bar, tabs, error banner), `FlightView.tsx`, `FeedList.tsx`, `ScenariosView.tsx`, `SettingsView.tsx` — markup and classes per the `design/spec.md` specification.
+- Switches instead of checkboxes (with `role="switch"` / a native checkbox with styling).
+- New labels — `i18n.ts` keys (EN + RU).
 
-**Не входит:** `store.ts`, `shared/api.ts`, `preload`, `main`, `packages/*`; второе окно FMS; кнопки ответа CPDLC; запросы METAR/PDC из приложения; данные, которых нет в `AppState`.
+**Out of scope:** `store.ts`, `shared/api.ts`, `preload`, `main`, `packages/*`; a second FMS window; CPDLC reply buttons; METAR/PDC requests from the app; data that is not in `AppState`.
 
-**Готово, когда:** `pnpm check` зелёный; все состояния кнопок/полей/строк из `spec.md` §4 видны; окно 1180×820 без горизонтальной прокрутки; фокус виден на всех интерактивных элементах.
+**Done when:** `pnpm check` is green; all states of buttons/fields/rows from `spec.md` §4 are visible; a 1180×820 window has no horizontal scroll; focus is visible on all interactive elements.
 
-**Проверка человеком:**
-1. `pnpm desktop:dev`, вкладка «Рейс» без OFP → пустое состояние, кнопка «Загрузить» синяя.
-2. Загрузить OFP → шапка рейса: позывной, ORIG — DEST, тип, расписание, профиль.
-3. Старт рейса с MSFS → статусы моста/симулятора/сети окрашены по тону, фаза подсвечена синим.
-4. Пришедший telex → строка ленты со статусом доставки; текст — зелёный на чёрном, ширина по профилю (A320: 24, B777: 27).
-5. Переключить язык EN/RU → ничего не обрезается.
-6. Пройти Tab по всем экранам → видимое кольцо фокуса.
+**Human check:**
+1. `pnpm desktop:dev`, the "Flight" tab without an OFP → empty state, the "Load" button is blue.
+2. Load an OFP → flight header: callsign, ORIG — DEST, type, schedule, profile.
+3. Start a flight with MSFS → bridge/simulator/network statuses are coloured by tone, the phase is highlighted in blue.
+4. An incoming telex → a feed row with the delivery status; text is green on black, width per profile (A320: 24, B777: 27).
+5. Switch the language EN/RU → nothing is cut off.
+6. Tab through all screens → a visible focus ring.

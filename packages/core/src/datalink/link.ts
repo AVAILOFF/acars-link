@@ -38,7 +38,7 @@ export interface InmarsatSatellite {
 
 /**
  * Ocean-region and I-4 positions (FCC question pool, hamstudy, FAA 2009; checked 2026-10-15).
- * Slots move over the years: `[ПРОВЕРИТЬ]` against the operator before a public release.
+ * Slots move over the years: `[VERIFY]` against the operator before a public release.
  */
 export const INMARSAT_SATELLITES: readonly InmarsatSatellite[] = [
   { id: 'AOR-W', lon: -54 },
