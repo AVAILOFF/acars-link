@@ -3,7 +3,8 @@ Copyright (c) 2026 AVAILOFF. All rights reserved.
 ACARS Link (source code, scenarios, design assets, installer and documentation in this
 repository) is proprietary software. No licence to copy, modify, distribute, sublicense
 or create derivative works is granted, except as stated in the End User Licence Agreement
-(apps/desktop/build/license.txt), which governs use of the installed application.
+(apps/desktop/build/license.txt), which governs use of the installed application, and in
+PERMISSIONS.md, which grants additional permissions to the persons listed there.
 
 Third-party components and data keep their own licences and are not covered by the
 paragraph above; see THIRD-PARTY-NOTICES.md.
