@@ -40,7 +40,7 @@ cd acars-link
 
 On Windows, enable long paths once if the clone reports "Filename too long": `git config --global core.longpaths true`.
 
-The source is published for reading and reference. It is proprietary — see [LICENSE](LICENSE): no licence to copy, modify or redistribute is granted. Third-party components keep their own licences ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
+The source is published for reading and reference. It is proprietary — see [LICENSE](LICENSE): no licence to copy, modify or redistribute is granted, except to the people listed in [PERMISSIONS.md](PERMISSIONS.md). Third-party components keep their own licences ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
 
 ## Quick start
 
