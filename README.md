@@ -29,9 +29,22 @@ docs/                    documents — the source of truth
 reference/               sample scenarios, telemetry, anonymized OFPs
 ```
 
+## Get the code
+
+Repository: <https://github.com/AVAILOFF/acars-link>
+
+```
+git clone https://github.com/AVAILOFF/acars-link.git
+cd acars-link
+```
+
+On Windows, enable long paths once if the clone reports "Filename too long": `git config --global core.longpaths true`.
+
+The source is published for reading and reference. It is proprietary — see [LICENSE](LICENSE): no licence to copy, modify or redistribute is granted. Third-party components keep their own licences ([THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).
+
 ## Quick start
 
-Requires Node ≥ 24 and pnpm 12; the bridge needs the .NET 10 SDK.
+Requires Node ≥ 24 and pnpm 12; the bridge needs the .NET 10 SDK. SimConnect support in the bridge also needs the MSFS 2024 SDK (`MSFS2024_SDK` environment variable or `bridge/msfs/Local.props`, see [bridge/msfs/README.md](bridge/msfs/README.md)); without it the bridge builds without SimConnect. Nothing else is required for a fresh clone — `.env.local` is only used by the optional `pnpm i18n translate` tool (DeepL key).
 
 ```
 pnpm install
@@ -45,7 +58,7 @@ Full command list and working rules — [CLAUDE.md](CLAUDE.md).
 
 ## Repository and CI
 
-The remote is the private GitHub repository `AVAILOFF/acars-link` (T63). Clone: `gh repo clone AVAILOFF/acars-link`.
+The remote is the GitHub repository [`AVAILOFF/acars-link`](https://github.com/AVAILOFF/acars-link) (T63).
 
 CI is GitHub Actions, [.github/workflows/check.yml](.github/workflows/check.yml): on every push to any branch and on pull requests, `windows-latest`, `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm bridge:test`. There is no MSFS SDK in CI, so the bridge is built without SimConnect. Results are in the repository's Actions tab or `gh run list`; to run manually — `gh workflow run check --ref <branch>`.
 
